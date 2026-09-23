@@ -143,12 +143,20 @@ the plans show only structure and theme but not concrete songs or content, thats
 ## User comments
 users might in optional chat system post in their respective room. the main screen of the app will not show chat but a few messages like 1-3 coming in and going out. the user might react to those. those reactions might influence how relevant that comment becomes so it might be considered by ai host moderator to show as fly ins. 
 
+## multiple channels
+- the app has one main channel its active by default
+- the app also has 0 or more optional channels to choose from
+- the main screen shows info according to the channel the user is in.
+
+## UI Main Screen
+- should show player stage on top
+- should show a channel selection, defaulting to main
+- should show program title and subheader and live icon and numbers of live listeners above or below the stage
+- should show 1-3 community voices with 2 big react buttons, a heart and a pray emoji and a smaller smile button to choose more reactions.
+- interacted voices disappear
+- tucked to the bottom should be the submission buttons available and the program schedule on a bottom sheet
+- nav: home, schedule, chat, profile
+
 ## Principle
 
-**One global program. Personal language. Small communities. Worldwide connection.**
-
-You could define the missing interaction layer next:
-
-* Design contribution flow
-* Define chat and stream structure
-
+**Christ Community Radio.**

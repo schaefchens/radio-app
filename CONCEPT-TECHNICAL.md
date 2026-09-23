@@ -1,4 +1,3 @@
-```markdown
 # ARCHE – Technical Concept
 
 ## Vision
@@ -56,6 +55,21 @@ The experience combines a global shared program with personal language and small
 - stage is program dependent. might just show a image or more dynamic things like flyin user messages
 - user login is optional and no email/password. we use 12-word crytpo wallet style passphrases the user has to remember.
 
+### 5. Content Library & Trend System (Fallback + Engagement Data)
+- Persistent pool of playable content (primarily music) used to fill program gaps when fresh user submissions are insufficient for a slot.
+- Populated two ways:
+  - **Curated seed content** – added manually by moderators/admins to bootstrap the pool.
+  - **Graduated submissions** – approved user submissions don't disappear after their one live play; they enter the library **automatically** on approval (no separate moderator promotion step) and remain eligible for future fallback use.
+- Runs as an extension of the Submission System (same storage), since that system already owns approval/moderation.
+- **Metadata per item**: YouTube reference + duration, mood/theme tags (worship, upbeat, reflective, prayer, christmas, etc. – largely reused from the existing moderation pipeline's Christian-relevance/theme-relevance checks rather than a separate tagging pass), language, which Plan program types it's suitable for, and play history (last played, play count) to avoid repetition.
+- **Gap-fill selection**: the Generation layer queries the library filtered by the current Program's allowed themes/moods and language, weighted toward high trend score but with enough randomness to avoid staleness.
+- **Listener reactions → trend data**: listeners react to what's currently playing via the Realtime System. This must not become a precise per-reaction write to the backend – same scaling problem as a heartbeat ping. Instead:
+  - Each Realtime node aggregates reactions in memory per content item while it's live.
+  - Aggregated counts flush as one batched delta every ~15–30s, not per reaction – O(time-intervals) writes instead of O(reactions), independent of listener count.
+  - If multiple Realtime nodes exist later (sharded rooms), their batched deltas are simply additive at flush time – no redesign needed to scale horizontally.
+  - Trend score applies time-decay (rolling weighted window) so it reflects recent reception, not a lifetime tally.
+  - This is a soft ranking signal for AI fallback selection, not a public leaderboard – we want trends, not precise counts; performance and scalability outrank exactness here.
+  - Reaction collection rides on the (optional, scale-to-zero) Realtime System, so it's itself optional – if Realtime is down, gap-filling still works, just without trend weighting for that period.
 
 ---
 
@@ -124,7 +138,25 @@ The entire radio is **deterministic** and driven by UTC time + CDN files.
 
 ---
 
+## Decisions & Open Questions (Log)
+
+Running log of concept decisions made during design discussion, so context isn't lost.
+
+| Topic | Decision |
+|---|---|
+| Language selection | Detected client-side (browser locale), defaulting to `en` unless `de`. Not server-tracked – keeps the shared timeline anonymous by default. |
+| YouTube pre-roll ads | Accepted as unavoidable; the periodic resync (20–30s) absorbs the drift. Listeners wanting an ad-free experience are responsible for their own YouTube Premium. |
+| Mobile/background throttling | Client forces an immediate resync on `visibilitychange` (tab/app foregrounded), rather than waiting for the next periodic tick. |
+| Autoplay restrictions | Joining mid-stream requires a "tap to join" gesture on the stage – never a silent auto-join with sound. |
+| Regional video availability | Slot JSON includes a fallback (jingle/silence) the client switches to if the YouTube player errors on the primary video. |
+| Listener count at scale | Derived from BunnyCDN request-log data for the current slot's file path (near-real-time via BunnyCDN's logging API), not client pings to the origin. Each client already fetches that file once per slot as part of normal sync, so this is free – zero added origin load – and works even with the Realtime System scaled to zero. When Realtime is active, it can additionally expose an exact per-room count layered on top. |
+| Passphrase auth | 12 words generated client-side, hashed (e.g. Argon2) before reaching the server. No recovery path by design – UI must be explicit the user is solely responsible for saving it. |
+| Plan vs. AI moderation boundary | Two named layers: **Plan** (fixed structure – time slots, program type, allowed submission types; editable only by restricted users) and **Generation** (AI works within a slot's Plan constraints – order, featuring submissions, moderation script, fly-ins). The AI can never act outside what the Plan allows for that slot. |
+| Content gap-filling | See "Content Library & Trend System" above – dedicated pool of music/content, enriched by graduated submissions, tagged with mood/theme metadata, selected by the Generation layer when fresh submissions run short. |
+| Submission graduation | Automatic – any approved submission enters the Content Library immediately on moderation approval, no separate promotion step. Keeps the pool growing on its own as the show runs. |
+
+---
+
 **Principle:**
 > One global program. Personal language. Small communities. Worldwide connection.  
 > The radio must keep playing — even when everything else fails.
-```
