@@ -129,6 +129,30 @@ The entire radio is **deterministic** and driven by UTC time + CDN files.
 
 ---
 
+## Contribution Flow
+
+### Identity
+- Every install generates an **anonymous identity** locally on first use; stored on-device, sent with every request. Server-side this anon ID is a full identity record from day one — same shape as a passphrase identity, just without a passphrase attached yet.
+- A 12-word passphrase is an optional **credential** attached to an identity later — not a separate identity type.
+- **Claiming**: entering/creating a passphrase sends a claim call; the server records anon-ID → passphrase-identity in a lightweight alias table. Submission/history rows never move — lookups resolve through the alias table first. One passphrase identity can accumulate several claimed anon IDs (multi-device use).
+- **Purge**: unclaimed anon IDs with no activity for 30–90 days are eligible for deletion. Claimed anon IDs are never purged independently — they're pointers; the real record lives at the identity they resolve to.
+- Known gap (not solved by this): prevents identity *fragmentation* for legitimate users, but doesn't stop someone deliberately cycling anon IDs to dodge rate limits — that needs a separate IP/device-signal defense, tracked as an open item.
+
+### Submission steps
+1. **Eligibility (client-side)** – the slot JSON the client already has for playback sync also carries the current Program's allowed submission types and `open`/`closing`/`closed` state. The submission UI only ever shows what's currently allowed — no extra API call.
+2. **Entry** – song: paste YouTube URL, client validates ID + duration via oEmbed before allowing submit. Audio (story/prayer/testimony/greeting): in-browser recording, capped duration, listen-back before send.
+3. **Silent vs. announced songs** – a song submitted with no message is *silent*: if it passes checks it enters the pool as a plain track, no AI host script. A song submitted with a message gets an extra check on whether the message makes sense/fits; if it passes, the submission is tagged announcement-eligible so the Generation layer can write a host transition around it. If the song is fine but the message fails its check, the **whole submission is rejected** (not silently downgraded to silent) — the submitter is told, rather than having their message quietly dropped.
+4. **Intake** – raw submission + program/slot context + timestamp persisted; rate-limited per identity/session (the primary anti-abuse layer given there's no email verification).
+5. **Moderation – two stages**:
+   - **Baseline** (always runs): safety, legality, general Christian relevance.
+   - **Per-Program** (pulled from the current Program's Plan entry): allowed submission types and allowed theme/mood tags. A song submitted during Prayer Hour fails here on type mismatch, before content is even evaluated.
+   - Users can only submit to whichever Program is currently on air — enforced already by the eligibility check in step 1.
+6. **Timing edge case** – if a submission needed human review and isn't approved until after its Program's window has closed, it can no longer be scheduled live for that slot. Default: it still graduates into the Content Library, tagged for that program type, and becomes eligible the next time a matching Program runs, rather than being wasted.
+7. **On approval** – enters the Program System's scheduling pool for its slot and, per the automatic-graduation decision, immediately enters the Content Library carrying the tags moderation produced. Only theme/mood tags carry over — a submitter's personal message (e.g. a dedication) is submission-specific context, not a reusable library tag, so it never resurfaces if the song is replayed later from the fallback pool.
+8. **Status feedback** – pending/aired/rejected, looked up by identity, polled when the app is open (not realtime-dependent). Rejections get one of a small fixed set of generic reasons (e.g. *doesn't match current program* / *content not suitable* / *not accepted this time*) — deliberately vague so the specific classifier signals that would let someone learn to route around moderation are never exposed.
+
+---
+
 ## System Separation Rules
 
 - The **Program System** must never depend on the Realtime System.
@@ -154,6 +178,10 @@ Running log of concept decisions made during design discussion, so context isn't
 | Plan vs. AI moderation boundary | Two named layers: **Plan** (fixed structure – time slots, program type, allowed submission types; editable only by restricted users) and **Generation** (AI works within a slot's Plan constraints – order, featuring submissions, moderation script, fly-ins). The AI can never act outside what the Plan allows for that slot. |
 | Content gap-filling | See "Content Library & Trend System" above – dedicated pool of music/content, enriched by graduated submissions, tagged with mood/theme metadata, selected by the Generation layer when fresh submissions run short. |
 | Submission graduation | Automatic – any approved submission enters the Content Library immediately on moderation approval, no separate promotion step. Keeps the pool growing on its own as the show runs. |
+| Identity handling | See "Contribution Flow → Identity" above – anonymous-first; a passphrase is an optional credential attached later via an alias table, so no identity fragmentation between anonymous and account use. |
+| Per-program moderation | See "Contribution Flow → Submission steps" above – two-stage pipeline: universal baseline, then per-Program allowed types/themes pulled from that Program's Plan entry. |
+| Rejection feedback | A small fixed set of generic reasons only (e.g. doesn't match current program / not suitable / not accepted this time) – specific classifier signals are never exposed, to prevent moderation gaming. |
+| Silent vs. announced songs | Silent (link-only) songs entering the pool get no AI script. Songs with a message get an extra fit-check; if the song passes but the message fails, the whole submission is rejected rather than silently downgraded to silent. |
 
 ---
 
