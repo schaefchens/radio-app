@@ -80,6 +80,40 @@ test('submissions: rejection is generic, uncertain fails closed, errors fail clo
     check(refuses(fn() => $app->submissions()->submitSong($me, $ch, ['url' => 'https://youtu.be/Ww6Ww6Ww6Ww']), 'rate_limited'), 'rate limited after three an hour');
 });
 
+test('submissions: kept 90 days as the privacy policy says, then deleted with their recording unless it stays for replays', function () {
+    $app = TestKit::app();
+    $store = $app->store();
+    $me = listener($app);
+    $ch = TestKit::main($app);
+    $prayer = $app->submissions()->submitPrayer($me, $ch, ['text' => 'Please pray for my brother.', 'name' => 'Lea', 'place' => 'Köln', 'consent_air' => true]);
+    $plain = $app->media()->put('contrib', 'plainrec0001.mp3', 'aired once');
+    $kept = $app->media()->put('contrib', 'keptrec00001.mp3', 'replays allowed');
+    $recording = fn(string $audio, int $replay) => $store->insert('submissions', [
+        'public_id' => Arche\Support\Ids::short(12), 'identity_id' => (int) $me['id'], 'channel_id' => (int) $ch['id'], 'program_id' => 1,
+        'type' => 'story', 'mode' => 'audio', 'status' => 'aired', 'name' => 'Esther', 'place' => 'Nairobi', 'audio' => $audio,
+        'consent_air' => 1, 'consent_replay' => $replay, 'created' => $app->clock->now(), 'updated' => $app->clock->now(),
+    ]);
+    $recording($plain, 0);
+    $keptId = $recording($kept, 1);
+    $libraryId = $store->insert('library_items', ['kind' => 'contrib', 'audio' => $kept, 'title' => 'Esther, Nairobi', 'duration_ms' => 20_000,
+        'submission_id' => $keptId, 'source' => 'submission', 'created' => 1, 'updated' => 1]);
+    $store->query("INSERT INTO highlights(uid, channel, sub, name, text, at, created, updated) VALUES('h1', 'main', 's', 'Anna', 'Amen', 0, ?, ?)", [$app->clock->now(), $app->clock->now()]);
+    $store->query("INSERT INTO chat_reports(msg, text, author, reporter, at, created) VALUES('m1', 'x', 'a', 'b', 0, ?)", [$app->clock->now()]);
+
+    TestKit::clock($app)->advance(89 * 86400 * 1000);
+    $app->tick()->run('test');
+    check($app->submissions()->byPublicId($prayer['id']) !== null, 'still there after 89 days');
+    eq((int) $store->value('SELECT COUNT(*) FROM highlights'), 0, 'community voices from chat go after 7 days');
+    eq((int) $store->value('SELECT COUNT(*) FROM chat_reports'), 0, 'chat reports go after 30 days');
+
+    TestKit::clock($app)->advance(2 * 86400 * 1000);
+    $app->tick()->run('test');
+    eq((int) $store->value('SELECT COUNT(*) FROM submissions'), 0, 'every submission is gone after 90 days');
+    check(!is_file((string) $app->media()->path($plain)), 'a recording aired once is deleted with it');
+    check(is_file((string) $app->media()->path($kept)), 'one the listener allowed to be replayed stays in the library');
+    eq($store->value('SELECT submission_id FROM library_items WHERE id = ?', [$libraryId]), null, 'the library no longer points at the deleted row');
+});
+
 test('submissions: a message that fails its check rejects the whole request', function () {
     $app = TestKit::app();
     $app->text()->respond('moderate_song', fn() => ['safe' => true, 'christian' => true, 'program_fit' => true, 'message_ok' => false, 'verdict' => 'reject', 'themes' => [], 'moods' => [], 'languages' => []]);

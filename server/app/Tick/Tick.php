@@ -167,13 +167,21 @@ final class Tick
     {
         $now = $this->app->clock->now();
         $store = $this->app->store();
+        $c = $this->app->config;
+        // The retention periods the privacy policy states (app/src/content/legal.ts).
         return [
+            // First, so the identities they belonged to can go next.
+            'submissions' => $this->app->submissions()->purgeBefore($now - $c->int('RETAIN_SUBMISSIONS_DAYS', 90) * 86400),
             'identities' => $this->app->identities()->purgeInactive(),
             'timeline' => $this->app->timeline()->purgeBefore(($now - $this->app->config->int('RETAIN_TIMELINE_DAYS', 30) * 86400) * 1000),
             'jobs' => $this->app->jobs()->purgeBefore($now - 7 * 86400),
             'attempts' => $store->query('DELETE FROM attempts WHERE time < ?', [$now - 2 * 86400])->rowCount(),
             'presence' => $store->query('DELETE FROM presence WHERE seen < ?', [$now - 86400])->rowCount(),
             'audit' => $store->query('DELETE FROM audit WHERE time < ?', [$now - 90 * 86400])->rowCount(),
+            // Chat: community voices are shown for two hours, reports handled within days.
+            'highlights' => $store->query('DELETE FROM highlights WHERE created < ?', [$now - 7 * 86400])->rowCount(),
+            'reports' => $store->query('DELETE FROM chat_reports WHERE created < ?', [$now - 30 * 86400])->rowCount(),
+            'removed' => $store->query('DELETE FROM removed_messages WHERE time < ?', [$now - 7 * 86400])->rowCount(),
         ];
     }
 

@@ -296,6 +296,33 @@ final class Submissions
         ]);
     }
 
+    /**
+     * What a listener handed in is kept RETAIN_SUBMISSIONS_DAYS, as the
+     * privacy policy promises: then the row goes — name, place, text,
+     * transcript — and with it a published recording, unless the library
+     * still holds it for replays (which needed the listener's consent).
+     * Bounded per run; the rest goes the next day.
+     */
+    public function purgeBefore(int $ts, int $limit = 500): int
+    {
+        $store = $this->app->store();
+        $rows = $store->all('SELECT id, audio, upload FROM submissions WHERE created < ? ORDER BY id LIMIT ?', [$ts, $limit]);
+        foreach ($rows as $r) {
+            $id = (int) $r['id'];
+            $audio = (string) ($r['audio'] ?? '');
+            if ($audio !== '' && (int) $store->value('SELECT COUNT(*) FROM library_items WHERE audio = ?', [$audio]) === 0) {
+                $this->app->media()->delete($audio);
+            }
+            if ($r['upload']) @unlink($this->app->config->dataDir . '/uploads/' . basename((string) $r['upload']));
+            $store->tx(function () use ($store, $id) {
+                $store->query('UPDATE timeline_items SET submission_id = NULL WHERE submission_id = ?', [$id]);
+                $store->query('UPDATE library_items SET submission_id = NULL WHERE submission_id = ?', [$id]);
+                $store->query('DELETE FROM submissions WHERE id = ?', [$id]);
+            });
+        }
+        return count($rows);
+    }
+
     /** @param array<string,mixed> $verdict */
     public function reject(int $id, string $reason, array $verdict, string $actor): void
     {

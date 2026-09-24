@@ -53,6 +53,8 @@ return [
     'RETAIN_HOST_AUDIO_HOURS' => '48',
     'RETAIN_DAY_FILES_DAYS' => '60',
     'RETAIN_TIMELINE_DAYS' => '30',
+    // Stated in the privacy policy (app/src/content/legal.ts): change both together.
+    'RETAIN_SUBMISSIONS_DAYS' => '90',
 
     // --- submissions -----------------------------------------------------------
     'SONG_MIN_SECONDS' => '60',
