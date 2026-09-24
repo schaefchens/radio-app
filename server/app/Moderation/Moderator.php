@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Moderation;
 
 use Arche\App;
+use Arche\Config;
 use Arche\Library\YouTube;
 
 /**
@@ -72,23 +73,50 @@ final class Moderator
         // Our side or Google's being unreachable is retried by the job lease;
         // anything YouTube actually says about the video is final.
         if (!$v['ok'] && in_array($v['error'], ['unreachable', 'api_error'], true)) throw new \RuntimeException('YouTube ' . $v['error']);
-        $c = $this->app->config;
-        $fine = $v['ok'] && $v['embeddable'] && $v['public'] && !$v['live'] && !$v['age_restricted']
-            && $v['duration_ms'] >= $c->int('SONG_MIN_SECONDS', 60) * 1000
-            && $v['duration_ms'] <= $c->int('SONG_MAX_SECONDS', 720) * 1000
-            && YouTube::playableIn($v, $c->list('SUBMISSION_MARKETS'));
-        if (!$fine) {
-            $subs->reject((int) $sub['id'], 'not_suitable', ['video' => $v['ok'] ? 'unplayable' : $v['error']], 'moderator');
+        // What YouTube told us is kept even when the video fails: a moderator
+        // reviewing the decision needs to know which song it was.
+        if ($v['ok']) {
+            [$artist, $title] = YouTube::splitTitle($v['title'], $v['channel']);
+            $meta = json_decode((string) $sub['meta'], true) ?: [];
+            $meta['youtube'] = [
+                'title' => $title, 'artist' => $artist, 'channel' => $v['channel'], 'duration_ms' => $v['duration_ms'],
+                'description' => mb_substr($v['description'], 0, 800), 'tags' => array_slice($v['tags'], 0, 12),
+            ];
+            $this->app->store()->update('submissions', ['meta' => json_encode($meta, JSON_UNESCAPED_UNICODE)], 'id = ?', [$sub['id']]);
+        }
+        $problems = self::videoProblems($v, $this->app->config);
+        if ($problems) {
+            $markets = $this->app->config->list('SUBMISSION_MARKETS');
+            $subs->reject((int) $sub['id'], 'not_suitable', [
+                'video' => $problems,
+                'duration_ms' => $v['duration_ms'],
+                'blocked_in' => array_values(array_filter($markets, fn($m) => !YouTube::playableIn($v, [$m]))),
+            ], 'moderator');
             return null;
         }
-        [$artist, $title] = YouTube::splitTitle($v['title'], $v['channel']);
-        $meta = json_decode((string) $sub['meta'], true) ?: [];
-        $meta['youtube'] = [
-            'title' => $title, 'artist' => $artist, 'channel' => $v['channel'], 'duration_ms' => $v['duration_ms'],
-            'description' => mb_substr($v['description'], 0, 800), 'tags' => array_slice($v['tags'], 0, 12),
-        ];
-        $this->app->store()->update('submissions', ['meta' => json_encode($meta, JSON_UNESCAPED_UNICODE)], 'id = ?', [$sub['id']]);
         return 'judge';
+    }
+
+    /**
+     * Why a video cannot be a request, one code per failed check. too_long and
+     * too_short are the station's rules (a moderator may overrule them); the
+     * rest mean the embed would not play.
+     *
+     * @param array<string,mixed> $v YouTube::video()
+     * @return list<string>
+     */
+    public static function videoProblems(array $v, Config $c): array
+    {
+        if (!$v['ok']) return [(string) ($v['error'] ?: 'not_found')];
+        $out = [];
+        if (!$v['embeddable']) $out[] = 'not_embeddable';
+        if (!$v['public']) $out[] = 'not_public';
+        if ($v['live']) $out[] = 'live';
+        if ($v['age_restricted']) $out[] = 'age_restricted';
+        if ($v['duration_ms'] < $c->int('SONG_MIN_SECONDS', 60) * 1000) $out[] = 'too_short';
+        if ($v['duration_ms'] > $c->int('SONG_MAX_SECONDS', 720) * 1000) $out[] = 'too_long';
+        if (!YouTube::playableIn($v, $c->list('SUBMISSION_MARKETS'))) $out[] = 'region';
+        return $out;
     }
 
     /** @param array<string,mixed> $sub */
@@ -158,6 +186,8 @@ final class Moderator
         $messageOk = ($v['message_ok'] ?? false) === true || ($sub['type'] === 'song' && trim((string) $sub['message']) === '');
         $verdict = (string) ($v['verdict'] ?? 'uncertain');
         $allowed = $program !== null && in_array($sub['type'], $program['allowed'], true);
+        // Decided here, not by the model: kept with the verdict for the moderators.
+        $v['type_allowed'] = $allowed;
 
         if ($verdict === 'approve' && $safe && $christian && $fit && $messageOk && $allowed) {
             $subs->approve($id, $v, 'moderator');

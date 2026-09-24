@@ -25,7 +25,8 @@ use Arche\Support\Ids;
  * job, so the request itself answers in milliseconds.
  *
  * Rejections carry one of three deliberately vague reasons; what the
- * classifier actually objected to stays in `verdict`, which no API returns.
+ * classifier actually objected to stays in `verdict`, which only the
+ * moderators' API returns (they can overrule it, see overruleBlocker()).
  */
 final class Submissions
 {
@@ -217,13 +218,19 @@ final class Submissions
      *
      * @param array<string,mixed> $verdict
      */
-    public function approve(int $id, array $verdict, string $actor): void
+    /**
+     * @param bool $overrule a moderator approves what was rejected (see overruleBlocker())
+     * @param bool $keepMessage false: the song airs without the listener's dedication
+     */
+    public function approve(int $id, array $verdict, string $actor, bool $overrule = false, bool $keepMessage = true): void
     {
         $sub = $this->get($id) ?? throw new ApiError(404, 'not_found');
-        if (!in_array($sub['status'], ['checking', 'review', 'received'], true)) return;
+        if (!in_array($sub['status'], $overrule ? ['rejected'] : ['checking', 'review', 'received'], true)) return;
         $store = $this->app->store();
         $now = $this->app->clock->now();
         $set = ['status' => 'approved', 'reason' => '', 'verdict' => json_encode($verdict, JSON_UNESCAPED_UNICODE), 'updated' => $now];
+        // Without its dedication a request is a plain track: nothing is read out.
+        if (!$keepMessage) $set['message'] = '';
         $meta = json_decode((string) $sub['meta'], true) ?: [];
         foreach (['caption_en', 'caption_de', 'host_context'] as $k) {
             if (isset($verdict[$k])) $meta[$k] = mb_substr(trim((string) $verdict[$k]), 0, 300);
@@ -244,7 +251,30 @@ final class Submissions
         // Missed its window: it lives on in the library, not in the live queue.
         if ((int) $sub['window_end'] <= $this->app->clock->nowMs() + 15 * 60_000) $set['status'] = 'library';
         $store->update('submissions', $set, 'id = ?', [$id]);
-        $store->audit($actor, 'Submission approved', $sub['public_id'] . ' ' . $sub['type']);
+        $store->audit($actor, $overrule ? 'Rejection overruled' : 'Submission approved', $sub['public_id'] . ' ' . $sub['type']);
+    }
+
+    /**
+     * Why a moderator can no longer approve this rejection (null: they can).
+     * A rejected recording is deleted at once, as the privacy policy says, and
+     * a video YouTube will not play in the embed cannot air at all; the
+     * station's own length limits, the classifier and every failure can be
+     * overruled.
+     *
+     * @param array<string,mixed> $sub
+     */
+    public function overruleBlocker(array $sub): ?string
+    {
+        if ($sub['status'] !== 'rejected') return 'not_rejected';
+        if ($sub['mode'] === 'audio') return 'recording_deleted';
+        if ($sub['type'] === 'song') {
+            $meta = json_decode((string) $sub['meta'], true) ?: [];
+            $verdict = json_decode((string) $sub['verdict'], true) ?: [];
+            // Older rows name the problem with one string ('unplayable').
+            $unplayable = array_diff((array) ($verdict['video'] ?? []), ['too_long', 'too_short']);
+            if (!isset($meta['youtube']) || $unplayable) return 'video_unplayable';
+        }
+        return null;
     }
 
     /** @param array<string,mixed> $sub @param array<string,mixed> $meta @param array<string,mixed> $verdict */

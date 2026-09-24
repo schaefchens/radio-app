@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { fakeYouTube } from './support/youtube';
-import { api, asDevice, ensureAdmin, liveFile, newDevice, serverNow, slotAt } from './support/station';
+import { api, asDevice, cron, ensureAdmin, liveFile, newDevice, serverNow, slotAt, type Device } from './support/station';
 
 /**
  * The moderator side, as the station's administrator (made by the global
@@ -61,4 +61,51 @@ test('the status page shows the generator running', async ({ page }) => {
   await page.goto('/mod');
   await expect(page.getByRole('link', { name: 'Library' })).toBeVisible();
   await expect(page.getByText(/tick/i).first()).toBeVisible();
+});
+
+/** A listener requests a song through the API; the cron drives its moderation until it is decided. */
+async function rejectedRequest(yt: string): Promise<{ device: Device; id: string }> {
+  const device = newDevice();
+  const r = await api<{ submission: { id: string } }>(device, '/submissions/song', {
+    body: { url: `https://www.youtube.com/watch?v=${yt}`, name: 'Ruth', place: 'Moab', lang: 'en' },
+  });
+  expect(r.status).toBe(200);
+  const id = r.data.submission.id;
+  await expect
+    .poll(
+      async () => {
+        await cron();
+        const mine = await api<{ submissions: { id: string; status: string }[] }>(device, '/submissions');
+        return mine.data.submissions.find((s) => s.id === id)?.status;
+      },
+      { timeout: 90_000, intervals: [3000] },
+    )
+    .toBe('rejected');
+  return { device, id };
+}
+
+test('a moderator sees why a request was rejected and can approve it anyway', async ({ page }) => {
+  // Too long for the station's rule (a moderator may overrule it) and
+  // unembeddable (nobody can: YouTube would not play it).
+  const long = await rejectedRequest('e2eReqLong1');
+  const noEmbed = await rejectedRequest('e2eNoEmbed1');
+  await asDevice(page, await ensureAdmin());
+  await fakeYouTube(page);
+  await page.goto('/mod/review');
+  await page.getByRole('button', { name: 'Rejected' }).click();
+
+  const blocked = page.locator('section', { hasText: `#${noEmbed.id}` });
+  await expect(blocked.getByText('YouTube: the owner does not allow embedding')).toBeVisible();
+  await expect(blocked.getByText(/cannot air/)).toBeVisible();
+  await expect(blocked.getByRole('button', { name: 'Approve anyway' })).toHaveCount(0);
+
+  const card = page.locator('section', { hasText: `#${long.id}` });
+  await expect(card.getByText('Longer than the station allows (15:00)')).toBeVisible();
+  await expect(card.getByText('the listener was told: Not suitable')).toBeVisible();
+  await card.getByRole('button', { name: 'Approve anyway' }).click();
+  await expect(page.getByText('Saved')).toBeVisible();
+  await expect(page.locator('section', { hasText: `#${long.id}` })).toHaveCount(0);
+
+  const mine = await api<{ submissions: { id: string; status: string }[] }>(long.device, '/submissions');
+  expect(mine.data.submissions.find((s) => s.id === long.id)?.status).toMatch(/approved|scheduled|aired|library/);
 });

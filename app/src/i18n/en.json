@@ -490,7 +490,11 @@
       "block": "Block"
     },
     "review": {
-      "empty": "Nothing waiting for review.",
+      "empty": {
+        "review": "Nothing waiting for review.",
+        "rejected": "No rejected submissions.",
+        "all": "No submissions yet."
+      },
       "approve": "Approve",
       "reject": "Reject",
       "reason": "Reason",
@@ -505,7 +509,76 @@
       "video": "Video",
       "listenerFrom": "{{name}} from {{place}}",
       "recording": "Recording",
-      "recordingMissing": "The recording could not be loaded."
+      "recordingMissing": "The recording could not be loaded.",
+      "filterLabel": "Show",
+      "filter": {
+        "review": "To review",
+        "rejected": "Rejected",
+        "all": "All"
+      },
+      "types": {
+        "song": "Song request",
+        "story": "Story",
+        "testimony": "Testimony",
+        "greeting": "Greeting",
+        "prayer": "Prayer request"
+      },
+      "statuses": {
+        "received": "Received",
+        "checking": "Being checked",
+        "review": "To review",
+        "approved": "Approved",
+        "scheduled": "Scheduled",
+        "aired": "Aired",
+        "library": "In the music selection",
+        "rejected": "Rejected"
+      },
+      "rejectedAt": "rejected {{when}}",
+      "why": "Why",
+      "videoProblems": {
+        "not_found": "YouTube: video not found",
+        "not_embeddable": "YouTube: the owner does not allow embedding",
+        "not_public": "YouTube: the video is not public",
+        "live": "YouTube: a live stream",
+        "age_restricted": "YouTube: age-restricted (does not play embedded)",
+        "too_short": "Shorter than the station allows ({{duration}})",
+        "too_long": "Longer than the station allows ({{duration}})",
+        "region": "Blocked by YouTube in {{markets}}",
+        "unplayable": "YouTube: does not play in the embedded player",
+        "not_configured": "No YouTube key to check the video"
+      },
+      "errors": {
+        "moderation_failed": "The check failed several times (network or AI error).",
+        "daily_cap": "The daily limit of automatic checks was reached.",
+        "budget": "The daily AI budget was used up.",
+        "no_key": "No AI key is configured.",
+        "youtube_not_configured": "No YouTube key to check the video."
+      },
+      "refusal": "The AI model declined to judge it.",
+      "flags": {
+        "safe": "Safe",
+        "christian": "Christian",
+        "program_fit": "Fits the program",
+        "message_ok": "Dedication OK",
+        "type_allowed": "Type allowed in the program"
+      },
+      "verdicts": {
+        "approve": "Verdict: approve",
+        "reject": "Verdict: reject",
+        "uncertain": "Verdict: unsure"
+      },
+      "automatic": "Decided by the automatic check",
+      "human": "Decided by a moderator",
+      "overruled": "Rejection overruled by a moderator",
+      "listenerSaw": "the listener was told: {{reason}}",
+      "overrule": "Approve anyway",
+      "withoutMessage": "Approve without the dedication",
+      "overruleHint": "A song joins the music selection; while its program is still on, the submission also goes on air.",
+      "blockers": {
+        "recording_deleted": "Rejected recordings are deleted at once (privacy policy), so this one cannot be approved any more.",
+        "video_unplayable": "YouTube does not play this video in the embedded player, so it cannot air.",
+        "not_rejected": "—"
+      }
     },
     "chat": {
       "reports": "Reported messages",

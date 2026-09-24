@@ -66,6 +66,7 @@ final class StubText implements TextModel
                 'caption_de' => 'Ein Hörer erzählt von seinem Glauben.',
                 'host_context' => 'A listener shares a story of faith.',
                 'summary' => 'stub',
+                'note' => 'Stub verdict.',
             ],
             $kind === 'moderate_highlights' => ['approved' => $this->idsIn($user)],
             default => [],

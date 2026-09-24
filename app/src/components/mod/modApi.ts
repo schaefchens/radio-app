@@ -144,6 +144,8 @@ const KNOWN: Record<string, string> = {
   youtube_not_configured: 'mod.library.noYoutube',
   video_not_embeddable: 'mod.library.notEmbeddable',
   already_in_library: 'mod.library.existing',
+  video_unplayable: 'mod.review.blockers.video_unplayable',
+  recording_deleted: 'mod.review.blockers.recording_deleted',
 };
 
 export function modError(e: unknown): string {

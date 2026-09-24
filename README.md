@@ -125,6 +125,9 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
   `TTS_PROVIDER=elevenlabs` and `ELEVENLABS_MAX_CHARS_PER_DAY` > 0.
 - **Backups**: a daily `VACUUM INTO` copy in `/_arche/var/backups` (seven kept).
 - **Pull from air**: /mod → Library → pull; clients skip it within a minute.
+- **Rejections**: /mod → Review → Rejected shows why each submission was
+  declined (the automatic check's verdict and note, or the failed YouTube
+  check) and approves it anyway where it can still air.
 - **Retention** (the privacy policy states these — change both together):
   minute files and host audio 48 h, day files 60 days, submissions 90 days
   (`RETAIN_SUBMISSIONS_DAYS`; recordings allowed for replays stay in the

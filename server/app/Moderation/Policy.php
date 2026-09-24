@@ -51,6 +51,10 @@ final class Policy
         as worship, praise, hope, christmas, easter, prayer, reflective, upbeat, calm, joyful) and
         the languages it is sung or spoken in (ISO codes such as en, de).
 
+        Also return note: one short sentence in English for the station's moderators, who read it and
+        may overrule you. Say what decided the verdict; for anything but approve, name the rule the
+        submission breaks or what about the program it does not fit.
+
         For recordings also return caption_en and caption_de — one neutral sentence each describing
         what the listener shares, without private details — and host_context, one sentence the host
         may use to introduce it. The German caption is natural German: when the speaker's gender is
@@ -86,6 +90,7 @@ final class Policy
             'themes' => ['type' => 'array', 'items' => ['type' => 'string']],
             'moods' => ['type' => 'array', 'items' => ['type' => 'string']],
             'languages' => ['type' => 'array', 'items' => ['type' => 'string']],
+            'note' => ['type' => 'string'],
         ];
         if ($recording) {
             $props['caption_en'] = ['type' => 'string'];

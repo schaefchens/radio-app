@@ -101,7 +101,11 @@ run at *script time*, so a listener who tunes in still hears the host soon.
 while the minute file says `open`/`closing` (checked again server-side). One job
 per submission, one outside call per phase (YouTube → text model; transcribe
 → text model). Recordings arrive as MP3 encoded in the browser (the host has no
-ffmpeg) and stay private until approved. Listeners see three generic reasons only.
+ffmpeg) and stay private until approved. Listeners see three generic reasons only;
+moderators see the whole verdict (the flags, the model's one-sentence `note`, which
+YouTube check failed) in /mod → Review and can overrule a rejection — except a
+recording (deleted on rejection, as the privacy policy says) or a video the embed
+would not play. The station's length limit can be overruled.
 
 **Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
 imprint and the privacy policy describe what this code does — the data flows
@@ -229,7 +233,8 @@ Covered: live position on join, two listeners in sync, evergreen fallback, no
 Google request before consent, RMF (nothing over the player, ≥ 200×200, paused
 under a sheet), no sideways scroll at 360/390 px on every page, passphrase on a
 second device, song/prayer/recording through moderation, /mod gate, library,
-pull from air, chat between two listeners, the program read cross-origin from
+pull from air, a rejection explained and overruled in /mod, chat between two
+listeners, the program read cross-origin from
 the stand-in CDN (CSP included) and from the site when the CDN is down.
 `npm run e2e:reset` starts over.
 

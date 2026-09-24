@@ -490,7 +490,11 @@
       "block": "Block"
     },
     "review": {
-      "empty": "Nichts wartet auf Prüfung.",
+      "empty": {
+        "review": "Nichts wartet auf Prüfung.",
+        "rejected": "Keine abgelehnten Einsendungen.",
+        "all": "Noch keine Einsendungen."
+      },
       "approve": "Annehmen",
       "reject": "Ablehnen",
       "reason": "Grund",
@@ -505,7 +509,76 @@
       "video": "Video",
       "listenerFrom": "{{name}} aus {{place}}",
       "recording": "Aufnahme",
-      "recordingMissing": "Die Aufnahme konnte nicht geladen werden."
+      "recordingMissing": "Die Aufnahme konnte nicht geladen werden.",
+      "filterLabel": "Anzeigen",
+      "filter": {
+        "review": "Zu prüfen",
+        "rejected": "Abgelehnt",
+        "all": "Alle"
+      },
+      "types": {
+        "song": "Songwunsch",
+        "story": "Geschichte",
+        "testimony": "Zeugnis",
+        "greeting": "Gruß",
+        "prayer": "Gebetsanliegen"
+      },
+      "statuses": {
+        "received": "Eingegangen",
+        "checking": "In Prüfung",
+        "review": "Zu prüfen",
+        "approved": "Freigegeben",
+        "scheduled": "Eingeplant",
+        "aired": "Gesendet",
+        "library": "In der Musikauswahl",
+        "rejected": "Abgelehnt"
+      },
+      "rejectedAt": "abgelehnt {{when}}",
+      "why": "Begründung",
+      "videoProblems": {
+        "not_found": "YouTube: Video nicht gefunden",
+        "not_embeddable": "YouTube: Einbetten vom Rechteinhaber nicht erlaubt",
+        "not_public": "YouTube: Das Video ist nicht öffentlich",
+        "live": "YouTube: ein Livestream",
+        "age_restricted": "YouTube: altersbeschränkt (spielt eingebettet nicht)",
+        "too_short": "Kürzer als der Sender erlaubt ({{duration}})",
+        "too_long": "Länger als der Sender erlaubt ({{duration}})",
+        "region": "Von YouTube gesperrt in {{markets}}",
+        "unplayable": "YouTube: spielt im eingebetteten Player nicht",
+        "not_configured": "Kein YouTube-Schlüssel für die Prüfung"
+      },
+      "errors": {
+        "moderation_failed": "Die Prüfung ist mehrmals fehlgeschlagen (Netz- oder KI-Fehler).",
+        "daily_cap": "Das Tageslimit der automatischen Prüfungen war erreicht.",
+        "budget": "Das KI-Tagesbudget war aufgebraucht.",
+        "no_key": "Es ist kein KI-Schlüssel eingerichtet.",
+        "youtube_not_configured": "Kein YouTube-Schlüssel für die Prüfung."
+      },
+      "refusal": "Das KI-Modell hat die Beurteilung verweigert.",
+      "flags": {
+        "safe": "Unbedenklich",
+        "christian": "Christlich",
+        "program_fit": "Passt zur Sendung",
+        "message_ok": "Widmung in Ordnung",
+        "type_allowed": "Art in der Sendung erlaubt"
+      },
+      "verdicts": {
+        "approve": "Urteil: freigeben",
+        "reject": "Urteil: ablehnen",
+        "uncertain": "Urteil: unsicher"
+      },
+      "automatic": "Entschieden von der automatischen Prüfung",
+      "human": "Entschieden von der Moderation",
+      "overruled": "Ablehnung von der Moderation überstimmt",
+      "listenerSaw": "angezeigt wurde: {{reason}}",
+      "overrule": "Trotzdem freigeben",
+      "withoutMessage": "Ohne Widmung freigeben",
+      "overruleHint": "Ein Song kommt in die Musikauswahl; solange seine Sendung noch läuft, geht die Einsendung auch auf Sendung.",
+      "blockers": {
+        "recording_deleted": "Abgelehnte Aufnahmen werden sofort gelöscht (Datenschutzerklärung) und können nicht mehr freigegeben werden.",
+        "video_unplayable": "YouTube spielt dieses Video im eingebetteten Player nicht ab; es kann nicht gesendet werden.",
+        "not_rejected": "—"
+      }
     },
     "chat": {
       "reports": "Gemeldete Nachrichten",

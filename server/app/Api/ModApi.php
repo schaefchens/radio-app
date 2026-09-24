@@ -341,12 +341,23 @@ final class ModApi
 
     // --- review queue ----------------------------------------------------------------------------
 
+    /**
+     * Submissions for the moderators, with the full verdict: ?status=review
+     * (the automatic check was unsure; the default), rejected (newest first,
+     * with whether the rejection can still be overruled) or all.
+     */
     public function review(): array
     {
         $this->mod();
+        $subs = $this->c->app->submissions();
+        [$where, $order] = match ((string) ($this->c->req->query['status'] ?? 'review')) {
+            'rejected' => ["s.status = 'rejected'", 's.updated DESC'],
+            'all' => ['1 = 1', 's.created DESC'],
+            default => ["s.status = 'review'", 's.created'],
+        };
         $rows = $this->c->app->store()->all(
             "SELECT s.*, p.title_en AS program_title FROM submissions s LEFT JOIN programs p ON p.id = s.program_id
-             WHERE s.status = 'review' ORDER BY s.created LIMIT 100",
+             WHERE $where ORDER BY $order LIMIT 100",
         );
         $out = [];
         foreach ($rows as $s) {
@@ -356,6 +367,8 @@ final class ModApi
                 'name' => $s['name'], 'place' => $s['place'], 'message' => $s['message'], 'text' => $s['text'],
                 'transcript' => $s['transcript'], 'yt' => $s['yt_id'], 'video' => $meta['youtube'] ?? null,
                 'verdict' => json_decode((string) $s['verdict'], true), 'created' => (int) $s['created'] * 1000,
+                'status' => $s['status'], 'reason' => $s['reason'], 'updated' => (int) $s['updated'] * 1000,
+                'blocker' => $s['status'] === 'rejected' ? $subs->overruleBlocker($s) : null,
             ];
         }
         return ['items' => $out];
@@ -385,10 +398,19 @@ final class ModApi
         $this->mod();
         $subs = $this->c->app->submissions();
         $sub = $subs->byPublicId((string) ($a['id'] ?? '')) ?? throw new ApiError(404, 'not_found');
-        if ($sub['status'] !== 'review') throw new ApiError(409, 'not_in_review');
         $verdict = json_decode((string) $sub['verdict'], true) ?: [];
+        // Overruling a rejection: approve only, and only while it can still air.
+        if ($sub['status'] === 'rejected' && $this->c->req->input('decision') === 'approve') {
+            $blocker = $subs->overruleBlocker($sub);
+            if ($blocker !== null) throw new ApiError(409, $blocker);
+            $subs->approve((int) $sub['id'], $verdict + ['human' => true, 'overruled' => true], $this->actor(),
+                overrule: true, keepMessage: $this->c->req->input('keepMessage', true) !== false);
+            return ['submission' => $subs->publicView($subs->get((int) $sub['id']) ?? $sub)];
+        }
+        if ($sub['status'] !== 'review') throw new ApiError(409, 'not_in_review');
         if ($this->c->req->input('decision') === 'approve') {
-            $subs->approve((int) $sub['id'], $verdict + ['human' => true], $this->actor());
+            $subs->approve((int) $sub['id'], $verdict + ['human' => true], $this->actor(),
+                keepMessage: $this->c->req->input('keepMessage', true) !== false);
         } else {
             $subs->reject((int) $sub['id'], (string) $this->c->req->input('reason', 'not_accepted'), $verdict + ['human' => true], $this->actor());
         }
