@@ -148,6 +148,7 @@ final class Moderator
         ];
         if ($sub['type'] === 'song') {
             $data['video'] = $meta['youtube'] ?? [];
+            if (isset($data['video']['description'])) $data['video']['description'] = self::uploaderText((string) $data['video']['description']);
             $data['message'] = (string) $sub['message'];
         } elseif ($sub['mode'] === 'audio') {
             $data['transcript'] = (string) $sub['transcript'];
@@ -202,6 +203,22 @@ final class Moderator
             return;
         }
         $subs->reject($id, $verdict === 'uncertain' ? 'not_accepted' : 'not_suitable', $v, 'moderator');
+    }
+
+    /**
+     * A video's description as the check reads it: without the links,
+     * addresses and handles almost every official video carries. The model
+     * took them for promotion by the listener and rejected "God's Not Dead"
+     * as unsafe. What is left still names the song, the album and the artist.
+     */
+    public static function uploaderText(string $text, int $max = 500): string
+    {
+        $text = preg_replace('~(?:https?://|www\.)\S+~iu', '', $text) ?? '';
+        $text = preg_replace('~[\w.+-]+@[\w-]+(?:\.[\w-]+)+~u', '', $text) ?? '';
+        $text = preg_replace('~(?<![\w@])@[\w.]+~u', '', $text) ?? '';
+        $text = preg_replace('~[ \t]+~u', ' ', $text) ?? '';
+        $text = preg_replace('~\s*\n\s*~u', "\n", $text) ?? '';
+        return mb_substr(trim($text), 0, $max);
     }
 
     /** Queue one batch job when chat highlights are waiting for a decision. */

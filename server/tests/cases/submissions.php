@@ -246,3 +246,34 @@ test('submissions: an unplayable video and a deleted recording cannot be overrul
     [$st, $d] = call($app, 'POST', '/api/mod/review/' . $sub['id'], ['decision' => 'approve'], modHeaders($app));
     eq([$st, $d['error'] ?? null], [409, 'video_unplayable'], 'the API refuses it');
 });
+
+test('submissions: the check judges the song, not the links in its video description', function () {
+    $clean = Arche\Moderation\Moderator::uploaderText("Official Music Video\nListen: https://newsboys.lnk.to/gnd\n\nFollow: www.instagram.com/newsboys @newsboys · booking@newsboys.com\nAlbum: God's Not Dead");
+    check(!preg_match('~https?://|www\.|@~', $clean), 'no link, handle or address left');
+    check(str_contains($clean, 'Official Music Video') && str_contains($clean, "Album: God's Not Dead"), 'the words that name the song stay');
+
+    $app = TestKit::app(['YOUTUBE_API_KEY' => 'test-key']);
+    $http = new FakeHttp();
+    $app->set('http', $http);
+    $http->answers[] = new Arche\Support\HttpResponse(200, (string) json_encode(['items' => [[
+        'id' => 'S_OTz-lpDjw',
+        'snippet' => [
+            'title' => "Newsboys - God's Not Dead (Official Music Video)", 'channelTitle' => 'Newsboys', 'liveBroadcastContent' => 'none', 'tags' => ['newsboys'],
+            'description' => "Official Music Video for God's Not Dead\nStream: https://newsboys.lnk.to/gnd\nFollow Newsboys: https://www.instagram.com/newsboys @newsboys\nDonate: www.example.org · info@newsboys.com",
+        ],
+        'contentDetails' => ['duration' => 'PT4M30S'],
+        'status' => ['embeddable' => true, 'privacyStatus' => 'public', 'uploadStatus' => 'processed'],
+    ]]]));
+    $seen = ['', ''];
+    $app->text()->respond('moderate_song', function (string $system, string $user) use (&$seen) {
+        $seen = [$system, $user];
+        return ['safe' => true, 'christian' => true, 'program_fit' => true, 'message_ok' => true, 'verdict' => 'approve',
+            'themes' => ['worship'], 'moods' => ['upbeat'], 'languages' => ['en'], 'note' => 'A well-known worship song.'];
+    });
+    $sub = $app->submissions()->submitSong(listener($app), TestKit::main($app), ['url' => 'https://youtu.be/S_OTz-lpDjw']);
+    runJobs($app);
+    eq($app->submissions()->byPublicId($sub['id'])['status'], 'approved', 'approved');
+    check(str_contains($seen[1], "God's Not Dead"), 'the check sees which song it is');
+    check(!preg_match('~https?://|www\.|@~', $seen[1]), 'but none of the links, handles or addresses');
+    check(str_contains($seen[0], "uploader's text"), 'and the rules say whose text the description is');
+});

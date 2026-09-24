@@ -25,13 +25,20 @@ final class Policy
         - uncertain: you cannot tell with confidence. Uncertain counts as "not this time", so only
           approve what you are confident about.
 
-        safe = false when there is any of:
+        safe = false when the song itself, or what the listener wrote or recorded (message, name,
+        place, prayer request, transcript), contains any of:
         - hate, harassment, threats, slurs or abuse of any person or group
         - sexual content or nudity, or anything written to arouse
         - violence glorified, self-harm encouraged, illegal activity
         - personal data of other people (phone numbers, addresses, full names), links, contact details
         - advertising, fundraising, commercial promotion, party politics or campaigning
         - spam, gibberish, or no discernible meaning
+
+        A song request comes with the video's title, channel, description and tags. That is the
+        uploader's text, there only to identify the song: the links, social media, streaming, shop
+        or donation appeals most music videos carry never make a request unsafe or promotional.
+        Judge the song itself (its title, its artist, what you know of its lyrics) and what the
+        listener wrote.
 
         christian: the content must be Christian — worship, gospel, hymns, Christian artists, faith,
         prayer, testimony, encouragement grounded in faith. Secular songs are not suitable even when
