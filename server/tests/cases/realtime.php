@@ -8,6 +8,10 @@ final class FakeCloud extends HetznerCloud
     /** @var list<array{0:string,1:string,2:?array}> */
     public array $calls = [];
     public array $servers = [];
+    /** The architecture of the one snapshot there is. */
+    public string $arch = 'x86';
+    /** @var list<string> server types Hetzner refuses (sold out) */
+    public array $soldOut = [];
 
     protected function token(): string
     {
@@ -19,7 +23,10 @@ final class FakeCloud extends HetznerCloud
         $this->calls[] = [$method, $path, $body];
         if ($method === 'GET' && str_starts_with($path, '/servers')) return ['servers' => $this->servers];
         if ($method === 'GET' && str_starts_with($path, '/images')) {
-            return ['images' => [['id' => 77, 'status' => 'available', 'architecture' => 'arm', 'labels' => ['version' => 'abc123']]]];
+            return ['images' => [['id' => 77, 'status' => 'available', 'architecture' => $this->arch, 'labels' => ['version' => 'abc123']]]];
+        }
+        if ($method === 'POST' && $path === '/servers' && in_array($body['server_type'] ?? '', $this->soldOut, true)) {
+            throw new RuntimeException('Hetzner API 422: unsupported location for server type (invalid_input)');
         }
         if ($method === 'POST' && $path === '/servers') {
             $this->servers[] = ['id' => 501, 'status' => 'initializing', 'labels' => $body['labels']];
@@ -91,6 +98,32 @@ test('realtime: static driver hands out the dev URL with a token', function () {
     check(isset($w['token']), 'token');
 });
 
+test('realtime: a sold-out server type falls back to the other one, never to another architecture', function () {
+    $slots = json_encode([['slot' => 'rt1', 'host' => 'rt1.radio.example', 'ipv4' => 11, 'ipv6' => 12, 'volume' => 13]]);
+    $env = keys() + ['REALTIME_DRIVER' => 'hcloud', 'REALTIME_SLOTS' => $slots, 'REALTIME_FIREWALL_ID' => '99',
+        'SITE_BASE_URL' => 'https://radio.example', 'REALTIME_ACME_EMAIL' => 'ops@example.org'];
+    $app = TestKit::app($env);
+    $cloud = new FakeCloud($app);
+    $cloud->soldOut = ['cpx12'];
+    $app->set('cloud', $cloud);
+    [$d, $s] = device();
+    $me = $app->identities()->resolve($d, $s, true);
+    eq($app->wake()->handle($me, 'main')['status'], 'starting', 'the wake still starts a node');
+    $types = array_map(fn($c) => $c[2]['server_type'], array_values(array_filter($cloud->calls, fn($c) => $c[0] === 'POST')));
+    eq($types, ['cpx12', 'cpx22'], 'the fallback type after the refusal');
+    eq($app->nodes()->row('rt1')['state'], 'booting', 'booting on the fallback');
+
+    // An Arm fallback for an x86 snapshot would boot nothing: it is not tried.
+    $app2 = TestKit::app($env + ['REALTIME_FALLBACK_TYPE' => 'cax21']);
+    $cloud2 = new FakeCloud($app2);
+    $cloud2->soldOut = ['cpx12'];
+    $app2->set('cloud', $cloud2);
+    [$d2, $s2] = device();
+    $app2->wake()->handle($app2->identities()->resolve($d2, $s2, true), 'main');
+    eq(count(array_filter($cloud2->calls, fn($c) => $c[0] === 'POST')), 1, 'no create without a matching snapshot');
+    check(str_contains((string) $app2->nodes()->row('rt1')['error'], 'unsupported location'), 'the refusal is recorded');
+});
+
 test('realtime: hcloud wake creates one node, ready at its first report, reaped when idle', function () {
     $slots = json_encode([['slot' => 'rt1', 'host' => 'rt1.radio.example', 'ipv4' => 11, 'ipv6' => 12, 'volume' => 13]]);
     $app = TestKit::app(keys() + ['REALTIME_DRIVER' => 'hcloud', 'REALTIME_SLOTS' => $slots, 'REALTIME_FIREWALL_ID' => '99',
@@ -104,7 +137,7 @@ test('realtime: hcloud wake creates one node, ready at its first report, reaped 
     $create = array_values(array_filter($cloud->calls, fn($c) => $c[0] === 'POST'));
     eq(count($create), 1, 'one create call');
     $body = $create[0][2];
-    eq([$body['server_type'], $body['image'], $body['volumes'], $body['automount']], ['cax11', 77, [13], false], 'server from the snapshot with the slot volume');
+    eq([$body['server_type'], $body['image'], $body['volumes'], $body['automount']], ['cpx12', 77, [13], false], 'server from the snapshot with the slot volume');
     eq($body['public_net']['ipv4'], 11, 'slot primary IPv4');
     check(!str_contains($body['user_data'], '{{'), 'cloud-init fully rendered');
     check(str_contains($body['user_data'], 'arche-realtime:abc123'), 'image tag from the snapshot label');

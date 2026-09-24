@@ -26,7 +26,7 @@
 #
 # Usage: scripts/realtime/build-snapshot.sh [options]
 #
-#   --type TYPE      server type to build on (default cax11; nodes must use
+#   --type TYPE      server type to build on (default cpx12; nodes must use
 #                    the same architecture and at least the same disk)
 #   --location LOC   Hetzner location (default fsn1)
 #   --keep N         snapshots to keep besides pinned ones (default 2)
@@ -44,7 +44,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=scripts/realtime/lib.sh
 . "$REPO_ROOT/scripts/realtime/lib.sh"
 
-TYPE=cax11 LOCATION=fsn1 KEEP=2 CONTEXT=arche ENV_FILE="$REPO_ROOT/.env" ALLOW_DIRTY=0 DRY_RUN=0
+TYPE=cpx12 LOCATION=fsn1 KEEP=2 CONTEXT=arche ENV_FILE="$REPO_ROOT/.env" ALLOW_DIRTY=0 DRY_RUN=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -171,6 +171,13 @@ ssh-keygen -t ed25519 -N '' -q -C "$KEY_NAME" -f "$WORK/id_ed25519"
 hc ssh-key create --name "$KEY_NAME" --public-key-from-file "$WORK/id_ed25519.pub" \
   --label app=arche --label role=snapshot-builder >/dev/null
 KEY_CREATED=1
+
+# Hetzner answers a sold-out type with "unsupported location for server type";
+# say which types this location can create instead.
+AVAILABLE=$(hc server-type describe "$TYPE" -o json | jq -r --arg loc "$LOCATION" '[.locations[]? | select(.name == $loc) | .available] | first // "unknown"')
+if [ "$AVAILABLE" = false ]; then
+  die "$TYPE cannot be created in $LOCATION right now. Available there: $(hc server-type list -o json | jq -r --arg loc "$LOCATION" '[.[] | select(.deprecation == null) | select(any(.locations[]?; .name == $loc and .available)) | .name] | join(", ")') — pass --type (and set REALTIME_SERVER_TYPE to the same architecture)"
+fi
 
 info "Creating build server $SERVER_NAME ($TYPE, $LOCATION)"
 SERVER_CREATED=1

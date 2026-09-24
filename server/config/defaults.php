@@ -77,8 +77,11 @@ return [
     'REALTIME_DRIVER' => 'off',
     'REALTIME_STATIC_URL' => 'ws://localhost:8787/ws',
     'REALTIME_MAX_NODES' => '1',
-    'REALTIME_SERVER_TYPE' => 'cax11',
-    'REALTIME_FALLBACK_TYPE' => 'cax21',
+    // One architecture for both (the snapshot is built for one). Arm (cax*)
+    // was sold out in every location in September 2026, so x86 it is; the
+    // fallback is tried when Hetzner refuses the first type.
+    'REALTIME_SERVER_TYPE' => 'cpx12',
+    'REALTIME_FALLBACK_TYPE' => 'cpx22',
     'REALTIME_LOCATION' => 'fsn1',
     'REALTIME_IDLE_MINUTES' => '10',
     'REALTIME_SILENT_MINUTES' => '3',

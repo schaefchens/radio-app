@@ -42,7 +42,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 SLOTS=1 LOCATION=fsn1 DOMAIN=radio.schaefchens.de ADMIN_CIDR="" SYNC_FW=0
 CONTEXT=arche ENV_FILE="$REPO_ROOT/.env" DRY_RUN=0
-SERVER_TYPE=cax11
+SERVER_TYPE=cpx12
 FIREWALL_NAME=arche-rt
 
 while [ $# -gt 0 ]; do

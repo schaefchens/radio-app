@@ -147,25 +147,42 @@ final class Nodes
                 }
                 return;
             }
-            $type = $c->get('REALTIME_SERVER_TYPE');
-            $snapshot = $cloud->newestSnapshot('app=arche,role=realtime-node', $type)
-                ?? throw new \RuntimeException('No realtime snapshot — run npm run realtime:snapshot');
-            $image = 'arche-realtime:' . ($snapshot['labels']['version'] ?? 'latest');
-            $server = $cloud->createServer([
-                'name' => 'arche-' . $slot['slot'] . '-' . gmdate('ymdHis', $this->app->clock->now()),
-                'server_type' => $type,
-                'image' => (int) $snapshot['id'],
-                'location' => $c->get('REALTIME_LOCATION'),
-                'start_after_create' => true,
-                'public_net' => ['enable_ipv4' => true, 'enable_ipv6' => true, 'ipv4' => $slot['ipv4'], 'ipv6' => $slot['ipv6']],
-                'volumes' => [$slot['volume']],
-                'automount' => false,
-                'firewalls' => $c->has('REALTIME_FIREWALL_ID') ? [['firewall' => $c->int('REALTIME_FIREWALL_ID')]] : [],
-                'user_data' => $this->cloudInit($slot, $image),
-                'labels' => ['app' => 'arche', 'role' => 'realtime-node', 'slot' => $slot['slot']],
-            ]);
-            $this->save($slot['slot'], ['state' => 'booting', 'server_id' => (int) ($server['id'] ?? 0)]);
-            $this->app->store()->audit('realtime', 'Node created', $slot['slot'] . ' ' . $type . ' ' . $image);
+            // Hetzner runs out of a server type now and then (the answer is
+            // "unsupported location for server type" or resource_unavailable):
+            // the fallback type keeps the rooms open. Each needs a snapshot of
+            // its own architecture.
+            $types = array_values(array_unique(array_filter([$c->get('REALTIME_SERVER_TYPE'), $c->get('REALTIME_FALLBACK_TYPE')])));
+            $failure = null;
+            foreach ($types as $type) {
+                $snapshot = $cloud->newestSnapshot('app=arche,role=realtime-node', $type);
+                if ($snapshot === null) {
+                    $failure ??= new \RuntimeException("No realtime snapshot for $type — run npm run realtime:snapshot");
+                    continue;
+                }
+                $image = 'arche-realtime:' . ($snapshot['labels']['version'] ?? 'latest');
+                try {
+                    $server = $cloud->createServer([
+                        'name' => 'arche-' . $slot['slot'] . '-' . gmdate('ymdHis', $this->app->clock->now()),
+                        'server_type' => $type,
+                        'image' => (int) $snapshot['id'],
+                        'location' => $c->get('REALTIME_LOCATION'),
+                        'start_after_create' => true,
+                        'public_net' => ['enable_ipv4' => true, 'enable_ipv6' => true, 'ipv4' => $slot['ipv4'], 'ipv6' => $slot['ipv6']],
+                        'volumes' => [$slot['volume']],
+                        'automount' => false,
+                        'firewalls' => $c->has('REALTIME_FIREWALL_ID') ? [['firewall' => $c->int('REALTIME_FIREWALL_ID')]] : [],
+                        'user_data' => $this->cloudInit($slot, $image),
+                        'labels' => ['app' => 'arche', 'role' => 'realtime-node', 'slot' => $slot['slot']],
+                    ]);
+                } catch (\Throwable $e) {
+                    $failure = $e;
+                    continue;
+                }
+                $this->save($slot['slot'], ['state' => 'booting', 'server_id' => (int) ($server['id'] ?? 0)]);
+                $this->app->store()->audit('realtime', 'Node created', $slot['slot'] . ' ' . $type . ' ' . $image);
+                return;
+            }
+            throw $failure ?? new \RuntimeException('No REALTIME_SERVER_TYPE configured');
         } catch (\Throwable $e) {
             $this->save($slot['slot'], ['state' => 'off', 'error' => substr($e->getMessage(), 0, 200)]);
             $this->app->store()->audit('realtime', 'Node create failed', $slot['slot'] . ': ' . $e->getMessage());
