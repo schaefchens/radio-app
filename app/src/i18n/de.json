@@ -348,7 +348,12 @@
       "error": "Fehler",
       "textModel": "Moderation und Host: {{provider}} ({{host}}, {{moderation}})",
       "voice": "Stimme: {{provider}}",
-      "noTextModel": "Kein Textmodell (kein OPENAI_KEY oder ANTHROPIC_KEY): Der Host spricht aus Vorlagen, Einsendungen sind geschlossen."
+      "noTextModel": "Kein Textmodell (kein OPENAI_KEY oder ANTHROPIC_KEY): Der Host spricht aus Vorlagen, Einsendungen sind geschlossen.",
+      "cdn": "CDN",
+      "cdnOff": "Nicht in Betrieb: Die App lädt Programm und Medien von dieser Seite.",
+      "cdnQueued": "ausstehende Löschungen: {{n}}",
+      "cdnListeners": "Hörer laut CDN-Protokoll ({{channel}})",
+      "cdnNoApi": "Kein BUNNY_API_KEY oder BUNNY_PULL_ZONE_ID auf dem Server: Gelöschte Medien bleiben im CDN, das CDN-Protokoll wird nicht gezählt."
     },
     "library": {
       "search": "Titel, Interpret oder Video-ID suchen",

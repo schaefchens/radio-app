@@ -93,6 +93,7 @@ final class ModApi
             'budgetUsd' => $app->config->float('AI_DAILY_BUDGET_USD', 5.0),
             'ai' => $this->aiSetup(),
             'realtime' => $app->nodes()->status(),
+            'cdn' => $app->cdn()->status(),
             'audit' => $store->all('SELECT time, actor, event, detail FROM audit ORDER BY id DESC LIMIT 60'),
         ];
     }

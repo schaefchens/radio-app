@@ -17,6 +17,8 @@ interface StatusData {
   /** '' = no text model: templates only, submissions closed. */
   ai: { text: '' | 'stub' | 'anthropic' | 'openai'; hostModel: string; moderationModel: string; voice: 'openai' | 'elevenlabs' | 'stub' };
   realtime: { driver: string; slots: string[]; nodes: { slot: string; state: string; connections: number; last_report: number | null; error: string }[] };
+  /** base '' = the app reads from this site; api = the server can purge and count (absent from an older server). */
+  cdn?: { base: string; api: boolean; queued: number; counts: Record<string, { minute: number; n: number } | null> };
   audit: { time: number; actor: string; event: string; detail: string }[];
 }
 
@@ -165,6 +167,33 @@ export function StatusPanel() {
           </table>
         )}
       </Section>
+
+      {data.cdn && (
+        <Section title={t('mod.status.cdn')}>
+          {data.cdn.base === '' ? (
+            <p className="text-sm text-ink-muted">{t('mod.status.cdnOff')}</p>
+          ) : (
+            <>
+              <p className="text-sm">
+                <span className="font-semibold">{data.cdn.base.replace(/^https?:\/\//, '')}</span>
+                {data.cdn.api && <span className="text-ink-faint"> · {t('mod.status.cdnQueued', { n: data.cdn.queued })}</span>}
+              </p>
+              {data.cdn.api ? (
+                <ul className="flex flex-col gap-1 text-xs">
+                  {Object.entries(data.cdn.counts).map(([slug, c]) => (
+                    <li key={slug} className="flex justify-between gap-2">
+                      <span>{t('mod.status.cdnListeners', { channel: slug })}</span>
+                      <span className="tabular-nums">{c ? `${c.n} (${localTime(c.minute, lang)})` : '—'}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Notice tone="error">{t('mod.status.cdnNoApi')}</Notice>
+              )}
+            </>
+          )}
+        </Section>
+      )}
 
       <Section title={t('mod.status.audit')} className="lg:col-span-2">
         <ul className="flex max-h-96 flex-col gap-1 overflow-auto text-xs">

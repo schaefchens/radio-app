@@ -66,6 +66,28 @@ final class Bunny
         return $fresh ? (int) ($row['n'] ?? 0) : null;
     }
 
+    /**
+     * For /mod → Status: the zone the app reads from ('' = the site), whether
+     * the server can purge and count (the API key), and the last count per channel.
+     *
+     * @return array{base:string,api:bool,queued:int,counts:array<string,array{minute:int,n:int}|null>}
+     */
+    public function status(): array
+    {
+        $store = $this->app->store();
+        $counts = [];
+        foreach ($this->app->catalog()->channels() as $ch) {
+            $row = $store->get('cdn_listeners:' . $ch['slug']);
+            $counts[(string) $ch['slug']] = is_array($row) ? ['minute' => (int) ($row['t'] ?? 0), 'n' => (int) ($row['n'] ?? 0)] : null;
+        }
+        return [
+            'base' => $this->app->config->cdnBase(),
+            'api' => $this->configured(),
+            'queued' => count((array) ($store->get('cdn_purge') ?? [])),
+            'counts' => $counts,
+        ];
+    }
+
     private function purgeQueued(): int
     {
         $store = $this->app->store();

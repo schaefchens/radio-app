@@ -38,6 +38,7 @@ test('cdn: listeners are the requests for one minute file in the CDN log, and wi
     eq([$q['urlContains'], $q['status'], $q['from'], $q['to']], [$path, '2xx', gmdate('Y-m-d\TH:i:s\Z', intdiv($minute, 1000)), gmdate('Y-m-d\TH:i:s\Z', intdiv($minute, 1000) + 60)], 'one minute, successful requests only');
     eq($http->sent[0]['headers']['AccessKey'] ?? '', 'bunny-key', 'the account key as AccessKey');
     eq($app->presence()->listeners('main'), 3, 'the CDN count is the audience');
+    eq($app->cdn()->status(), ['base' => 'https://cdn.example.net', 'api' => true, 'queued' => 0, 'counts' => ['main' => ['minute' => $minute, 'n' => 3]]], '/mod status');
 
     $http->answers[] = new HttpResponse(503, '');
     TestKit::clock($app)->advance(Timing::MINUTE);
@@ -74,6 +75,7 @@ test('cdn: deleted media is purged at the edge; a failed purge stays queued; not
     $plain->media()->delete($u);
     eq($plain->store()->get('cdn_purge'), null, 'without a CDN nothing is queued');
     eq($plain->cdn()->maintain(), ['skipped' => 'not configured'], 'and nothing runs');
+    eq($plain->cdn()->status(), ['base' => '', 'api' => false, 'queued' => 0, 'counts' => ['main' => null]], '/mod status without a CDN');
 });
 
 test('cdn: host clips removed by retention are purged at the edge too', function () {

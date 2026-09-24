@@ -348,7 +348,12 @@
       "error": "Error",
       "textModel": "Host and moderation: {{provider}} ({{host}}, {{moderation}})",
       "voice": "Voice: {{provider}}",
-      "noTextModel": "No text model (no OPENAI_KEY or ANTHROPIC_KEY): the host speaks from templates and submissions are closed."
+      "noTextModel": "No text model (no OPENAI_KEY or ANTHROPIC_KEY): the host speaks from templates and submissions are closed.",
+      "cdn": "CDN",
+      "cdnOff": "Not in use: the app reads the program and media from this site.",
+      "cdnQueued": "pending purges: {{n}}",
+      "cdnListeners": "Listeners by the CDN log ({{channel}})",
+      "cdnNoApi": "No BUNNY_API_KEY or BUNNY_PULL_ZONE_ID on the server: deleted media stays at the edge and the CDN log is not counted."
     },
     "library": {
       "search": "Search title, artist or video id",
