@@ -15,8 +15,12 @@ final class Jobs
 {
     private const MAX_ATTEMPTS = 4;
     private const LEASE_SECONDS = 120;
-    /** Beyond the commit horizon, how soon a job counts as urgent. */
-    private const URGENT_MARGIN_MS = 5 * 60_000;
+    /**
+     * Beyond the commit horizon, how soon a job counts as urgent: a break
+     * this close is committed within a tick or two, voiced or not. A break
+     * just drafted at the end of the plan can wait one tick for a verdict.
+     */
+    private const URGENT_MARGIN_MS = 2 * 60_000;
 
     public function __construct(private App $app) {}
 
@@ -42,7 +46,7 @@ final class Jobs
      * The next job, now leased to the caller. Urgent work first — a host break
      * that airs within the commit horizon (plus a margin) must be voiced
      * before it is committed, and a listener waits for their submission's
-     * verdict — then by priority. A break planned half an hour ahead must not
+     * verdict — then by priority. A break at the far end of the plan must not
      * keep a listener's submission waiting: with real AI a tick has time for
      * only a few phases.
      *

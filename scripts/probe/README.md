@@ -56,7 +56,7 @@ long gaps at night, only shows up over hours.
 
 | Result | Decides |
 |---|---|
-| **Cron interval** (median, gaps over 90 s) | Around 60 s means the one-minute plan holds (commit horizon 15 min). **Hourly** means a longer look-ahead, with ticks triggered by app requests becoming the main driver |
+| **Cron interval** (median, gaps over 90 s) | Around 60 s means the one-minute plan holds (commit horizon 5 min). **Hourly** means a longer look-ahead, with ticks triggered by app requests becoming the main driver |
 | **Key transport** (header / query / cli) | Which line `npm run cron-command` prints for production: the header form, or the documented `?key=` fallback |
 | **CLI arrivals** | Whether production uses `bin/tick.php` (no FPM time limit) or `cron.php` over HTTP |
 | **Background run length** | `TICK_BUDGET` = seconds of bounded work per tick after `fastcgi_finish_request`: about the kill time minus 8 s, capped at 50 so a tick never overlaps the next minute's cron |

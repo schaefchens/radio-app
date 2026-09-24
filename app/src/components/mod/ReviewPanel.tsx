@@ -10,7 +10,7 @@ import { useOverview } from './overview';
 import { modError } from './modApi';
 import { Loading, Notice, Pill, Section } from './ui';
 
-type Status = 'received' | 'checking' | 'review' | 'approved' | 'scheduled' | 'aired' | 'library' | 'rejected';
+type Status = 'received' | 'checking' | 'review' | 'approved' | 'scheduled' | 'aired' | 'library' | 'missed' | 'rejected';
 
 interface ReviewItem {
   id: string;

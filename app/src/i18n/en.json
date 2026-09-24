@@ -132,7 +132,8 @@
     "approved": "Accepted — waiting for its moment",
     "scheduled": "Coming up on air",
     "aired": "Aired",
-    "library": "Accepted — it will play in a future program",
+    "library": "Accepted — it may play in a future program",
+    "missed": "Accepted — but its program ran out of time",
     "rejected": "Not on air this time",
     "reason": {
       "not_program_fit": "It doesn't match the current program.",
@@ -531,6 +532,7 @@
         "scheduled": "Scheduled",
         "aired": "Aired",
         "library": "In the music selection",
+        "missed": "Missed its program",
         "rejected": "Rejected"
       },
       "rejectedAt": "rejected {{when}}",

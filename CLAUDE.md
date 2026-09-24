@@ -20,13 +20,20 @@ Nothing about playback needs a live connection, so the files sit on a CDN
 scale to millions. Everything else — API, chat, AI — is optional.
 
 ```
-server/app/Program/Drafter   plan the next 45 min (local, cheap)
+server/app/Program/Drafter   plan the next 8 min (local, cheap)
         │  host breaks → jobs (script: Claude or OpenAI → TTS en → TTS de)
-server/app/Program/Committer fix the timeline up to now + 15 min
-server/app/Program/Publisher write minute files up to now + 5 min (+ live, days, channels, evergreen)
+server/app/Program/Committer fix the timeline up to now + 5 min
+server/app/Program/Publisher write minute files up to now + 2 min, each naming the next 3 (+ live, days, channels, evergreen)
         ▼
 app/src/lib/engine.ts        item = timeline.at(serverNow()); drive YouTube + our audio; correct drift
 ```
+
+The five fixed minutes (`Timing::COMMIT`) are a trade: they are how long the
+program outlives a stopped generator (a deploy, a host outage) before clients
+play the evergreen loop, and the least time before anything decided now can
+air — a request approved now airs about ten minutes later. The three minutes
+between draft and commit are what a host break needs to be written and
+voiced (a tick or two; the cron runs every minute).
 
 ## Invariants (keep them)
 
@@ -107,6 +114,17 @@ YouTube check failed) in /mod → Review and can overrule a rejection — except
 recording (deleted on rejection, as the privacy policy says) or a video the embed
 would not play. The station's length limit can be overruled.
 
+Once approved, a request goes to the end of the plan. What waits for a program
+is presented as one block: up to three, the longest-waiting first, fitting
+themes next to each other; the host announces each (every request, by name and
+place, the dedication when there is one), from the second on first reacts to the
+one before, and speaks after the last. Then at least two regular songs before
+the next block. Too late for its program — a busy queue, a late human decision —
+a song stays in the music selection (`library`, "may play in a later program")
+and anything else is `missed`: a recording that will never air is not
+published, or removed when the tick sweeps the queue. Intake closes 15 minutes
+before a program ends ("last chance" from 25).
+
 **Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
 imprint and the privacy policy describe what this code does — the data flows
 (YouTube only after the join tap, OpenAI for texts/voice/transcripts/checks,
@@ -152,10 +170,12 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 - `.js` is served as `text/javascript`; it must be in `AddOutputFilterByType`.
 - An `AllowOverride` violation is a hard 500 for the whole site, and
   `<IfModule>` does not protect against it. `scripts/probe` tests every directive.
-- The one-minute konsoleH cron is unverified (sibling repos disagree); API
-  requests run a tick themselves when the last one is older than 90 s.
+- The konsoleH cron runs every minute (seen in production 2026-09-24: a call
+  at :01, 60 s apart); API requests still run a tick themselves when the last
+  one is older than 90 s.
 - `/_arche/var/maintenance` (a timestamp, written by deploy.sh) pauses ticks; a
-  flag older than 15 min is ignored.
+  flag older than 15 min is ignored. A deploy that uploads for longer than the
+  five fixed minutes plays the fallback loop until it is done.
 
 ## Gotchas that already bit
 
@@ -188,8 +208,9 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   a 403 on the first production deploy. The Docker bind mount ignores
   permissions, so only the host shows it.
 - **A plan made from a tiny library repeats songs**; when the library changes,
-  drafts with repeats are re-planned (plans without repeats are kept, their
-  host breaks may be voiced already). The committed 15 minutes stay.
+  drafts that repeat a song from the last hour are re-planned (plans without
+  repeats are kept, their host breaks may be voiced already). The committed
+  minutes stay.
 - **Throttle on the last tick, not the last request** (`CronEndpoint::due`):
   counting every request let calls a few seconds apart hold the tick off
   indefinitely.
@@ -200,7 +221,7 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   (`stage` items with `payload.waiting`). The first songs discard those drafts
   and block the committed ones in live.json, and the fallback loop is rebuilt
   in the same tick (library fingerprint), so listeners hear music within a
-  minute instead of after 45.
+  minute instead of after the placeholders.
 - **Closed bottom sheets stay mounted** (translated away, `inert`): render each
   sheet once per page and use `useId()` for form ids — Home shows the submit
   tiles twice (desktop and phone layout).
@@ -215,8 +236,8 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 
 "A test is earned by a risk." Server: `npm run test:php` (enoch-style harness,
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
-generator's timing invariants, the PHP→fixture contract, identity, submissions,
-moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+generator's timing invariants, the PHP→fixture contract, identity, submissions
+(request blocks, late approvals, the queue sweep, intake times), moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 timeline, clock, i18n keys, passphrase, realtime client, CDN fallback). Shared:
 fixture parsing. Lint + typecheck gate all.
@@ -251,5 +272,8 @@ Comments explain the failure a line prevents. Commits: sentence-case imperative.
 A custom hostname for the CDN zone, ElevenLabs as the default voice, archive *replay* (slot files
 are kept 48 h; `days/*.json` keep what played), Capacitor apps, phone background
 playback (not possible with YouTube embeds). Pending on the host: the Phase 0.5
-probe (cron interval, background run length → `TICK_BUDGET`, WAL, directives)
-and the device sync spike on a real iPhone/Android.
+probe (background run length → `TICK_BUDGET`, WAL, directives) and the device
+sync spike on a real iPhone/Android. Program formats with a running order (a
+prayer hour: call for requests, opening prayer, songs, the requests presented
+and shown as a prayer wall, listeners' prayers with calm gaps, a closing
+summary) are an idea for later.

@@ -9,7 +9,7 @@ interface SubmissionView {
   id: string;
   type: string;
   mode: string;
-  status: 'pending' | 'approved' | 'scheduled' | 'aired' | 'library' | 'rejected';
+  status: 'pending' | 'approved' | 'scheduled' | 'aired' | 'library' | 'missed' | 'rejected';
   reason: string | null;
   title: string;
   airsAt: number | null;
@@ -23,6 +23,7 @@ const TONE: Record<SubmissionView['status'], string> = {
   scheduled: 'text-brand-bright',
   aired: 'text-emerald-300',
   library: 'text-brand-bright',
+  missed: 'text-ink-muted',
   rejected: 'text-ink-muted',
 };
 

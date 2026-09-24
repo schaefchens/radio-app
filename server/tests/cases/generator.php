@@ -14,13 +14,13 @@ function assertContiguous(array $items, string $label): void
     }
 }
 
-test('generator: first tick anchors, commits 15 min ahead and publishes minute files', function () {
+test('generator: first tick anchors, commits COMMIT ahead and publishes minute files', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $app->tick()->run('test');
     $now = TestKit::T0;
     $items = TestKit::committed($app);
-    check(count($items) > 2, 'items committed');
+    check(count($items) >= 2, 'items committed');
     eq($items[0]['type'], 'gap', 'a fresh timeline starts with a gap to the anchor');
     eq($items[0]['start_ms'], Timing::floorMinute($now), 'gap starts at the current minute');
     eq($items[1]['start_ms'], Timing::floorMinute($now) + 120_000, 'anchor = next minute + 60 s');
@@ -129,17 +129,24 @@ test('generator: the first songs of a new station air within a tick, not after t
 test('generator: a plan that repeats songs because the library was small is redone when songs are added', function () {
     $app = TestKit::app(['HOST_MIN_LISTENERS' => '99']);
     $cid = (int) TestKit::main($app)['id'];
-    $drafted = fn(): array => array_map('intval', array_column($app->store()->all(
-        "SELECT library_id FROM timeline_items WHERE channel_id = ? AND state = 'draft' AND type = 'song'", [$cid],
+    $songs = fn(string $state): array => array_map('intval', array_column($app->store()->all(
+        "SELECT library_id FROM timeline_items WHERE channel_id = ? AND state = ? AND type = 'song'", [$cid, $state],
     ), 'library_id'));
-    TestKit::songs($app, 1);
+    [$only] = TestKit::songs($app, 1);
     $app->tick()->run('test');
-    check(count($drafted()) > 1 && count(array_unique($drafted())) === 1, 'one song, planned over and over');
+    $all = [...$songs('committed'), ...$songs('draft')];
+    check($songs('draft') !== [] && count($all) > 1 && array_unique($all) === [$only], 'one song, planned over and over');
+    $replanned = (int) $app->store()->value("SELECT MIN(est_start) FROM timeline_items WHERE channel_id = ? AND state = 'draft'", [$cid]);
 
     TestKit::songs($app, 11);
     TestKit::clock($app)->advance(61_000);
     $app->tick()->run('test');
-    check(count(array_unique($drafted())) >= 4, 'the new songs are in the plan');
+    // Committed or still drafted: from where the drafts began, new songs.
+    $after = array_map('intval', array_column($app->store()->all(
+        "SELECT library_id FROM timeline_items WHERE channel_id = ? AND state != 'dropped' AND type = 'song' AND COALESCE(start_ms, est_start) >= ?",
+        [$cid, $replanned],
+    ), 'library_id'));
+    check($after !== [] && !in_array($only, $after, true), 'the repeat was planned again, with the new songs');
     assertContiguous(TestKit::committed($app), 'still contiguous');
 
     // A plan without repeats is left alone when the library changes again.
@@ -190,7 +197,7 @@ test('generator: host breaks are voiced in both languages and committed with aud
     TestKit::songs($app, 12);
     // A cold start cannot voice the breaks inside its first commit horizon
     // (they are dropped, music plays); everything drafted later is ready in
-    // time because its jobs run in the 30 minutes between draft and commit.
+    // time because its jobs run in the minutes between draft and commit.
     for ($i = 0; $i < 35; $i++) {
         $app->tick()->run('test');
         TestKit::clock($app)->advance(60_000);

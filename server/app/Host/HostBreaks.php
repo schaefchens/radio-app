@@ -15,8 +15,8 @@ use Arche\Support\Ids;
  *
  * so each fits one tick's budget, and a phase lost to a killed request is
  * retried by the job lease on the next tick. The cost gates run at script
- * time, not at drafting time: drafts sit 45 minutes ahead, and a listener who
- * tunes in now should still hear the host in a few minutes.
+ * time, not at drafting time: a listener who tunes in now should hear the
+ * host in the next break already planned, not only in the ones planned later.
  */
 final class HostBreaks
 {

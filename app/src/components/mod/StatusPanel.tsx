@@ -1,9 +1,19 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Lang } from '@arche/shared';
+import { COMMIT_HORIZON_MS, MINUTE_MS, PUBLISH_LEAD_MS, type Lang } from '@arche/shared';
 import { localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
 import { Loading, Notice, Pill, Section } from './ui';
+
+/**
+ * How far ahead the fixed timeline reaches. Every tick tops it up to the
+ * horizon; 90 s later it is late (API requests then tick themselves), and
+ * below the published lead the minute files are about to run out.
+ */
+function aheadTone(sec: number): 'bad' | 'warn' | 'good' {
+  if (sec * 1000 < PUBLISH_LEAD_MS) return 'bad';
+  return sec * 1000 < COMMIT_HORIZON_MS - 1.5 * MINUTE_MS ? 'warn' : 'good';
+}
 
 interface StatusData {
   now: number;
@@ -64,7 +74,7 @@ export function StatusPanel() {
                   <td className="py-1 pr-3 font-medium">{c.slug}</td>
                   <td className="py-1 pr-3 tabular-nums">{c.frontier ? localTime(c.frontier, lang) : '—'}</td>
                   <td className="py-1 pr-3 tabular-nums">
-                    {c.aheadSec === null ? '—' : <Pill tone={c.aheadSec < 300 ? 'bad' : c.aheadSec < 600 ? 'warn' : 'good'}>{Math.round(c.aheadSec / 60)} {t('mod.common.minutes')}</Pill>}
+                    {c.aheadSec === null ? '—' : <Pill tone={aheadTone(c.aheadSec)}>{Math.round(c.aheadSec / 60)} {t('mod.common.minutes')}</Pill>}
                   </td>
                   <td className="py-1 pr-3 tabular-nums">{c.drafts}</td>
                   <td className="py-1 tabular-nums">{c.listeners}</td>

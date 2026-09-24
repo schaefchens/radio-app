@@ -8,9 +8,9 @@ use Arche\App;
 /**
  * open / closing / closed for each submission type, as a minute file tells the
  * PWA which buttons to offer. A submission can only air inside its program's
- * block, and only after moderation plus the commit horizon, so intake closes
- * `closed_min` before the block ends (and when the approved queue already
- * holds `max_queue_min` of airtime).
+ * block, and only after moderation plus the plan ahead (Timing::DRAFT), so
+ * intake closes `closed_min` before the block ends (and when the approved
+ * queue already holds `max_queue_min` of airtime).
  */
 final class SubmissionWindow
 {

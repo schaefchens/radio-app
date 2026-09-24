@@ -36,9 +36,10 @@ test('pulling a song from air reaches listeners through live.json; enabling it a
   // A song committed well ahead, so pulling it has airings to block — the
   // farthest one: the other tests want music now, not the fallback loop.
   const now = await serverNow();
-  // Minute files exist up to ~5 minutes ahead and each covers the next 10.
-  const slot = await slotAt(now + 4 * 60_000);
-  const upcoming = slot?.items.filter((i) => i.type === 'song' && i.start > now + 5 * 60_000).at(-1);
+  // Minute files exist up to ~2 minutes ahead (between ticks one less) and
+  // each covers the next 3.
+  const slot = (await slotAt(now + 2 * 60_000)) ?? (await slotAt(now + 60_000));
+  const upcoming = slot?.items.filter((i) => i.type === 'song' && i.start > now + 30_000).at(-1);
   test.skip(!upcoming || upcoming.type !== 'song', 'no song committed ahead right now');
   if (!upcoming || upcoming.type !== 'song') return;
 
@@ -107,5 +108,15 @@ test('a moderator sees why a request was rejected and can approve it anyway', as
   await expect(page.locator('section', { hasText: `#${long.id}` })).toHaveCount(0);
 
   const mine = await api<{ submissions: { id: string; status: string }[] }>(long.device, '/submissions');
-  expect(mine.data.submissions.find((s) => s.id === long.id)?.status).toMatch(/approved|scheduled|aired|library/);
+  // `missed` when an earlier run already switched the song off (below).
+  expect(mine.data.submissions.find((s) => s.id === long.id)?.status).toMatch(/approved|scheduled|aired|library|missed/);
+
+  // Leave the rotation as it was: a 15-minute song in it would fill the whole
+  // published window again and again (switched off, not pulled: an airing
+  // already fixed stays, so the tests after this one still find music).
+  const admin = await ensureAdmin();
+  const lib = await api<{ items: { id: number; yt_id: string }[] }>(admin, '/mod/library?q=e2eReqLong1');
+  for (const item of lib.data.items.filter((i) => i.yt_id === 'e2eReqLong1')) {
+    expect((await api(admin, `/mod/library/${item.id}`, { method: 'PATCH', body: { active: false } })).status).toBe(200);
+  }
 });

@@ -132,7 +132,8 @@
     "approved": "Angenommen – wartet auf seinen Moment",
     "scheduled": "Kommt gleich on air",
     "aired": "Gesendet",
-    "library": "Angenommen – läuft in einer späteren Sendung",
+    "library": "Angenommen – kann in einer späteren Sendung laufen",
+    "missed": "Angenommen – in der Sendung war leider keine Zeit mehr",
     "rejected": "Diesmal nicht on air",
     "reason": {
       "not_program_fit": "Es passt nicht zur aktuellen Sendung.",
@@ -531,6 +532,7 @@
         "scheduled": "Eingeplant",
         "aired": "Gesendet",
         "library": "In der Musikauswahl",
+        "missed": "Sendung verpasst",
         "rejected": "Abgelehnt"
       },
       "rejectedAt": "abgelehnt {{when}}",

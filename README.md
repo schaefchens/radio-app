@@ -54,7 +54,7 @@ Playwright browser once: `npx playwright install chromium`.
 
 1. **Probe the host first** (once): `bash scripts/probe/probe.sh --upload`, add the
    printed cron line in konsoleH, wait ~24 h, `--read`, then `--remove`. It tells
-   the real cron interval, how long PHP may run after a request (→ `TICK_BUDGET`),
+   the real cron interval (production's runs every minute), how long PHP may run after a request (→ `TICK_BUDGET`),
    whether SQLite WAL works (→ `SQLITE_WAL`) and that every `.htaccess` directive
    is allowed. Details: [scripts/probe/README.md](scripts/probe/README.md).
 2. `npm run deploy:dry` — what would be uploaded.
@@ -125,6 +125,12 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
   `TTS_PROVIDER=elevenlabs` and `ELEVENLABS_MAX_CHARS_PER_DAY` > 0.
 - **Backups**: a daily `VACUUM INTO` copy in `/_arche/var/backups` (seven kept).
 - **Pull from air**: /mod → Library → pull; clients skip it within a minute.
+- **Requests** air about ten minutes after approval; several waiting are
+  presented together by the host (three at most, then two regular songs).
+  Intake closes 15 minutes before a program ends ("last chance" from 25; per
+  program in /mod → Programs). Too late for its program, a song stays in the
+  music selection ("may play in a later program"); anything else is marked as
+  missed, and a recording that never aired is not kept public.
 - **Rejections**: /mod → Review → Rejected shows why each submission was
   declined (the automatic check's verdict and note, or the failed YouTube
   check) and approves it anyway where it can still air.

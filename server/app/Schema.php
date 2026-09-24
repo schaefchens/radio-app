@@ -328,6 +328,16 @@ final class Schema
             );
             CREATE TABLE removed_messages (msg TEXT PRIMARY KEY, time INTEGER NOT NULL);
             SQL,
+            // 2 — requests air about 10 minutes after approval instead of 45:
+            // programs saved with the old default intake times get the new
+            // ones, and the drafts made 45 minutes ahead are planned again
+            // (a new plan version), or new requests would wait behind them.
+            <<<'SQL'
+            UPDATE programs SET settings = json_set(settings, '$.closed_min', 15) WHERE json_valid(settings) AND json_extract(settings, '$.closed_min') = 20;
+            UPDATE programs SET settings = json_set(settings, '$.closing_min', 25) WHERE json_valid(settings) AND json_extract(settings, '$.closing_min') = 35;
+            INSERT INTO kv(key, value) VALUES('plan_version', '1')
+              ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT);
+            SQL,
         ];
     }
 }

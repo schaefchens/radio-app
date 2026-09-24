@@ -25,9 +25,10 @@ final class Catalog
         'jingle_every_songs' => 4,
         'silence' => ['every_min' => 0, 'dur_s' => 60],
         // Submission windows, minutes before the block ends. `closed` must
-        // leave room for the commit horizon (15 min) plus moderation time.
-        'closing_min' => 35,
-        'closed_min' => 20,
+        // leave room for the check (a minute), the plan ahead (Timing::DRAFT)
+        // and one song; see cleanSettings() for the floor.
+        'closing_min' => 25,
+        'closed_min' => 15,
         // Approved-but-unaired queue beyond this much airtime closes intake.
         'max_queue_min' => 30,
         'replay_contrib' => false,
@@ -233,7 +234,8 @@ final class Catalog
                 'dur_s' => max(10, min(300, (int) ($silence['dur_s'] ?? 60))),
             ],
             'closing_min' => max(0, min(120, (int) $s['closing_min'])),
-            'closed_min' => max(16, min(120, (int) $s['closed_min'])),
+            // Below this a request sent at the last moment could not air in time.
+            'closed_min' => max(intdiv(\Arche\Program\Timing::DRAFT + \Arche\Program\Timing::MIN_SONG, 60_000) + 1, min(120, (int) $s['closed_min'])),
             'max_queue_min' => max(5, min(180, (int) $s['max_queue_min'])),
             'replay_contrib' => (bool) $s['replay_contrib'],
         ];

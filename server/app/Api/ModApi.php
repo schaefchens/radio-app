@@ -157,7 +157,7 @@ final class ModApi
             "UPDATE timeline_items SET blocked = 1 WHERE library_id = ? AND state = 'committed' AND start_ms + dur_ms > ?",
             [$id, $app->clock->nowMs()],
         )->rowCount();
-        $app->store()->query("UPDATE timeline_items SET state = 'dropped' WHERE library_id = ? AND state = 'draft'", [$id]);
+        $app->timeline()->dropDraftsOf($id);
         foreach ($app->catalog()->channels() as $ch) $app->publisher()->publishLive($ch);
         $app->store()->audit($this->actor(), 'Pulled from air', "library $id, $n airing(s)");
         return ['blocked' => $n];

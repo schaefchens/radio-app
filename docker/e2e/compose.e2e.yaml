@@ -31,7 +31,7 @@ services:
   cron:
     # Starts ticking once the e2e setup has curated the library (it writes
     # .data/e2e/seeded): a station that ticks before its first songs plans
-    # its first 15 minutes as placeholders, and the tests want music.
+    # its first minutes as placeholders, and the tests want music.
     entrypoint: ["/bin/sh", "-c", "until [ -f /e2e/seeded ]; do sleep 2; done; exec /bin/sh /loop.sh"]
     volumes:
       - ./.data/e2e/arche.env:/run/arche.env:ro

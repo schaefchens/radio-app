@@ -13,8 +13,8 @@ const DEFAULT_SETTINGS: ProgramSettings = {
   host: { enabled: true, every_songs: 3, intro: true, outro: true },
   jingle_every_songs: 4,
   silence: { every_min: 0, dur_s: 60 },
-  closing_min: 35,
-  closed_min: 20,
+  closing_min: 25,
+  closed_min: 15,
   max_queue_min: 30,
   replay_contrib: false,
 };
@@ -258,7 +258,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
             <input type="number" min={0} max={120} className="field" value={d.settings.closing_min} onChange={(e) => setS({ closing_min: num(e.target.value) })} />
           </Field>
           <Field label={t('mod.programs.closedMin')}>
-            <input type="number" min={16} max={120} className="field" value={d.settings.closed_min} onChange={(e) => setS({ closed_min: num(e.target.value) })} />
+            <input type="number" min={11} max={120} className="field" value={d.settings.closed_min} onChange={(e) => setS({ closed_min: num(e.target.value) })} />
           </Field>
           <Field label={t('mod.programs.maxQueue')}>
             <input type="number" min={5} max={180} className="field" value={d.settings.max_queue_min} onChange={(e) => setS({ max_queue_min: num(e.target.value) })} />

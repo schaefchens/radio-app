@@ -11,17 +11,20 @@ export const MINUTE_MS = 60_000;
 
 /** Every minute file carries every item overlapping [t, t + SLOT_WINDOW_MS).
  *  One successful fetch therefore covers this much outage on its own. */
-export const SLOT_WINDOW_MS = 10 * MINUTE_MS;
+export const SLOT_WINDOW_MS = 3 * MINUTE_MS;
 
 /** Minute files exist this far ahead of now, so a client never asks for one
  *  that is still being written. */
-export const PUBLISH_LEAD_MS = 5 * MINUTE_MS;
+export const PUBLISH_LEAD_MS = 2 * MINUTE_MS;
 
-/** The timeline is fixed (committed) this far ahead: window + lead. */
+/** The timeline is fixed (committed) this far ahead: window + lead. It is
+ *  also how long the program outlives a stopped generator, and the least
+ *  time between a listener's request being approved and it airing. */
 export const COMMIT_HORIZON_MS = SLOT_WINDOW_MS + PUBLISH_LEAD_MS;
 
 /** How many minutes back a client looks when the current minute file 404s.
- *  Earlier files overlap the present by up to SLOT_WINDOW_MS. */
+ *  An earlier file still names the item on air when that item is long (a
+ *  song started before its window), so this reaches past SLOT_WINDOW_MS. */
 export const SLOT_WALKBACK_MINUTES = 10;
 
 /** What a listener can hand in. `prayer` covers both a typed and a recorded

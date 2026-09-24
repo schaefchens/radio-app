@@ -225,6 +225,36 @@ final class Timeline
         });
     }
 
+    /**
+     * A song pulled from air leaves the drafts — and with it the announcement
+     * of a listener's request for it (a unit is never split), or the host
+     * would announce a song that does not come. That request cannot air any
+     * more. Committed airings are blocked through live.json instead.
+     *
+     * @return int drafts dropped
+     */
+    public function dropDraftsOf(int $libraryId): int
+    {
+        $store = $this->app->store();
+        return $store->tx(function () use ($store, $libraryId): int {
+            $drafts = $store->all("SELECT id, unit, submission_id FROM timeline_items WHERE library_id = ? AND state = 'draft'", [$libraryId]);
+            $n = 0;
+            foreach ($drafts as $d) {
+                $ids = $d['unit'] === null ? [(int) $d['id']]
+                    : array_map('intval', array_column($store->all("SELECT id FROM timeline_items WHERE unit = ? AND state = 'draft'", [$d['unit']]), 'id'));
+                foreach ($ids as $id) {
+                    $hb = $store->value('SELECT host_break_id FROM timeline_items WHERE id = ?', [$id]);
+                    if ($hb !== null) $this->app->hostBreaks()->cancel((int) $hb);
+                    $n += $store->update('timeline_items', ['state' => 'dropped'], "id = ? AND state = 'draft'", [$id]);
+                }
+                if ($d['submission_id'] !== null) {
+                    $store->update('submissions', ['status' => 'missed', 'updated' => $this->app->clock->now()], "id = ? AND status = 'scheduled'", [(int) $d['submission_id']]);
+                }
+            }
+            return $n;
+        });
+    }
+
     /** @return list<array<string,mixed>> songs and contributions that started in [from, to) */
     public function played(int $channelId, int $from, int $to): array
     {

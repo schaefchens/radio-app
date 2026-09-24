@@ -14,17 +14,17 @@ function runJobs(Arche\App $app, int $rounds = 6): void
     for ($i = 0; $i < $rounds; $i++) $app->runner()->runUntilBudget();
 }
 
-test('jobs: host breaks planned far ahead do not keep a listener waiting', function () {
+test('jobs: breaks at the end of the plan do not keep a listener waiting', function () {
     $app = TestKit::app();
     $jobs = $app->jobs();
     $now = $app->clock->nowMs();
-    for ($i = 1; $i <= 20; $i++) $jobs->enqueue('host', $i, 10, $now + 40 * 60_000);
+    for ($i = 1; $i <= 20; $i++) $jobs->enqueue('host', $i, 10, $now + Arche\Program\Timing::DRAFT);
     $jobs->enqueue('moderate', 1, 30, $now);
-    $jobs->enqueue('host', 99, 20, $now + 10 * 60_000);
+    $jobs->enqueue('host', 99, 20, $now + Arche\Program\Timing::COMMIT + 60_000);
     $first = $jobs->lease();
     eq([$first['type'], (int) $first['ref_id']], ['host', 99], 'a break that must be voiced before its commit goes first');
     eq($jobs->lease()['type'], 'moderate', 'then the submission a listener waits for');
-    eq($jobs->lease()['type'], 'host', 'then the breaks planned half an hour ahead');
+    eq($jobs->lease()['type'], 'host', 'then the breaks just drafted at the end of the plan');
 });
 
 test('submissions: a song request is checked, approved, graduates and airs announced', function () {

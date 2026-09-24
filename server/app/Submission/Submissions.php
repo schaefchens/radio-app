@@ -8,6 +8,7 @@ use Arche\App;
 use Arche\Audio\Mp3;
 use Arche\Library\YouTube;
 use Arche\Program\SubmissionWindow;
+use Arche\Program\Timing;
 use Arche\Support\Files;
 use Arche\Support\Ids;
 
@@ -17,6 +18,8 @@ use Arche\Support\Ids;
  *
  *   received → checking → approved → scheduled → aired
  *                       ↘ review (human, only if enabled) ↘ rejected
+ *                                  ↘ library (a song too late for its program)
+ *                                  ↘ missed (anything else too late for it)
  *
  * A listener can only submit to the program on air now, and only while the
  * minute file says that type is open — the same rule the PWA shows, checked
@@ -212,13 +215,11 @@ final class Submissions
 
     /**
      * Approve. Songs graduate into the library at once (tags only); a
-     * recording is published to /media only now. If the program window has
-     * already closed, the submission still graduates and waits for the next
-     * matching program instead of being wasted.
+     * recording is published to /media only now. Too late for its program, a
+     * song still graduates and may play in a later program (the music
+     * selection picks it like any other); anything else missed its moment.
      *
      * @param array<string,mixed> $verdict
-     */
-    /**
      * @param bool $overrule a moderator approves what was rejected (see overruleBlocker())
      * @param bool $keepMessage false: the song airs without the listener's dedication
      */
@@ -229,27 +230,32 @@ final class Submissions
         $store = $this->app->store();
         $now = $this->app->clock->now();
         $set = ['status' => 'approved', 'reason' => '', 'verdict' => json_encode($verdict, JSON_UNESCAPED_UNICODE), 'updated' => $now];
-        // Without its dedication a request is a plain track: nothing is read out.
+        // Without its dedication the host names only who asked for the song.
         if (!$keepMessage) $set['message'] = '';
         $meta = json_decode((string) $sub['meta'], true) ?: [];
         foreach (['caption_en', 'caption_de', 'host_context'] as $k) {
             if (isset($verdict[$k])) $meta[$k] = mb_substr(trim((string) $verdict[$k]), 0, 300);
         }
         $set['meta'] = json_encode($meta, JSON_UNESCAPED_UNICODE);
+        $late = !$this->canStillAir($sub);
 
         if ($sub['type'] === 'song') {
             $set['library_id'] = $this->graduateSong($sub, $meta, $verdict);
         } elseif ($sub['mode'] === 'audio' && $sub['upload']) {
             $src = $this->app->config->dataDir . '/uploads/' . basename((string) $sub['upload']);
-            $bytes = @file_get_contents($src);
-            if ($bytes === false) throw new \RuntimeException('Upload vanished for submission ' . $id);
-            $set['audio'] = $this->app->media()->put('contrib', substr(hash('sha256', $bytes), 0, 20) . '.mp3', $bytes);
-            @unlink($src);
+            if ($late && !(int) $sub['consent_replay']) {
+                // It will never air: the recording stays private and goes.
+                @unlink($src);
+            } else {
+                $bytes = @file_get_contents($src);
+                if ($bytes === false) throw new \RuntimeException('Upload vanished for submission ' . $id);
+                $set['audio'] = $this->app->media()->put('contrib', substr(hash('sha256', $bytes), 0, 20) . '.mp3', $bytes);
+                @unlink($src);
+                $set['library_id'] = $this->graduateContribution($sub, (string) $set['audio'], $meta, $verdict);
+            }
             $set['upload'] = null;
-            $set['library_id'] = $this->graduateContribution($sub, (string) $set['audio'], $meta, $verdict);
         }
-        // Missed its window: it lives on in the library, not in the live queue.
-        if ((int) $sub['window_end'] <= $this->app->clock->nowMs() + 15 * 60_000) $set['status'] = 'library';
+        if ($late) $set['status'] = self::lateStatus($sub);
         $store->update('submissions', $set, 'id = ?', [$id]);
         $store->audit($actor, $overrule ? 'Rejection overruled' : 'Submission approved', $sub['public_id'] . ' ' . $sub['type']);
     }
@@ -385,24 +391,92 @@ final class Submissions
     // --- scheduling -------------------------------------------------------------------
 
     /**
-     * The next approved song/recording for this program, marked as scheduled
-     * so it is drafted exactly once. Text prayers go through takePrayers().
+     * Approved songs and recordings waiting for this program, longest-waiting
+     * first. Text prayers go through takePrayers().
      *
      * @param array<string,mixed> $channel
      * @param array<string,mixed> $program
-     * @return array<string,mixed>|null
+     * @return list<array<string,mixed>>
      */
-    public function nextForProgram(array $channel, array $program): ?array
+    public function waiting(array $channel, array $program, int $limit): array
+    {
+        return $this->app->store()->all(
+            "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved'
+             AND NOT (type = 'prayer' AND mode = 'text') ORDER BY created, id LIMIT ?",
+            [(int) $channel['id'], (int) $program['id'], $limit],
+        );
+    }
+
+    /** Taken into the plan — true once per submission, so it is drafted exactly once. */
+    public function schedule(int $id): bool
+    {
+        return $this->app->store()->update('submissions', ['status' => 'scheduled', 'updated' => $this->app->clock->now()], "id = ? AND status = 'approved'", [$id]) === 1;
+    }
+
+    /** It cannot air any more (its song left the library). */
+    public function markMissed(int $id): void
+    {
+        $this->app->store()->update('submissions', ['status' => 'missed', 'updated' => $this->app->clock->now()], "id = ? AND status = 'approved'", [$id]);
+    }
+
+    /**
+     * Where the plan could place something approved now: requests go to the
+     * end of the drafts, which reach DRAFT ahead — or further, when the last
+     * item runs past that.
+     */
+    private function reach(int $channelId): int
+    {
+        $tail = $this->app->timeline()->tail($channelId);
+        $end = $tail === null ? 0 : ($tail['start_ms'] ?? $tail['est_start']) + $tail['dur_ms'];
+        return max($this->app->clock->nowMs() + Timing::DRAFT, $end);
+    }
+
+    /**
+     * Whether the plan can still place $sub inside its program: a block with
+     * less than MIN_SONG left takes nothing new. A program that continues past
+     * midnight (tomorrow starts with it) keeps its requests.
+     *
+     * @param array<string,mixed> $sub
+     */
+    private function canStillAir(array $sub): bool
+    {
+        $channel = $this->app->catalog()->channel((int) $sub['channel_id']);
+        if ($channel === null) return false;
+        $end = (int) $sub['window_end'];
+        $block = $this->app->resolver()->blockAt($channel, $end - 1);
+        if ($block['program_id'] === (int) $sub['program_id']) $end = max($end, $block['end']);
+        return $end - Timing::MIN_SONG >= $this->reach((int) $channel['id']);
+    }
+
+    /** A song too late for its program stays in the music selection; anything else had its one chance. @param array<string,mixed> $sub */
+    private static function lateStatus(array $sub): string
+    {
+        return $sub['type'] === 'song' ? 'library' : 'missed';
+    }
+
+    /**
+     * Approved submissions the plan can no longer place inside their program
+     * (a busy program, a late human decision) leave the queue: waiting as
+     * "approved" for good, they would also keep intake closed. A recording
+     * that will never air does not stay public either, unless the listener
+     * allowed replays (then the library keeps it, switched off).
+     */
+    public function expireUnreachable(): int
     {
         $store = $this->app->store();
-        $sub = $store->one(
-            "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved'
-             AND NOT (type = 'prayer' AND mode = 'text') ORDER BY created LIMIT 1",
-            [(int) $channel['id'], (int) $program['id']],
-        );
-        if ($sub === null) return null;
-        $store->update('submissions', ['status' => 'scheduled', 'updated' => $this->app->clock->now()], "id = ? AND status = 'approved'", [$sub['id']]);
-        return $sub;
+        $n = 0;
+        foreach ($store->all("SELECT * FROM submissions WHERE status = 'approved'") as $sub) {
+            if ($this->canStillAir($sub)) continue;
+            $status = self::lateStatus($sub);
+            if ($store->update('submissions', ['status' => $status, 'updated' => $this->app->clock->now()], "id = ? AND status = 'approved'", [$sub['id']]) === 0) continue;
+            $n++;
+            $audio = (string) ($sub['audio'] ?? '');
+            if ($status === 'missed' && $audio !== '' && (int) $store->value('SELECT COUNT(*) FROM library_items WHERE audio = ?', [$audio]) === 0) {
+                $this->app->media()->delete($audio);
+                $store->update('submissions', ['audio' => null], 'id = ?', [$sub['id']]);
+            }
+        }
+        return $n;
     }
 
     /** @return list<int> up to $n approved text prayers, now scheduled */
@@ -469,7 +543,8 @@ final class Submissions
 
     /**
      * What a listener sees: pending / scheduled / aired / rejected (+ one of
-     * three generic reasons) / library ("will play in a future program").
+     * three generic reasons) / library ("may play in a future program") /
+     * missed (accepted, but its program ran out of time).
      *
      * @param array<string,mixed> $s
      * @return array<string,mixed>
@@ -482,6 +557,7 @@ final class Submissions
             'scheduled' => 'scheduled',
             'aired' => 'aired',
             'library' => 'library',
+            'missed' => 'missed',
             default => 'rejected',
         };
         $meta = json_decode((string) $s['meta'], true) ?: [];
