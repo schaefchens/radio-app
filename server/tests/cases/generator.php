@@ -126,6 +126,34 @@ test('generator: the first songs of a new station air within a tick, not after t
     assertContiguous(TestKit::committed($app), 'still contiguous');
 });
 
+test('generator: a plan that repeats songs because the library was small is redone when songs are added', function () {
+    $app = TestKit::app(['HOST_MIN_LISTENERS' => '99']);
+    $cid = (int) TestKit::main($app)['id'];
+    $drafted = fn(): array => array_map('intval', array_column($app->store()->all(
+        "SELECT library_id FROM timeline_items WHERE channel_id = ? AND state = 'draft' AND type = 'song'", [$cid],
+    ), 'library_id'));
+    TestKit::songs($app, 1);
+    $app->tick()->run('test');
+    check(count($drafted()) > 1 && count(array_unique($drafted())) === 1, 'one song, planned over and over');
+
+    TestKit::songs($app, 11);
+    TestKit::clock($app)->advance(61_000);
+    $app->tick()->run('test');
+    check(count(array_unique($drafted())) >= 4, 'the new songs are in the plan');
+    assertContiguous(TestKit::committed($app), 'still contiguous');
+
+    // A plan without repeats is left alone when the library changes again.
+    $before = $app->store()->all("SELECT id FROM timeline_items WHERE channel_id = ? AND state = 'draft'", [$cid]);
+    TestKit::songs($app, 1);
+    TestKit::clock($app)->advance(61_000);
+    $app->tick()->run('test');
+    $still = array_column($app->store()->all("SELECT id FROM timeline_items WHERE channel_id = ? AND state = 'draft'", [$cid]), 'id');
+    foreach (array_column($before, 'id') as $id) {
+        $row = $app->store()->one('SELECT state FROM timeline_items WHERE id = ?', [$id]);
+        check(in_array($id, $still, true) || ($row['state'] ?? '') === 'committed', "draft $id kept (or committed)");
+    }
+});
+
 test('generator: two songs are enough — repeat protection loosens instead of leaving holes', function () {
     $app = TestKit::app(['HOST_MIN_LISTENERS' => '99']);
     TestKit::songs($app, 2);

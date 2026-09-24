@@ -41,6 +41,20 @@ final class Drafter
         // program is being prepared"). Once there are songs, plan again — and
         // let clients skip the placeholders already committed: they play the
         // fallback loop of the new songs until the real program begins.
+        // Drafted from a library too small to avoid repeats (one song several
+        // times in the next 45 minutes) and the library has changed since:
+        // plan again, so the new songs play before the repeats are committed.
+        // A plan without repeats is kept (its host breaks may be voiced already).
+        $library = $this->app->library()->fingerprint();
+        if ($store->get("draft_library:$cid") !== $library) {
+            $repeats = (int) $store->value(
+                "SELECT COUNT(*) - COUNT(DISTINCT library_id) FROM timeline_items
+                 WHERE channel_id = ? AND state = 'draft' AND type = 'song' AND library_id IS NOT NULL",
+                [$cid],
+            );
+            if ($repeats > 0) $timeline->discardDrafts($cid);
+            $store->set("draft_library:$cid", $library);
+        }
         if ($store->get("waiting:$cid") && $this->app->library()->count('song') > 0) {
             $timeline->discardDrafts($cid);
             $store->query(
