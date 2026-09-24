@@ -120,8 +120,9 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
 
 - **/mod → Status**: last tick, how far ahead each channel is committed, jobs,
   host-break outcomes, AI spend vs budget, realtime nodes, audit log.
-- **Costs**: `AI_DAILY_BUDGET_USD` (all AI), `HOST_MAX_BREAKS_PER_DAY`,
-  `HOST_MIN_LISTENERS`, `MODERATION_MAX_PER_DAY`. ElevenLabs is used only with
+- **Costs**: `AI_DAILY_BUDGET_USD` (all AI), `HOST_MAX_BREAKS_PER_DAY`
+  (300; a prayer hour adds 15–30 host moments), `HOST_MIN_LISTENERS`,
+  `MODERATION_MAX_PER_DAY`. ElevenLabs is used only with
   `TTS_PROVIDER=elevenlabs` and `ELEVENLABS_MAX_CHARS_PER_DAY` > 0.
 - **Backups**: a daily `VACUUM INTO` copy in `/_arche/var/backups` (seven kept).
 - **Pull from air**: /mod → Library → pull; clients skip it within a minute.
@@ -134,11 +135,32 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
 - **Rejections**: /mod → Review → Rejected shows why each submission was
   declined (the automatic check's verdict and note, or the failed YouTube
   check) and approves it anyway where it can still air.
+- **A prayer hour**: /mod → Programs → Format "Prayer hour", then place it in
+  a day plan. It runs welcome → opening prayer → invitation → collection time
+  (background music for N minutes, or N songs) → the host reads the requests
+  and prays for them → silent prayer (new requests are prayed for as they
+  come; after a few quiet minutes the host prays one from the wall again) →
+  outro with a blessing → optional songs. It takes prayer requests only. A
+  request is read about 7–8 minutes after approval, so what comes in during
+  the collection time is read over the minutes after it: make the collection
+  time 8–10 minutes. Intake closes 15 minutes before the outro.
+  - **Background music**: /mod → Library → Background music: an MP3 of 20 s
+    to 10 min, at most 8 MB (PHP's upload limit) — re-encode larger files,
+    e.g. `ffmpeg -i in.mp3 -b:a 128k prayer.mp3`. Only music you may use.
+  - **Opening prayers** prepared by a moderator (a recording, or a text the
+    host voice reads word for word) are used oldest first instead of the AI's.
+  - **Prayer wall** (any program can switch it on): the requests whose senders
+    agreed to show them, while the program is on air and `keep` minutes
+    after; 🙏 counts once per device. /mod → Review → All takes a request off
+    the wall (and the community voices) at once.
 - **Retention** (the privacy policy states these — change both together):
   minute files and host audio 48 h, day files 60 days, submissions 90 days
   (`RETAIN_SUBMISSIONS_DAYS`; recordings allowed for replays stay in the
-  library), chat voices 7 days, chat reports 30 days, presence 1 day,
-  rate-limit entries 2 days, unused anonymous devices 60 days, backups 7 days.
+  library), host scripts 30 days (with the timeline), who prayed along with a
+  request only while it is shown (at most a few hours; the number stays),
+  aired prepared prayers 90 days, chat voices 7 days, chat reports 30 days,
+  presence 1 day, rate-limit entries 2 days, unused anonymous devices 60 days,
+  backups 7 days.
 - **Station page** (`/about`, also `/impressum`, `/datenschutz`; the header
   logo opens it): what ARCHE is, the imprint and the privacy policy, in
   `app/src/content/legal.ts` (German binding, English for convenience).

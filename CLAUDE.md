@@ -125,6 +125,29 @@ and anything else is `missed`: a recording that will never air is not
 published, or removed when the tick sweeps the queue. Intake closes 15 minutes
 before a program ends ("last chance" from 25).
 
+**Prayer hour** (`Program\PrayerHour`, program format `prayer`). A running
+order instead of the music rules: welcome → opening prayer (a moderator's
+prepared one first, `Program\PreparedPrayers`: their recording, or a text the
+host voice reads word for word) → invitation → collection time (background
+music — library kind / timeline item `bed`, never longer than its file, never
+under the host — or N songs) → the host reads the requests → silent prayer
+(`silence` in minute pieces; a new request is prayed for as it comes; after
+`quiet_min` the host prays one wall request again, or for the world) → outro
+with a blessing → optional songs. Where the program stands is read from its
+current *run* (its items since another program's), not its block: `blockAt`
+reports a new start after midnight. A prayer moment takes the requests
+approved when it is drafted, so from the reading on the plan reaches
+`PRAYER_LEAD` (7 min) ahead, not `DRAFT` (the step returns null; the commit
+cannot starve, 7 > 5), and a moment a listener waits for is a unit, delayed
+behind silence rather than dropped. So a request is read ~7–8 min after
+approval, and what came in during the collection time is read over the
+minutes after it — the host words each moment by when its requests were sent.
+Prayer moments publish only the ids of their requests (`prayers`); what may be
+shown lives in live.json's `wall` (a program feature any program can switch
+on), so a moderator's take-down works at once. 🙏 on a request (`p` + public
+id) comes with the pulse, once per device; who prayed along with what is kept
+only while it is shown.
+
 **Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
 imprint and the privacy policy describe what this code does — the data flows
 (YouTube only after the join tap, OpenAI for texts/voice/transcripts/checks,
@@ -228,6 +251,18 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 - **Mobile grids need `grid-cols-1`** (`minmax(0,1fr)`): an implicit `auto`
   column grows to its widest unbreakable child, and a long program subtitle
   once pushed the whole home page — and the YouTube player — past the screen.
+- **`HostBreaks::runPhase` stores `$context + $hb['context']`**: a key the
+  model's context writes replaces the drafted one. Prayer ids live under
+  `prayer_ids` for that reason — under `prayers` the texts overwrote them, and
+  typed prayers never reached "aired".
+- **SQLite cannot change a CHECK constraint**: widening `library_items.kind`
+  rebuilt the table (migration 3). A migration test builds an old database
+  with `Schema::migrate($store, $now, $upTo)`; re-running later migrations on
+  a current one fails (`ADD COLUMN` twice).
+- **The dev stack's code is a nested bind mount** (`server/app` inside
+  `.data/site`). Gone stale, the container sees an empty `_arche/app` and every
+  request is a 500 for hours: recreate `php` and `web`
+  (`docker compose --env-file docker/compose.env up -d --force-recreate php web`).
 - **The production CSP applies to the built app only** (Apache, `*.html`), never
   to `vite dev`. The silent unlock MP3 is a `data:` URI (`media-src … data:`);
   WebSockets are `wss:` only. The e2e suite runs against the built app.
@@ -238,7 +273,10 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
 generator's timing invariants, the PHP→fixture contract, identity, submissions
 (request blocks, late approvals, the queue sweep, intake times), moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
-purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
+purge queue), the API, and the prayer hour over whole hours on the fixed
+clock (`prayerhour.php`: the running order, the rolling reading, praying a
+request again, the outro, intake, a voice that never comes, midnight, a plan
+change and an outage, the wall and praying along, prepared openings). App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 timeline, clock, i18n keys, passphrase, realtime client, CDN fallback). Shared:
 fixture parsing. Lint + typecheck gate all.
 
@@ -256,7 +294,9 @@ under a sheet), no sideways scroll at 360/390 px on every page, passphrase on a
 second device, song/prayer/recording through moderation, /mod gate, library,
 pull from air, a rejection explained and overruled in /mod, chat between two
 listeners, the program read cross-origin from
-the stand-in CDN (CSP included) and from the site when the CDN is down.
+the stand-in CDN (CSP included) and from the site when the CDN is down, and
+the prayer wall (consent never pre-ticked, praying along, a moderator's
+take-down).
 `npm run e2e:reset` starts over.
 
 ## Conventions
@@ -273,7 +313,7 @@ A custom hostname for the CDN zone, ElevenLabs as the default voice, archive *re
 are kept 48 h; `days/*.json` keep what played), Capacitor apps, phone background
 playback (not possible with YouTube embeds). Pending on the host: the Phase 0.5
 probe (background run length → `TICK_BUDGET`, WAL, directives) and the device
-sync spike on a real iPhone/Android. Program formats with a running order (a
-prayer hour: call for requests, opening prayer, songs, the requests presented
-and shown as a prayer wall, listeners' prayers with calm gaps, a closing
-summary) are an idea for later.
+sync spike on a real iPhone/Android. For the prayer hour: background music
+under the host's voice (two sources at once — the player plays one), recording
+an opening prayer live in /mod (upload only), praying-along counts through the
+realtime node (pulse only), and the prayer music tested on a real iPhone.
