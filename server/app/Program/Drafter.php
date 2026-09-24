@@ -114,10 +114,11 @@ final class Drafter
         $prev = $recent[0] ?? null;
         $hostOn = $settings['host']['enabled'] && $this->app->hostBreaks()->available();
 
-        // 1. A new program starts: the host opens it.
+        // 1. A new program starts: the host opens it. A prayer hour's welcome
+        //    waits for its voice rather than going (see PrayerHour::unit()).
         if (($prev['program_id'] ?? null) !== (int) $program['id'] && $hostOn && $settings['host']['intro']
             && !$this->isHost($prev)) {
-            return $this->addHost($channel, $program, 'intro', $cursor, $base);
+            return $this->addHost($channel, $program, 'intro', $cursor, $base, [], PrayerHour::applies($program) ? PrayerHour::unit() : null);
         }
 
         if (PrayerHour::applies($program)) return $this->app->prayerHour()->step($channel, $program, $block, $cursor, $base, $hostOn);

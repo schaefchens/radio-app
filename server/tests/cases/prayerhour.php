@@ -392,3 +392,16 @@ test('prayer hour: a moderator\'s recorded opening prayer plays as it is', funct
     $intro = array_values(array_filter($run, fn($r) => $r['label'] === 'intro'))[0]['item'];
     eq(hostContext($app, $intro)['opening_by'] ?? null, 'Brother Tom', 'the welcome names him');
 });
+
+test('prayer hour: planned at the last minute it still opens with the welcome, the opening prayer and the invitation', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    ticks($app, 10);
+    // Starts in two minutes, well inside the five committed ones.
+    $p = prayerHour($app, 722);
+    ticks($app, 25);
+    $labels = labelsOf(runOf($app, (int) $p['id']));
+    $first = array_values(array_filter($labels, fn($l) => $l !== 'silence'));
+    eq(array_slice($first, 0, 4), ['intro', 'opening', 'invite', 'bed'], 'the moments wait for their voice — a minute of silence at most — instead of going');
+    check(array_search('intro', $labels, true) <= 1, 'at most one pause before the welcome');
+});

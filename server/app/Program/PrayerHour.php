@@ -84,11 +84,11 @@ final class PrayerHour
                     'prepared_id' => (int) $prepared['id'], 'by' => (string) $prepared['name'],
                     'fixed' => array_filter(['en' => (string) $prepared['text_en'], 'de' => (string) $prepared['text_de']], fn($t) => trim($t) !== ''),
                 ];
-                return $drafter->addHost($channel, $program, 'opening', $cursor, $base, $context, null, Timing::PRAYER_ESTIMATE);
+                return $drafter->addHost($channel, $program, 'opening', $cursor, $base, $context, self::unit(), Timing::PRAYER_ESTIMATE);
             }
         }
         if ($hostOn && $run['phase'] < 2 && $cursor < $from + self::INVITE_WITHIN) {
-            return $drafter->addHost($channel, $program, 'invite', $cursor, $base);
+            return $drafter->addHost($channel, $program, 'invite', $cursor, $base, [], self::unit());
         }
 
         // The collection time: requests arrive and appear on the wall; nobody reads them yet.
@@ -348,7 +348,14 @@ final class PrayerHour
         return $this->avgSong[$pid];
     }
 
-    private static function unit(): string
+    /**
+     * A unit id for a moment the running order needs: not voiced when its
+     * time comes, the committer lets a minute of silence go first instead of
+     * dropping it. A plan changed at the last minute drafts the welcome, the
+     * opening prayer and the invitation right at the committed edge — as
+     * plain breaks all three went and the hour began with its music.
+     */
+    public static function unit(): string
     {
         return 'u' . Ids::short(8);
     }
