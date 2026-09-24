@@ -78,6 +78,22 @@ final class HostBreaks
         $this->app->jobs()->cancel('host', $id);
     }
 
+    /**
+     * The prayer requests a prayer break was drafted for. Kept under their
+     * own key: the script phase stores the model's context over the drafted
+     * one, and that context's `prayers` are the texts, not the ids. (Breaks
+     * drafted before the key existed carry the ids under `prayers` until
+     * their script is written.)
+     *
+     * @param array<string,mixed> $hb decoded host break
+     * @return list<int>
+     */
+    public static function prayerIds(array $hb): array
+    {
+        $ids = $hb['context']['prayer_ids'] ?? $hb['context']['prayers'] ?? [];
+        return array_values(array_map('intval', array_filter((array) $ids, fn($v) => is_int($v) || (is_string($v) && ctype_digit($v)))));
+    }
+
     /** @param array<string,mixed> $hb */
     public function airDuration(array $hb): int
     {

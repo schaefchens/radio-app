@@ -184,6 +184,12 @@ final class Tick
             'submissions' => $this->app->submissions()->purgeBefore($now - $c->int('RETAIN_SUBMISSIONS_DAYS', 90) * 86400),
             'identities' => $this->app->identities()->purgeInactive(),
             'timeline' => $this->app->timeline()->purgeBefore(($now - $this->app->config->int('RETAIN_TIMELINE_DAYS', 30) * 86400) * 1000),
+            // A host script can quote a listener (a dedication, a prayer
+            // request): it goes with its timeline item, well inside the 90 days.
+            'host_breaks' => $store->query(
+                'DELETE FROM host_breaks WHERE created < ? AND id NOT IN (SELECT host_break_id FROM timeline_items WHERE host_break_id IS NOT NULL)',
+                [$now - $c->int('RETAIN_TIMELINE_DAYS', 30) * 86400],
+            )->rowCount(),
             'jobs' => $this->app->jobs()->purgeBefore($now - 7 * 86400),
             'attempts' => $store->query('DELETE FROM attempts WHERE time < ?', [$now - 2 * 86400])->rowCount(),
             'presence' => $store->query('DELETE FROM presence WHERE seen < ?', [$now - 86400])->rowCount(),

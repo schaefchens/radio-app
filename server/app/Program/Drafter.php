@@ -138,7 +138,7 @@ final class Drafter
         if ($hostOn && in_array('prayer', $program['allowed'], true) && !$this->isHost($prev)) {
             $prayers = $this->app->submissions()->takePrayers($channel, $program, 3);
             if ($prayers) {
-                return $this->addHost($channel, $program, 'prayer', $cursor, $base, ['prayers' => $prayers]);
+                return $this->addHost($channel, $program, 'prayer', $cursor, $base, ['prayer_ids' => $prayers]);
             }
         }
 

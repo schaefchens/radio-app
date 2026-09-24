@@ -35,6 +35,8 @@ final class Submissions
 {
     public const REASONS = ['not_program_fit', 'not_suitable', 'not_accepted'];
     private const AUDIO_TYPES = ['story', 'testimony', 'greeting', 'prayer'];
+    /** A typed prayer's share of the host's prayer moment (up to three in ~45 s). */
+    private const PRAYER_AIRTIME_MS = 15_000;
 
     public function __construct(private App $app) {}
 
@@ -485,11 +487,13 @@ final class Submissions
         $store = $this->app->store();
         $rows = $store->all(
             "SELECT id FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved' AND type = 'prayer' AND mode = 'text'
-             ORDER BY created LIMIT ?",
+             ORDER BY created, id LIMIT ?",
             [(int) $channel['id'], (int) $program['id'], $n],
         );
-        $ids = array_map(fn($r) => (int) $r['id'], $rows);
-        foreach ($ids as $id) $store->update('submissions', ['status' => 'scheduled', 'updated' => $this->app->clock->now()], 'id = ?', [$id]);
+        $ids = [];
+        foreach ($rows as $r) {
+            if ($this->schedule((int) $r['id'])) $ids[] = (int) $r['id'];
+        }
         return $ids;
     }
 
@@ -517,7 +521,14 @@ final class Submissions
              AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
             [$channelId, $programId, $this->app->clock->nowMs()],
         );
-        return $songs + $audio;
+        // A typed prayer has no length of its own: the host prays for up to
+        // three in one moment. Counted, a flood of them closes intake too.
+        $prayers = (int) $store->value(
+            "SELECT COUNT(*) FROM submissions WHERE channel_id = ? AND program_id = ? AND type = 'prayer' AND mode = 'text'
+             AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
+            [$channelId, $programId, $this->app->clock->nowMs()],
+        );
+        return $songs + $audio + $prayers * self::PRAYER_AIRTIME_MS;
     }
 
     public function markAired(): int

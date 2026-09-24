@@ -80,10 +80,10 @@ final class HostWriter
         if (in_array($hb['kind'], ['announce', 'contrib', 'break', 'outro'], true) && ($before = $this->requestBefore($prev)) !== null) {
             $ctx['previous_request'] = $before;
         }
-        if (!empty($hb['context']['prayers'])) {
+        if (($ids = HostBreaks::prayerIds($hb)) !== []) {
             $ctx['prayers'] = [];
-            foreach ((array) $hb['context']['prayers'] as $pid) {
-                $p = $this->app->submissions()->get((int) $pid);
+            foreach ($ids as $pid) {
+                $p = $this->app->submissions()->get($pid);
                 if ($p !== null) $ctx['prayers'][] = ['name' => $p['name'], 'place' => $p['place'], 'text' => $p['text']];
             }
         }

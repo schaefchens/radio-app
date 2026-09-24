@@ -106,10 +106,10 @@
   },
   "prayerForm": {
     "text": "Your prayer request",
-    "textHint": "Only your first name and place are mentioned.",
+    "textHint": "We pray for it on air, naming only your first name and place.",
     "record": "Record it instead",
     "type": "Type it instead",
-    "showAsVoice": "Show it to the community so others can pray with me."
+    "showAsVoice": "Also show my request to the community, so others can pray with me."
   },
   "record": {
     "kind": "What would you like to share?",

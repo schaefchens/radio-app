@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Program;
 
 use Arche\App;
+use Arche\Host\HostBreaks;
 
 /**
  * Turns drafts into the fixed timeline, contiguously, up to now + COMMIT.
@@ -135,7 +136,11 @@ final class Committer
                 return null;
             }
         }
-        return $this->commitItem($item, $frontier, $breaks->airDuration($hb), $breaks->payload($hb));
+        $end = $this->commitItem($item, $frontier, $breaks->airDuration($hb), $breaks->payload($hb));
+        // The prayer requests it prays for now have their air time: they
+        // turn "aired" once it has passed, like any other submission.
+        foreach (HostBreaks::prayerIds($hb) as $pid) $this->app->submissions()->markScheduled($pid, $frontier);
+        return $end;
     }
 
     /** @param array<string,mixed> $item @param array<string,mixed> $payload */
@@ -158,6 +163,11 @@ final class Committer
         if ($item['submission_id'] !== null && $item['type'] !== 'host') {
             // The submission's own item (not its announcement) went: give it back.
             $this->app->submissions()->requeue($item['submission_id']);
+        }
+        // A prayer break that does not air gives its prayer requests back, or
+        // they would wait as "scheduled" for good.
+        if ($item['type'] === 'host' && $item['host_break_id'] !== null && ($hb = $this->app->hostBreaks()->get($item['host_break_id'])) !== null) {
+            foreach (HostBreaks::prayerIds($hb) as $pid) $this->app->submissions()->requeue($pid);
         }
     }
 

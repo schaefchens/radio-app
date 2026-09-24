@@ -106,10 +106,10 @@
   },
   "prayerForm": {
     "text": "Dein Gebetsanliegen",
-    "textHint": "Genannt werden nur dein Vorname und dein Ort.",
+    "textHint": "Wir beten on air dafür und nennen nur deinen Vornamen und deinen Ort.",
     "record": "Lieber aufnehmen",
     "type": "Lieber schreiben",
-    "showAsVoice": "Zeig es der Gemeinschaft, damit andere mit mir beten."
+    "showAsVoice": "Zeig mein Anliegen auch der Gemeinschaft, damit andere mit mir beten."
   },
   "record": {
     "kind": "Was möchtest du teilen?",

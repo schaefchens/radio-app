@@ -17,7 +17,8 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
   const [text, setText] = useState('');
   const [name, setName] = useState(identity?.name ?? '');
   const [place, setPlace] = useState('');
-  const [share, setShare] = useState(true);
+  // Showing a prayer request to everyone needs a clear yes: never pre-ticked.
+  const [share, setShare] = useState(false);
   const submit = useSubmit(() => api('/submissions/prayer', { body: { channel, text, name, place, lang, consent_air: share } }));
   const close = (): void => {
     onClose();

@@ -99,10 +99,14 @@ test('submissions: kept 90 days as the privacy policy says, then deleted with th
         'submission_id' => $keptId, 'source' => 'submission', 'created' => 1, 'updated' => 1]);
     $store->query("INSERT INTO highlights(uid, channel, sub, name, text, at, created, updated) VALUES('h1', 'main', 's', 'Anna', 'Amen', 0, ?, ?)", [$app->clock->now(), $app->clock->now()]);
     $store->query("INSERT INTO chat_reports(msg, text, author, reporter, at, created) VALUES('m1', 'x', 'a', 'b', 0, ?)", [$app->clock->now()]);
+    $store->insert('host_breaks', ['channel_id' => (int) $ch['id'], 'program_id' => 1, 'kind' => 'prayer', 'state' => 'ready',
+        'context' => json_encode(['prayers' => [['name' => 'Lea', 'place' => 'Köln', 'text' => 'Please pray for my brother.']]]),
+        'created' => $app->clock->now(), 'updated' => $app->clock->now()]);
 
     TestKit::clock($app)->advance(89 * 86400 * 1000);
     $app->tick()->run('test');
     check($app->submissions()->byPublicId($prayer['id']) !== null, 'still there after 89 days');
+    eq((int) $store->value("SELECT COUNT(*) FROM host_breaks WHERE kind = 'prayer'"), 0, 'a host script quoting a prayer request goes with the timeline after 30 days');
     eq((int) $store->value('SELECT COUNT(*) FROM highlights'), 0, 'community voices from chat go after 7 days');
     eq((int) $store->value('SELECT COUNT(*) FROM chat_reports'), 0, 'chat reports go after 30 days');
 
@@ -158,6 +162,46 @@ test('submissions: text prayers are prayed for by the host and shown as voices',
     }
     $prayer = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && ($i['payload']['kind'] ?? '') === 'prayer'));
     check(count($prayer) >= 1, 'a prayer break aired');
+    $row = $app->submissions()->byPublicId($sub['id']);
+    eq($row['status'], 'aired', 'the prayer request is marked aired');
+    eq((int) $row['aired_at'], $prayer[0]['start_ms'], 'at the start of its prayer break');
+    $hb = $app->hostBreaks()->get((int) $prayer[0]['host_break_id']);
+    eq(Arche\Host\HostBreaks::prayerIds($hb), [(int) $row['id']], 'the break still knows its prayer after the script was written');
+});
+
+test('submissions: a prayer break that does not air gives its prayer requests back', function () {
+    // No break is ever voiced: the daily cap is reached before the first.
+    $app = TestKit::app(['HOST_MAX_BREAKS_PER_DAY' => '0']);
+    TestKit::songs($app, 12);
+    $app->tick()->run('test');
+    $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for our family.', 'name' => 'Jonas']);
+    runJobs($app);
+    $seen = [];
+    for ($i = 0; $i < 15; $i++) {
+        $app->tick()->run('test');
+        $seen[] = $app->submissions()->byPublicId($sub['id'])['status'];
+        TestKit::clock($app)->advance(60_000);
+    }
+    check(in_array('scheduled', $seen, true), 'taken into a prayer break');
+    check((int) $app->store()->value("SELECT COUNT(*) FROM timeline_items WHERE type = 'host' AND state = 'dropped' AND json_extract(payload, '$.kind') = 'prayer'") > 0, 'the unvoiced prayer break was dropped');
+    $row = $app->submissions()->byPublicId($sub['id']);
+    check(in_array($row['status'], ['approved', 'scheduled'], true) && $row['aired_at'] === null, 'waiting again, not stuck as "coming up" nor marked aired');
+    check(array_search('approved', array_slice($seen, (int) array_search('scheduled', $seen, true)), true) !== false, 'back in the queue after the drop');
+});
+
+test('submissions: prayer requests of discarded drafts wait again', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $app->tick()->run('test');
+    $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Pray for peace in our town.', 'name' => 'Eva']);
+    runJobs($app);
+    for ($i = 0; $i < 10 && $app->submissions()->byPublicId($sub['id'])['status'] !== 'scheduled'; $i++) {
+        TestKit::clock($app)->advance(60_000);
+        $app->tick()->run('test');
+    }
+    eq($app->submissions()->byPublicId($sub['id'])['status'], 'scheduled', 'drafted into a prayer break');
+    $app->timeline()->discardDrafts((int) TestKit::main($app)['id']);
+    eq($app->submissions()->byPublicId($sub['id'])['status'], 'approved', 'back in the queue when the plan is thrown away');
 });
 
 test('submissions: intake follows the program: types it does not allow are refused', function () {
