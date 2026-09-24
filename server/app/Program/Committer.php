@@ -140,6 +140,7 @@ final class Committer
         // The prayer requests it prays for now have their air time: they
         // turn "aired" once it has passed, like any other submission.
         foreach (HostBreaks::prayerIds($hb) as $pid) $this->app->submissions()->markScheduled($pid, $frontier);
+        if (isset($hb['context']['prepared_id'])) $this->app->preparedPrayers()->markAired((int) $hb['context']['prepared_id'], $frontier);
         return $end;
     }
 
@@ -153,6 +154,8 @@ final class Committer
         if ($item['submission_id'] !== null) {
             $this->app->submissions()->markScheduled($item['submission_id'], $start);
         }
+        // A moderator's recorded opening prayer: used now, the next airing takes the next one.
+        if (isset($payload['prepared_id'])) $this->app->preparedPrayers()->markAired((int) $payload['prepared_id'], $start);
         return $start + $dur;
     }
 

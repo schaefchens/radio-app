@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
+import { toMp3 } from '@/lib/recordingEncoder';
+import { localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
 import { useModChannelId, useOverview } from './overview';
 import { modError, type LibraryItem, type ModProgram, type PrayerSettings, type ProgramSettings } from './modApi';
@@ -108,6 +110,123 @@ export function ProgramsPanel() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+interface Prepared {
+  id: number;
+  mode: 'text' | 'audio';
+  name: string;
+  text_en: string;
+  text_de: string;
+  audio: string | null;
+  status: 'waiting' | 'aired';
+  aired_at: number | null;
+}
+
+/** The server's limit for a prepared recording (server/app/Program/PreparedPrayers.php). */
+const MAX_RECORDING_MS = 180_000;
+
+/**
+ * Opening prayers moderators prepare for a prayer hour. Each airing takes the
+ * oldest one waiting instead of the AI's: a recording as it is (any file the
+ * browser can play — a phone's voice memo — becomes the station's MP3 here),
+ * or a text the host voice reads word for word.
+ */
+function PreparedPrayers({ programId }: { programId: number }) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language === 'de' ? 'de' : 'en';
+  const { data, error, reload } = useApi<{ prayers: Prepared[] }>(`/mod/programs/${programId}/prayers`);
+  const [name, setName] = useState('');
+  const [en, setEn] = useState('');
+  const [de, setDe] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const run = async (fn: () => Promise<unknown>): Promise<void> => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      await fn();
+      reload();
+    } catch (e) {
+      setProblem(e instanceof Error && e.message === 'too_long' ? t('mod.programs.prepared.tooLong') : modError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const addText = (): Promise<void> =>
+    run(async () => {
+      await api(`/mod/programs/${programId}/prayers`, { body: { name, text_en: en, text_de: de } });
+      setEn('');
+      setDe('');
+    });
+  const addRecording = (): Promise<void> =>
+    run(async () => {
+      if (!file) return;
+      const { mp3, ms } = await toMp3(file);
+      if (ms > MAX_RECORDING_MS) throw new Error('too_long');
+      const form = new FormData();
+      form.set('audio', new File([mp3], 'prayer.mp3', { type: 'audio/mpeg' }));
+      form.set('name', name);
+      await api(`/mod/programs/${programId}/prayers`, { form });
+      setFile(null);
+    });
+
+  return (
+    <div className="card-inset flex flex-col gap-3 p-3">
+      <p className="label">{t('mod.programs.prepared.title')}</p>
+      <p className="text-sm text-ink-muted">{t('mod.programs.prepared.hint')}</p>
+      {(error || problem) && <Notice tone="error">{problem ?? error}</Notice>}
+      {!data ? (
+        <Loading />
+      ) : data.prayers.length === 0 ? (
+        <p className="text-sm text-ink-muted">{t('mod.programs.prepared.none')}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {data.prayers.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center gap-2 text-sm">
+              <Pill tone={p.status === 'waiting' ? 'good' : 'default'}>
+                {p.status === 'waiting' ? t('mod.programs.prepared.waiting') : t('mod.programs.prepared.aired', { when: p.aired_at ? `${localDate(p.aired_at, lang)} ${localTime(p.aired_at, lang)}` : '' })}
+              </Pill>
+              <span className="font-medium">{p.name || '—'}</span>
+              {p.mode === 'audio' && p.audio ? (
+                <audio controls preload="none" src={p.audio} className="h-8 max-w-full" />
+              ) : (
+                <span className="min-w-0 flex-1 truncate text-ink-muted">{(lang === 'de' ? p.text_de || p.text_en : p.text_en || p.text_de).slice(0, 140)}</span>
+              )}
+              {p.status === 'waiting' && (
+                <ConfirmButton className="btn-ghost px-3 py-1.5 text-xs text-heart" label={t('mod.common.delete')} question={t('mod.programs.prepared.deleteConfirm')} onConfirm={() => void run(() => api(`/mod/prayers/${p.id}`, { method: 'DELETE' }))} disabled={busy} />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <Field label={t('mod.programs.prepared.name')}>
+        <input className="field" maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
+      </Field>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label={t('mod.programs.prepared.textEn')}>
+          <textarea className="field min-h-[96px]" maxLength={1100} value={en} onChange={(e) => setEn(e.target.value)} />
+        </Field>
+        <Field label={t('mod.programs.prepared.textDe')}>
+          <textarea className="field min-h-[96px]" maxLength={1100} value={de} onChange={(e) => setDe(e.target.value)} />
+        </Field>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="btn-ghost" disabled={busy || (en.trim() === '' && de.trim() === '')} onClick={() => void addText()}>
+          {t('mod.programs.prepared.addText')}
+        </button>
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="label">{t('mod.programs.prepared.recording')}</p>
+        <input type="file" accept="audio/*" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-label={t('mod.programs.prepared.recording')} />
+        <button type="button" className="btn-ghost self-start" disabled={busy || !file} onClick={() => void addRecording()}>
+          {busy ? t('mod.common.saving') : t('mod.programs.prepared.addRecording')}
+        </button>
+      </div>
     </div>
   );
 }
@@ -304,6 +423,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           </div>
         </div>
       )}
+      {prayer && program && <PreparedPrayers programId={program.id} />}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t('mod.programs.themes')} hint={t('mod.library.tagsHint')}>
           <TagsInput value={d.themes} onChange={(v) => set('themes', v)} />

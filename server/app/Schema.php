@@ -393,6 +393,26 @@ final class Schema
             );
             CREATE INDEX prayer_along_time ON prayer_along(time);
             SQL,
+            // 5 — opening prayers a moderator prepared for a prayer hour: a
+            // recording, or a text the host voice reads word for word.
+            <<<'SQL'
+            CREATE TABLE prepared_prayers (
+              id INTEGER PRIMARY KEY,
+              program_id INTEGER NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+              moment TEXT NOT NULL DEFAULT 'opening',
+              mode TEXT NOT NULL CHECK (mode IN ('text', 'audio')),
+              name TEXT NOT NULL DEFAULT '',
+              text_en TEXT NOT NULL DEFAULT '',
+              text_de TEXT NOT NULL DEFAULT '',
+              audio TEXT,
+              audio_ms INTEGER NOT NULL DEFAULT 0,
+              status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'aired')),
+              aired_at INTEGER,
+              created_by TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL
+            );
+            CREATE INDEX prepared_prayers_waiting ON prepared_prayers(program_id, status, id);
+            SQL,
         ];
     }
 }

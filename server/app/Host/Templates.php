@@ -25,7 +25,10 @@ final class Templates
         $blessing = $tod === 'Nacht' ? 'eine gesegnete Nacht' : "einen gesegneten $tod";
 
         return match ($kind) {
-            'intro' => [
+            'intro' => ($by = (string) ($c['opening_by'] ?? '')) !== '' ? [
+                'en' => "Welcome to {$program['en']} on ARCHE. $by opens our time of prayer.",
+                'de' => "Willkommen bei {$program['de']} auf ARCHE. $by eröffnet unsere Gebetszeit.",
+            ] : [
                 'en' => "Welcome to {$program['en']} on ARCHE. We're glad you're here with us.",
                 'de' => "Willkommen bei {$program['de']} auf ARCHE. Schön, dass du dabei bist.",
             ],

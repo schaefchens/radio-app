@@ -486,7 +486,24 @@
       "toOutro": "In a prayer hour, counted to the outro.",
       "wall": "Prayer wall: shows the prayer requests whose senders agreed",
       "wallKeep": "Keep it … minutes after the program",
-      "wallHint": "0 = it goes when the program ends."
+      "wallHint": "0 = it goes when the program ends.",
+      "prepared": {
+        "title": "Prepared opening prayers",
+        "hint": "Each airing uses the oldest one waiting instead of the AI host's opening prayer: a recording as it is, or a text the host voice reads word for word. The welcome names who prays. With none waiting, the AI host prays.",
+        "none": "None prepared: the AI host prays the opening prayer.",
+        "waiting": "Waiting",
+        "aired": "Prayed {{when}}",
+        "name": "Who prays (named on air)",
+        "textEn": "Text (English)",
+        "textDe": "Text (German)",
+        "addText": "Add text",
+        "recording": "Or a recording (a voice memo works; up to 3 minutes)",
+        "addRecording": "Add recording",
+        "tooLong": "The recording is longer than 3 minutes.",
+        "deleteConfirm": "Delete this prepared prayer?",
+        "missingText": "Write the prayer in at least one language.",
+        "invalidAudio": "That file cannot be used: a recording of 5 seconds to 3 minutes."
+      }
     },
     "plans": {
       "dayPlans": "Day plans",

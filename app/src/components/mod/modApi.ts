@@ -155,6 +155,8 @@ const KNOWN: Record<string, string> = {
   video_not_embeddable: 'mod.library.notEmbeddable',
   already_in_library: 'mod.library.existing',
   invalid_bed: 'mod.library.invalidBed',
+  missing_text: 'mod.programs.prepared.missingText',
+  invalid_audio: 'mod.programs.prepared.invalidAudio',
   video_unplayable: 'mod.review.blockers.video_unplayable',
   recording_deleted: 'mod.review.blockers.recording_deleted',
 };

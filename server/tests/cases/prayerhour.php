@@ -353,3 +353,42 @@ test('praying along: 🙏 on a request counts once per listener; who prayed for 
     eq((int) $app->store()->value('SELECT COUNT(*) FROM prayer_along'), 0, 'who prayed for it is forgotten');
     eq((int) $app->submissions()->byPublicId($public)['prayed_with'], 2, 'the number stays');
 });
+
+test('prayer hour: a moderator\'s prepared opening prayer is prayed instead of the AI\'s, read word for word', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $p = prayerHour($app, 735);
+    $prepared = $app->preparedPrayers();
+    $mine = $prepared->addText((int) $p['id'], 'Pastor Maria', 'Lord, open our hearts in this hour. Amen.', 'Herr, öffne unsere Herzen in dieser Stunde. Amen.', 'test');
+    $later = $prepared->addText((int) $p['id'], 'Brother Tom', '', 'Herr, sei bei uns. Amen.', 'test');
+    ticks($app, 25);
+    $run = runOf($app, (int) $p['id']);
+    $opening = array_values(array_filter($run, fn($r) => $r['label'] === 'opening'));
+    eq(count($opening), 1, 'one opening prayer');
+    $hb = $app->hostBreaks()->get((int) $opening[0]['item']['host_break_id']);
+    eq([$hb['source'], $hb['texts']['en'], $hb['texts']['de']], ['moderator', 'Lord, open our hearts in this hour. Amen.', 'Herr, öffne unsere Herzen in dieser Stunde. Amen.'], 'the oldest one, read word for word — not written by the AI');
+    $intro = array_values(array_filter($run, fn($r) => $r['label'] === 'intro'))[0]['item'];
+    eq(hostContext($app, $intro)['opening_by'] ?? null, 'Pastor Maria', 'the welcome names who prays the opening prayer');
+    $status = array_column($prepared->list((int) $p['id']), 'status', 'id');
+    eq([$status[$mine['id']], $status[$later['id']]], ['aired', 'waiting'], 'used once; the next one waits for the next airing');
+    check(refuses(fn() => $prepared->delete($mine['id'], 'test'), 'not_found'), 'what was prayed stays in the list');
+    $prepared->delete($later['id'], 'test');
+    eq(count($prepared->list((int) $p['id'])), 1, 'one still waiting can be deleted');
+});
+
+test('prayer hour: a moderator\'s recorded opening prayer plays as it is', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $p = prayerHour($app, 735);
+    $rec = $app->preparedPrayers()->addAudio((int) $p['id'], 'Brother Tom', silentMp3(30), 'test');
+    check(refuses(fn() => $app->preparedPrayers()->addAudio((int) $p['id'], 'Too long', silentMp3(200), 'test'), 'invalid_audio'), 'three minutes at most');
+    ticks($app, 25);
+    $run = runOf($app, (int) $p['id']);
+    $labels = labelsOf($run);
+    eq(array_slice($labels, 0, 4), ['intro', 'contrib', 'invite', 'bed'], 'the recording in the opening prayer\'s place, then the running order goes on');
+    $contrib = array_values(array_filter($run, fn($r) => $r['label'] === 'contrib'))[0]['item'];
+    eq([$contrib['payload']['name'], $contrib['payload']['caption']['de'], $contrib['payload']['audio']], ['Brother Tom', 'Eröffnungsgebet', $rec['audio']], 'with the moderator\'s name, as the opening prayer');
+    eq($app->preparedPrayers()->list((int) $p['id'])[0]['status'], 'aired', 'marked aired');
+    $intro = array_values(array_filter($run, fn($r) => $r['label'] === 'intro'))[0]['item'];
+    eq(hostContext($app, $intro)['opening_by'] ?? null, 'Brother Tom', 'the welcome names him');
+});

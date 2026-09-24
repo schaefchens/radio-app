@@ -71,6 +71,9 @@ final class Routes
         $r->add('POST', '/mod/review/{id}', $m('reviewDecide'));
         $r->add('GET', '/mod/review/{id}/audio', $m('reviewAudio'));
         $r->add('POST', '/mod/review/{id}/wall', $m('reviewWall'));
+        $r->add('GET', '/mod/programs/{id}/prayers', $m('preparedList'));
+        $r->add('POST', '/mod/programs/{id}/prayers', $m('preparedAdd'));
+        $r->add('DELETE', '/mod/prayers/{id}', $m('preparedDelete'));
         $r->add('GET', '/mod/users', $m('users'));
         $r->add('PATCH', '/mod/users/{id}', $m('userUpdate'));
         $r->add('GET', '/mod/reports', $m('reports'));

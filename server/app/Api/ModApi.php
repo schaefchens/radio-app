@@ -427,6 +427,34 @@ final class ModApi
         return ['submission' => $subs->publicView($subs->get((int) $sub['id']) ?? $sub)];
     }
 
+    /** The opening prayers moderators prepared for a prayer hour. @param array<string,string> $a */
+    public function preparedList(array $a): array
+    {
+        $this->mod();
+        return ['prayers' => $this->c->app->preparedPrayers()->list((int) ($a['id'] ?? 0))];
+    }
+
+    /** A prepared opening prayer: an MP3 (converted in the browser) or a text in the station's languages. @param array<string,string> $a */
+    public function preparedAdd(array $a): array
+    {
+        $this->mod();
+        $prepared = $this->c->app->preparedPrayers();
+        $file = $this->c->req->file('audio');
+        if ($file !== null) {
+            return ['prayer' => $prepared->addAudio((int) ($a['id'] ?? 0), (string) ($this->c->req->post['name'] ?? ''), $file, $this->actor())];
+        }
+        $in = $this->c->req->json();
+        return ['prayer' => $prepared->addText((int) ($a['id'] ?? 0), (string) ($in['name'] ?? ''), (string) ($in['text_en'] ?? ''), (string) ($in['text_de'] ?? ''), $this->actor())];
+    }
+
+    /** @param array<string,string> $a */
+    public function preparedDelete(array $a): array
+    {
+        $this->mod();
+        $this->c->app->preparedPrayers()->delete((int) ($a['id'] ?? 0), $this->actor());
+        return ['ok' => true];
+    }
+
     /** Take a prayer request off the prayer wall and the community voices, or put it back. @param array<string,string> $a */
     public function reviewWall(array $a): array
     {

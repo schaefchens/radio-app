@@ -486,7 +486,24 @@
       "toOutro": "In einer Gebetsstunde bis zur Abmoderation gerechnet.",
       "wall": "Gebetswand: zeigt die Gebetsanliegen, deren Absender zugestimmt haben",
       "wallKeep": "Nach der Sendung noch … Minuten zeigen",
-      "wallHint": "0 = sie verschwindet mit dem Ende der Sendung."
+      "wallHint": "0 = sie verschwindet mit dem Ende der Sendung.",
+      "prepared": {
+        "title": "Vorbereitete Eröffnungsgebete",
+        "hint": "Jede Ausstrahlung nimmt das älteste wartende statt des Eröffnungsgebets der KI-Moderation: eine Aufnahme, wie sie ist, oder einen Text, den die Moderationsstimme Wort für Wort liest. Die Begrüßung nennt, wer betet. Wartet keines, betet die KI-Moderation.",
+        "none": "Keines vorbereitet: Die KI-Moderation betet das Eröffnungsgebet.",
+        "waiting": "Wartet",
+        "aired": "Gebetet {{when}}",
+        "name": "Wer betet (wird on air genannt)",
+        "textEn": "Text (Englisch)",
+        "textDe": "Text (Deutsch)",
+        "addText": "Text hinzufügen",
+        "recording": "Oder eine Aufnahme (eine Sprachmemo genügt; bis zu 3 Minuten)",
+        "addRecording": "Aufnahme hinzufügen",
+        "tooLong": "Die Aufnahme ist länger als 3 Minuten.",
+        "deleteConfirm": "Dieses vorbereitete Gebet löschen?",
+        "missingText": "Schreib das Gebet in mindestens einer Sprache.",
+        "invalidAudio": "Diese Datei geht nicht: eine Aufnahme von 5 Sekunden bis 3 Minuten."
+      }
     },
     "plans": {
       "dayPlans": "Tagespläne",

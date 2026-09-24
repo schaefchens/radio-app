@@ -74,9 +74,18 @@ final class PrayerHour
             return $drafter->addHost($channel, $program, 'outro', $cursor, $base, [], self::unit(), Timing::OUTRO_ESTIMATE);
         }
 
-        // The opening: prayer, then the invitation to send requests.
-        if ($hostOn && $run['phase'] < 1 && $cursor < $from + self::OPENING_WITHIN) {
-            return $drafter->addHost($channel, $program, 'opening', $cursor, $base, [], null, Timing::PRAYER_ESTIMATE);
+        // The opening: prayer — a moderator's, when one is prepared — then
+        // the invitation to send requests.
+        if ($run['phase'] < 1 && $cursor < $from + self::OPENING_WITHIN) {
+            $prepared = $this->app->preparedPrayers()->next((int) $program['id']);
+            if ($prepared !== null && $prepared['mode'] === 'audio') return $this->preparedRecording($cid, $prepared, $cursor, $base);
+            if ($hostOn) {
+                $context = $prepared === null ? [] : [
+                    'prepared_id' => (int) $prepared['id'], 'by' => (string) $prepared['name'],
+                    'fixed' => array_filter(['en' => (string) $prepared['text_en'], 'de' => (string) $prepared['text_de']], fn($t) => trim($t) !== ''),
+                ];
+                return $drafter->addHost($channel, $program, 'opening', $cursor, $base, $context, null, Timing::PRAYER_ESTIMATE);
+            }
         }
         if ($hostOn && $run['phase'] < 2 && $cursor < $from + self::INVITE_WITHIN) {
             return $drafter->addHost($channel, $program, 'invite', $cursor, $base);
@@ -169,7 +178,9 @@ final class PrayerHour
         foreach ($rows as $row) {
             $start = (int) ($row['start_ms'] ?? $row['est_start']);
             $r['from'] ??= $start;
-            $kind = $row['type'] === 'host' ? (string) (json_decode((string) $row['payload'], true)['kind'] ?? '') : '';
+            $payload = json_decode((string) $row['payload'], true) ?: [];
+            // A moderator's recorded opening prayer is a recording, but the opening.
+            $kind = $row['type'] === 'host' ? (string) ($payload['kind'] ?? '') : ($row['type'] === 'contrib' && !empty($payload['opening']) ? 'opening' : '');
             if ($row['type'] === 'host' || $row['type'] === 'contrib') $r['last_word'] = $start + (int) $row['dur_ms'];
             if ($kind === 'opening') {
                 $r['phase'] = max($r['phase'], 1);
@@ -226,6 +237,27 @@ final class PrayerHour
         if ($run['collect_songs'] >= (int) $c['songs'] || $room < Timing::MIN_SONG) return null;
         $song = $this->app->selector()->pick($channel, $program, $cursor, $room);
         return $song !== null ? $this->app->drafter()->addSong($channel, $song, $cursor, $base) : null;
+    }
+
+    /**
+     * A moderator's recorded opening prayer, as it is: like a listener's
+     * recording, marked as the opening (the committer marks it aired).
+     *
+     * @param array<string,mixed> $prepared
+     * @param array<string,mixed> $base
+     * @return array{0:int,1:int}
+     */
+    private function preparedRecording(int $channelId, array $prepared, int $cursor, array $base): array
+    {
+        $dur = (int) $prepared['audio_ms'] + 400;
+        $this->app->timeline()->addDraft($channelId, $base + [
+            'type' => 'contrib', 'dur_ms' => $dur, 'est_start' => $cursor,
+            'payload' => [
+                'kind' => 'prayer', 'audio' => (string) $prepared['audio'], 'caption' => ['en' => 'Opening prayer', 'de' => 'Eröffnungsgebet'],
+                'name' => (string) $prepared['name'], 'place' => '', 'opening' => true, 'prepared_id' => (int) $prepared['id'],
+            ],
+        ]);
+        return [1, $cursor + $dur];
     }
 
     /**
