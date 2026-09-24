@@ -26,6 +26,7 @@
     "offline": "Verbindung zum Programm wird wiederhergestellt…",
     "preparing": "Das Programm wird vorbereitet",
     "silence": "Ein Moment der Stille",
+    "bedHint": "Tippe auf „Gebetsanliegen“ und schick uns dein Anliegen.",
     "evergreen": "Unsere Lieblingslieder, bis das Programm wieder da ist",
     "hostSpeaking": "{{name}} spricht",
     "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran"
@@ -43,6 +44,7 @@
     "host": "On air: {{name}}",
     "jingle": "ARCHE",
     "contrib": "{{name}} erzählt",
+    "bed": "Hintergrundmusik",
     "react": "Auf dieses Lied reagieren"
   },
   "host": {
@@ -362,7 +364,8 @@
         "all": "Alle",
         "song": "Lieder",
         "jingle": "Jingles",
-        "contrib": "Aufnahmen"
+        "contrib": "Aufnahmen",
+        "bed": "Hintergrundmusik"
       },
       "addSong": "Lied hinzufügen",
       "url": "YouTube-Link",
@@ -392,6 +395,11 @@
       "jingleTitle": "Titel",
       "tts": "Gesprochene Stationsansage erzeugen",
       "ttsText": "Text",
+      "beds": "Hintergrundmusik",
+      "uploadBed": "MP3 hochladen (20 Sekunden bis 10 Minuten, höchstens 8 MB)",
+      "bedHint": "Instrumentalmusik ohne Gesang, z. B. für die Sammelzeit einer Gebetsstunde. Sie läuft für sich, nie unter der Moderation.",
+      "bedTooBig": "Die Datei ist größer als 8 MB. Bitte neu kodieren, z. B. mit 128 kbit/s.",
+      "invalidBed": "Lade eine MP3 zwischen 20 Sekunden und 10 Minuten hoch.",
       "voice": "Stimme",
       "source": {
         "curated": "kuratiert",

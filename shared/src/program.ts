@@ -78,6 +78,15 @@ export interface JingleItem extends ItemBase {
   audio: string;
 }
 
+/** Background music of our own, played on its own — never under the host —
+ *  while the stage shows `label` (a prayer hour's collection time). An item
+ *  is never longer than its file: a longer moment is several items. */
+export interface BedItem extends ItemBase {
+  type: 'bed';
+  audio: string;
+  label: I18nText;
+}
+
 export interface SilenceItem extends ItemBase {
   type: 'silence';
   label: I18nText;
@@ -104,7 +113,7 @@ export interface StageItem extends ItemBase {
   label: I18nText;
 }
 
-export type TimelineItem = SongItem | HostItem | JingleItem | SilenceItem | ContribItem | GapItem | StageItem;
+export type TimelineItem = SongItem | HostItem | JingleItem | BedItem | SilenceItem | ContribItem | GapItem | StageItem;
 export type TimelineItemType = TimelineItem['type'];
 
 export interface SlotFile {

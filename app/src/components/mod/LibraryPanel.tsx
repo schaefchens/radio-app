@@ -9,7 +9,10 @@ import { modError, VOICES, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { MusicIcon } from '@/components/common/icons';
 
-type Kind = '' | 'song' | 'jingle' | 'contrib';
+type Kind = '' | 'song' | 'jingle' | 'contrib' | 'bed';
+
+/** PHP's upload limit (server/public/.user.ini): a larger file never arrives. */
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 export function LibraryPanel() {
   const { t } = useTranslation();
@@ -47,6 +50,7 @@ export function LibraryPanel() {
               <option value="song">{t('mod.library.kind.song')}</option>
               <option value="jingle">{t('mod.library.kind.jingle')}</option>
               <option value="contrib">{t('mod.library.kind.contrib')}</option>
+              <option value="bed">{t('mod.library.kind.bed')}</option>
             </select>
             <button type="submit" className="btn-ghost px-3 py-1.5">
               {t('mod.common.search')}
@@ -70,6 +74,7 @@ export function LibraryPanel() {
       </Section>
 
       <JinglePanel onAdded={() => done(t('mod.library.addedOk'))} />
+      <BedPanel onAdded={() => done(t('mod.library.addedOk'))} />
     </div>
   );
 }
@@ -307,6 +312,56 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
         </div>
       )}
     </li>
+  );
+}
+
+function BedPanel({ onAdded }: { onAdded: () => void }) {
+  const { t } = useTranslation();
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const upload = async (): Promise<void> => {
+    if (!file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(t('mod.library.bedTooBig'));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.set('audio', file);
+      form.set('title', title);
+      await api('/mod/beds', { form });
+      onAdded();
+    } catch (e) {
+      setError(modError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title={t('mod.library.beds')}>
+      {error && <Notice tone="error">{error}</Notice>}
+      <p className="text-sm text-ink-muted">{t('mod.library.bedHint')}</p>
+      <form
+        className="flex flex-col gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void upload();
+        }}
+      >
+        <p className="label">{t('mod.library.uploadBed')}</p>
+        <input type="file" accept="audio/mpeg,.mp3" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <input className="field" placeholder={t('mod.library.jingleTitle')} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <button type="submit" className="btn-ghost self-start" disabled={!file || busy}>
+          {t('mod.library.upload')}
+        </button>
+      </form>
+    </Section>
   );
 }
 

@@ -71,7 +71,7 @@ export interface Overview {
 
 export interface LibraryItem {
   id: number;
-  kind: 'song' | 'jingle' | 'contrib';
+  kind: 'song' | 'jingle' | 'contrib' | 'bed';
   yt_id: string | null;
   audio: string | null;
   title: string;
@@ -144,6 +144,7 @@ const KNOWN: Record<string, string> = {
   youtube_not_configured: 'mod.library.noYoutube',
   video_not_embeddable: 'mod.library.notEmbeddable',
   already_in_library: 'mod.library.existing',
+  invalid_bed: 'mod.library.invalidBed',
   video_unplayable: 'mod.review.blockers.video_unplayable',
   recording_deleted: 'mod.review.blockers.recording_deleted',
 };

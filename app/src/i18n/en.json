@@ -26,6 +26,7 @@
     "offline": "Reconnecting to the program…",
     "preparing": "The program is being prepared",
     "silence": "A moment of silence",
+    "bedHint": "Tap “Prayer Request” to send yours.",
     "evergreen": "Our favourites while the program reconnects",
     "hostSpeaking": "{{name}} is speaking",
     "unavailable": "This song can't be played here — stay with us"
@@ -43,6 +44,7 @@
     "host": "On air: {{name}}",
     "jingle": "ARCHE",
     "contrib": "{{name}} shares",
+    "bed": "Background music",
     "react": "React to this song"
   },
   "host": {
@@ -362,7 +364,8 @@
         "all": "All",
         "song": "Songs",
         "jingle": "Jingles",
-        "contrib": "Recordings"
+        "contrib": "Recordings",
+        "bed": "Background music"
       },
       "addSong": "Add a song",
       "url": "YouTube link",
@@ -392,6 +395,11 @@
       "jingleTitle": "Title",
       "tts": "Generate a spoken station ident",
       "ttsText": "Text",
+      "beds": "Background music",
+      "uploadBed": "Upload an MP3 (20 seconds to 10 minutes, at most 8 MB)",
+      "bedHint": "Instrumental music without singing, e.g. for the collection time of a prayer hour. It plays on its own, never under the host.",
+      "bedTooBig": "The file is larger than 8 MB. Re-encode it, e.g. at 128 kbps.",
+      "invalidBed": "Upload an MP3 between 20 seconds and 10 minutes long.",
       "voice": "Voice",
       "source": {
         "curated": "curated",

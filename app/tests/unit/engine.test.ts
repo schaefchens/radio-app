@@ -25,9 +25,14 @@ function fakeAudio(): AudioLike & { calls: string[] } {
     unlocked: false,
     calls: [],
     unlock() { this.unlocked = true; },
-    async play(url, off) { this.calls.push(`play ${url} ${Math.round(off)}`); return true; },
+    async play(url, off, fade) {
+      this.calls.push(`play ${url} ${Math.round(off)}`);
+      if (fade) this.calls.push(`fadeIn ${fade}`);
+      return true;
+    },
     preload(url) { this.calls.push(`preload ${url}`); },
     stop() { this.calls.push('stop'); },
+    fadeOut(ms) { this.calls.push(`fadeOut ${ms}`); },
     resync() {},
   };
 }
@@ -86,6 +91,31 @@ describe('RadioEngine', () => {
     expect(s.engine.snapshot.hostText).toBe('Hello');
     s.engine.setLang('de');
     expect(s.engine.snapshot.hostText).toBe('Hallo');
+    s.engine.stop();
+  });
+
+  it('background music plays at its offset, rises in, and fades out before its moment ends', async () => {
+    const withBed: TimelineItem[] = [
+      { id: 'b1', type: 'bed', start: 0, dur: 60_000, p: 'prayer', audio: '/media/beds/b.mp3', label: { en: 'What can we pray for?', de: 'Wofür dürfen wir beten?' } },
+      { id: 's1', type: 'song', start: 60_000, dur: 200_000, p: 'prayer', yt: 'AAAAAAAAAAA', title: 'One', artist: 'X', thumb: null, request: null, fallback: null },
+    ];
+    const s = setup({ slot: { ...slotFile, items: withBed } });
+    s.setNow(20_000);
+    await s.engine.start('main');
+    s.engine.join();
+    expect(s.engine.snapshot.mode).toBe('bed');
+    expect(s.engine.snapshot.playerVisible).toBe(false);
+    expect(s.audio.calls).toContain('play /media/beds/b.mp3 20000');
+    expect(s.audio.calls).toContain('fadeIn 1500');
+    s.setNow(58_700);
+    s.engine.tick();
+    s.engine.tick();
+    expect(s.audio.calls.filter((c) => c.startsWith('fadeOut'))).toEqual(['fadeOut 1500']);
+    s.setNow(60_500);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('song');
+    expect(s.audio.calls.at(-1)).toBe('stop');
+    expect(s.player.calls.some((c) => c.startsWith('load AAAAAAAAAAA'))).toBe(true);
     s.engine.stop();
   });
 

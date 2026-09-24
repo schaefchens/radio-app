@@ -49,6 +49,7 @@ final class Routes
         $r->add('POST', '/mod/library/{id}/pull', $m('libraryPull'));
         $r->add('POST', '/mod/jingles', $m('jingleUpload'));
         $r->add('POST', '/mod/jingles/tts', $m('jingleTts'));
+        $r->add('POST', '/mod/beds', $m('bedUpload'));
         $r->add('GET', '/mod/channels', $m('channels'));
         $r->add('POST', '/mod/channels', $m('channelCreate'));
         $r->add('PATCH', '/mod/channels/{id}', $m('channelUpdate'));

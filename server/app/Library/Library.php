@@ -17,6 +17,7 @@ use Arche\Plan\Catalog;
 final class Library
 {
     private const JSON_COLS = ['languages', 'themes', 'moods', 'program_ids', 'channel_ids', 'meta'];
+    public const BED_MAX_MS = 600_000;
 
     public function __construct(private App $app) {}
 
@@ -201,6 +202,41 @@ final class Library
         if (!$check['ok']) throw new ApiError(502, 'tts_failed');
         $url = $this->app->media()->put('jingles', substr(hash('sha256', $bytes), 0, 16) . '.mp3', $bytes);
         return $this->insertJingle($url, $check['ms'], mb_substr($text, 0, 60), $actor);
+    }
+
+    /**
+     * Background music from an uploaded MP3 — instrumental, played on its own
+     * (a prayer hour's collection time), never under the host. The client
+     * never loops it: a longer moment is several items, each at most this long.
+     *
+     * @return array<string,mixed>
+     */
+    public function addBed(string $tmpFile, string $title, string $actor): array
+    {
+        $check = Mp3::inspect($tmpFile);
+        if (!$check['ok'] || $check['ms'] < 20_000 || $check['ms'] > self::BED_MAX_MS) throw new ApiError(422, 'invalid_bed');
+        $bytes = (string) file_get_contents($tmpFile);
+        $url = $this->app->media()->put('beds', substr(hash('sha256', $bytes), 0, 16) . '.mp3', $bytes);
+        $now = $this->app->clock->now();
+        $id = $this->app->store()->insert('library_items', [
+            'kind' => 'bed',
+            'audio' => $url,
+            'title' => mb_substr(trim($title) ?: 'Background music', 0, 120),
+            'duration_ms' => $check['ms'],
+            'created' => $now,
+            'updated' => $now,
+        ]);
+        $this->app->store()->audit($actor, 'Background music add', $url);
+        return $this->get($id) ?? throw new \LogicException('insert vanished');
+    }
+
+    /** @return list<array<string,mixed>> active background music, for the program settings */
+    public function beds(): array
+    {
+        return array_map(
+            [self::class, 'decode'],
+            $this->app->store()->all("SELECT * FROM library_items WHERE kind = 'bed' AND active = 1 ORDER BY title, id"),
+        );
     }
 
     /** @return array<string,mixed> */

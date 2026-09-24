@@ -1,7 +1,7 @@
 /**
- * Our own audio (host clips, jingles, listener recordings): two <audio>
- * elements used alternately, so the next clip can load while the current one
- * plays.
+ * Our own audio (host clips, jingles, listener recordings, background music):
+ * two <audio> elements used alternately, so the next clip can load while the
+ * current one plays. Only one plays at a time.
  *
  * iOS lets a media element play without a gesture only after it has played
  * once inside one — hence `unlock()`, called from the "tap to join" handler,
@@ -67,13 +67,13 @@ export class HostAudio {
     return this.els[this.active]!;
   }
 
-  /** Play `url` from `offsetMs` in. Resolves false if the browser refused. */
-  async play(url: string, offsetMs: number): Promise<boolean> {
+  /** Play `url` from `offsetMs` in, rising from silence over `fadeInMs`. Resolves false if the browser refused. */
+  async play(url: string, offsetMs: number, fadeInMs = 0): Promise<boolean> {
     const next = (this.active + 1) % 2;
     const el = this.els[next]!;
     this.stop();
     this.active = next;
-    this.setGain(next, this.volume);
+    this.setGain(next, this.volume, fadeInMs);
     const started = Date.now();
     const start = async (src: string): Promise<boolean> => {
       if (!isSrc(el, src)) el.src = src;
@@ -141,16 +141,30 @@ export class HostAudio {
     });
   }
 
-  private setGain(i: number, v: number): void {
+  private setGain(i: number, v: number, riseMs = 0): void {
     const g = this.gains[i];
-    if (g && this.ctx) g.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    if (!g || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    if (riseMs > 0) {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.setTargetAtTime(v, t, riseMs / 3000);
+    } else {
+      g.gain.setTargetAtTime(v, t, 0.05);
+    }
   }
 
   /** Soften the end of the current clip (a fade the element volume can't do on iOS). */
   fadeOut(ms = 400): void {
     const g = this.gains[this.active];
-    if (g && this.ctx) g.gain.setTargetAtTime(0, this.ctx.currentTime, ms / 3000);
-    else window.setTimeout(() => this.stop(), ms);
+    if (g && this.ctx) {
+      g.gain.setTargetAtTime(0, this.ctx.currentTime, ms / 3000);
+      return;
+    }
+    // Without Web Audio: stop this clip only — by then the next one may be
+    // playing on the other element.
+    const el = this.el();
+    window.setTimeout(() => el.pause(), ms);
   }
 }
 

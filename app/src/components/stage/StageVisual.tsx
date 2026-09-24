@@ -24,7 +24,7 @@ export function StageVisual({ engine }: { engine: EngineState }) {
 
   return (
     <div className="absolute inset-0 z-0 select-none">
-      <Backdrop image={image} color={program?.color ?? '#2f7bff'} calm={engine.mode === 'silence'} />
+      <Backdrop image={image} color={program?.color ?? '#2f7bff'} calm={engine.mode === 'silence' || engine.mode === 'bed'} />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center">
         {engine.mode === 'host' && (
@@ -36,6 +36,15 @@ export function StageVisual({ engine }: { engine: EngineState }) {
             <p className="text-lg font-medium leading-snug text-ink drop-shadow sm:text-2xl">
               {item.caption[lang] ?? item.caption.en ?? ''}
             </p>
+          </div>
+        )}
+        {engine.mode === 'bed' && item?.type === 'bed' && (
+          <div className="flex max-w-xl flex-col items-center gap-3 animate-fly-in">
+            <div className="h-14 w-14 rounded-full border border-ink/30">
+              <div className="h-full w-full animate-ring rounded-full border border-ink/40" />
+            </div>
+            {item.label[lang] && <p className="text-balance text-2xl font-light tracking-wide text-ink drop-shadow sm:text-3xl">{item.label[lang]}</p>}
+            <p className="text-sm text-ink-muted">{t('stage.bedHint')}</p>
           </div>
         )}
         {engine.mode === 'silence' && (

@@ -117,6 +117,8 @@ export function parseItem(v: unknown): TimelineItem | null {
       };
     case 'jingle':
       return isStr(v.audio) ? { ...base, type: 'jingle', audio: v.audio } : null;
+    case 'bed':
+      return isStr(v.audio) && v.audio !== '' ? { ...base, type: 'bed', audio: v.audio, label: i18n(v.label) } : null;
     case 'silence':
       return { ...base, type: 'silence', label: i18n(v.label) };
     case 'contrib': {

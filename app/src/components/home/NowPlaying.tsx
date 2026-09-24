@@ -44,6 +44,11 @@ export function NowPlaying() {
     subtitle = item.place;
     ({ start, dur } = item);
     icon = <MicIcon size={28} />;
+  } else if (item?.type === 'bed') {
+    title = item.label[lang] || t('nowPlaying.bed');
+    subtitle = item.label[lang] ? t('nowPlaying.bed') : '';
+    ({ start, dur } = item);
+    icon = <MusicIcon size={28} />;
   } else if (item) {
     title = item.type === 'silence' || item.type === 'stage' ? item.label[lang] : t('nowPlaying.jingle');
     ({ start, dur } = item);

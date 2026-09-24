@@ -31,7 +31,7 @@ import { YTState } from './youtube';
  *     loop plays, at the same second for everyone.
  */
 
-export type StageMode = 'idle' | 'song' | 'host' | 'jingle' | 'contrib' | 'silence' | 'stage' | 'evergreen' | 'offline';
+export type StageMode = 'idle' | 'song' | 'host' | 'jingle' | 'contrib' | 'bed' | 'silence' | 'stage' | 'evergreen' | 'offline';
 
 export interface EvergreenNow {
   yt: string;
@@ -77,11 +77,19 @@ export interface PlayerLike {
 export interface AudioLike {
   unlocked: boolean;
   unlock(): void;
-  play(url: string, offsetMs: number): Promise<boolean>;
+  /** `fadeInMs` > 0 rises from silence instead of starting at full volume. */
+  play(url: string, offsetMs: number, fadeInMs?: number): Promise<boolean>;
   preload(url: string): void;
   stop(): void;
+  fadeOut(ms: number): void;
   resync(expectedMs: number, toleranceMs?: number): void;
 }
+
+type OwnAudioItem = Extract<TimelineItem, { type: 'host' | 'jingle' | 'contrib' | 'bed' }>;
+
+/** Items that play our own audio (not the YouTube player). */
+const ownAudio = (item: TimelineItem): item is OwnAudioItem =>
+  item.type === 'host' || item.type === 'jingle' || item.type === 'contrib' || item.type === 'bed';
 
 export interface EngineDeps {
   now: () => number;
@@ -103,6 +111,8 @@ const SEEK_COOLDOWN_MS = 10_000;
 const MAX_SEEKS_PER_MINUTE = 3;
 const TAP_HINT_AFTER_MS = 2500;
 const LIVE_EVERY_MS = 30_000;
+/** Background music rises and fades over this long: an item ends mid-track. */
+export const BED_FADE_MS = 1500;
 
 export function initialState(channel = ''): EngineState {
   return {
@@ -141,6 +151,7 @@ export class RadioEngine {
   private seeks: number[] = [];
   private adSince = 0;
   private loadStartedAt = 0;
+  private fadingOut: string | null = null;
   private fetching = false;
   private generation = 0;
 
@@ -325,11 +336,11 @@ export class RadioEngine {
       if (joined) needsTap = this.startVideo(item.yt, offset / 1000);
     } else {
       player.stop();
-      if (item.type === 'host' || item.type === 'jingle' || item.type === 'contrib') {
+      if (ownAudio(item)) {
         mode = item.type;
         const url = item.type === 'host' ? (item.audio[this.lang] ?? item.audio.en ?? item.audio.de ?? null) : item.audio;
         if (joined && url) {
-          void audio.play(url, offset).then((ok) => {
+          void audio.play(url, offset, item.type === 'bed' ? BED_FADE_MS : 0).then((ok) => {
             if (!ok && this.key === item.id) {
               this.state = { ...this.state, needsTap: true };
               this.emit();
@@ -360,8 +371,14 @@ export class RadioEngine {
         }
         this.loadStartedAt = 0;
       }
-    } else if (this.state.joined && (item.type === 'host' || item.type === 'jingle' || item.type === 'contrib')) {
-      if (now - this.lastDrift > 5000) {
+    } else if (this.state.joined && ownAudio(item)) {
+      if (item.type === 'bed' && item.start + item.dur - now <= BED_FADE_MS) {
+        // The music stops mid-track when its moment ends: fade it out first.
+        if (this.fadingOut !== item.id) {
+          this.fadingOut = item.id;
+          this.deps.audio.fadeOut(BED_FADE_MS);
+        }
+      } else if (now - this.lastDrift > 5000) {
         this.lastDrift = now;
         this.deps.audio.resync(now - item.start);
       }
@@ -471,7 +488,7 @@ export class RadioEngine {
     if (next.type === 'host') {
       const url = next.audio[this.lang] ?? next.audio.en ?? next.audio.de;
       if (url) this.deps.audio.preload(url);
-    } else if (next.type === 'jingle' || next.type === 'contrib') {
+    } else if (next.type === 'jingle' || next.type === 'contrib' || next.type === 'bed') {
       this.deps.audio.preload(next.audio);
     }
   }

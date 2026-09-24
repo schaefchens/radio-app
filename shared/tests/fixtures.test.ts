@@ -28,7 +28,7 @@ describe('program file fixtures', () => {
     expect(slot).not.toBeNull();
     expect(slot!.items).toHaveLength(raw.items.length);
     expect(new Set(slot!.items.map((i) => i.type))).toEqual(
-      new Set(['song', 'host', 'jingle', 'silence', 'contrib', 'stage', 'gap']),
+      new Set(['song', 'host', 'jingle', 'bed', 'silence', 'contrib', 'stage', 'gap']),
     );
     expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing' });
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
