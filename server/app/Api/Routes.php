@@ -70,6 +70,7 @@ final class Routes
         $r->add('GET', '/mod/review', $m('review'));
         $r->add('POST', '/mod/review/{id}', $m('reviewDecide'));
         $r->add('GET', '/mod/review/{id}/audio', $m('reviewAudio'));
+        $r->add('POST', '/mod/review/{id}/wall', $m('reviewWall'));
         $r->add('GET', '/mod/users', $m('users'));
         $r->add('PATCH', '/mod/users/{id}', $m('userUpdate'));
         $r->add('GET', '/mod/reports', $m('reports'));

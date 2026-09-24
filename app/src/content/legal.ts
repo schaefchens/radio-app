@@ -135,7 +135,8 @@ const de = (host: string): StationTexts => ({
         '(kein Cookie). Damit erkennt der Server Ihr Gerät wieder: für den Status Ihrer Einsendungen, Ihre Reaktionen, ' +
         'den Schutz vor Missbrauch und die Zählung der Zuhörenden. Auf dem Server liegen davon nur Prüfwerte, die mit ' +
         'einem geheimen Schlüssel gebildet sind (HMAC). Lokal speichert die App außerdem Ihre Einstellungen (Sprache, ' +
-        'Lautstärke, Kanal, Ihre YouTube-Einwilligung) und – nur wenn Sie eine anlegen – Ihre Passphrase.\n' +
+        'Lautstärke, Kanal, Ihre YouTube-Einwilligung), bei welchen Gebetsanliegen Sie mitgebetet haben, und – nur ' +
+        'wenn Sie eine anlegen – Ihre Passphrase.\n' +
         'Das Speichern ist für den von Ihnen genutzten Dienst unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG); ' +
         'Rechtsgrundlage der Verarbeitung ist Art. 6 Abs. 1 lit. f DSGVO. Während Sie zuhören, meldet die App alle ' +
         'zwei Minuten, dass Ihr Gerät dabei ist; diese Einträge löschen wir nach einem Tag, Einträge des ' +
@@ -163,8 +164,13 @@ const de = (host: string): StationTexts => ({
         'Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Gebetsanliegen, Zeugnisse und Geschichten können Ihre religiöse ' +
         'Überzeugung oder Angaben zur Gesundheit erkennen lassen; mit dem Absenden willigen Sie ausdrücklich ein, dass ' +
         'wir diese Angaben dafür verarbeiten (Art. 9 Abs. 2 lit. a DSGVO).\n' +
-        'Auf Sendung nennen wir nur Vorname und Ort. Ein Gebetsanliegen erscheint zusätzlich als „Stimme der ' +
-        'Community“ auf der Startseite, wenn Sie das auswählen. Aufnahmen werden erst nach der Freigabe ' +
+        'Auf Sendung nennen wir nur Vorname und Ort. Wenn Sie das auswählen, erscheint ein Gebetsanliegen außerdem ' +
+        'auf der Gebetswand der Sendung, an die Sie es geschickt haben (solange sie läuft und so lange danach, wie die ' +
+        'Sendung ihre Wand zeigt), und zwei Stunden lang als „Stimme der Community“ auf der Startseite; unsere ' +
+        'Moderatorinnen und Moderatoren können es dort entfernen. Tippen Sie bei einem Anliegen auf 🙏, zählen wir das ' +
+        'einmal pro Gerät: Bei welchen Anliegen ein Gerät mitgebetet hat, speichern wir nur, solange sie angezeigt ' +
+        'werden (höchstens einige Stunden); danach bleibt nur die Zahl, die auf der Wand und der Person angezeigt ' +
+        'wird, die das Anliegen geschickt hat. Aufnahmen werden erst nach der Freigabe ' +
         'veröffentlicht und nur wiederholt, wenn Sie dem zugestimmt haben. Ein gewünschter Song kann in unsere ' +
         'Musikauswahl aufgenommen werden – ohne Ihren Namen und ohne Ihre Widmung.\n' +
         'Abgelehnte Aufnahmen löschen wir sofort, alle übrigen Einsendungen nach 90 Tagen. Aufnahmen, die Sie zur ' +
@@ -309,8 +315,8 @@ const en = (host: string): StationTexts => ({
         "On first start the app stores a random device id with a secret in your browser's storage (not a cookie). It " +
         'lets the server recognise your device: for the status of your submissions, your reactions, protection ' +
         'against abuse and counting listeners. The server keeps only values derived with a secret key (HMAC). The app ' +
-        'also stores your settings locally (language, volume, channel, your YouTube consent) and — only if you create ' +
-        'one — your passphrase.\n' +
+        'also stores your settings locally (language, volume, channel, your YouTube consent), which prayer requests ' +
+        'you prayed along with, and — only if you create one — your passphrase.\n' +
         'This storage is strictly necessary for the service you use (§ 25(2) no. 2 TDDDG); the legal basis is ' +
         'Art. 6(1)(f) GDPR. While you listen, the app reports every two minutes that your device is there; we delete ' +
         'these entries after one day, abuse-protection entries (with a hashed IP address) after two days, and device ' +
@@ -335,8 +341,12 @@ const en = (host: string): StationTexts => ({
         'id, to check and air it. The legal basis is your consent (Art. 6(1)(a) GDPR). Prayer requests, testimonies ' +
         'and stories can reveal religious beliefs or health information; by sending, you explicitly consent to our ' +
         'processing them for this purpose (Art. 9(2)(a) GDPR).\n' +
-        'On air we mention only your first name and place. A prayer request also appears as a “community voice” on ' +
-        'the home screen if you choose so. Recordings are published only after approval and replayed only with your ' +
+        'On air we mention only your first name and place. If you choose so, a prayer request also appears on the ' +
+        'prayer wall of the program you sent it to (while it is on air, and for as long after as the program shows ' +
+        'its wall) and as a “community voice” on the home screen for two hours; our moderators can take it down. When ' +
+        'you tap 🙏 on a request, we count it once per device: which requests a device prayed along with we keep only ' +
+        'while they are shown (a few hours at most); then only the number remains, shown on the wall and to the person ' +
+        'who sent the request. Recordings are published only after approval and replayed only with your ' +
         'consent. A requested song may join our music selection — without your name and without your dedication.\n' +
         'We delete rejected recordings immediately and all other submissions after 90 days. Recordings you allowed ' +
         'to be replayed stay until you object. You can withdraw your consent at any time, for the future, by email to ' +

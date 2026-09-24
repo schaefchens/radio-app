@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS: ProgramSettings = {
   replay_contrib: false,
   format: 'music',
   prayer: { collect: { with: 'music', minutes: 8, songs: 2, bed_id: 0 }, quiet_min: 4, after_songs: 0 },
+  wall: { enabled: false, keep_min: 0 },
 };
 
 type Draft = Omit<ModProgram, 'id' | 'channel_id' | 'active'> & { active: boolean };
@@ -226,8 +227,8 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           value={d.settings.format}
           onChange={(e) => {
             const format = e.target.value as ProgramSettings['format'];
-            setS({ format });
-            // A prayer hour takes prayer requests only (the server insists too).
+            // A prayer hour takes prayer requests only (the server insists too), and shows them on its wall.
+            setS(format === 'prayer' ? { format, wall: { ...d.settings.wall, enabled: true } } : { format });
             if (format === 'prayer') set('allowed', ['prayer']);
           }}
         >
@@ -249,6 +250,17 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
             />
           ))}
         </div>
+      </div>
+
+      <div className="card-inset flex flex-col gap-3 p-3">
+        <Check label={t('mod.programs.wall')} checked={d.settings.wall.enabled} onChange={(v) => setS({ wall: { ...d.settings.wall, enabled: v } })} />
+        {d.settings.wall.enabled && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label={t('mod.programs.wallKeep')} hint={t('mod.programs.wallHint')}>
+              <input type="number" min={0} max={720} className="field" value={d.settings.wall.keep_min} onChange={(e) => setS({ wall: { ...d.settings.wall, keep_min: num(e.target.value) } })} />
+            </Field>
+          </div>
+        )}
       </div>
 
       {prayer && (

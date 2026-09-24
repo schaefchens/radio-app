@@ -10,11 +10,13 @@ namespace Arche;
  */
 final class Schema
 {
-    public static function migrate(Store $store, int $nowMs): void
+    /** @param ?int $upTo stop after this version (tests build an older database) */
+    public static function migrate(Store $store, int $nowMs, ?int $upTo = null): void
     {
         $store->db->exec('CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
         $current = (int) ($store->get('schema') ?? 0);
         $versions = self::versions();
+        if ($upTo !== null) $versions = array_slice($versions, 0, $upTo);
         if ($current >= count($versions)) return;
 
         $store->tx(function () use ($store, $versions, $nowMs) {
@@ -375,6 +377,21 @@ final class Schema
             ALTER TABLE library_items_new RENAME TO library_items;
             CREATE UNIQUE INDEX library_yt ON library_items(yt_id) WHERE yt_id IS NOT NULL;
             CREATE INDEX library_kind_active ON library_items(kind, active);
+            SQL,
+            // 4 — the prayer wall: praying along with a request counts once per
+            // listener (who prayed for what is forgotten once it is no longer
+            // shown; the number stays), and a moderator can take a request off
+            // the wall.
+            <<<'SQL'
+            ALTER TABLE submissions ADD COLUMN prayed_with INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE submissions ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
+            CREATE TABLE prayer_along (
+              submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+              who TEXT NOT NULL,
+              time INTEGER NOT NULL,
+              PRIMARY KEY (submission_id, who)
+            );
+            CREATE INDEX prayer_along_time ON prayer_along(time);
             SQL,
         ];
     }

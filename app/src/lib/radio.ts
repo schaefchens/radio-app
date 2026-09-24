@@ -10,6 +10,7 @@ import { stationDate } from './format';
 import { setKeepAwake } from './wakeLock';
 import { realtime } from './realtime/client';
 import { useRadio } from '@/store/radio';
+import { usePrayed } from '@/store/prayed';
 import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { stageAvailable, useStage } from '@/store/stage';
@@ -185,6 +186,17 @@ export function reactVoice(voiceId: string, kind: ReactionKind): void {
   if (realtime.isConnected() && realtime.hasMessage(voiceId)) realtime.like(voiceId);
   else reactToVoice(voiceId, kind);
   useRadio.getState().answer(voiceId);
+}
+
+/**
+ * 🙏 on a prayer request (the wall, the stage): praying along. It goes with
+ * the next pulse like any reaction (no request of its own); the server
+ * counts each device once.
+ */
+export function prayAlong(id: string, n: number): void {
+  if (id in usePrayed.getState().at) return;
+  reactToVoice(id, 'pray');
+  usePrayed.getState().add(id, n);
 }
 
 export { setPulseInterval };

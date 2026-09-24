@@ -166,13 +166,16 @@ test('requests: intake closes 15 minutes before a program ends, last chance from
     $saved = $app->catalog()->saveProgram($pid, (int) $ch['id'], ['settings' => ['closed_min' => 5]], 'test');
     eq($saved['settings']['closed_min'], intdiv(Timing::DRAFT + Timing::MIN_SONG, 60_000) + 1, 'never below what a request sent at the last moment needs');
 
-    $app->store()->query('UPDATE programs SET settings = ? WHERE id = ?', [json_encode(['closing_min' => 35, 'closed_min' => 20, 'max_queue_min' => 45]), $pid]);
-    $app->store()->set('schema', 1);
-    $version = $app->catalog()->version();
-    Arche\Schema::migrate($app->store(), $app->clock->nowMs());
-    $s = json_decode((string) $app->store()->value('SELECT settings FROM programs WHERE id = ?', [$pid]), true);
+    // A database of the first release, with a program saved under the old defaults.
+    $old = new Arche\Store(tempnam(sys_get_temp_dir(), 'v1db'), false);
+    Arche\Schema::migrate($old, $app->clock->nowMs(), 1);
+    $pid = (int) $old->value('SELECT id FROM programs LIMIT 1');
+    $old->query('UPDATE programs SET settings = ? WHERE id = ?', [json_encode(['closing_min' => 35, 'closed_min' => 20, 'max_queue_min' => 45]), $pid]);
+    $version = (int) ($old->get('plan_version') ?? 0);
+    Arche\Schema::migrate($old, $app->clock->nowMs());
+    $s = json_decode((string) $old->value('SELECT settings FROM programs WHERE id = ?', [$pid]), true);
     eq([$s['closing_min'], $s['closed_min'], $s['max_queue_min']], [25, 15, 45], 'the old defaults become the new ones; the rest stays');
-    eq($app->catalog()->version(), $version + 1, 'and the drafts made the old way are planned again');
+    eq((int) $old->get('plan_version'), $version + 1, 'and the drafts made the old way are planned again');
 });
 
 test('requests: a requested song pulled from air takes its announcement along; the request is marked missed', function () {

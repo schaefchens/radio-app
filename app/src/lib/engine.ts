@@ -8,6 +8,7 @@ import type {
   SubmissionType,
   TimelineItem,
   Voice,
+  Wall,
 } from '@arche/shared';
 import { MINUTE_MS, floorMinute } from '@arche/shared';
 import { Timeline } from './timeline';
@@ -59,6 +60,8 @@ export interface EngineState {
   lastHost: { text: string; at: number } | null;
   listeners: number;
   voices: Voice[];
+  /** The prayer wall of the program on air (or just ended), from live.json. */
+  wall: Wall | null;
   hasData: boolean;
 }
 
@@ -131,6 +134,7 @@ export function initialState(channel = ''): EngineState {
     lastHost: null,
     listeners: 0,
     voices: [],
+    wall: null,
     hasData: false,
   };
 }
@@ -291,7 +295,7 @@ export class RadioEngine {
     if (!live || gen !== this.generation) return;
     const wasBlocked = this.state.item !== null && !this.blocked.has(this.state.item.id) && live.blocked.includes(this.state.item.id);
     this.blocked = new Set(live.blocked);
-    this.state = { ...this.state, listeners: live.listeners, voices: live.voices };
+    this.state = { ...this.state, listeners: live.listeners, voices: live.voices, wall: live.wall };
     if (wasBlocked) this.key = null;
     this.emit();
   }

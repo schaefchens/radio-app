@@ -43,7 +43,8 @@ function prayerHour(Arche\App $app, int $startMin, int $minutes = 60, array $pra
     $cat = $app->catalog();
     $cid = (int) TestKit::main($app)['id'];
     $bed = $bedSeconds > 0 ? $app->library()->addBed(silentMp3($bedSeconds), 'Pad', 'test') : null;
-    $settings = ['format' => 'prayer', 'prayer' => array_replace_recursive(['collect' => ['with' => 'music', 'minutes' => 8, 'bed_id' => (int) ($bed['id'] ?? 0)]], $prayer)];
+    $settings = ['format' => 'prayer', 'prayer' => array_replace_recursive(['collect' => ['with' => 'music', 'minutes' => 8, 'bed_id' => (int) ($bed['id'] ?? 0)]], $prayer),
+        'wall' => ['enabled' => true, 'keep_min' => 30]];
     $p = $cat->saveProgram(null, $cid, ['slug' => 'prayer', 'title_en' => 'Prayer Hour', 'title_de' => 'Gebetsstunde', 'allowed' => ['song', 'prayer'], 'settings' => $settings], 'test');
     $plan = $cat->saveDayPlan(null, $cid, 'Prayer', [['start_min' => $startMin, 'end_min' => $startMin + $minutes, 'program_id' => $p['id']]], 'test');
     $cat->addSpecialDay($cid, ['name' => 'Prayer', 'kind' => 'date', 'month' => $month, 'day' => $day, 'day_plan_id' => $plan], 'test');
@@ -279,4 +280,76 @@ test('prayer hour: a plan change or an outage mid-hour does not start it over', 
     eq([$count('opening'), $count('invite'), $count('outro')], [1, 1, 1], 'one opening prayer, one invitation, one outro');
     check($count('gap') === 1, 'the outage left one gap');
     check($count('silence') > 10, 'silent prayer went on around it');
+});
+
+/** live.json as the app reads it. @return array<string,mixed> */
+function liveJson(Arche\App $app): array
+{
+    return json_decode((string) file_get_contents($app->publicPath('program/main/live.json')), true);
+}
+
+test('prayer wall: the hour\'s requests whose senders agreed to show them, while it is on air and for the minutes it keeps them', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    prayerHour($app, 735);
+    ticks($app, 16);
+    eq(liveJson($app)['wall']['entries'] ?? null, [], 'an empty wall when the hour begins');
+    $shown = prayFor($app, 'Shown', true);
+    prayFor($app, 'Private', false);
+    ticks($app, 2);
+    $wall = liveJson($app)['wall'];
+    eq([$wall['p'], $wall['open'], $wall['title']['de']], ['prayer', true, 'Gebetsstunde'], 'the wall of the prayer hour on air');
+    eq(array_column($wall['entries'], 'id'), ['p' . $shown], 'only the request its sender agreed to show');
+    eq([$wall['entries'][0]['name'], $wall['entries'][0]['place'], $wall['entries'][0]['prayed']], ['Shown', 'Bonn', false], 'with first name and place, not yet prayed for');
+    ticks($app, 20);
+    check(liveJson($app)['wall']['entries'][0]['prayed'], 'marked once the host prayed for it');
+    ticks($app, 45); // the hour ended at +75; it keeps its wall for 30 minutes
+    $wall = liveJson($app)['wall'];
+    eq([$wall['open'], count($wall['entries'])], [false, 1], 'still shown after the hour, for the minutes it keeps it');
+    ticks($app, 30);
+    eq(liveJson($app)['wall'], null, 'and then gone');
+    $program = $app->catalog()->program((int) TestKit::main($app)['fallback_program_id']);
+    check(!$program['settings']['wall']['enabled'], 'a music program has no wall unless it asks for one');
+});
+
+test('prayer wall: a moderator takes a request down at once — off the wall and the community voices — or puts it back', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    prayerHour($app, 735);
+    ticks($app, 16);
+    $public = prayFor($app, 'Taken');
+    ticks($app, 2);
+    check(in_array('p' . $public, array_column($app->presence()->voices('main'), 'id'), true), 'a community voice');
+    $h = modHeaders($app);
+    eq(call($app, 'POST', "/api/mod/review/$public/wall", ['hidden' => true], $h)[0], 200, 'taken down');
+    eq(liveJson($app)['wall']['entries'], [], 'off the wall in live.json right away');
+    check(!in_array('p' . $public, array_column($app->presence()->voices('main'), 'id'), true), 'and no longer a voice');
+    check(!$app->submissions()->prayAlong($public, 'dev1'), 'nobody can pray along with it any more');
+    [$st, $data] = modGet($app, '/api/mod/review', ['status' => 'all'], $h);
+    eq([$st, $data['items'][0]['shown']], [200, false], 'the moderators see it is taken down');
+    call($app, 'POST', "/api/mod/review/$public/wall", ['hidden' => false], $h);
+    eq(array_column(liveJson($app)['wall']['entries'], 'id'), ['p' . $public], 'and put it back');
+    check(call($app, 'POST', "/api/mod/review/$public/wall", ['hidden' => true], authHeaders())[0] === 403, 'listeners cannot');
+});
+
+test('praying along: 🙏 on a request counts once per listener; who prayed for what is forgotten when it is no longer shown', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    prayerHour($app, 735);
+    ticks($app, 16);
+    $public = prayFor($app, 'Counted');
+    ticks($app, 2);
+    $a = authHeaders();
+    $b = authHeaders();
+    foreach ([$a, $a, $b] as $h) call($app, 'POST', '/api/pulse', ['channel' => 'main', 'voices' => [['voice' => 'p' . $public, 'kind' => 'pray']]], $h);
+    call($app, 'POST', '/api/pulse', ['channel' => 'main', 'voices' => [['voice' => 'p' . $public, 'kind' => 'heart']]], authHeaders());
+    eq((int) $app->submissions()->byPublicId($public)['prayed_with'], 2, 'two listeners prayed along; the same one twice counts once, a heart not at all');
+    ticks($app, 1);
+    eq(liveJson($app)['wall']['entries'][0]['n'], 2, 'the wall shows it');
+    eq($app->submissions()->publicView($app->submissions()->byPublicId($public))['prayedWith'], 2, 'and so does the sender\'s own list');
+    $who = (string) $app->store()->value('SELECT who FROM prayer_along LIMIT 1');
+    check(!in_array($who, array_column($app->store()->all('SELECT device FROM presence'), 'device'), true), 'the rows cannot be joined to presence');
+    ticks($app, 140); // the hour and the 30 minutes it keeps its wall, plus the two hours as a voice
+    eq((int) $app->store()->value('SELECT COUNT(*) FROM prayer_along'), 0, 'who prayed for it is forgotten');
+    eq((int) $app->submissions()->byPublicId($public)['prayed_with'], 2, 'the number stays');
 });

@@ -145,7 +145,11 @@ final class Tick
                 'evergreen' => array_map(fn($c) => $this->app->publisher()->publishEvergreen($c), $this->app->catalog()->channels()),
                 'retention' => $this->retention(),
                 'decay' => $this->app->trends()->decay(),
-                'aired' => ['aired' => $this->app->submissions()->markAired(), 'expired' => $this->app->submissions()->expireUnreachable()],
+                'aired' => [
+                    'aired' => $this->app->submissions()->markAired(),
+                    'expired' => $this->app->submissions()->expireUnreachable(),
+                    'forgotten' => $this->app->submissions()->forgetPrayAlong(),
+                ],
                 'purge' => $this->purge(),
                 'backup' => $this->backup(),
                 default => null,

@@ -169,6 +169,27 @@ export interface DayFile {
   played: PlayedEntry[];
 }
 
+/** A prayer request on the wall. `id` is also its community-voice id. */
+export interface WallEntry {
+  id: string;
+  name: string;
+  place: string;
+  text: string;
+  at: number;
+  /** The host has prayed for it on air. */
+  prayed: boolean;
+  /** Listeners who prayed along. */
+  n: number;
+}
+
+/** The prayer wall of a program: while it is on air (`open`), and for a while after. */
+export interface Wall {
+  p: string;
+  title: I18nText;
+  open: boolean;
+  entries: WallEntry[];
+}
+
 /** Rewritten every tick; cached for seconds, not minutes. */
 export interface LiveFile {
   v: 1;
@@ -180,6 +201,8 @@ export interface LiveFile {
   blocked: string[];
   /** Seconds between presence pulses; 0 = do not pulse. Raised under load. */
   pulse: number;
+  /** Here, not in the minute files, so a moderator can take a request down at once. */
+  wall: Wall | null;
 }
 
 export interface ChannelInfo {

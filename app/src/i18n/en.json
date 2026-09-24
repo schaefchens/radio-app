@@ -29,7 +29,8 @@
     "bedHint": "Tap “Prayer Request” to send yours.",
     "evergreen": "Our favourites while the program reconnects",
     "hostSpeaking": "{{name}} is speaking",
-    "unavailable": "This song can't be played here — stay with us"
+    "unavailable": "This song can't be played here — stay with us",
+    "praying": "{{name}} is praying for"
   },
   "live": {
     "badge": "LIVE",
@@ -58,6 +59,20 @@
     "empty": "No voices yet — join a room and say hello.",
     "more": "More reactions",
     "thanks": "Thank you!"
+  },
+  "wall": {
+    "title": "Prayer wall",
+    "count_one": "{{count}} request",
+    "count_other": "{{count}} requests",
+    "empty": "Prayer requests appear here as they come in.",
+    "none": "No prayer requests this time.",
+    "anonymous": "Someone",
+    "prayingNow": "Being prayed for now",
+    "prayed": "Prayed for on air",
+    "prayAlong_one": "Pray along ({{count}} praying)",
+    "prayAlong_other": "Pray along ({{count}} praying)",
+    "prayedAlong_one": "You prayed along ({{count}} praying)",
+    "prayedAlong_other": "You prayed along ({{count}} praying)"
   },
   "reactions": {
     "heart": "Love",
@@ -142,7 +157,9 @@
       "not_suitable": "It isn't suitable for the program.",
       "not_accepted": "It wasn't accepted this time."
     },
-    "empty": "Nothing handed in yet."
+    "empty": "Nothing handed in yet.",
+    "prayedWith_one": "{{count}} person prayed with you",
+    "prayedWith_other": "{{count}} people prayed with you"
   },
   "today": {
     "title": "Today's Program",
@@ -466,7 +483,10 @@
       "collectSongsCount": "Number of songs",
       "quietMin": "Pray a request again after … quiet minutes",
       "afterSongs": "Songs after the outro",
-      "toOutro": "In a prayer hour, counted to the outro."
+      "toOutro": "In a prayer hour, counted to the outro.",
+      "wall": "Prayer wall: shows the prayer requests whose senders agreed",
+      "wallKeep": "Keep it … minutes after the program",
+      "wallHint": "0 = it goes when the program ends."
     },
     "plans": {
       "dayPlans": "Day plans",
@@ -605,7 +625,14 @@
         "recording_deleted": "Rejected recordings are deleted at once (privacy policy), so this one cannot be approved any more.",
         "video_unplayable": "YouTube does not play this video in the embedded player, so it cannot air.",
         "not_rejected": "—"
-      }
+      },
+      "onWall": "On the prayer wall",
+      "offWall": "Taken off the wall",
+      "takeOffWall": "Take off the wall",
+      "takeOffWallConfirm": "Take this request off the prayer wall and the community voices? It is still prayed for on air.",
+      "backOnWall": "Put back on the wall",
+      "wallTaken": "Taken off the prayer wall.",
+      "wallBack": "Back on the prayer wall."
     },
     "chat": {
       "reports": "Reported messages",

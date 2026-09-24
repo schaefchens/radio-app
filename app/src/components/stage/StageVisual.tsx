@@ -1,11 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { Lang, Voice } from '@arche/shared';
+import type { Lang, Voice, WallEntry } from '@arche/shared';
 import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
 import { countryName } from '@/lib/format';
 import { CdnImg } from '@/components/common/CdnImg';
 import { RadioIcon } from '@/components/common/icons';
+import { WallCard } from '@/components/home/PrayerWall';
+import { useServerNow } from '@/components/home/useServerNow';
+
+/** In silent prayer the stage shows one request from the wall at a time, the same one for everyone. */
+const SILENT_ENTRY_MS = 10_000;
 
 /**
  * Our own stage, under the player: the program's visual, the host speaking,
@@ -21,14 +26,28 @@ export function StageVisual({ engine }: { engine: EngineState }) {
   const image = program?.stage.image ?? null;
   const tagline = program?.stage.tagline[lang] ?? '';
   const hostName = channel?.host.name ?? 'Hope';
+  const wall = engine.wall?.open ? engine.wall.entries : null;
+  // The requests a prayer moment prays for, as far as the wall shows them.
+  const praying = item?.type === 'host' && wall ? wall.filter((e) => item.prayers.includes(e.id)) : [];
 
   return (
     <div className="absolute inset-0 z-0 select-none">
       <Backdrop image={image} color={program?.color ?? '#2f7bff'} calm={engine.mode === 'silence' || engine.mode === 'bed'} />
 
       <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center">
-        {engine.mode === 'host' && (
+        {engine.mode === 'host' && praying.length === 0 && (
           <HostMoment name={hostName} avatar={channel?.host.avatar ?? null} text={engine.hostText} label={t('stage.hostSpeaking', { name: hostName })} />
+        )}
+        {/* A prayer moment shows the requests instead of the prayer's full text, which would not fit a phone's stage. */}
+        {engine.mode === 'host' && praying.length > 0 && (
+          <div className="flex w-full max-w-lg flex-col items-center gap-2 animate-fly-in">
+            <p className="eyebrow">{t('stage.praying', { name: hostName })}</p>
+            <ul className="flex w-full flex-col gap-2 text-left">
+              {praying.map((e, i) => (
+                <WallCard key={e.id} entry={e} praying locale={lang} compact className={i > 0 ? 'hidden sm:flex' : undefined} />
+              ))}
+            </ul>
+          </div>
         )}
         {engine.mode === 'contrib' && item?.type === 'contrib' && (
           <div className="max-w-lg animate-fly-in">
@@ -47,7 +66,8 @@ export function StageVisual({ engine }: { engine: EngineState }) {
             <p className="text-sm text-ink-muted">{t('stage.bedHint')}</p>
           </div>
         )}
-        {engine.mode === 'silence' && (
+        {engine.mode === 'silence' && wall && wall.length > 0 && <SilentWall entries={wall} label={item?.type === 'silence' ? item.label[lang] : t('stage.silence')} locale={lang} />}
+        {engine.mode === 'silence' && !(wall && wall.length > 0) && (
           <div className="animate-fly-in">
             <div className="mx-auto mb-4 h-16 w-16 rounded-full border border-ink/30">
               <div className="h-full w-full animate-ring rounded-full border border-ink/40" />
@@ -77,8 +97,12 @@ export function StageVisual({ engine }: { engine: EngineState }) {
         )}
       </div>
 
-      {engine.mode === 'host' && program?.stage.mode === 'flyins' && item?.type === 'host' && (
+      {engine.mode === 'host' && program?.stage.mode === 'flyins' && item?.type === 'host' && !praying.length && (
         <FlyIns voices={item.voices.length ? item.voices : engine.voices.slice(0, 3)} locale={lang} />
+      )}
+      {/* During the collection time the requests appear as they come in, quietly. */}
+      {engine.mode === 'bed' && wall && wall.length > 0 && (
+        <FlyIns voices={wall.slice(-3).reverse().map((e) => ({ id: e.id, name: [e.name, e.place].filter(Boolean).join(' · '), country: '', text: e.text, at: e.at }))} locale={lang} />
       )}
     </div>
   );
@@ -114,6 +138,19 @@ function Logo() {
     <div className="flex items-center justify-center gap-2 text-ink">
       <span className="text-3xl font-light tracking-logo sm:text-4xl">ARCHE</span>
       <RadioIcon size={30} className="text-brand-bright" />
+    </div>
+  );
+}
+
+function SilentWall({ entries, label, locale }: { entries: WallEntry[]; label: string; locale: Lang }) {
+  const now = useServerNow(1000);
+  const entry = entries[Math.floor(now / SILENT_ENTRY_MS) % entries.length]!;
+  return (
+    <div className="flex w-full max-w-lg flex-col items-center gap-3">
+      <p className="text-lg font-light tracking-wide text-ink/90">{label}</p>
+      <ul className="w-full text-left">
+        <WallCard key={entry.id} entry={entry} praying={false} locale={locale} compact />
+      </ul>
     </div>
   );
 }

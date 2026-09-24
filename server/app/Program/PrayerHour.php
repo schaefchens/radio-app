@@ -148,7 +148,7 @@ final class PrayerHour
         return (int) $this->app->store()->value(
             "SELECT COALESCE(SUM(json_array_length(h.context, '$.prayer_ids')), 0) FROM host_breaks h JOIN timeline_items t ON t.host_break_id = h.id
              WHERE t.channel_id = ? AND t.state != 'dropped' AND t.seq > ? AND h.kind = 'prayer' AND json_type(h.context, '$.prayer_ids') = 'array'",
-            [$channelId, $this->runStart($channelId, $programId)],
+            [$channelId, $this->app->timeline()->runStart($channelId, $programId)],
         );
     }
 
@@ -164,7 +164,7 @@ final class PrayerHour
         $rows = $this->app->store()->all(
             "SELECT type, payload, est_start, start_ms, dur_ms FROM timeline_items WHERE channel_id = ? AND seq > ? AND "
             . ($committedOnly ? "state = 'committed'" : "state != 'dropped'") . ' ORDER BY seq',
-            [$channelId, $this->runStart($channelId, $programId)],
+            [$channelId, $this->app->timeline()->runStart($channelId, $programId)],
         );
         foreach ($rows as $row) {
             $start = (int) ($row['start_ms'] ?? $row['est_start']);
@@ -195,15 +195,6 @@ final class PrayerHour
     {
         $marks = implode(',', array_fill(0, count($ids), '?'));
         return (int) $this->app->store()->value("SELECT MIN(created) FROM submissions WHERE id IN ($marks)", $ids) * 1000 >= $ms;
-    }
-
-    /** The seq after which the program's current run begins. */
-    private function runStart(int $channelId, int $programId): float
-    {
-        return (float) ($this->app->store()->value(
-            "SELECT MAX(seq) FROM timeline_items WHERE channel_id = ? AND state != 'dropped' AND (program_id IS NULL OR program_id != ?)",
-            [$channelId, $programId],
-        ) ?? 0);
     }
 
     /**
@@ -280,7 +271,7 @@ final class PrayerHour
     private function again(int $channelId, int $programId, array $run): ?int
     {
         $store = $this->app->store();
-        $since = $this->runStart($channelId, $programId);
+        $since = $this->app->timeline()->runStart($channelId, $programId);
         $used = [];
         foreach ($store->all(
             "SELECT json_extract(h.context, '$.again_id') AS id FROM host_breaks h JOIN timeline_items t ON t.host_break_id = h.id

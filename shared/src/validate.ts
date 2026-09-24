@@ -17,6 +17,8 @@ import type {
   StageConfig,
   TimelineItem,
   Voice,
+  Wall,
+  WallEntry,
 } from './program.ts';
 
 /**
@@ -214,6 +216,16 @@ export function parseDayFile(v: unknown): DayFile | null {
   };
 }
 
+function parseWallEntry(v: unknown): WallEntry | null {
+  if (!isObj(v) || !isStr(v.id) || !isStr(v.text)) return null;
+  return { id: v.id, name: str(v.name), place: str(v.place), text: v.text, at: isNum(v.at) ? v.at : 0, prayed: v.prayed === true, n: isNum(v.n) ? Math.max(0, v.n) : 0 };
+}
+
+function parseWall(v: unknown): Wall | null {
+  if (!isObj(v) || !isStr(v.p)) return null;
+  return { p: v.p, title: i18n(v.title), open: v.open === true, entries: compact(arr(v.entries), parseWallEntry) };
+}
+
 export function parseLiveFile(v: unknown): LiveFile | null {
   if (!isObj(v) || v.v !== 1 || !isStr(v.channel)) return null;
   return {
@@ -224,6 +236,7 @@ export function parseLiveFile(v: unknown): LiveFile | null {
     voices: compact(arr(v.voices), parseVoice),
     blocked: arr(v.blocked).filter(isStr),
     pulse: isNum(v.pulse) ? Math.max(0, v.pulse) : 0,
+    wall: parseWall(v.wall),
   };
 }
 

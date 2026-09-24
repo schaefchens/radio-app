@@ -6,6 +6,7 @@ import { LiveBar } from '@/components/home/LiveBar';
 import { NowPlaying } from '@/components/home/NowPlaying';
 import { HostCard } from '@/components/home/HostCard';
 import { CommunityVoices } from '@/components/home/CommunityVoices';
+import { PrayerWall } from '@/components/home/PrayerWall';
 import { SubmitButtons, SubmitSheets } from '@/components/home/SubmitButtons';
 import { useSubmitSheets } from '@/components/home/useSubmitSheets';
 import { DayBlocks } from '@/components/home/TodayProgram';
@@ -24,6 +25,7 @@ export function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const today = useRadio((s) => s.today);
+  const wall = useRadio((s) => s.engine.wall);
   const chatVoices = useChatVoices();
   const [todayOpen, setTodayOpen] = useState(false);
   const sheets = useSubmitSheets();
@@ -40,7 +42,8 @@ export function HomePage() {
         </div>
         <div className="flex flex-col gap-4">
           <HostCard />
-          <CommunityVoices voices={chatVoices} />
+          {/* A program's prayer wall takes the voices' place while it is up. */}
+          {wall ? <PrayerWall wall={wall} /> : <CommunityVoices voices={chatVoices} />}
         </div>
       </div>
 

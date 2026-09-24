@@ -45,6 +45,11 @@ describe('program file fixtures', () => {
     const live = parseLiveFile(load('live.json'));
     expect(live?.voices).toHaveLength(2);
     expect(live?.blocked).toEqual(['i7kq2s']);
+    expect(live?.wall?.entries.map((e) => [e.id, e.prayed, e.n])).toEqual([
+      ['p8f2kq1m3x0ab', true, 12],
+      ['p3m9zr7kq2cd', false, 0],
+    ]);
+    expect(parseLiveFile({ ...(load('live.json') as object), wall: null })?.wall).toBeNull();
 
     const channels = parseChannelsFile(load('channels.json'));
     expect(channels?.channels.filter((c) => c.main)).toHaveLength(1);

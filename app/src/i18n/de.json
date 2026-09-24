@@ -29,7 +29,8 @@
     "bedHint": "Tippe auf „Gebetsanliegen“ und schick uns dein Anliegen.",
     "evergreen": "Unsere Lieblingslieder, bis das Programm wieder da ist",
     "hostSpeaking": "{{name}} spricht",
-    "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran"
+    "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran",
+    "praying": "{{name}} betet für"
   },
   "live": {
     "badge": "LIVE",
@@ -58,6 +59,20 @@
     "empty": "Noch keine Stimmen – komm in einen Raum und sag Hallo.",
     "more": "Weitere Reaktionen",
     "thanks": "Danke!"
+  },
+  "wall": {
+    "title": "Gebetswand",
+    "count_one": "{{count}} Anliegen",
+    "count_other": "{{count}} Anliegen",
+    "empty": "Hier erscheinen die Gebetsanliegen, sobald sie ankommen.",
+    "none": "Diesmal kamen keine Gebetsanliegen.",
+    "anonymous": "Jemand",
+    "prayingNow": "Wird gerade gebetet",
+    "prayed": "On air gebetet",
+    "prayAlong_one": "Mitbeten ({{count}} beten mit)",
+    "prayAlong_other": "Mitbeten ({{count}} beten mit)",
+    "prayedAlong_one": "Du hast mitgebetet ({{count}} beten mit)",
+    "prayedAlong_other": "Du hast mitgebetet ({{count}} beten mit)"
   },
   "reactions": {
     "heart": "Liebe",
@@ -142,7 +157,9 @@
       "not_suitable": "Es ist für die Sendung nicht geeignet.",
       "not_accepted": "Es wurde diesmal nicht angenommen."
     },
-    "empty": "Noch nichts eingereicht."
+    "empty": "Noch nichts eingereicht.",
+    "prayedWith_one": "{{count}} Person hat mit dir gebetet",
+    "prayedWith_other": "{{count}} Personen haben mit dir gebetet"
   },
   "today": {
     "title": "Heutiges Programm",
@@ -466,7 +483,10 @@
       "collectSongsCount": "Anzahl Lieder",
       "quietMin": "Nach … stillen Minuten ein Anliegen erneut beten",
       "afterSongs": "Lieder nach der Abmoderation",
-      "toOutro": "In einer Gebetsstunde bis zur Abmoderation gerechnet."
+      "toOutro": "In einer Gebetsstunde bis zur Abmoderation gerechnet.",
+      "wall": "Gebetswand: zeigt die Gebetsanliegen, deren Absender zugestimmt haben",
+      "wallKeep": "Nach der Sendung noch … Minuten zeigen",
+      "wallHint": "0 = sie verschwindet mit dem Ende der Sendung."
     },
     "plans": {
       "dayPlans": "Tagespläne",
@@ -605,7 +625,14 @@
         "recording_deleted": "Abgelehnte Aufnahmen werden sofort gelöscht (Datenschutzerklärung) und können nicht mehr freigegeben werden.",
         "video_unplayable": "YouTube spielt dieses Video im eingebetteten Player nicht ab; es kann nicht gesendet werden.",
         "not_rejected": "—"
-      }
+      },
+      "onWall": "Auf der Gebetswand",
+      "offWall": "Von der Wand genommen",
+      "takeOffWall": "Von der Wand nehmen",
+      "takeOffWallConfirm": "Dieses Anliegen von der Gebetswand und den Community-Stimmen nehmen? Gebetet wird on air trotzdem dafür.",
+      "backOnWall": "Wieder an die Wand",
+      "wallTaken": "Von der Gebetswand genommen.",
+      "wallBack": "Wieder an der Gebetswand."
     },
     "chat": {
       "reports": "Gemeldete Nachrichten",

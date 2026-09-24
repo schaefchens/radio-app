@@ -545,6 +545,98 @@ final class Submissions
         )->rowCount();
     }
 
+    // --- the prayer wall ---------------------------------------------------------------------
+
+    /**
+     * The prayer wall for live.json: the prayer requests of the program on
+     * air — or of the one that just ended, for the minutes it keeps its wall
+     * — whose senders agreed to show them, as they come in. Only requests a
+     * moderator has not taken down; everyone of them is prayed for on air,
+     * shown or not.
+     *
+     * @param array<string,mixed> $channel
+     * @return array<string,mixed>|null
+     */
+    public function wall(array $channel): ?array
+    {
+        $now = $this->app->clock->nowMs();
+        $cid = (int) $channel['id'];
+        $resolver = $this->app->resolver();
+        $catalog = $this->app->catalog();
+        $block = $resolver->blockAt($channel, $now);
+        $program = $catalog->program($block['program_id']);
+        $open = (bool) ($program['settings']['wall']['enabled'] ?? false);
+        if ($open) {
+            $run = $this->app->timeline()->lastRun($cid, (int) $program['id']);
+            // Its run so far, back past midnight; not the one from yesterday.
+            $from = $run !== null && $run[1] >= $block['start'] ? min($block['start'], $run[0]) : $block['start'];
+            $to = $now;
+        } else {
+            $program = $catalog->program($resolver->blockAt($channel, $block['start'] - 1)['program_id']);
+            if ($program === null || !($program['settings']['wall']['enabled'] ?? false)) return null;
+            $run = $this->app->timeline()->lastRun($cid, (int) $program['id']);
+            if ($run === null || $now > $run[1] + (int) $program['settings']['wall']['keep_min'] * 60_000) return null;
+            [$from, $to] = $run;
+        }
+        $rows = $this->app->store()->all(
+            "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND type = 'prayer' AND mode = 'text' AND consent_air = 1
+             AND hidden = 0 AND status IN ('approved', 'scheduled', 'aired') AND created >= ? AND created <= ? ORDER BY created DESC, id DESC LIMIT 60",
+            [$cid, (int) $program['id'], intdiv($from, 1000) - 60, intdiv($to, 1000)],
+        );
+        $entries = array_map(fn($s) => [
+            'id' => 'p' . $s['public_id'],
+            'name' => (string) $s['name'],
+            'place' => (string) $s['place'],
+            'text' => (string) $s['text'],
+            'at' => (int) $s['created'] * 1000,
+            'prayed' => $s['aired_at'] !== null && (int) $s['aired_at'] <= $now,
+            'n' => (int) $s['prayed_with'],
+        ], array_reverse($rows));
+        return ['p' => (string) $program['slug'], 'title' => ['en' => (string) $program['title_en'], 'de' => (string) $program['title_de']], 'open' => $open, 'entries' => $entries];
+    }
+
+    /** A listener prays along with a request on the wall: counted once per device. */
+    public function prayAlong(string $publicId, string $deviceKey): bool
+    {
+        $store = $this->app->store();
+        $id = $store->value(
+            "SELECT id FROM submissions WHERE public_id = ? AND type = 'prayer' AND mode = 'text' AND consent_air = 1 AND hidden = 0
+             AND status IN ('approved', 'scheduled', 'aired')",
+            [$publicId],
+        );
+        if ($id === null) return false;
+        // Not the device key itself: who prayed for what must not join the presence rows.
+        $who = substr(hash('sha256', 'pray-along:' . $deviceKey), 0, 24);
+        $added = $store->query('INSERT OR IGNORE INTO prayer_along(submission_id, who, time) VALUES(?, ?, ?)', [(int) $id, $who, $this->app->clock->now()])->rowCount();
+        if ($added > 0) $store->query('UPDATE submissions SET prayed_with = prayed_with + 1 WHERE id = ?', [(int) $id]);
+        return $added > 0;
+    }
+
+    /**
+     * Who prayed along with which request is kept only while the request is
+     * shown — on the wall, or as a community voice for two hours — so each
+     * listener counts once; then only the number stays. It can tell of
+     * someone's faith (Art. 9 GDPR).
+     */
+    public function forgetPrayAlong(): int
+    {
+        $shown = [];
+        foreach ($this->app->catalog()->channels() as $ch) {
+            foreach ($this->wall($ch)['entries'] ?? [] as $e) $shown[] = substr((string) $e['id'], 1);
+        }
+        $keep = $shown ? ' AND submission_id NOT IN (SELECT id FROM submissions WHERE public_id IN (' . implode(',', array_fill(0, count($shown), '?')) . '))' : '';
+        return $this->app->store()->query('DELETE FROM prayer_along WHERE time < ?' . $keep, [$this->app->clock->now() - 7200, ...$shown])->rowCount();
+    }
+
+    /** A moderator takes a prayer request off the wall (and the community voices), or puts it back. */
+    public function setHidden(string $publicId, bool $hidden, string $actor): void
+    {
+        $sub = $this->byPublicId($publicId) ?? throw new ApiError(404, 'not_found');
+        if ($sub['type'] !== 'prayer' || $sub['mode'] !== 'text') throw new ApiError(422, 'not_a_prayer_request');
+        $this->app->store()->update('submissions', ['hidden' => $hidden ? 1 : 0, 'updated' => $this->app->clock->now()], 'id = ?', [(int) $sub['id']]);
+        $this->app->store()->audit($actor, $hidden ? 'Taken off the prayer wall' : 'Back on the prayer wall', $publicId);
+    }
+
     // --- read side ------------------------------------------------------------------------
 
     /** @param array<string,mixed> $identity @return list<array<string,mixed>> */
@@ -588,6 +680,8 @@ final class Submissions
             'airsAt' => $status === 'scheduled' && $s['aired_at'] !== null ? (int) $s['aired_at'] : null,
             'airedAt' => $status === 'aired' ? (int) $s['aired_at'] : null,
             'created' => (int) $s['created'] * 1000,
+            // How many listeners prayed along with a prayer request on the wall.
+            'prayedWith' => (int) ($s['prayed_with'] ?? 0),
         ];
     }
 }

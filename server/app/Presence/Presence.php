@@ -63,7 +63,7 @@ final class Presence
             "SELECT s.public_id, s.name, s.text, s.created, i.country FROM submissions s JOIN identities i ON i.id = s.identity_id
              JOIN channels c ON c.id = s.channel_id
              WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.status IN ('approved', 'scheduled', 'aired')
-             AND s.consent_air = 1 AND s.created >= ? ORDER BY s.created DESC LIMIT ?",
+             AND s.consent_air = 1 AND s.hidden = 0 AND s.created >= ? ORDER BY s.created DESC LIMIT ?",
             [$channel, $since, $limit],
         ) as $p) {
             $out[] = ['id' => 'p' . $p['public_id'], 'name' => (string) $p['name'], 'country' => (string) $p['country'],

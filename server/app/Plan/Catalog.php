@@ -47,6 +47,9 @@ final class Catalog
             // Songs after the outro, until the next program.
             'after_songs' => 0,
         ],
+        // The prayer wall (live.json): the program's prayer requests whose
+        // senders agreed to show them, while it is on air and `keep_min` after.
+        'wall' => ['enabled' => false, 'keep_min' => 0],
     ];
 
     /** @var array<int,array<string,mixed>> */
@@ -240,6 +243,7 @@ final class Catalog
         $host = is_array($s['host']) ? $s['host'] : [];
         $silence = is_array($s['silence']) ? $s['silence'] : [];
         $prayer = is_array($s['prayer']) ? $s['prayer'] : [];
+        $wall = is_array($s['wall']) ? $s['wall'] : [];
         $collect = is_array($prayer['collect'] ?? null) ? $prayer['collect'] : [];
         return [
             'host' => [
@@ -269,6 +273,7 @@ final class Catalog
                 'quiet_min' => max(1, min(30, (int) ($prayer['quiet_min'] ?? 4))),
                 'after_songs' => max(0, min(5, (int) ($prayer['after_songs'] ?? 0))),
             ],
+            'wall' => ['enabled' => (bool) ($wall['enabled'] ?? false), 'keep_min' => max(0, min(720, (int) ($wall['keep_min'] ?? 0)))],
         ];
     }
 

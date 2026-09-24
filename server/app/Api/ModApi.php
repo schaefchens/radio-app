@@ -376,6 +376,9 @@ final class ModApi
                 'verdict' => json_decode((string) $s['verdict'], true), 'created' => (int) $s['created'] * 1000,
                 'status' => $s['status'], 'reason' => $s['reason'], 'updated' => (int) $s['updated'] * 1000,
                 'blocker' => $s['status'] === 'rejected' ? $subs->overruleBlocker($s) : null,
+                // A typed prayer request its sender agreed to show: on the wall unless taken down.
+                'shown' => $s['type'] === 'prayer' && $s['mode'] === 'text' && (int) $s['consent_air'] === 1 ? (int) $s['hidden'] === 0 : null,
+                'prayedWith' => (int) $s['prayed_with'],
             ];
         }
         return ['items' => $out];
@@ -422,6 +425,17 @@ final class ModApi
             $subs->reject((int) $sub['id'], (string) $this->c->req->input('reason', 'not_accepted'), $verdict + ['human' => true], $this->actor());
         }
         return ['submission' => $subs->publicView($subs->get((int) $sub['id']) ?? $sub)];
+    }
+
+    /** Take a prayer request off the prayer wall and the community voices, or put it back. @param array<string,string> $a */
+    public function reviewWall(array $a): array
+    {
+        $this->mod();
+        $subs = $this->c->app->submissions();
+        $subs->setHidden((string) ($a['id'] ?? ''), $this->c->req->input('hidden', true) !== false, $this->actor());
+        // At once, not with the next tick: listeners fetch live.json every 30 s.
+        foreach ($this->c->app->catalog()->channels() as $ch) $this->c->app->publisher()->publishLive($ch);
+        return ['ok' => true];
     }
 
     // --- users (admin) -----------------------------------------------------------------------------

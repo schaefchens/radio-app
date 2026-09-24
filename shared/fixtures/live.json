@@ -8,5 +8,14 @@
     { "id": "v82", "name": "James", "country": "US", "text": "This really speaks to my heart today.", "at": 1790189820000 }
   ],
   "blocked": ["i7kq2s"],
-  "pulse": 120
+  "pulse": 120,
+  "wall": {
+    "p": "prayer",
+    "title": { "en": "Prayer Hour", "de": "Gebetsstunde" },
+    "open": true,
+    "entries": [
+      { "id": "p8f2kq1m3x0ab", "name": "Anna", "place": "Bonn", "text": "Please pray for my mother, she is in hospital.", "at": 1790189760000, "prayed": true, "n": 12 },
+      { "id": "p3m9zr7kq2cd", "name": "", "place": "", "text": "For peace in our family.", "at": 1790189880000, "prayed": false, "n": 0 }
+    ]
+  }
 }

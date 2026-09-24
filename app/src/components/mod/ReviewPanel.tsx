@@ -8,7 +8,7 @@ import { clockDuration, localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
 import { useOverview } from './overview';
 import { modError } from './modApi';
-import { Loading, Notice, Pill, Section } from './ui';
+import { ConfirmButton, Loading, Notice, Pill, Section } from './ui';
 
 type Status = 'received' | 'checking' | 'review' | 'approved' | 'scheduled' | 'aired' | 'library' | 'missed' | 'rejected';
 
@@ -32,6 +32,9 @@ interface ReviewItem {
   updated: number;
   /** Rejected only: why it can no longer be approved (null: it can). */
   blocker: 'recording_deleted' | 'video_unplayable' | 'not_rejected' | null;
+  /** A typed prayer request its sender agreed to show: whether it is on the wall (null: never shown). */
+  shown: boolean | null;
+  prayedWith: number;
 }
 
 const REASONS = ['not_program_fit', 'not_suitable', 'not_accepted'] as const;
@@ -96,6 +99,17 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
     try {
       await api(`/mod/review/${item.id}`, { body: { decision, reason, keepMessage } });
       onDone(t('mod.common.saved'));
+    } catch (e) {
+      onDone(modError(e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const wall = async (hidden: boolean): Promise<void> => {
+    setBusy(true);
+    try {
+      await api(`/mod/review/${item.id}/wall`, { body: { hidden } });
+      onDone(hidden ? t('mod.review.wallTaken') : t('mod.review.wallBack'));
     } catch (e) {
       onDone(modError(e), 'error');
     } finally {
@@ -179,6 +193,19 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
         ) : (
           <p className="text-xs text-ink-faint">{t(`mod.review.blockers.${item.blocker}`)}</p>
         ))}
+      {item.shown !== null && ['approved', 'scheduled', 'aired'].includes(item.status) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Pill tone={item.shown ? 'good' : 'default'}>{item.shown ? t('mod.review.onWall') : t('mod.review.offWall')}</Pill>
+          {item.prayedWith > 0 && <Pill>🙏 {item.prayedWith}</Pill>}
+          {item.shown ? (
+            <ConfirmButton className="btn-ghost px-3 py-1.5 text-xs text-heart" label={t('mod.review.takeOffWall')} question={t('mod.review.takeOffWallConfirm')} onConfirm={() => void wall(true)} disabled={busy} />
+          ) : (
+            <button type="button" className="btn-ghost px-3 py-1.5 text-xs" disabled={busy} onClick={() => void wall(false)}>
+              {t('mod.review.backOnWall')}
+            </button>
+          )}
+        </div>
+      )}
     </Section>
   );
 }

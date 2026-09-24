@@ -47,6 +47,7 @@ export interface ProgramSettings {
   replay_contrib: boolean;
   format: 'music' | 'prayer';
   prayer: PrayerSettings;
+  wall: { enabled: boolean; keep_min: number };
 }
 
 export interface ModChannel {

@@ -43,7 +43,7 @@ const items: TimelineItem[] = [
   { id: 's2', type: 'song', start: 220_000, dur: 300_000, p: 'live', yt: 'BBBBBBBBBBB', title: 'Two', artist: 'Y', thumb: null, request: null, fallback: null },
 ];
 const slotFile: SlotFile = { v: 1, channel: 'main', t: 0, gen: 0, current: 'live', next: null, submissions: { song: 'open' }, programs: {}, items };
-const live: LiveFile = { v: 1, channel: 'main', gen: 0, listeners: 7, voices: [], blocked: [], pulse: 120 };
+const live: LiveFile = { v: 1, channel: 'main', gen: 0, listeners: 7, voices: [], blocked: [], pulse: 120, wall: null };
 
 function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?: EvergreenFile } = {}) {
   let now = 50_000;

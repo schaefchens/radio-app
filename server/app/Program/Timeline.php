@@ -177,6 +177,41 @@ final class Timeline
         ));
     }
 
+    /**
+     * Where a program's current run begins — the seq of the last item of
+     * another program before it. A run, not a block: a program running across
+     * midnight is one run in two blocks.
+     */
+    public function runStart(int $channelId, int $programId): float
+    {
+        return (float) ($this->app->store()->value(
+            "SELECT MAX(seq) FROM timeline_items WHERE channel_id = ? AND state != 'dropped' AND (program_id IS NULL OR program_id != ?)",
+            [$channelId, $programId],
+        ) ?? 0);
+    }
+
+    /**
+     * The program's latest run on air: from the start of its first committed
+     * item to the end of its last one.
+     *
+     * @return array{0:int,1:int}|null
+     */
+    public function lastRun(int $channelId, int $programId): ?array
+    {
+        $store = $this->app->store();
+        $last = $store->one(
+            "SELECT seq, start_ms + dur_ms AS end_ms FROM timeline_items WHERE channel_id = ? AND program_id = ? AND state = 'committed' ORDER BY seq DESC LIMIT 1",
+            [$channelId, $programId],
+        );
+        if ($last === null) return null;
+        $before = (float) ($store->value(
+            "SELECT MAX(seq) FROM timeline_items WHERE channel_id = ? AND state = 'committed' AND seq < ? AND (program_id IS NULL OR program_id != ?)",
+            [$channelId, (float) $last['seq'], $programId],
+        ) ?? 0);
+        $first = (int) $store->value("SELECT MIN(start_ms) FROM timeline_items WHERE channel_id = ? AND state = 'committed' AND seq > ?", [$channelId, $before]);
+        return [$first, (int) $last['end_ms']];
+    }
+
     /** Library ids scheduled (drafted or committed) since $sinceMs. @return array<int,true> */
     public function recentLibraryIds(int $channelId, int $sinceMs): array
     {

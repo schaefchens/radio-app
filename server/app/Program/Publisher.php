@@ -154,6 +154,9 @@ final class Publisher
             'voices' => $this->app->presence()->voices($slug),
             'blocked' => $this->blocked((int) $channel['id']),
             'pulse' => $this->app->config->int('PULSE_SECONDS', 120),
+            // Here, not in the minute files: those cannot change, and a
+            // moderator must be able to take a request down at once.
+            'wall' => $this->app->submissions()->wall($channel),
         ];
         Files::write($this->app->publicPath("program/$slug/live.json"), Files::json($live));
     }

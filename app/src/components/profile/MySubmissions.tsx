@@ -15,6 +15,7 @@ interface SubmissionView {
   airsAt: number | null;
   airedAt: number | null;
   created: number;
+  prayedWith: number;
 }
 
 const TONE: Record<SubmissionView['status'], string> = {
@@ -74,6 +75,7 @@ export function MySubmissions() {
             {s.status === 'aired' && s.airedAt ? ` · ${localTime(s.airedAt, lang)}` : ''}
           </span>
           {s.status === 'rejected' && s.reason && <span className="text-xs text-ink-faint">{t(`status.reason.${s.reason}`)}</span>}
+          {s.prayedWith > 0 && <span className="text-xs text-brand-bright">🙏 {t('status.prayedWith', { count: s.prayedWith })}</span>}
         </li>
       ))}
     </ul>
