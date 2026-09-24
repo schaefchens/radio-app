@@ -73,13 +73,23 @@ deleted when idle. Needs `HETZNER_CLOUD_TOKEN` in `.env`.
 
 ```bash
 npm run realtime:setup -- --slots 1          # Primary IPs, 10 GB Volume, firewall; prints DNS + .env lines
-npm run realtime:snapshot                    # builds arche-realtime for arm64 and snapshots a node image
+npm run realtime:snapshot                    # builds arche-realtime for the node type and snapshots a node image
 ```
 
 Add the printed DNS records (`rt1.radio.schaefchens.de`), put the printed
 `REALTIME_*` lines plus `REALTIME_DRIVER=hcloud` and `REALTIME_ACME_EMAIL` in
 `.env`, then `npm run deploy -- --env`. Rebuild the snapshot after changing
 `realtime/` or `infra/realtime/`.
+
+Live since 2026-09-24: slot `rt1` in fsn1, nodes on **cpx12** (x86) with
+**cpx22** as the fallback when Hetzner refuses the first type — Arm (`cax*`)
+was sold out in every location that day. The snapshot must match the node
+architecture: `npm run realtime:snapshot -- --type cpx12` (the default); it
+says which types a location can create when the one asked for cannot be. A
+node costs about €0.02 per hour while a room is open, is deleted after 10
+minutes without anyone and after 12 hours at the latest. The very first start
+(or one after ~90 days without any) waits for its Let's Encrypt certificate,
+which then stays on the slot's volume; the app's reconnect covers the wait.
 
 ## Operate
 
