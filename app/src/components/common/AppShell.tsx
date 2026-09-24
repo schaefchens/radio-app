@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { UpdateBanner } from './UpdateBanner';
-import { CalendarIcon, ChatIcon, HomeIcon, RadioIcon, ShieldIcon, UserIcon } from './icons';
+import { CalendarIcon, ChatIcon, LiveIcon, RadioIcon, ShieldIcon, UserIcon } from './icons';
 import { StageRegion } from '@/components/stage/StageRegion';
 import { ChannelPicker } from '@/components/home/ChannelPicker';
 import { useSession, isModerator } from '@/store/session';
@@ -32,10 +32,17 @@ export function AppShell() {
             <span className="text-2xl font-light tracking-logo text-ink sm:text-3xl">ARCHE</span>
             <RadioIcon size={26} className="text-brand-bright" />
           </div>
-          <p className="hidden text-xs text-ink-muted sm:block">{t('app.tagline')}</p>
+          {/* Two lines, broken where the text says (\n) and nowhere else. */}
+          <p className="hidden text-xs leading-snug text-ink-muted sm:block">
+            {t('app.tagline').split('\n').map((line) => (
+              <span key={line} className="block whitespace-nowrap">
+                {line}
+              </span>
+            ))}
+          </p>
         </NavLink>
         <nav className="mx-auto hidden items-center gap-1 lg:flex" aria-label="main">
-          <TopTab to="/" label={t('nav.home')} icon={<HomeIcon />} end />
+          <TopTab to="/" label={t('nav.home')} icon={<LiveIcon className="text-live" />} end />
           <TopTab to="/schedule" label={t('nav.schedule')} icon={<CalendarIcon />} />
           <TopTab to="/chat" label={t('nav.chat')} icon={<ChatIcon />} />
           <TopTab to="/profile" label={t('nav.profile')} icon={<UserIcon />} />
@@ -59,7 +66,7 @@ export function AppShell() {
       </main>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-night-line/30 bg-night-deep/90 pb-safe backdrop-blur-lg lg:hidden" aria-label="main">
-        <BottomTab to="/" label={t('nav.home')} icon={<HomeIcon size={24} />} end />
+        <BottomTab to="/" label={t('nav.home')} icon={<LiveIcon size={24} className="text-live" />} end />
         <BottomTab to="/schedule" label={t('nav.schedule')} icon={<CalendarIcon size={24} />} />
         <BottomTab to="/chat" label={t('nav.chat')} icon={<ChatIcon size={24} />} />
         <BottomTab to="/profile" label={t('nav.profile')} icon={<UserIcon size={24} />} />

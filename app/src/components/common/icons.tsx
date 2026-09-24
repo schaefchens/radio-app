@@ -21,10 +21,11 @@ function Icon({ size = 20, children, ...rest }: IconProps & { children: React.Re
   );
 }
 
-export const HomeIcon = (p: IconProps) => (
+/** The dot of the LIVE badge in its ring; the caller colours it (text-live). */
+export const LiveIcon = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M3 10.5 12 3l9 7.5" />
-    <path d="M5 9.5V20h5v-6h4v6h5V9.5" />
+    <circle cx="12" cy="12" r="8.5" strokeOpacity="0.45" />
+    <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" className="animate-pulse" />
   </Icon>
 );
 export const CalendarIcon = (p: IconProps) => (

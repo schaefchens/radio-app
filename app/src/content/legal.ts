@@ -17,6 +17,8 @@ export interface Block {
 }
 
 export interface StationTexts {
+  /** Shown first on the station page, above everything else. */
+  notice: string;
   about: Block[];
   imprint: Block[];
   privacy: Block[];
@@ -29,6 +31,7 @@ const OPERATOR = 'Christoph Scharf\nMühltorstraße 1\n67245 Lambsheim';
 
 const de = (host: string): StationTexts => ({
   bindingNote: null,
+  notice: 'ARCHE ist ein eigenständiges Projekt und hat trotz seines Namens nichts mit der Arche Gemeinde in Hamburg zu tun.',
   about: [
     {
       h: 'Ein Programm. Viele Nationen. Eine Familie.',
@@ -201,6 +204,7 @@ const de = (host: string): StationTexts => ({
 
 const en = (host: string): StationTexts => ({
   bindingNote: 'The imprint and privacy policy in English are provided for convenience; the German version is legally binding.',
+  notice: 'ARCHE is an independent project. Despite its name, it has nothing to do with the Arche church (Arche Gemeinde) in Hamburg.',
   about: [
     {
       h: 'One program. Many nations. One family.',

@@ -83,7 +83,7 @@ test('the logo opens the station page with the imprint and the privacy policy', 
   await page.goto('/');
   await page.getByRole('link', { name: 'About ARCHE' }).first().click();
   await expect(page).toHaveURL(/\/about$/);
-  // (The header's tagline says the same; the station page's section is the one meant.)
+  await expect(page.locator('#about').getByText(/nothing to do with the Arche church \(Arche Gemeinde\) in Hamburg/)).toBeVisible();
   await expect(page.locator('#about').getByText('One program. Many nations. One family.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Imprint' })).toBeVisible();
   await expect(page.getByText(/Mühltorstraße 1/).first()).toBeVisible();

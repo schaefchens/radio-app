@@ -34,6 +34,7 @@ export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' }
           <span className="text-3xl font-light tracking-logo">ARCHE</span>
           <RadioIcon size={28} className="text-brand-bright" />
         </div>
+        <p className="rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm leading-relaxed text-ink">{texts.notice}</p>
         <Blocks blocks={texts.about} />
       </section>
 
