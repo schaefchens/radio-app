@@ -46,6 +46,8 @@ final class Media
         if ($url === null) return;
         $p = $this->path($url);
         if ($p !== null && is_file($p)) @unlink($p);
+        // Gone here means gone at the edge too (queued; purged in the jobs phase).
+        $this->app->cdn()->forget($url);
     }
 
     /**

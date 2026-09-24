@@ -27,6 +27,7 @@
     "deploy:verify": "bash scripts/deploy.sh --verify-only",
     "init-secrets": "bash scripts/init-secrets.sh",
     "cron-command": "bash scripts/cron-command.sh",
+    "cdn:setup": "bash scripts/cdn/setup-bunny.sh",
     "realtime:setup": "bash scripts/realtime/setup-hetzner.sh",
     "realtime:snapshot": "bash scripts/realtime/build-snapshot.sh"
   },

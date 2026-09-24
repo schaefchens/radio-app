@@ -17,22 +17,24 @@ import {
   type LiveFile,
   type SlotFile,
 } from '@arche/shared';
+import { fetchStatic } from './cdn';
 import { syncFromDateHeader } from './clock';
 
 /**
- * Fetching the static program files. They are the only thing the radio needs
+ * Fetching the static program files — from the CDN when there is one, else
+ * (or when it fails) from the site. They are the only thing the radio needs
  * to play; everything else (API, realtime) is optional.
  */
 
 async function getJson(path: string, cache: RequestCache = 'default'): Promise<unknown | null> {
-  const t0 = Date.now();
   let res: Response;
   try {
-    res = await fetch('/' + path, { cache });
+    const got = await fetchStatic('/' + path, { cache });
+    res = got.res;
+    if (got.fromOrigin) syncFromDateHeader(res.headers.get('Date'), got.t0, Date.now());
   } catch {
     return null;
   }
-  syncFromDateHeader(res.headers.get('Date'), t0, Date.now());
   if (!res.ok) return null;
   try {
     return await res.json();

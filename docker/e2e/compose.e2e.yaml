@@ -17,8 +17,13 @@ services:
     environment:
       # Never live AI in a test run, whatever the shell says.
       AI_MODE: stub
+      # The stand-in CDN on web:8091 (docker/web/arche.conf): the app reads
+      # the program and media cross-origin, as in production.
+      CDN_BASE_URL: http://localhost:8091
 
   web:
+    ports:
+      - "8091:8091"
     volumes:
       - ./.data/e2e/site:/var/www/site
       - ./.data/e2e/arche.env:/run/arche.env:ro

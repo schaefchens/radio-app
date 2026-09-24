@@ -16,6 +16,8 @@ import { deriveCredential, generatePassphrase } from '../../../src/lib/passphras
 const REPO = fileURLToPath(new URL('../../../../', import.meta.url));
 export const E2E_DIR = path.join(REPO, '.data/e2e');
 export const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8090';
+/** The stack's stand-in for BunnyCDN: the same files, cross-origin (docker/web/arche.conf). */
+export const CDN_URL = process.env.E2E_CDN_URL ?? 'http://localhost:8091';
 export const CHANNEL = 'main';
 
 export function e2eEnv(): Record<string, string> {

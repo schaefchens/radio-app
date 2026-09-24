@@ -69,6 +69,11 @@ return [
     // The e2e stack points this at a fake (app/tests/e2e/fake-youtube.mjs).
     'YOUTUBE_API_BASE' => 'https://www.googleapis.com/youtube/v3',
 
+    // --- CDN (scripts/cdn/setup-bunny.sh) ---------------------------------------
+    // Base URL the app loads /program and /media from; '' = the origin.
+    'CDN_BASE_URL' => '',
+    'BUNNY_PULL_ZONE_ID' => '',
+
     // --- realtime --------------------------------------------------------------
     // off (no rooms: the app hides chat) | static (one fixed node: the local
     // compose service, REALTIME_STATIC_URL) | hcloud (scale-to-zero nodes).

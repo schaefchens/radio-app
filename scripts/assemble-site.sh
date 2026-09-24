@@ -25,6 +25,9 @@
 #                  bind-mounts over. Never deletes runtime data already there.
 #   --with-app     with --dev: also copy app/dist (a prod-like local run)
 #   --out DIR      write somewhere else
+#   --cdn ORIGIN   the CDN in front of /program and /media (e.g.
+#                  https://arche-radio.b-cdn.net): allowed by the page's CSP.
+#                  Without it the CSP allows only the site itself.
 #   --skip-build   do not run `npm run build` first
 #   -h, --help     this text
 
@@ -36,19 +39,26 @@ cd "$REPO_ROOT"
 # shellcheck source=scripts/lib/log.sh
 . "$REPO_ROOT/scripts/lib/log.sh"
 
-MODE=full OUT="" DO_BUILD=1 WITH_APP=0
+MODE=full OUT="" DO_BUILD=1 WITH_APP=0 CDN=
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --dev)        MODE=dev ;;
     --with-app)   WITH_APP=1 ;;
     --out)        shift; OUT="${1:-}"; [ -n "$OUT" ] || die "--out needs a directory" ;;
+    --cdn)        shift; CDN="${1:-}" ;;
     --skip-build) DO_BUILD=0 ;;
-    -h|--help)    sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)    sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)            die "unknown option: $1 (try --help)" ;;
   esac
   shift
 done
+
+# An origin only (it lands inside a quoted header and a sed replacement).
+CDN="${CDN%/}"
+if [ -n "$CDN" ] && ! [[ "$CDN" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?$ ]]; then
+  die "--cdn must be an origin like https://name.b-cdn.net (got '$CDN')"
+fi
 
 if [ -z "$OUT" ]; then
   if [ "$MODE" = dev ]; then OUT="$REPO_ROOT/.data/site"; else OUT="$REPO_ROOT/build/site"; fi
@@ -113,6 +123,19 @@ check_no_runtime() {
 $(printf '%s\n' "$found" | sed 's/^/    /')"
 }
 
+# The root .htaccess carries the page's CSP with a __CDN__ placeholder.
+apply_cdn() {
+  local f="$1/.htaccess" tmp
+  [ -f "$f" ] || die "$f is missing"
+  tmp=$(mktemp)
+  if [ -n "$CDN" ]; then sed "s#__CDN__#$CDN#g" "$f" > "$tmp"; else sed 's# __CDN__##g' "$f" > "$tmp"; fi
+  # Keep the copy's mode (rsync -a preserved the source's).
+  cat "$tmp" > "$f"
+  rm -f "$tmp"
+  if grep -q '__CDN__' "$f"; then die "a __CDN__ placeholder is left in $f"; fi
+  if [ -n "$CDN" ]; then ok "CSP allows the CDN $CDN"; fi
+}
+
 assemble_full() {
   check_public
   [ -f server/vendor/autoload.php ] \
@@ -141,6 +164,7 @@ assemble_full() {
 
   rsync "${RSYNC_BASE[@]}" app/dist/ "$OUT/"
   rsync "${RSYNC_BASE[@]}" "$PUBLIC/" "$OUT/"
+  apply_cdn "$OUT"
 
   local d
   for d in app config resources bin; do
@@ -181,6 +205,7 @@ assemble_dev() {
     --exclude '/_arche/resources/' --exclude '/_arche/var/' \
     --exclude '/program/*' --exclude '/media/*' \
     "$PUBLIC/" "$OUT/"
+  apply_cdn "$OUT"
   local d f
   for d in program media; do
     [ -d "$PUBLIC/$d" ] || continue

@@ -79,6 +79,7 @@ SERVER_ENV_KEYS=(
   REALTIME_SERVER_TYPE REALTIME_FALLBACK_TYPE REALTIME_LOCATION REALTIME_FIREWALL_ID REALTIME_ACME_EMAIL
   STATION_LANGS TICK_BUDGET SQLITE_WAL MODERATION_HUMAN_REVIEW HOST_MIN_LISTENERS
   HOST_MAX_BREAKS_PER_DAY MODERATION_MAX_PER_DAY PULSE_SECONDS
+  CDN_BASE_URL BUNNY_PULL_ZONE_ID BUNNY_API_KEY
   SUBMISSIONS_PER_IP_HOUR IDENTITIES_PER_IP_DAY
 )
 # Without these the server cannot run at all (cron auth, identity hashing,
@@ -282,6 +283,29 @@ verify() {
     *) pass "Referrer-Policy: $rp" ;;
   esac
 
+  # The CDN (a pull zone with this site as origin): the page may read from it,
+  # and it answers for the program with the CORS header the app needs — a
+  # failing edge only costs the fallback to this site, so nothing here is
+  # fatal for the radio, but each one means the CDN carries nothing.
+  local cdn csp acao
+  cdn=$(env_value "$ENV_FILE" CDN_BASE_URL); cdn="${cdn%/}"
+  if [ -n "$cdn" ] && [ "$cdn" != off ]; then
+    csp=$(header_of content-security-policy "$SITE_URL/")
+    case "$csp" in
+      *"connect-src 'self' $cdn "*) pass "CSP allows the CDN ($cdn)" ;;
+      *) fail "CSP does not allow the CDN $cdn — assembled without --cdn?" ;;
+    esac
+    ch=$(req -o /dev/null -w '%{http_code} %{content_type}' -H "Origin: $SITE_URL" "$cdn/program/channels.json" || echo "000 -")
+    acao=$(header_of access-control-allow-origin -H "Origin: $SITE_URL" "$cdn/program/channels.json")
+    case "$ch" in
+      "200 application/json"*)
+        if [ -n "$acao" ]; then pass "CDN serves the program with CORS ($cdn → $ch, ACAO $acao)"
+        else fail "CDN answers without Access-Control-Allow-Origin — the app cannot read it (scripts/cdn/setup-bunny.sh)"; fi ;;
+      404*) soft "CDN: /program/channels.json not published yet" ;;
+      *) fail "CDN $cdn/program/channels.json → $ch, expected 200 application/json" ;;
+    esac
+  fi
+
   [ "$warned" -eq 0 ] || info "$warned warning(s)"
   [ "$failed" -eq 0 ] || die "$failed check(s) failed"
   info "All checks passed"
@@ -299,6 +323,9 @@ require_tools sshpass sftp curl shasum rsync
 
 assemble_args=()
 [ "$DO_BUILD" -eq 1 ] || assemble_args+=(--skip-build)
+# The page's CSP names the CDN the server tells the app about.
+cdn_base=$(env_value "$ENV_FILE" CDN_BASE_URL)
+if [ -n "$cdn_base" ] && [ "$cdn_base" != off ]; then assemble_args+=(--cdn "$cdn_base"); fi
 bash "$REPO_ROOT/scripts/assemble-site.sh" ${assemble_args[@]+"${assemble_args[@]}"}
 [ -f "$SITE_DIR/index.html" ] || die "$SITE_DIR is incomplete"
 
@@ -449,6 +476,7 @@ server_needs() { # KEY
   case "$1" in
     HETZNER_CLOUD_TOKEN) [ "$(env_value "$ENV_FILE" REALTIME_DRIVER)" = hcloud ] ;;
     ELEVENLABS_API_KEY) [ "$(env_value "$ENV_FILE" TTS_PROVIDER)" = elevenlabs ] ;;
+    BUNNY_API_KEY) env_has "$ENV_FILE" BUNNY_PULL_ZONE_ID ;;
     *) return 0 ;;
   esac
 }

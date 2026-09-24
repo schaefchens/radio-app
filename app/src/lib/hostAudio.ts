@@ -7,7 +7,13 @@
  * once inside one — hence `unlock()`, called from the "tap to join" handler,
  * which plays a silent clip on both elements. iOS also ignores
  * `element.volume`, so fades go through a Web Audio GainNode where available.
+ *
+ * Clips come from the CDN when there is one. Web Audio plays a cross-origin
+ * element only if it was loaded with CORS (otherwise it outputs silence),
+ * hence `crossOrigin`; a clip the edge cannot deliver is played from the site.
  */
+
+import { cdnFailed, cdnUrl } from './cdn';
 
 // 0.15 s of silence (MP3, 8 kbps mono), generated with ffmpeg.
 const SILENCE = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVV/+MYxDsAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxHYAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxLEAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxMQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
@@ -23,6 +29,7 @@ export class HostAudio {
   constructor() {
     const make = (): HTMLAudioElement => {
       const a = new Audio();
+      a.crossOrigin = 'anonymous';
       a.preload = 'auto';
       a.setAttribute('playsinline', '');
       return a;
@@ -67,28 +74,42 @@ export class HostAudio {
     this.stop();
     this.active = next;
     this.setGain(next, this.volume);
-    if (!el.src.endsWith(url)) el.src = url;
-    const seek = (): void => {
-      try {
-        el.currentTime = Math.max(0, offsetMs / 1000);
-      } catch {
-        /* not seekable yet */
-      }
-    };
-    if (el.readyState >= 1) seek();
-    else el.addEventListener('loadedmetadata', seek, { once: true });
-    try {
+    const started = Date.now();
+    const start = async (src: string): Promise<boolean> => {
+      if (!isSrc(el, src)) el.src = src;
+      const seek = (): void => {
+        try {
+          el.currentTime = Math.max(0, (offsetMs + Date.now() - started) / 1000);
+        } catch {
+          /* not seekable yet */
+        }
+      };
+      if (el.readyState >= 1) seek();
+      else el.addEventListener('loadedmetadata', seek, { once: true });
       await el.play();
       return true;
-    } catch {
-      return false;
+    };
+    const src = cdnUrl(url);
+    try {
+      return await start(src);
+    } catch (e) {
+      // NotSupportedError: the file did not load (CORS, network, the edge
+      // down). NotAllowedError is the autoplay policy — the site cannot help.
+      if (src === url || !(e instanceof DOMException) || e.name !== 'NotSupportedError') return false;
+      cdnFailed();
+      try {
+        return await start(url);
+      } catch {
+        return false;
+      }
     }
   }
 
   /** Warm the idle element with the next clip. */
   preload(url: string): void {
     const idle = this.els[(this.active + 1) % 2]!;
-    if (idle.paused && !idle.src.endsWith(url)) idle.src = url;
+    const src = cdnUrl(url);
+    if (idle.paused && !isSrc(idle, src)) idle.src = src;
   }
 
   stop(): void {
@@ -130,5 +151,14 @@ export class HostAudio {
     const g = this.gains[this.active];
     if (g && this.ctx) g.gain.setTargetAtTime(0, this.ctx.currentTime, ms / 3000);
     else window.setTimeout(() => this.stop(), ms);
+  }
+}
+
+/** Whether the element already holds `src` (a path or an absolute URL: the edge's copy is another file than the site's). */
+function isSrc(el: HTMLAudioElement, src: string): boolean {
+  try {
+    return el.src === new URL(src, document.baseURI).href;
+  } catch {
+    return false;
   }
 }

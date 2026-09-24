@@ -7,6 +7,7 @@ import { useSession } from '@/store/session';
 import { react } from '@/lib/radio';
 import { clockDuration } from '@/lib/format';
 import { useServerNow } from './useServerNow';
+import { CdnImg } from '@/components/common/CdnImg';
 import { HeartIcon, MicIcon, MusicIcon, PrayIcon, RadioIcon } from '@/components/common/icons';
 
 export function NowPlaying() {
@@ -61,7 +62,7 @@ export function NowPlaying() {
   return (
     <div className="card flex items-center gap-4 p-3">
       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-night-deep text-ink-muted sm:h-20 sm:w-28">
-        {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : icon}
+        {thumb ? <CdnImg src={thumb} className="h-full w-full object-cover" /> : icon}
       </div>
       <div className="min-w-0 flex-1">
         {/* The fallback loop says so: this is not the live program. */}

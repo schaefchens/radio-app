@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { DayFile, Lang } from '@arche/shared';
 import { localTime } from '@/lib/format';
+import { CdnImg } from '@/components/common/CdnImg';
 import { MicIcon, MusicIcon } from '@/components/common/icons';
 
 /** What already played on a day — the plan itself never reveals what will. */
@@ -16,7 +17,7 @@ export function PlayedList({ day }: { day: DayFile }) {
         {played.map((p) => (
           <li key={`${p.start}-${p.title}`} className="card flex items-center gap-3 px-3 py-2">
             <div className="flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-night-deep text-ink-muted">
-              {p.thumb ? <img src={p.thumb} alt="" className="h-full w-full object-cover" /> : p.type === 'song' ? <MusicIcon /> : <MicIcon />}
+              {p.thumb ? <CdnImg src={p.thumb} className="h-full w-full object-cover" /> : p.type === 'song' ? <MusicIcon /> : <MicIcon />}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{p.title}</p>

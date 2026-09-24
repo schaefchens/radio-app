@@ -44,8 +44,10 @@ SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 
   # The YouTube IFrame API script and player, our own everything else. The
   # player is framed from youtube-nocookie.com (privacy-enhanced mode).
+  # The CDN placeholder is the CDN in front of /program and /media (program
+  # files, audio, images): scripts/assemble-site.sh --cdn fills it in or drops it.
   <FilesMatch "\.html$">
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://www.youtube.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; img-src 'self' data: blob: https://i.ytimg.com; media-src 'self' blob: data:; connect-src 'self' wss: https://www.youtube.com; style-src 'self' 'unsafe-inline'; font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://www.youtube.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; img-src 'self' __CDN__ data: blob: https://i.ytimg.com; media-src 'self' __CDN__ blob: data:; connect-src 'self' __CDN__ wss: https://www.youtube.com; style-src 'self' 'unsafe-inline'; font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
   </FilesMatch>
 </IfModule>
 

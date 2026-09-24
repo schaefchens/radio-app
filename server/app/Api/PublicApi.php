@@ -33,6 +33,8 @@ final class PublicApi
                 'langs' => $cfg->stationLangs(),
                 'realtime' => $app->nodes()->driver() !== 'off',
                 'setupNeeded' => $this->adminMissing(),
+                // Program files and media come from here ('' = this origin).
+                'cdn' => $cfg->cdnBase(),
             ],
         ];
     }

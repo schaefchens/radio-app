@@ -37,7 +37,9 @@ final class Presence
         if (isset($this->counts[$channel])) return $this->counts[$channel];
         $since = $this->app->clock->now() - $this->app->config->int('PRESENCE_WINDOW_SECONDS', 300);
         $pulses = (int) $this->app->store()->value('SELECT COUNT(*) FROM presence WHERE channel = ? AND seen >= ?', [$channel, $since]);
-        return $this->counts[$channel] = max($pulses, $this->app->nodes()->presence($channel));
+        // At scale the CDN log is the count (every client fetches each minute
+        // file once); pulses and room presence cover the rest.
+        return $this->counts[$channel] = max($pulses, $this->app->nodes()->presence($channel), $this->app->cdn()->listeners($channel) ?? 0);
     }
 
     /**

@@ -91,6 +91,31 @@ minutes without anyone and after 12 hours at the latest. The very first start
 (or one after ~90 days without any) waits for its Let's Encrypt certificate,
 which then stays on the slot's volume; the app's reconnect covers the wait.
 
+## CDN (BunnyCDN)
+
+A pull zone in front of `/program` and `/media`: the edge fetches each file
+once from the site and keeps it as long as the file's Cache-Control says
+(minute files and media for good, `live.json` 15 s, a 404 never). Nothing is
+uploaded, so the tick never waits for the CDN, and the app reads from the site
+whenever the edge fails (a network error, a timeout, any answer but the file
+or a 404) and skips the edge for five minutes. Needs `BUNNY_API_KEY` in `.env`.
+
+```bash
+npm run cdn:setup                            # creates or updates the zone; prints CDN_BASE_URL + BUNNY_PULL_ZONE_ID
+```
+
+Put the two printed lines in `.env`, then `npm run deploy -- --env`: the
+server tells the app about the CDN (`/api/session`, remembered by the app),
+and the page's CSP allows it (the deploy assembles with `--cdn`). The tick
+then also purges deleted media at the edge and counts listeners from the
+zone's log, which keeps no IP addresses: the requests for one minute's file
+are that minute's audience (the listener count is the highest of pulses, room
+presence and this). `CDN_BASE_URL=off` switches it off; the local stacks never
+use the production zone (the e2e stack has a stand-in on port 8091).
+
+Live since 2026-09-24: zone `arche-radio` (id 6679436) at
+`https://arche-radio.b-cdn.net`.
+
 ## Operate
 
 - **/mod → Status**: last tick, how far ahead each channel is committed, jobs,
@@ -127,3 +152,4 @@ Everything is an `.env` key (defaults in `server/config/defaults.php`, names in
 | `MODERATION_HUMAN_REVIEW` | `0` | `1` = uncertain submissions go to /mod → Review |
 | `SUBMISSIONS_PER_IP_HOUR`, `IDENTITIES_PER_IP_DAY` | `60`, `300` | per shared address; raise them for an event on one Wi-Fi |
 | `REALTIME_DRIVER` | `off` | `off` (no rooms) · `static` (the local stack sets it) · `hcloud` |
+| `CDN_BASE_URL` | – | the BunnyCDN zone the app reads `/program` and `/media` from; empty or `off` = the site itself |

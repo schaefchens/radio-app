@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ChannelsFile, Role } from '@arche/shared';
 import { api } from '@/lib/api';
+import { setCdnBase } from '@/lib/cdn';
 
 export interface IdentityView {
   id: string;
@@ -17,6 +18,8 @@ export interface SessionConfig {
   langs: string[];
   realtime: boolean;
   setupNeeded: boolean;
+  /** The CDN in front of /program and /media ('' = none; absent from an older server). */
+  cdn?: string;
 }
 
 interface SessionState {
@@ -41,6 +44,7 @@ export const useSession = create<SessionState>((set) => ({
     try {
       const r = await api<{ now: number; identity: IdentityView | null; config: SessionConfig }>('/session', { body: {} });
       set({ identity: r.identity, config: r.config, apiDown: false });
+      setCdnBase(r.config.cdn);
       return r.now;
     } catch {
       set({ apiDown: true });

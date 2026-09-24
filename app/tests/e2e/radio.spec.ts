@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { EvergreenFile } from '@arche/shared';
 import { fakeYouTube, ytCalls, ytNow, YT_PLAYING, type YtCall } from './support/youtube';
-import { BASE_URL, evergreen, itemAt, serverNow, waitForSong } from './support/station';
+import { BASE_URL, CDN_URL, evergreen, itemAt, serverNow, waitForSong } from './support/station';
 
 /**
  * The core promise: everyone hears the same second. What plays is a function
@@ -109,6 +109,39 @@ test('without program files the evergreen loop plays, at the same position for e
   expect(load.videoId).toBe(expected.yt);
   expect(Math.abs((load.startSeconds ?? 0) - (expected.offsetMs / 1000 + 0.4))).toBeLessThan(1.5);
   await expect(page.getByText('Our favourites while the program reconnects')).toBeVisible();
+});
+
+test.describe('the CDN', () => {
+  function programRequests(page: Page): string[] {
+    const urls: string[] = [];
+    page.on('request', (r) => {
+      if (/\/program\//.test(r.url())) urls.push(r.url());
+    });
+    return urls;
+  }
+
+  test('carries the program; the page is allowed to read it', async ({ page }) => {
+    const urls = programRequests(page);
+    const csp: string[] = [];
+    page.on('console', (m) => {
+      if (/Content Security Policy/i.test(m.text())) csp.push(m.text());
+    });
+    await fakeYouTube(page);
+    await join(page);
+    await firstLoad(page);
+    expect(urls.some((u) => u.startsWith(`${CDN_URL}/program/main/slots/`))).toBe(true);
+    expect(urls.filter((u) => u.startsWith(BASE_URL))).toEqual([]);
+    expect(csp).toEqual([]);
+  });
+
+  test('down: the radio plays from the site', async ({ page }) => {
+    const urls = programRequests(page);
+    await page.route(`${CDN_URL}/**`, (route) => route.abort('connectionfailed'));
+    await fakeYouTube(page);
+    await join(page);
+    await firstLoad(page);
+    expect(urls.some((u) => u.startsWith(`${BASE_URL}/program/main/slots/`))).toBe(true);
+  });
 });
 
 test.describe('YouTube required minimum functionality', () => {

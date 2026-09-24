@@ -11,6 +11,7 @@ use Arche\Ai\StubText;
 use Arche\Ai\TextModel;
 use Arche\Ai\Usage;
 use Arche\Ai\Voice;
+use Arche\Cdn\Bunny;
 use Arche\Host\HostBreaks;
 use Arche\Host\HostWriter;
 use Arche\Identity\Identities;
@@ -242,6 +243,11 @@ final class App
     public function cloud(): HetznerCloud
     {
         return $this->service('cloud', HetznerCloud::class, fn() => new HetznerCloud($this));
+    }
+
+    public function cdn(): Bunny
+    {
+        return $this->service('cdn', Bunny::class, fn() => new Bunny($this));
     }
 
     public function wake(): WakeController

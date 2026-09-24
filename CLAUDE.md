@@ -15,8 +15,9 @@ recorded stories, prayers). The whole design follows one rule from the concept:
 The program is a **deterministic timeline in static files**. A PHP generator
 writes one immutable JSON file per minute (`/program/<ch>/slots/YYYYMMDD/HHMM.json`,
 UTC); every client derives what is on air from server time and those files.
-Nothing about playback needs a live connection, so the files can sit on a CDN
-and scale to millions. Everything else — API, chat, AI — is optional.
+Nothing about playback needs a live connection, so the files sit on a CDN
+(BunnyCDN, pulling from the site, which stays every client's fallback) and
+scale to millions. Everything else — API, chat, AI — is optional.
 
 ```
 server/app/Program/Drafter   plan the next 45 min (local, cheap)
@@ -56,7 +57,7 @@ app/src/lib/engine.ts        item = timeline.at(serverNow()); drive YouTube + ou
 | `app/` | the PWA (React 19, Vite 8, Tailwind v3, zustand, i18next) | web root (`/`, `/assets`) |
 | `realtime/` | Node 24 + `ws` chat/presence/reactions node | Docker: local compose, and Hetzner Cloud nodes |
 | `infra/realtime/` | what a node runs: compose, Caddyfile, systemd unit, cloud-init template | baked into the node snapshot |
-| `scripts/` | deploy (SFTP), assemble, secrets, cron line, host probe, Hetzner setup/snapshot | your Mac |
+| `scripts/` | deploy (SFTP), assemble, secrets, cron line, host probe, Hetzner setup/snapshot, Bunny zone setup | your Mac |
 | `docker/`, `compose.yaml` | local stack: Apache + PHP-FPM like the host, a cron loop, the realtime image; web root in `.data/site`, `/_arche/var` on the `var` volume | your Mac |
 
 The deployed tree (built by `scripts/assemble-site.sh` into `build/site/`):
@@ -105,11 +106,23 @@ ffmpeg) and stay private until approved. Listeners see three generic reasons onl
 **Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
 imprint and the privacy policy describe what this code does — the data flows
 (YouTube only after the join tap, OpenAI for texts/voice/transcripts/checks,
-Hetzner for hosting and rooms) and the retention periods, which are
+Hetzner for hosting and rooms, BunnyCDN for delivery with IP-less logs kept
+three days) and the retention periods, which are
 implemented in `Tick::purge` and `defaults.php`. Change code and text together.
 Submissions can reveal faith or health (Art. 9 GDPR): the forms say so next
 to Send. The page also carries the promised controls (withdraw YouTube
 consent, delete this device's data).
+
+**CDN** (`Cdn\Bunny`, `app/src/lib/cdn.ts`). A BunnyCDN pull zone in front of
+`/program` and `/media`, never pushed to: the edge honours the origin's
+Cache-Control, so immutability and the no-store 404 carry over, and the
+publish phase stays offline. The app learns the zone from `/api/session`
+(remembered locally) and falls back to the site on any edge failure except a
+404, which is the origin's own answer (asking again would double the site's
+load exactly when the generator is late). The jobs phase purges deleted media
+at the edge (a host clip can name a listener) and counts each minute file's
+requests in the zone's log (IPs dropped) as that minute's listeners. The page
+CSP names the zone via `assemble-site.sh --cdn`.
 
 **Identity** (`Identity\*`). Anonymous-first: a device id + secret (HMAC'd with a
 pepper), rows created lazily. The optional 12-word BIP39 passphrase never
@@ -154,6 +167,12 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 - `lib/radio.ts` self-accepts HMR and reloads the page: re-running it would
   start a second engine. (Vite 8's `import.meta.hot.decline()` is a no-op.)
 - PHP 8.5: `curl_close()` is deprecated — don't call it.
+- An `<audio>` routed through Web Audio plays a cross-origin file as silence
+  unless it was loaded with CORS: `HostAudio` sets `crossOrigin` for the CDN.
+- A CDN copy carries the `Date` of its first fetch (and cross-origin the
+  header is hidden anyway): only the site's own responses feed the clock.
+- `/program` and `/media` already send `Access-Control-Allow-Origin: *` from
+  their `.htaccess`; a second copy of the header makes browsers refuse it.
 - **SQLite WAL needs a real local filesystem.** Its index (`-shm`) is shared
   memory mapped by every PHP worker; on a Docker Desktop bind mount the workers
   died with SIGBUS under load (ticks cut mid-phase, jobs stuck until their
@@ -193,12 +212,13 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 "A test is earned by a risk." Server: `npm run test:php` (enoch-style harness,
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
 generator's timing invariants, the PHP→fixture contract, identity, submissions,
-moderation fail-closed, realtime tokens/reports/wake/reaper, and the API. App:
-`npm test` (Vitest: engine sync/drift/ads/evergreen, timeline, clock, i18n keys,
-passphrase, realtime client). Shared: fixture parsing. Lint + typecheck gate all.
+moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
+timeline, clock, i18n keys, passphrase, realtime client, CDN fallback). Shared:
+fixture parsing. Lint + typecheck gate all.
 
 End to end: `npm run e2e` starts the e2e stack (`scripts/e2e-stack.sh`: project
-`arche-e2e`, web :8090, realtime :8797, data in `.data/e2e`, its own env file
+`arche-e2e`, web :8090, a stand-in CDN :8091, realtime :8797, data in `.data/e2e`, its own env file
 with stub AI and no real key; its database on the `arche-e2e_var` volume) and runs Playwright (`app/tests/e2e`) against the
 production build behind Apache with the real `.htaccess` headers. YouTube is
 faked on both sides: the Data API by `fake-youtube.mjs` (a container;
@@ -209,7 +229,9 @@ Covered: live position on join, two listeners in sync, evergreen fallback, no
 Google request before consent, RMF (nothing over the player, ≥ 200×200, paused
 under a sheet), no sideways scroll at 360/390 px on every page, passphrase on a
 second device, song/prayer/recording through moderation, /mod gate, library,
-pull from air, chat between two listeners. `npm run e2e:reset` starts over.
+pull from air, chat between two listeners, the program read cross-origin from
+the stand-in CDN (CSP included) and from the site when the CDN is down.
+`npm run e2e:reset` starts over.
 
 ## Conventions
 
@@ -221,8 +243,7 @@ Comments explain the failure a line prevents. Commits: sentence-case imperative.
 
 ## Known gaps / later
 
-BunnyCDN publisher + CDN-log listener counts (the Publisher and pulse interval
-are ready for it), ElevenLabs as the default voice, archive *replay* (slot files
+A custom hostname for the CDN zone, ElevenLabs as the default voice, archive *replay* (slot files
 are kept 48 h; `days/*.json` keep what played), Capacitor apps, phone background
 playback (not possible with YouTube embeds). Pending on the host: the Phase 0.5
 probe (cron interval, background run length → `TICK_BUDGET`, WAL, directives)

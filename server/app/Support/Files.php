@@ -62,8 +62,10 @@ final class Files
      * Delete regular files under $dir older than $beforeTs, at most $limit per
      * call, then remove directories left empty. Returns how many were removed.
      * Bounded so a tick never spends its budget on housekeeping.
+     *
+     * @param (callable(string):void)|null $onDelete told the path of every file removed
      */
-    public static function prune(string $dir, int $beforeTs, int $limit): int
+    public static function prune(string $dir, int $beforeTs, int $limit, ?callable $onDelete = null): int
     {
         if (!is_dir($dir) || $limit <= 0) return 0;
         $removed = 0;
@@ -79,7 +81,10 @@ final class Files
             }
             if ($f->getFilename()[0] === '.') continue; // .htaccess and friends
             if ($f->getMTime() < $beforeTs) {
-                if (@unlink($f->getPathname())) $removed++;
+                if (@unlink($f->getPathname())) {
+                    $removed++;
+                    if ($onDelete !== null) $onDelete($f->getPathname());
+                }
                 if ($removed >= $limit) break;
             }
         }

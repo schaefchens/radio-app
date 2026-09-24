@@ -48,6 +48,8 @@ services:
       # The compose `realtime` service is the room server here (deployed
       # stations default to off until the Hetzner nodes exist).
       REALTIME_DRIVER: static
+      # The .env is shared with production: never its CDN from here.
+      CDN_BASE_URL: "off"
 
   web:
     build:

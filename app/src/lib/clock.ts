@@ -5,8 +5,9 @@
  * trip — its midpoint is the best guess), refreshed by every pulse answer, and
  * re-estimated when the app returns to the foreground.
  *
- * If the API is down, the Date header of any program file still gives the
- * server time to the second — worse, but the radio keeps playing.
+ * If the API is down, the Date header of a program file from the site still
+ * gives the server time to the second — worse, but the radio keeps playing.
+ * (Not one from the CDN: a cached copy carries the Date of its first fetch.)
  */
 
 let offset = 0;

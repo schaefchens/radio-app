@@ -115,6 +115,14 @@ final class Tick
             }
         }
         if ($this->due('highlights', 120)) $this->app->moderator()->queueHighlights();
+        if ($this->due('cdn', 60)) {
+            try {
+                $out['cdn'] = $this->app->cdn()->maintain();
+            } catch (\Throwable $e) {
+                $out['cdn'] = 'error';
+                $this->app->store()->audit('tick', 'CDN maintenance failed', $e->getMessage());
+            }
+        }
         $out['jobs'] = $this->app->runner()->runUntilBudget();
         return $out;
     }
@@ -158,7 +166,9 @@ final class Tick
             $removed += Files::prune($this->app->publicPath("program/{$ch['slug']}/slots"), $now - $c->int('RETAIN_SLOT_HOURS', 48) * 3600, 500 - $removed);
             $removed += Files::prune($this->app->publicPath("program/{$ch['slug']}/days"), $now - $c->int('RETAIN_DAY_FILES_DAYS', 60) * 86400, 500 - $removed);
         }
-        $removed += Files::prune($this->app->publicPath('media/host'), $now - $c->int('RETAIN_HOST_AUDIO_HOURS', 48) * 3600, max(0, 500 - $removed));
+        // Host clips can name a listener: purged at the edge too, not just here.
+        $removed += Files::prune($this->app->publicPath('media/host'), $now - $c->int('RETAIN_HOST_AUDIO_HOURS', 48) * 3600, max(0, 500 - $removed),
+            fn(string $path) => $this->app->cdn()->forget('/media/host/' . basename($path)));
         return $removed;
     }
 

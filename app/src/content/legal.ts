@@ -7,7 +7,9 @@ import type { Lang } from '@arche/shared';
  * The privacy policy describes what this code actually does — keep them in
  * step: retention periods live in server/app/Tick/Tick.php (purge) and
  * server/config/defaults.php, the YouTube consent in components/stage, the
- * AI services in server/app/Ai. The German text is the binding one.
+ * AI services in server/app/Ai, the CDN in server/app/Cdn and
+ * scripts/cdn/setup-bunny.sh (its log settings). The German text is the
+ * binding one.
  */
 
 export interface Block {
@@ -100,7 +102,8 @@ const de = (host: string): StationTexts => ({
       p:
         'ARCHE funktioniert ohne Konto, ohne Werbung, ohne Analyse- oder Tracking-Dienste und ohne Cookies des ' +
         'Betreibers. Wir verarbeiten nur, was für das Radio, Ihre Einsendungen und die Community-Räume nötig ist. ' +
-        'Schriftarten und Vorschaubilder liefern wir von unserem eigenen Server aus.',
+        'Schriftarten liefern wir von unserem eigenen Server aus, Programm, Audiobeiträge und Bilder über das ' +
+        'Content-Delivery-Netzwerk BunnyCDN.',
     },
     {
       h: 'Hosting und Server-Logfiles',
@@ -110,6 +113,20 @@ const de = (host: string): StationTexts => ({
         'der Hoster technisch notwendige Daten (IP-Adresse, Datum und Uhrzeit, aufgerufene Adresse, Browser und ' +
         'Betriebssystem) und löscht sie kurzfristig. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: der sichere ' +
         'Betrieb des Angebots.',
+    },
+    {
+      h: 'Auslieferung über BunnyCDN',
+      p:
+        'Programmdateien, Audiobeiträge und Bilder liefern wir über das Content-Delivery-Netzwerk BunnyCDN der ' +
+        'BunnyWay d.o.o., Dunajska cesta 165, 1000 Ljubljana, Slowenien, aus, die in unserem Auftrag tätig ist ' +
+        '(Art. 28 DSGVO). Bunny betreibt Server in aller Welt; die Anfragen Ihrer App beantwortet in der Regel einer ' +
+        'in Ihrer Nähe, der dafür Ihre IP-Adresse verarbeitet. In den Zugriffsprotokollen speichert Bunny keine ' +
+        'IP-Adressen – so haben wir es eingestellt –, wohl aber Zeitpunkt, aufgerufene Datei, Land und Netzbetreiber, ' +
+        'Browserkennung, verweisende Seite und eine technische Kennung der Verbindung; nach drei Tagen löscht Bunny ' +
+        'die Protokolle. Wir zählen daraus nur, wie oft die Programmdatei einer Minute abgerufen wurde: so wissen wir, ' +
+        'wie viele zuhören, ohne jemanden zu erkennen. Audiobeiträge und Bilder, die wir löschen, entfernen wir auch ' +
+        'aus den Zwischenspeichern des Netzwerks. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: eine schnelle, ' +
+        'zuverlässige Auslieferung an Hörerinnen und Hörer in aller Welt. Mehr: https://bunny.net/privacy/',
     },
     {
       h: 'Gerätekennung und Speicherung auf Ihrem Gerät',
@@ -262,8 +279,8 @@ const en = (host: string): StationTexts => ({
       h: 'In short',
       p:
         'ARCHE works without an account, without advertising, without analytics or tracking and without cookies of ' +
-        'its own. We process only what the radio, your submissions and the community rooms need. Fonts and thumbnails ' +
-        'come from our own server.',
+        'its own. We process only what the radio, your submissions and the community rooms need. Fonts come from our ' +
+        'own server; the program, audio and images through the content delivery network BunnyCDN.',
     },
     {
       h: 'Hosting and server logs',
@@ -272,6 +289,19 @@ const en = (host: string): StationTexts => ({
         'Gunzenhausen, Germany, on our behalf (Art. 28 GDPR). When you visit, the host processes technically ' +
         'necessary data (IP address, date and time, address requested, browser and operating system) and deletes it ' +
         'shortly afterwards. Legal basis: Art. 6(1)(f) GDPR, the secure operation of the service.',
+    },
+    {
+      h: 'Delivery through BunnyCDN',
+      p:
+        'Program files, audio and images are delivered through the content delivery network BunnyCDN of BunnyWay ' +
+        'd.o.o., Dunajska cesta 165, 1000 Ljubljana, Slovenia, on our behalf (Art. 28 GDPR). Bunny runs ' +
+        "servers around the world; your app's requests are usually answered by one near you, which processes your " +
+        'IP address to do so. Bunny keeps no IP addresses in its access logs — we set it up that way — but it does ' +
+        'keep the time, the file requested, country and network operator, browser, referring page and a technical ' +
+        'identifier of the connection, and deletes the logs after three days. From them we only count how often the ' +
+        'program file of each minute was fetched: that tells us how many are listening without recognising anyone. ' +
+        'Audio and images we delete are also removed from the caches of the network. Legal basis: Art. 6(1)(f) GDPR, ' +
+        'fast and reliable delivery to listeners all over the world. More: https://bunny.net/privacy/',
     },
     {
       h: 'Device id and storage on your device',

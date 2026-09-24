@@ -122,6 +122,17 @@ final class Config
         return $this->get('AI_MODE') === 'stub';
     }
 
+    /**
+     * Where the app loads program files and media from: the CDN's base URL,
+     * or '' for the origin. 'off' switches it off whatever the .env says — the
+     * local stacks share the .env with production and must never use its CDN.
+     */
+    public function cdnBase(): string
+    {
+        $v = rtrim($this->get('CDN_BASE_URL'), '/');
+        return $v === 'off' ? '' : $v;
+    }
+
     public function anthropicKey(): string
     {
         return $this->get('ANTHROPIC_KEY') ?: $this->get('ANTHROPIC_API_KEY');

@@ -10,7 +10,7 @@ require __DIR__ . '/TestKit.php';
 // The php container's environment (compose.yaml) configures the dev station;
 // a process variable outranks any config (by design), so a test would see
 // the dev station's AI mode or realtime driver instead of its own settings.
-foreach (['AI_MODE', 'REALTIME_DRIVER', 'ARCHE_ENV', 'ARCHE_ENV_FILE', 'ARCHE_PUBLIC_DIR', 'ARCHE_DATA_DIR'] as $var) putenv($var);
+foreach (['AI_MODE', 'REALTIME_DRIVER', 'CDN_BASE_URL', 'ARCHE_ENV', 'ARCHE_ENV_FILE', 'ARCHE_PUBLIC_DIR', 'ARCHE_DATA_DIR'] as $var) putenv($var);
 
 $tests = [];
 $checks = 0;

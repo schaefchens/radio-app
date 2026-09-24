@@ -4,6 +4,7 @@ import type { Lang, Voice } from '@arche/shared';
 import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
 import { countryName } from '@/lib/format';
+import { CdnImg } from '@/components/common/CdnImg';
 import { RadioIcon } from '@/components/common/icons';
 
 /**
@@ -78,7 +79,7 @@ function Backdrop({ image, color, calm }: { image: string | null; color: string;
   if (image) {
     return (
       <>
-        <img src={image} alt="" className={clsx('absolute inset-0 h-full w-full object-cover transition-opacity duration-700', calm && 'opacity-50')} />
+        <CdnImg src={image} className={clsx('absolute inset-0 h-full w-full object-cover transition-opacity duration-700', calm && 'opacity-50')} />
         <div className="absolute inset-0 bg-gradient-to-t from-night-deep/80 via-night-deep/10 to-transparent" />
       </>
     );
@@ -115,7 +116,7 @@ function HostMoment({ name, avatar, text, label }: { name: string; avatar: strin
         <span className="absolute inset-0 animate-ring rounded-full border-2 border-brand-bright/60" />
         <span className="absolute inset-0 animate-ring rounded-full border-2 border-brand-bright/40 [animation-delay:0.7s]" />
         {avatar ? (
-          <img src={avatar} alt="" className="relative h-full w-full rounded-full object-cover ring-2 ring-brand-bright/70" />
+          <CdnImg src={avatar} className="relative h-full w-full rounded-full object-cover ring-2 ring-brand-bright/70" />
         ) : (
           <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-brand to-song-to text-2xl font-semibold ring-2 ring-brand-bright/70">
             {name.slice(0, 1)}

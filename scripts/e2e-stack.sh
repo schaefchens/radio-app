@@ -9,7 +9,8 @@
 #
 #   up            build the PWA, assemble .data/e2e/site, write
 #                 .data/e2e/arche.env on the first run, start everything
-#                 (web http://localhost:8090, realtime ws://localhost:8797)
+#                 (web http://localhost:8090, its stand-in CDN
+#                 http://localhost:8091, realtime ws://localhost:8797)
 #   down          stop it; the data stays, the next run continues the station
 #   reset         stop it and delete .data/e2e: the next run starts from nothing
 #   status        whether it answers
@@ -27,6 +28,8 @@ cd "$REPO_ROOT"
 DIR="$REPO_ROOT/.data/e2e"
 ENV_FILE="$DIR/arche.env"
 BASE_URL="http://localhost:8090"
+# The stand-in CDN (docker/web/arche.conf), as named in compose.e2e.yaml.
+CDN_URL="http://localhost:8091"
 COMPOSE=(docker compose -p arche-e2e --env-file docker/e2e/compose.env -f compose.yaml -f docker/e2e/compose.e2e.yaml)
 
 CMD="${1:-}"
@@ -80,7 +83,7 @@ case "$CMD" in
       info "Building the PWA"
       npm run build >/dev/null
     fi
-    bash scripts/assemble-site.sh --dev --with-app --skip-build --out "$DIR/site" >/dev/null
+    bash scripts/assemble-site.sh --dev --with-app --skip-build --cdn "$CDN_URL" --out "$DIR/site" >/dev/null
     write_env
     info "Starting the e2e stack (project arche-e2e)"
     "${COMPOSE[@]}" up -d --build --quiet-pull
