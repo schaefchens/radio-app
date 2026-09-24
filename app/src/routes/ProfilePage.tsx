@@ -97,16 +97,15 @@ export function ProfilePage() {
               {checked && <span className="text-xs text-ink-muted">{t('profile.checked')}</span>}
             </div>
             <div className="flex flex-wrap gap-4 pt-2">
-              {config?.imprint && (
-                <a href={config.imprint} target="_blank" rel="noreferrer" className="text-brand-bright underline">
-                  {t('profile.imprint')}
-                </a>
-              )}
-              {config?.privacy && (
-                <a href={config.privacy} target="_blank" rel="noreferrer" className="text-brand-bright underline">
-                  {t('profile.privacy')}
-                </a>
-              )}
+              <Link to="/about" className="text-brand-bright underline">
+                {t('about.open')}
+              </Link>
+              <Link to="/impressum" className="text-brand-bright underline">
+                {t('profile.imprint')}
+              </Link>
+              <Link to="/datenschutz" className="text-brand-bright underline">
+                {t('profile.privacy')}
+              </Link>
             </div>
           </section>
         </div>

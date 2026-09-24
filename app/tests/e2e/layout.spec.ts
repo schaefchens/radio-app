@@ -8,7 +8,7 @@ import { asDevice, ensureAdmin } from './support/station';
  * home page — and the player — past the edge).
  */
 
-const LISTENER = ['/', '/schedule', '/chat', '/profile', '/setup'];
+const LISTENER = ['/', '/schedule', '/chat', '/profile', '/setup', '/about', '/impressum', '/datenschutz'];
 const MOD = ['/mod', '/mod/library', '/mod/programs', '/mod/plans', '/mod/review', '/mod/chat', '/mod/users', '/mod/channels'];
 
 for (const width of [360, 390]) {

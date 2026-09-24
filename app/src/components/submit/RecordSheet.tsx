@@ -11,7 +11,7 @@ import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
-import { Done, NamePlace } from './SongRequestSheet';
+import { Done, NamePlace, PrivacyNote } from './SongRequestSheet';
 import { MicIcon } from '@/components/common/icons';
 
 type Kind = 'story' | 'testimony' | 'greeting' | 'prayer';
@@ -183,6 +183,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
               {t('submit.consentReplay')}
             </label>
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
+            <PrivacyNote />
             <button type="button" className="btn-primary" disabled={!blob || !consentAir || submit.busy || recording} onClick={() => void submit.run()}>
               {submit.busy ? t('record.preparing') : t('submit.send')}
             </button>

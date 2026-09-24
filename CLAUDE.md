@@ -102,6 +102,15 @@ per submission, one outside call per phase (YouTube → text model; transcribe
 → text model). Recordings arrive as MP3 encoded in the browser (the host has no
 ffmpeg) and stay private until approved. Listeners see three generic reasons only.
 
+**Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
+imprint and the privacy policy describe what this code does — the data flows
+(YouTube only after the join tap, OpenAI for texts/voice/transcripts/checks,
+Hetzner for hosting and rooms) and the retention periods, which are
+implemented in `Tick::purge` and `defaults.php`. Change code and text together.
+Submissions can reveal faith or health (Art. 9 GDPR): the forms say so next
+to Send. The page also carries the promised controls (withdraw YouTube
+consent, delete this device's data).
+
 **Identity** (`Identity\*`). Anonymous-first: a device id + secret (HMAC'd with a
 pepper), rows created lazily. The optional 12-word BIP39 passphrase never
 leaves the device; its seed yields credId + credSecret (Argon2id at claim/login
@@ -150,6 +159,14 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   died with SIGBUS under load (ticks cut mid-phase, jobs stuck until their
   lease ran out). Locally `/_arche/var` is therefore a Docker volume; on the
   host the probe checks WAL (`SQLITE_WAL=0` falls back to a rollback journal).
+- **PHP's umask on the host is 0027, and Apache is another user**: every
+  directory under `/program` and `/media` must be created (and repaired) with
+  an explicit 0755 (`Files::ensureDir`) — a 0750 folder made every minute file
+  a 403 on the first production deploy. The Docker bind mount ignores
+  permissions, so only the host shows it.
+- **A plan made from a tiny library repeats songs**; when the library changes,
+  drafts with repeats are re-planned (plans without repeats are kept, their
+  host breaks may be voiced already). The committed 15 minutes stay.
 - **Throttle on the last tick, not the last request** (`CronEndpoint::due`):
   counting every request let calls a few seconds apart hold the tick off
   indefinitely.

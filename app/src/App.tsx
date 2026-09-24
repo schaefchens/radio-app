@@ -11,6 +11,7 @@ const ChatPage = lazy(() => import('@/routes/ChatPage').then((m) => ({ default: 
 const ProfilePage = lazy(() => import('@/routes/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const SetupPage = lazy(() => import('@/routes/SetupPage').then((m) => ({ default: m.SetupPage })));
 const ModRoutes = lazy(() => import('@/routes/mod/ModRoutes').then((m) => ({ default: m.ModRoutes })));
+const AboutPage = lazy(() => import('@/routes/AboutPage').then((m) => ({ default: m.AboutPage })));
 
 export function App() {
   useEffect(() => {
@@ -27,6 +28,10 @@ export function App() {
           <Route path="profile" element={<Lazy><ProfilePage /></Lazy>} />
           <Route path="setup" element={<Lazy><SetupPage /></Lazy>} />
           <Route path="mod/*" element={<Lazy><ModRoutes /></Lazy>} />
+          <Route path="about" element={<Lazy><AboutPage /></Lazy>} />
+          {/* The legal pages must be reachable directly, by the names people type. */}
+          <Route path="impressum" element={<Lazy><AboutPage section="impressum" /></Lazy>} />
+          <Route path="datenschutz" element={<Lazy><AboutPage section="datenschutz" /></Lazy>} />
           <Route path="*" element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
         </Route>
       </Routes>

@@ -15,8 +15,6 @@ export interface IdentityView {
 export interface SessionConfig {
   pulse: number;
   langs: string[];
-  imprint: string;
-  privacy: string;
   realtime: boolean;
   setupNeeded: boolean;
 }

@@ -27,7 +27,7 @@ export function AppShell() {
     <div className="flex min-h-full flex-col pt-safe px-safe">
       <UpdateBanner />
       <header className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 pb-2 pt-4 lg:px-6">
-        <NavLink to="/" className="min-w-0 shrink-0">
+        <NavLink to="/about" className="min-w-0 shrink-0" aria-label={t('about.open')} title={t('about.open')}>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-light tracking-logo text-ink sm:text-3xl">ARCHE</span>
             <RadioIcon size={26} className="text-brand-bright" />

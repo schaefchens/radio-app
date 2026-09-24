@@ -90,7 +90,14 @@ Add the printed DNS records (`rt1.radio.schaefchens.de`), put the printed
   `TTS_PROVIDER=elevenlabs` and `ELEVENLABS_MAX_CHARS_PER_DAY` > 0.
 - **Backups**: a daily `VACUUM INTO` copy in `/_arche/var/backups` (seven kept).
 - **Pull from air**: /mod → Library → pull; clients skip it within a minute.
-- **Retention**: minute files and host audio 48 h, day files 60 days.
+- **Retention** (the privacy policy states these — change both together):
+  minute files and host audio 48 h, day files 60 days, submissions 90 days
+  (`RETAIN_SUBMISSIONS_DAYS`; recordings allowed for replays stay in the
+  library), chat voices 7 days, chat reports 30 days, presence 1 day,
+  rate-limit entries 2 days, unused anonymous devices 60 days, backups 7 days.
+- **Station page** (`/about`, also `/impressum`, `/datenschutz`; the header
+  logo opens it): what ARCHE is, the imprint and the privacy policy, in
+  `app/src/content/legal.ts` (German binding, English for convenience).
 
 ## Settings
 

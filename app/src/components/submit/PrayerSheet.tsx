@@ -6,7 +6,7 @@ import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
-import { Done, NamePlace } from './SongRequestSheet';
+import { Done, NamePlace, PrivacyNote } from './SongRequestSheet';
 
 export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClose: () => void; onRecord: () => void }) {
   const { t } = useTranslation();
@@ -50,6 +50,7 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
               {t('prayerForm.showAsVoice')}
             </label>
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
+            <PrivacyNote />
             <div className="flex gap-2">
               <button type="submit" className="btn-primary flex-1" disabled={text.trim().length < 5 || submit.busy}>
                 {submit.busy ? t('common.loading') : t('submit.send')}

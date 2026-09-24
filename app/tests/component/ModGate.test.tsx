@@ -6,7 +6,7 @@ import { ModRoutes } from '@/routes/mod/ModRoutes';
 import { useSession, type IdentityView } from '@/store/session';
 import { useSettings } from '@/store/settings';
 
-const config = { pulse: 120, langs: ['en', 'de'], imprint: '', privacy: '', realtime: true, setupNeeded: false };
+const config = { pulse: 120, langs: ['en', 'de'], realtime: true, setupNeeded: false };
 const who = (role: IdentityView['role'], claimed = true): IdentityView => ({ id: 'abc1234567', name: 'Mo', country: 'DE', lang: 'en', role, claimed, banned: false });
 
 function renderAt(path: string) {

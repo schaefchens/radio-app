@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { api } from '@/lib/api';
 import { useSession } from '@/store/session';
@@ -102,6 +103,7 @@ export function SongRequestSheet({ open, onClose }: { open: boolean; onClose: ()
             </div>
             <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
+            <PrivacyNote />
             <button type="submit" className="btn-primary" disabled={!id || !!previewError || submit.busy}>
               {submit.busy ? t('common.loading') : t('submit.send')}
             </button>
@@ -127,6 +129,22 @@ export function NamePlace({ name, place, setName, setPlace }: { name: string; pl
         <input id={`${uid}-place`} className="field" maxLength={40} value={place} onChange={(e) => setPlace(e.target.value)} />
       </div>
     </div>
+  );
+}
+
+/**
+ * What sending means, right above the button: submissions can reveal faith or
+ * health (Art. 9 GDPR), so the consent has to be explicit and informed.
+ */
+export function PrivacyNote() {
+  const { t } = useTranslation();
+  return (
+    <p className="text-xs leading-snug text-ink-faint">
+      {t('submit.privacyNote')}{' '}
+      <Link to="/datenschutz" className="underline">
+        {t('submit.privacyLink')}
+      </Link>
+    </p>
   );
 }
 

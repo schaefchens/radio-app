@@ -91,7 +91,9 @@
     "consentAir": "I agree that this is broadcast on ARCHE.",
     "consentReplay": "It may be replayed in future programs.",
     "send": "Send",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "privacyNote": "By sending, you agree that ARCHE processes what you share — including your faith or health, if you mention them — to check it and put it on air, also with an automated check by OpenAI.",
+    "privacyLink": "Privacy policy"
   },
   "songForm": {
     "url": "YouTube link",
@@ -549,5 +551,18 @@
       "defaultPlan": "Default day plan",
       "fallbackProgram": "Fallback program"
     }
+  },
+  "about": {
+    "open": "About ARCHE",
+    "legal": "Legal",
+    "imprint": "Imprint",
+    "privacy": "Privacy policy",
+    "settings": "Privacy settings",
+    "consentOn": "You agreed to load the music videos from YouTube (Google).",
+    "consentOff": "YouTube is not loaded. It loads only when you tap “Tap to join live”.",
+    "withdraw": "Withdraw YouTube consent",
+    "forgetHint": "Delete everything ARCHE keeps on this device: your device id, settings and passphrase. Submissions you sent then no longer show under “My submissions” here.",
+    "forget": "Delete data on this device",
+    "forgetConfirm": "Delete ARCHE’s data on this device? Without your 12 words your passphrase identity cannot come back."
   }
 }

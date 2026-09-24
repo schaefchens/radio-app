@@ -91,7 +91,9 @@
     "consentAir": "Ich bin einverstanden, dass dies auf ARCHE gesendet wird.",
     "consentReplay": "Es darf in späteren Sendungen wiederholt werden.",
     "send": "Senden",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "privacyNote": "Mit dem Senden willigst du ein, dass ARCHE deine Angaben – auch zu Glauben oder Gesundheit, wenn du sie nennst – prüft und sendet, auch mit einer automatischen Prüfung durch OpenAI.",
+    "privacyLink": "Datenschutz"
   },
   "songForm": {
     "url": "YouTube-Link",
@@ -549,5 +551,18 @@
       "defaultPlan": "Standard-Tagesplan",
       "fallbackProgram": "Ersatzsendung"
     }
+  },
+  "about": {
+    "open": "Über ARCHE",
+    "legal": "Rechtliches",
+    "imprint": "Impressum",
+    "privacy": "Datenschutz",
+    "settings": "Datenschutz-Einstellungen",
+    "consentOn": "Du hast eingewilligt, dass die Musikvideos von YouTube (Google) geladen werden.",
+    "consentOff": "YouTube wird nicht geladen – erst, wenn du auf „Tap to join live“ tippst.",
+    "withdraw": "YouTube-Einwilligung widerrufen",
+    "forgetHint": "Lösche alles, was ARCHE auf diesem Gerät speichert: Gerätekennung, Einstellungen und Passphrase. Deine bisherigen Einsendungen erscheinen dann hier nicht mehr unter „Meine Beiträge“.",
+    "forget": "Daten auf diesem Gerät löschen",
+    "forgetConfirm": "ARCHEs Daten auf diesem Gerät löschen? Ohne deine 12 Wörter kommt deine Passphrase-Identität nicht zurück."
   }
 }

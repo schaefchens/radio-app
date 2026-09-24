@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
+import { Link } from 'react-router-dom';
 import { useRadio } from '@/store/radio';
 import { useSettings } from '@/store/settings';
-import { useSession } from '@/store/session';
 import { useStage } from '@/store/stage';
 import { joinRadio, resumeRadio } from '@/lib/radio';
 import { StageVisual } from './StageVisual';
@@ -18,7 +18,6 @@ export function StageRegion({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   const engine = useRadio((s) => s.engine);
   const setConsent = useSettings((s) => s.setConsent);
-  const privacy = useSession((s) => s.config?.privacy ?? '');
   const setSlot = useStage((s) => s.setSlot);
   const setInView = useStage((s) => s.setInView);
   const el = useRef<HTMLDivElement | null>(null);
@@ -72,11 +71,9 @@ export function StageRegion({ compact = false }: { compact?: boolean }) {
             </button>
             <p className="max-w-md text-[0.7rem] leading-snug text-ink-muted">
               {t('join.consent')}{' '}
-              {privacy && (
-                <a href={privacy} target="_blank" rel="noreferrer" className="underline">
-                  {t('join.privacy')}
-                </a>
-              )}
+              <Link to="/datenschutz" className="underline">
+                {t('join.privacy')}
+              </Link>
             </p>
           </div>
         )}

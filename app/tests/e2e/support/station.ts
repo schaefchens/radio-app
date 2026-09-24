@@ -108,9 +108,19 @@ export async function serverNow(): Promise<number> {
   return Date.now() + (best?.offset ?? 0);
 }
 
+/**
+ * A program file, or null — also when it cannot be parsed: on the macOS bind
+ * mount of the e2e stack a read can catch a file mid-replacement (on the host
+ * the rename is atomic). The app treats such a file as missing too.
+ */
 export async function fetchJson<T>(sitePath: string): Promise<T | null> {
   const res = await fetch(`${BASE_URL}/${sitePath}`, { cache: 'no-store' });
-  return res.ok ? ((await res.json()) as T) : null;
+  if (!res.ok) return null;
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
 export const slotAt = (t: number, channel = CHANNEL): Promise<SlotFile | null> => fetchJson<SlotFile>(slotPath(channel, t));

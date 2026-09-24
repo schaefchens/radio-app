@@ -31,8 +31,6 @@ final class PublicApi
             'config' => [
                 'pulse' => $cfg->int('PULSE_SECONDS', 120),
                 'langs' => $cfg->stationLangs(),
-                'imprint' => $cfg->get('IMPRINT_URL'),
-                'privacy' => $cfg->get('PRIVACY_URL'),
                 'realtime' => $app->nodes()->driver() !== 'off',
                 'setupNeeded' => $this->adminMissing(),
             ],
