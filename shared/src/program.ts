@@ -62,7 +62,8 @@ export interface SongItem extends ItemBase {
   fallback: string | null;
 }
 
-export type HostKind = 'intro' | 'break' | 'announce' | 'outro' | 'prayer' | 'contrib';
+/** opening and invite belong to a prayer hour: its opening prayer and the invitation to send prayer requests. */
+export type HostKind = 'intro' | 'break' | 'announce' | 'outro' | 'prayer' | 'contrib' | 'opening' | 'invite';
 
 export interface HostItem extends ItemBase {
   type: 'host';
@@ -71,6 +72,9 @@ export interface HostItem extends ItemBase {
   text: LangMap<string>;
   /** Community voices the host picked up; shown as fly-ins on the stage. */
   voices: Voice[];
+  /** The prayer requests a prayer moment prays for, by their wall/voice id
+   *  (live.json has what may be shown of them). */
+  prayers: string[];
 }
 
 export interface JingleItem extends ItemBase {

@@ -124,6 +124,7 @@ final class Publisher
                 'audio' => (object) ($p['audio'] ?? []),
                 'text' => (object) ($p['text'] ?? []),
                 'voices' => array_values((array) ($p['voices'] ?? [])),
+                'prayers' => array_values((array) ($p['prayers'] ?? [])),
             ],
             'jingle' => $base + ['audio' => (string) ($p['audio'] ?? '')],
             'bed' => $base + ['audio' => (string) ($p['audio'] ?? ''), 'label' => $p['label'] ?? ['en' => '', 'de' => '']],

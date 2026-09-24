@@ -26,7 +26,9 @@ final class SubmissionWindow
         if (!$allowed) return new \stdClass();
 
         $s = $program['settings'];
-        $remainingMin = intdiv(max(0, $block['end'] - $t), 60_000);
+        // A prayer hour prays until its outro; the songs after it take no requests.
+        $end = PrayerHour::applies($program) ? $app->prayerHour()->closingAt($channel, $program, $block) : $block['end'];
+        $remainingMin = intdiv(max(0, $end - $t), 60_000);
         $queueMin = intdiv($app->submissions()->queuedAirtime((int) $channel['id'], (int) $program['id']), 60_000);
         $maxQueue = max(1, (int) $s['max_queue_min']);
 

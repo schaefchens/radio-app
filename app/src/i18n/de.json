@@ -449,7 +449,24 @@
       "replay": "Genehmigte Aufnahmen wiederholen",
       "active": "Aktiv",
       "inUse": "Diese Sendung wird noch in einem Plan oder als Ersatz verwendet.",
-      "deleteConfirm": "Diese Sendung löschen?"
+      "deleteConfirm": "Diese Sendung löschen?",
+      "format": "Format",
+      "formats": {
+        "music": "Musik: Lieder, dazwischen die Moderation",
+        "prayer": "Gebetsstunde: Eröffnungsgebet, Sammelzeit, Lesung, stilles Gebet"
+      },
+      "prayerHour": "Gebetsstunde",
+      "prayerHint": "Begrüßung → Eröffnungsgebet → Einladung, Gebetsanliegen zu senden → Sammelzeit → die Moderation liest die Anliegen der Gebetswand vor und betet dafür → stilles Gebet (neue Anliegen werden gebetet, sobald sie kommen) → Abmoderation mit Segen. Eine Gebetsstunde nimmt nur Gebetsanliegen an.",
+      "collectWith": "In der Sammelzeit",
+      "collectMusic": "Hintergrundmusik",
+      "collectSongs": "Lieder",
+      "collectBed": "Musik",
+      "noBed": "Noch keine Hintergrundmusik hochgeladen (Bibliothek): stattdessen laufen Lieder.",
+      "collectMinutes": "Sammelzeit (Minuten)",
+      "collectSongsCount": "Anzahl Lieder",
+      "quietMin": "Nach … stillen Minuten ein Anliegen erneut beten",
+      "afterSongs": "Lieder nach der Abmoderation",
+      "toOutro": "In einer Gebetsstunde bis zur Abmoderation gerechnet."
     },
     "plans": {
       "dayPlans": "Tagespläne",

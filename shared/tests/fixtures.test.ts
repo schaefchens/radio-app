@@ -31,6 +31,8 @@ describe('program file fixtures', () => {
       new Set(['song', 'host', 'jingle', 'bed', 'silence', 'contrib', 'stage', 'gap']),
     );
     expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing' });
+    expect(slot!.items.find((i) => i.type === 'host')).toMatchObject({ prayers: ['p8f2kq1m3x0ab'] });
+    expect(slot!.items.find((i) => i.type === 'bed')).toMatchObject({ audio: '/media/beds/7d3e.mp3', label: { de: 'Wofür dürfen wir beten?' } });
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
   });
 
@@ -58,6 +60,13 @@ describe('program file fixtures', () => {
       items: [{ id: 'x', type: 'hologram', start: 0, dur: 1000, p: 'worship' }],
     });
     expect(slot?.items).toEqual([]);
+  });
+
+  it("keeps a prayer hour's host moments and reads an unknown host kind as a break", () => {
+    const host = (kind: string) => ({ id: kind, type: 'host', start: 0, dur: 1000, p: 'prayer', kind, audio: {}, text: {}, voices: [] });
+    const slot = parseSlotFile({ ...(load('slot.json') as object), items: [host('opening'), host('invite'), host('sermon')] });
+    expect(slot?.items.map((i) => (i.type === 'host' ? i.kind : i.type))).toEqual(['opening', 'invite', 'break']);
+    expect(slot?.items.every((i) => i.type === 'host' && i.prayers.length === 0)).toBe(true);
   });
 });
 

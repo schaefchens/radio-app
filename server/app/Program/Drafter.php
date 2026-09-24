@@ -18,6 +18,9 @@ use Arche\Plan\Catalog;
  *   requests and contributions waiting (one block) → a prayer break → a
  *   moment of silence → a host break every N songs → a jingle every M songs →
  *   a song.
+ *
+ * A program with the prayer format follows its own running order instead,
+ * after the intro (PrayerHour).
  */
 final class Drafter
 {
@@ -73,7 +76,11 @@ final class Drafter
         $until = $now + Timing::DRAFT;
         $added = 0;
         for ($guard = 0; $cursor < $until && $guard < 80; $guard++) {
-            [$n, $cursor] = $this->step($channel, $cursor);
+            $step = $this->step($channel, $cursor);
+            // A prayer hour drafts its prayer moments late, to take the
+            // newest requests; the commit never waits on that (PRAYER_LEAD > COMMIT).
+            if ($step === null) break;
+            [$n, $cursor] = $step;
             $added += $n;
         }
         return $added;
@@ -94,8 +101,8 @@ final class Drafter
         return $end;
     }
 
-    /** @return array{0:int,1:int} items added, new cursor */
-    private function step(array $channel, int $cursor): array
+    /** @return array{0:int,1:int}|null items added, new cursor; null: the rest is drafted later */
+    private function step(array $channel, int $cursor): ?array
     {
         $cid = (int) $channel['id'];
         $block = $this->app->resolver()->blockAt($channel, $cursor);
@@ -112,6 +119,8 @@ final class Drafter
             && !$this->isHost($prev)) {
             return $this->addHost($channel, $program, 'intro', $cursor, $base);
         }
+
+        if (PrayerHour::applies($program)) return $this->app->prayerHour()->step($channel, $program, $block, $cursor, $base, $hostOn);
 
         $remaining = $block['end'] - $cursor;
         $nextProgram = $this->app->resolver()->blockAt($channel, $block['end'])['program_id'];
@@ -203,6 +212,10 @@ final class Drafter
         $prev = $this->app->timeline()->before($cid, $beforeSeq);
         $seq = $prev === null ? $beforeSeq - 1.0 : ($prev['seq'] + $beforeSeq) / 2;
 
+        // In a prayer hour a delayed prayer waits in silence, not behind a song.
+        if (($pause = $this->app->prayerHour()->pause($channel, $program, $gapMs)) !== null) {
+            return $this->app->timeline()->addDraft($cid, $base + $pause, $seq);
+        }
         $song = $program ? $this->app->selector()->pick($channel, $program, $atMs, $gapMs + Timing::SOFT_OVERRUN) : null;
         if ($song !== null) {
             return $this->app->timeline()->addDraft($cid, $base + $this->songItem($song), $seq);
@@ -220,16 +233,23 @@ final class Drafter
         ], $seq);
     }
 
-    /** @param array<string,mixed> $base @param array<string,mixed> $context @return array{0:int,1:int} */
-    private function addHost(array $channel, array $program, string $kind, int $cursor, array $base, array $context = [], ?string $unit = null): array
+    /**
+     * A host moment, its script and voice queued as a job. (Also PrayerHour's.)
+     *
+     * @param array<string,mixed> $base
+     * @param array<string,mixed> $context
+     * @param ?string $unit set: the committer delays it rather than dropping it
+     * @return array{0:int,1:int}
+     */
+    public function addHost(array $channel, array $program, string $kind, int $cursor, array $base, array $context = [], ?string $unit = null, int $estimate = Timing::HOST_ESTIMATE): array
     {
         $item = $this->app->timeline()->addDraft((int) $channel['id'], $base + [
-            'type' => 'host', 'dur_ms' => Timing::HOST_ESTIMATE, 'est_start' => $cursor, 'unit' => $unit,
+            'type' => 'host', 'dur_ms' => $estimate, 'est_start' => $cursor, 'unit' => $unit,
             'payload' => ['kind' => $kind],
         ]);
         $breakId = $this->app->hostBreaks()->create($channel, $program, $kind, $item, $context);
         $this->app->store()->update('timeline_items', ['host_break_id' => $breakId], 'id = ?', [$item['id']]);
-        return [1, $cursor + Timing::HOST_ESTIMATE];
+        return [1, $cursor + $estimate];
     }
 
     /** @param array<string,mixed> $song @return array<string,mixed> */
@@ -252,7 +272,7 @@ final class Drafter
     }
 
     /** @param array<string,mixed> $base @return array{0:int,1:int} */
-    private function addSong(array $channel, array $song, int $cursor, array $base, ?array $request = null, ?string $unit = null, ?int $submissionId = null): array
+    public function addSong(array $channel, array $song, int $cursor, array $base, ?array $request = null, ?string $unit = null, ?int $submissionId = null): array
     {
         $this->app->timeline()->addDraft((int) $channel['id'], $base + $this->songItem($song, $request) + [
             'est_start' => $cursor, 'unit' => $unit, 'submission_id' => $submissionId,
@@ -307,6 +327,33 @@ final class Drafter
                 $added += $n;
             }
             return [$added, $cursor];
+        });
+    }
+
+    /**
+     * A recording waiting for this program (in a prayer hour: a recorded
+     * prayer) as a unit — the host's introduction and the recording — if it
+     * fits into $roomMs. Null when none waits or fits.
+     *
+     * @param array<string,mixed> $base
+     * @return array{0:int,1:int}|null
+     */
+    public function addRecording(array $channel, array $program, int $cursor, array $base, bool $hostOn, int $roomMs): ?array
+    {
+        return $this->app->store()->tx(function () use ($channel, $program, $cursor, $base, $hostOn, $roomMs): ?array {
+            $subs = $this->app->submissions();
+            foreach ($subs->waiting($channel, $program, Timing::BLOCK_MAX) as $sub) {
+                if ($sub['mode'] !== 'audio') continue;
+                $unit = $this->unitOf($sub);
+                if ($unit === null) {
+                    $subs->markMissed((int) $sub['id']);
+                    continue;
+                }
+                if ($unit['dur_ms'] + ($hostOn ? Timing::HOST_ESTIMATE : 0) > $roomMs) return null;
+                if (!$subs->schedule((int) $sub['id'])) continue;
+                return $this->addUnit($channel, $program, $unit, $cursor, $base, $hostOn);
+            }
+            return null;
         });
     }
 
@@ -399,7 +446,7 @@ final class Drafter
     }
 
     /** Fill to the end of a block: a jingle if one fits, else a stage card for what comes next. @param array<string,mixed> $base @return array{0:int,1:int} */
-    private function pad(array $channel, int $cursor, int $ms, array $base, int $nextProgramId): array
+    public function pad(array $channel, int $cursor, int $ms, array $base, int $nextProgramId): array
     {
         $cid = (int) $channel['id'];
         $jingle = $this->app->selector()->jingle($ms);

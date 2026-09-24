@@ -18,6 +18,8 @@ final class Catalog
 {
     public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer'];
     public const STAGE_MODES = ['image', 'ambient', 'flyins'];
+    /** music: songs, the host every N songs. prayer: the prayer hour's running order (Program\PrayerHour). */
+    public const FORMATS = ['music', 'prayer'];
 
     /** @var array<string,mixed> */
     public const PROGRAM_DEFAULTS = [
@@ -32,6 +34,19 @@ final class Catalog
         // Approved-but-unaired queue beyond this much airtime closes intake.
         'max_queue_min' => 30,
         'replay_contrib' => false,
+        'format' => 'music',
+        // Only for the prayer format.
+        'prayer' => [
+            // After the invitation: background music for `minutes` (library
+            // item `bed_id`, 0 = none), or `songs` songs, while listeners
+            // think and send their requests.
+            'collect' => ['with' => 'music', 'minutes' => 8, 'songs' => 2, 'bed_id' => 0],
+            // Silent prayer: this long without a word, the host prays one
+            // request from the wall again.
+            'quiet_min' => 4,
+            // Songs after the outro, until the next program.
+            'after_songs' => 0,
+        ],
     ];
 
     /** @var array<int,array<string,mixed>> */
@@ -178,6 +193,9 @@ final class Catalog
             $allowed = array_values(array_intersect(self::SUBMISSION_TYPES, (array) $data['allowed']));
             $row['allowed'] = json_encode($allowed);
         }
+        // A prayer hour prays for prayer requests (typed or recorded) and
+        // nothing else: a song request would break its silence.
+        if (($data['settings']['format'] ?? null) === 'prayer') $row['allowed'] = json_encode(['prayer']);
         foreach (['themes', 'moods'] as $k) {
             if (isset($data[$k])) $row[$k] = json_encode(self::tags((array) $data[$k]));
         }
@@ -221,6 +239,8 @@ final class Catalog
         $s = array_replace_recursive(self::PROGRAM_DEFAULTS, $settings);
         $host = is_array($s['host']) ? $s['host'] : [];
         $silence = is_array($s['silence']) ? $s['silence'] : [];
+        $prayer = is_array($s['prayer']) ? $s['prayer'] : [];
+        $collect = is_array($prayer['collect'] ?? null) ? $prayer['collect'] : [];
         return [
             'host' => [
                 'enabled' => (bool) ($host['enabled'] ?? true),
@@ -238,6 +258,17 @@ final class Catalog
             'closed_min' => max(intdiv(\Arche\Program\Timing::DRAFT + \Arche\Program\Timing::MIN_SONG, 60_000) + 1, min(120, (int) $s['closed_min'])),
             'max_queue_min' => max(5, min(180, (int) $s['max_queue_min'])),
             'replay_contrib' => (bool) $s['replay_contrib'],
+            'format' => in_array($s['format'], self::FORMATS, true) ? $s['format'] : 'music',
+            'prayer' => [
+                'collect' => [
+                    'with' => ($collect['with'] ?? 'music') === 'songs' ? 'songs' : 'music',
+                    'minutes' => max(1, min(30, (int) ($collect['minutes'] ?? 8))),
+                    'songs' => max(1, min(5, (int) ($collect['songs'] ?? 2))),
+                    'bed_id' => max(0, (int) ($collect['bed_id'] ?? 0)),
+                ],
+                'quiet_min' => max(1, min(30, (int) ($prayer['quiet_min'] ?? 4))),
+                'after_songs' => max(0, min(5, (int) ($prayer['after_songs'] ?? 0))),
+            ],
         ];
     }
 

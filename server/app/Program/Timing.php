@@ -44,6 +44,19 @@ final class Timing
     public const STAGE_ITEM = 300_000;
     public const FILLER_SILENCE_MAX = 60_000;
 
+    /**
+     * In a prayer hour's reading and silent prayer the plan reaches only this
+     * far ahead, not DRAFT: a prayer moment takes the requests approved when
+     * it is drafted, so drafting it later puts newer ones on air sooner. It
+     * still leaves two ticks to write and voice it before the commit.
+     */
+    public const PRAYER_LEAD = 420_000;
+    /** Silent prayer is planned in pieces this long, so a new request can come between. */
+    public const SILENT_CHUNK = 60_000;
+    /** Draft lengths of the prayer hour's host moments (they run longer than a break). */
+    public const PRAYER_ESTIMATE = 40_000;
+    public const OUTRO_ESTIMATE = 45_000;
+
     public static function floorMinute(int $ms): int
     {
         return intdiv($ms, self::MINUTE) * self::MINUTE;

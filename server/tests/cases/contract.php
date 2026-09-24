@@ -61,19 +61,27 @@ test('contract: generated program files match shared/fixtures', function () {
     unset($j);
     $ch = TestKit::main($app);
     $app->catalog()->saveProgram((int) $ch['fallback_program_id'], (int) $ch['id'], ['settings' => ['silence' => ['every_min' => 20, 'dur_s' => 30]]], 'test');
-    for ($i = 0; $i < 40; $i++) {
+    // A prayer hour from 12:30 Berlin publishes prayer music and prayer moments too.
+    prayerHour($app, 750);
+    for ($i = 0; $i < 55; $i++) {
+        if ($i === 31) prayFor($app, 'Contract');
         $app->tick()->run('test');
         TestKit::clock($app)->advance(60_000);
     }
     $now = $app->clock->nowMs();
     $maps = ['programs', 'submissions', 'audio', 'text', 'caption'];
     $types = [];
+    $prayed = false;
     foreach (glob($app->publicPath('program/main/slots/*/*.json')) as $file) {
         $slot = json_decode((string) file_get_contents($file));
         shape($slot, fixture('slot.json'), 'slot', $maps);
-        foreach ($slot->items as $it) $types[$it->type] = true;
+        foreach ($slot->items as $it) {
+            $types[$it->type] = true;
+            if ($it->type === 'host' && $it->prayers) $prayed = true;
+        }
     }
-    foreach (['song', 'host', 'jingle', 'silence', 'gap'] as $t) check(isset($types[$t]), "a published $t item");
+    foreach (['song', 'host', 'jingle', 'bed', 'silence', 'gap'] as $t) check(isset($types[$t]), "a published $t item");
+    check($prayed, 'a published prayer moment names the request it prays for');
 
     $day = json_decode((string) file_get_contents($app->publicPath('program/main/days/' . gmdate('Y-m-d', intdiv($now, 1000)) . '.json')));
     shape($day, fixture('day.json'), 'day', ['programs']);

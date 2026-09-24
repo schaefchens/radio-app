@@ -30,6 +30,13 @@ export interface ModProgram {
   active: number;
 }
 
+/** The prayer hour's running order (server/app/Program/PrayerHour.php). */
+export interface PrayerSettings {
+  collect: { with: 'music' | 'songs'; minutes: number; songs: number; bed_id: number };
+  quiet_min: number;
+  after_songs: number;
+}
+
 export interface ProgramSettings {
   host: { enabled: boolean; every_songs: number; intro: boolean; outro: boolean };
   jingle_every_songs: number;
@@ -38,6 +45,8 @@ export interface ProgramSettings {
   closed_min: number;
   max_queue_min: number;
   replay_contrib: boolean;
+  format: 'music' | 'prayer';
+  prayer: PrayerSettings;
 }
 
 export interface ModChannel {

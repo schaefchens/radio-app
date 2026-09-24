@@ -7,6 +7,7 @@ use Arche\ApiError;
 use Arche\App;
 use Arche\Audio\Mp3;
 use Arche\Library\YouTube;
+use Arche\Program\PrayerHour;
 use Arche\Program\SubmissionWindow;
 use Arche\Program\Timing;
 use Arche\Support\Files;
@@ -446,6 +447,11 @@ final class Submissions
         if ($channel === null) return false;
         $end = (int) $sub['window_end'];
         $block = $this->app->resolver()->blockAt($channel, $end - 1);
+        $program = $this->app->catalog()->program((int) $sub['program_id']);
+        // A prayer hour prays until its outro, and a prayer moment is short.
+        if (PrayerHour::applies($program) && $block['program_id'] === (int) $sub['program_id']) {
+            return $this->app->prayerHour()->closingAt($channel, $program, $block) - Timing::PRAYER_ESTIMATE >= $this->reach((int) $channel['id']);
+        }
         if ($block['program_id'] === (int) $sub['program_id']) $end = max($end, $block['end']);
         return $end - Timing::MIN_SONG >= $this->reach((int) $channel['id']);
     }

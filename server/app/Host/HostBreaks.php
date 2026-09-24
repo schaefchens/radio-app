@@ -50,8 +50,9 @@ final class HostBreaks
             'created' => $now,
             'updated' => $now,
         ]);
-        // Earliest airtime first; announcements before plain breaks at equal time.
-        $priority = in_array($kind, ['announce', 'contrib', 'prayer'], true) ? 10 : 20;
+        // Earliest airtime first; announcements, prayers and whatever the
+        // committer would rather delay than drop come before plain breaks.
+        $priority = in_array($kind, ['announce', 'contrib', 'prayer', 'opening', 'invite'], true) || ($item['unit'] ?? null) !== null ? 10 : 20;
         $this->app->jobs()->enqueue('host', $id, $priority, (int) $item['est_start']);
         return $id;
     }
@@ -110,7 +111,30 @@ final class HostBreaks
             'audio' => $hb['audio'],
             'text' => array_intersect_key($hb['texts'], $hb['audio']),
             'voices' => $hb['kind'] === 'break' ? array_slice($this->app->presence()->voices($this->channelSlug($hb)), 0, 3) : [],
+            'prayers' => $this->prayerRefs($hb),
         ];
+    }
+
+    /**
+     * The prayer requests this moment prays for, by the id they have on the
+     * wall and as community voices ('p' + public id) — only ids: what may be
+     * shown of them is live.json's business, where a moderator can still
+     * take a request down.
+     *
+     * @param array<string,mixed> $hb
+     * @return list<string>
+     */
+    private function prayerRefs(array $hb): array
+    {
+        if ($hb['kind'] !== 'prayer') return [];
+        $ids = self::prayerIds($hb);
+        if (isset($hb['context']['again_id'])) $ids[] = (int) $hb['context']['again_id'];
+        $refs = [];
+        foreach ($ids as $id) {
+            $public = $this->app->store()->value('SELECT public_id FROM submissions WHERE id = ?', [$id]);
+            if ($public !== null) $refs[] = 'p' . $public;
+        }
+        return $refs;
     }
 
     /**
@@ -174,15 +198,16 @@ final class HostBreaks
         $c = $this->app->config;
         if (!$this->available()) return 'unavailable';
         $slug = $this->channelSlug($hb);
-        $announced = in_array($hb['kind'], ['announce', 'contrib', 'prayer'], true);
-        // A listener who handed something in gets their announcement even when
-        // they are the only one listening; plain breaks need an audience.
-        if (!$announced && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
+        $owed = in_array($hb['kind'], ['announce', 'contrib'], true) || ($hb['kind'] === 'prayer' && self::prayerIds($hb) !== []);
+        // A listener who handed something in gets their announcement or
+        // prayer even when they are the only one listening; everything else
+        // (breaks, a prayer for the world) needs an audience.
+        if (!$owed && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
         $today = (int) $this->app->store()->value(
             "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND state = 'ready' AND updated >= ?",
             [(int) $hb['channel_id'], $this->app->clock->now() - 86400],
         );
-        if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 150)) return 'daily_cap';
+        if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 300)) return 'daily_cap';
         if (!$this->app->usage()->withinBudget()) return 'budget';
         return null;
     }
