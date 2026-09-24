@@ -1,2 +1,25 @@
-sftp.env
+# Secrets. .env holds the SFTP login, the AI keys and the generated server
+# secrets (scripts/init-secrets.sh); only the key names are ever committed.
 .env
+.env.*
+!.env.example
+sftp.env
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+server/vendor/
+
+# Local runtime data of the Docker stack (SQLite, generated program, media)
+.data/
+
+# Test output
+playwright-report/
+test-results/
+blob-report/
+
+.DS_Store
+*.log

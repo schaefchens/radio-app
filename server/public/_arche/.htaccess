@@ -1,0 +1,3 @@
+# Private: PHP code, vendor, config, the .env and all runtime data (SQLite,
+# uploads awaiting moderation, locks, backups). Never served.
+Require all denied

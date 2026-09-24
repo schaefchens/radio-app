@@ -1,0 +1,7 @@
+# Conditional headers (Apache >= 2.4.10), the /program/ pattern: immutable
+# only for a 200, no-store for a 404 — a minute file that is not published yet
+# must not be cached as missing, or the client never sees it appear.
+<IfModule mod_headers.c>
+  Header always set Cache-Control "no-store" "expr=%{REQUEST_STATUS} == 404"
+  Header set Cache-Control "public, max-age=31536000, immutable" "expr=%{REQUEST_STATUS} == 200"
+</IfModule>

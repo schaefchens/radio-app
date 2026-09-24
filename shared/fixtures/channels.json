@@ -1,0 +1,26 @@
+{
+  "v": 1,
+  "gen": 1790189640000,
+  "minClient": 1,
+  "channels": [
+    {
+      "id": "main",
+      "name": { "en": "ARCHE", "de": "ARCHE" },
+      "main": true,
+      "tz": "Europe/Berlin",
+      "color": "#2f7bff",
+      "host": { "name": "Hope", "avatar": "/media/stage/host-1a2b.webp" },
+      "evergreen": "/program/main/evergreen-5f3c2a.json"
+    },
+    {
+      "id": "worship",
+      "name": { "en": "Worship", "de": "Lobpreis" },
+      "main": false,
+      "tz": "Europe/Berlin",
+      "color": "#8e4dff",
+      "host": { "name": "Hope", "avatar": null },
+      "evergreen": null
+    }
+  ],
+  "features": { "songRequests": true, "contributions": true, "realtime": true }
+}

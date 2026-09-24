@@ -1,0 +1,17 @@
+# /media — host audio, jingles, approved listener recordings, stage images,
+# thumbnails. Every name is ours (<hash>.<ext>); nothing here ever executes.
+Options -Indexes
+
+<FilesMatch "\.(ph(p[0-9]?|tml|ar)|pl|py|cgi|sh|html?|svg|js)$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_mime.c>
+  AddType audio/mpeg .mp3
+  AddType image/webp .webp
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set Cache-Control "public, max-age=31536000, immutable"
+  Header set Access-Control-Allow-Origin "*"
+</IfModule>

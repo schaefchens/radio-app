@@ -1,0 +1,21 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+// Local/Docker administration. The webhosting has no shell: there, the same
+// jobs are done through /setup and /mod.
+if (PHP_SAPI !== 'cli') exit(1);
+$app = require dirname(__DIR__) . '/app/bootstrap.php';
+$cmd = $argv[1] ?? 'help';
+$out = match ($cmd) {
+    'tick' => $app->tick()->run('console'),
+    'status' => [
+        'lastTick' => $app->store()->get('last_tick'),
+        'jobs' => $app->jobs()->counts(),
+        'channels' => array_map(fn($c) => ['slug' => $c['slug'], 'frontier' => $app->committer()->frontier((int) $c['id'])], $app->catalog()->channels()),
+        'library' => ['songs' => $app->library()->count('song'), 'jingles' => $app->library()->count('jingle')],
+    ],
+    'role' => isset($argv[2], $argv[3]) ? Arche\Identity\Identities::publicView($app->identities()->setRole($argv[2], $argv[3], 'console')) : 'usage: console role <publicId> <listener|moderator|admin>',
+    default => "commands: tick | status | role <publicId> <role>",
+};
+echo is_string($out) ? $out : json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";

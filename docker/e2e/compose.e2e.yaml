@@ -1,0 +1,43 @@
+# End-to-end stack: the services of compose.yaml on their own data, env file
+# and ports, plus a fake YouTube Data API — so a test run never touches the
+# dev station, costs nothing and needs no network. scripts/e2e-stack.sh starts
+# it (and writes .data/e2e/arche.env first); do not run it by hand.
+#
+#   docker compose -p arche-e2e --env-file docker/e2e/compose.env \
+#     -f compose.yaml -f docker/e2e/compose.e2e.yaml up -d
+#
+# Volumes merge by container path, so these entries replace the dev mounts.
+# The `var` volume (SQLite and friends) is per project: arche-e2e_var.
+
+services:
+  php:
+    volumes:
+      - ./.data/e2e/site:/var/www/site
+      - ./.data/e2e/arche.env:/run/arche.env:ro
+    environment:
+      # Never live AI in a test run, whatever the shell says.
+      AI_MODE: stub
+
+  web:
+    volumes:
+      - ./.data/e2e/site:/var/www/site
+      - ./.data/e2e/arche.env:/run/arche.env:ro
+
+  cron:
+    # Starts ticking once the e2e setup has curated the library (it writes
+    # .data/e2e/seeded): a station that ticks before its first songs plans
+    # its first 15 minutes as placeholders, and the tests want music.
+    entrypoint: ["/bin/sh", "-c", "until [ -f /e2e/seeded ]; do sleep 2; done; exec /bin/sh /loop.sh"]
+    volumes:
+      - ./.data/e2e/arche.env:/run/arche.env:ro
+      - ./.data/e2e:/e2e:ro
+
+  realtime:
+    volumes:
+      - ./.data/e2e/arche.env:/run/arche.env:ro
+
+  fakeyt:
+    image: node:24-alpine
+    command: ["node", "/srv/fake-youtube.mjs"]
+    volumes:
+      - ./app/tests/e2e/fake-youtube.mjs:/srv/fake-youtube.mjs:ro

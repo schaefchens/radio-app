@@ -1,0 +1,20 @@
+# TLS for the realtime node. PUBLIC_HOST (e.g. rt1.radio.schaefchens.de) points
+# at the slot's Primary IP, so the name stays valid across server re-creation;
+# the certificate itself persists on the slot's Volume (/data).
+{
+	email {$ACME_EMAIL}
+}
+
+{$PUBLIC_HOST} {
+	@node path /ws /health
+	handle @node {
+		reverse_proxy realtime:8787
+	}
+	handle {
+		respond 404
+	}
+	log {
+		output stdout
+		format console
+	}
+}

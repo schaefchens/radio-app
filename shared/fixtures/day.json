@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "channel": "main",
+  "date": "2026-09-23",
+  "tz": "Europe/Berlin",
+  "gen": 1790189640000,
+  "blocks": [
+    { "start": 1790114400000, "end": 1790139600000, "p": "night" },
+    { "start": 1790139600000, "end": 1790143200000, "p": "prayer" }
+  ],
+  "programs": {
+    "night": {
+      "id": "night",
+      "title": { "en": "Night Worship", "de": "Nachtlobpreis" },
+      "subtitle": { "en": "Quiet songs for the night", "de": "Leise Lieder für die Nacht" },
+      "description": { "en": "Calm worship until morning.", "de": "Ruhiger Lobpreis bis zum Morgen." },
+      "color": "#5b4bd6",
+      "stage": { "mode": "ambient", "image": null, "tagline": { "en": "", "de": "" } },
+      "allowed": ["song"]
+    },
+    "prayer": {
+      "id": "prayer",
+      "title": { "en": "Prayer Hour", "de": "Gebetsstunde" },
+      "subtitle": { "en": "We pray together", "de": "Wir beten gemeinsam" },
+      "description": { "en": "Your prayer requests on air.", "de": "Eure Gebetsanliegen on air." },
+      "color": "#1d5ff5",
+      "stage": { "mode": "image", "image": "/media/stage/77aa.webp", "tagline": { "en": "", "de": "" } },
+      "allowed": ["prayer"]
+    }
+  },
+  "played": [
+    { "start": 1790114400000, "type": "song", "title": "Good God", "artist": "Chris Tomlin", "thumb": "/media/thumbs/dQw4w9WgXcQ.jpg", "p": "night" },
+    { "start": 1790114900000, "type": "contrib", "title": "Lena, Brazil", "artist": "", "thumb": null, "p": "night" }
+  ]
+}

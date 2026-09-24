@@ -1,0 +1,53 @@
+# Every directive ARCHE's server/public/**/.htaccess files rely on, in one
+# file. A 500 on /_probe/htaccess-test/ means this host forbids one of them
+# (an AllowOverride violation is a hard 500, and <IfModule> does NOT guard
+# against it — it only guards a missing module). The sub-directories each
+# isolate one riskier directive, so a 500 there does not hide the rest.
+Options -Indexes
+DirectoryIndex index.html
+
+# Under PHP-FPM, Apache does not hand the Authorization header to PHP. Without
+# this line every Bearer call (the cron, the realtime nodes) is a silent 401.
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType image/webp                .webp
+  AddType audio/mpeg                .mp3
+</IfModule>
+
+<IfModule mod_deflate.c>
+  # text/javascript is what this host actually sends for .js.
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+  AddOutputFilterByType DEFLATE text/javascript application/javascript
+  AddOutputFilterByType DEFLATE application/json application/manifest+json image/svg+xml
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  # NOT no-referrer: YouTube refuses embeds without a Referer (error 153).
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header unset X-Powered-By
+  <FilesMatch "^(index\.html|sw\.js|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  # `Header set` (not `always`) applies to 2xx only, so a 404 is never
+  # marked immutable.
+  <FilesMatch "\.json$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# SPA fallback that still lets a missing asset be a 404.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /_probe/htaccess-test/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !\.[a-zA-Z0-9]{1,6}$
+  RewriteRule ^ index.html [L]
+</IfModule>

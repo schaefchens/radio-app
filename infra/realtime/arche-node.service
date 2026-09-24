@@ -1,0 +1,27 @@
+# Runs the realtime node's compose project in the foreground so systemd owns
+# its lifecycle. Enabled in the snapshot, but a fresh boot starts nothing until
+# cloud-init has written /etc/arche/node.env and mounted the certificate Volume
+# (ConditionPathExists + the mountpoint check), then runs `systemctl start`.
+[Unit]
+Description=ARCHE realtime node (arche-realtime + caddy)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+RequiresMountsFor=/var/lib/arche-caddy
+ConditionPathExists=/etc/arche/node.env
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/arche
+# Hard stop if the Volume is not mounted: Caddy on empty storage would re-issue
+# the certificate on every boot and run into Let's Encrypt's weekly limit.
+ExecStartPre=/usr/bin/mountpoint -q /var/lib/arche-caddy
+ExecStartPre=/usr/bin/mkdir -p /var/lib/arche-caddy/data /var/lib/arche-caddy/config
+ExecStart=/usr/bin/docker compose --env-file /etc/arche/node.env -f /opt/arche/compose.node.yaml up --no-build --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file /etc/arche/node.env -f /opt/arche/compose.node.yaml down --timeout 15
+Restart=always
+RestartSec=5
+TimeoutStopSec=40
+
+[Install]
+WantedBy=multi-user.target

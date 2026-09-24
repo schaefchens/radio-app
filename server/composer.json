@@ -1,0 +1,33 @@
+{
+    "name": "schaefchens/arche-server",
+    "description": "ARCHE program system: plan, generator, publisher and API for the webhosting.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.5",
+        "ext-curl": "*",
+        "ext-gd": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-pdo_sqlite": "*",
+        "ext-sodium": "*",
+        "anthropic-ai/sdk": "^0.51",
+        "guzzlehttp/guzzle": "^7.9",
+        "james-heinrich/getid3": "^1.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "Arche\\": "app/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "php-http/discovery": false
+        }
+    },
+    "scripts": {
+        "test": "php tests/run.php"
+    }
+}

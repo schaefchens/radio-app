@@ -1,0 +1,24 @@
+# /api — deployed from server/public/api/.htaccess; edit it there, never on the server.
+# Every /api/* path is routed to index.php.
+Options -Indexes
+DirectoryIndex index.php
+
+# PHP-FPM does not see the Authorization header unless it is copied into the
+# environment (the realtime nodes and the cron authenticate with it).
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# No blanket `Require all denied` here: access checks run BEFORE mod_rewrite,
+# so /api/time (no such file) would be refused before it is routed to
+# index.php. Only other PHP files are refused.
+<FilesMatch "\.php$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^index\.php$">
+  Require all granted
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^ index.php [L]
+</IfModule>

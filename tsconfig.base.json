@@ -1,0 +1,25 @@
+{
+  // Shared by every workspace. `erasableSyntaxOnly` is not a style choice:
+  // realtime/ runs its TypeScript through Node's native type stripping, which
+  // can only erase annotations — enums, namespaces and constructor parameter
+  // properties would be a runtime syntax error there. Holding the whole repo
+  // to the same rule keeps shared/ importable from both sides.
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "erasableSyntaxOnly": true
+  }
+}

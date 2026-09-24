@@ -1,0 +1,89 @@
+# Local stack. The PHP side mirrors the webhosting (Apache + PHP-FPM 8.5, site
+# tree identical to the deployed one); `realtime` is the exact image the
+# Hetzner nodes run. Start with `npm run stack` (it passes docker/compose.env
+# so compose never interpolates the secrets in .env).
+#
+# .data/site is the web root (scripts/assemble-site.sh --dev fills it); the PHP
+# code is mounted into it read-only so edits apply without a rebuild.
+#
+# /_arche/var (SQLite, uploads, locks, backups) lives on a Docker volume that
+# only php mounts, not on the bind mount: SQLite's WAL index is shared memory
+# mapped by every PHP worker, which macOS file sharing does not keep coherent —
+# workers died with SIGBUS under load. The volume is a real Linux filesystem,
+# like the host's. (Apache never serves /_arche, so it does not need it.)
+
+name: arche
+
+x-site: &site
+  - ./.data/site:/var/www/site
+  - ./server/app:/var/www/site/_arche/app:ro
+  - ./server/config:/var/www/site/_arche/config:ro
+  - ./server/vendor:/var/www/site/_arche/vendor:ro
+  - ./server/resources:/var/www/site/_arche/resources:ro
+  - ./.env:/run/arche.env:ro
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    volumes:
+      - ./.data/site:/var/www/site
+      - var:/var/www/site/_arche/var
+      - ./server/app:/var/www/site/_arche/app:ro
+      - ./server/config:/var/www/site/_arche/config:ro
+      - ./server/vendor:/var/www/site/_arche/vendor:ro
+      - ./server/resources:/var/www/site/_arche/resources:ro
+      - ./.env:/run/arche.env:ro
+      # Source checkout for composer and the test runner (shared/ holds the
+      # contract fixtures, infra/ the realtime cloud-init template).
+      - ./server:/srv/server
+      - ./shared:/srv/shared:ro
+      - ./infra:/srv/infra:ro
+    environment:
+      ARCHE_ENV_FILE: /run/arche.env
+      ARCHE_ENV: local
+      # Local default: no paid AI calls. `AI_MODE=live npm run stack` for the real host.
+      AI_MODE: ${AI_MODE:-stub}
+      # The compose `realtime` service is the room server here (deployed
+      # stations default to off until the Hetzner nodes exist).
+      REALTIME_DRIVER: static
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes: *site
+    depends_on:
+      - php
+
+  cron:
+    image: curlimages/curl:8.16.0
+    entrypoint: ["/bin/sh", "/loop.sh"]
+    volumes:
+      - ./docker/cron/loop.sh:/loop.sh:ro
+      - ./.env:/run/arche.env:ro
+    depends_on:
+      - web
+
+  realtime:
+    build:
+      context: .
+      dockerfile: realtime/Dockerfile
+    image: arche-realtime:dev
+    ports:
+      - "${RT_PORT:-8787}:8787"
+    environment:
+      ARCHE_ENV_FILE: /run/arche.env
+      API_BASE: http://web
+      NODE_SLOT: local
+      PORT: "8787"
+    volumes:
+      - ./.env:/run/arche.env:ro
+    depends_on:
+      - web
+
+volumes:
+  var:

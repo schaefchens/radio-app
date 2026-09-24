@@ -1,0 +1,42 @@
+{
+  "name": "arche",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "app",
+    "realtime"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @arche/app",
+    "stack": "docker compose --env-file docker/compose.env up --build",
+    "stack:down": "docker compose --env-file docker/compose.env down",
+    "composer": "docker compose --env-file docker/compose.env run --rm --no-deps php composer",
+    "build": "npm run build --workspace @arche/app",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "npm run test --workspaces --if-present",
+    "test:php": "docker compose --env-file docker/compose.env run --rm --no-deps php php /srv/server/tests/run.php",
+    "e2e": "bash scripts/e2e-stack.sh up && npm run e2e --workspace @arche/app",
+    "e2e:down": "bash scripts/e2e-stack.sh down",
+    "e2e:reset": "bash scripts/e2e-stack.sh reset",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run test:php",
+    "assemble": "bash scripts/assemble-site.sh",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:dry": "bash scripts/deploy.sh --dry-run",
+    "deploy:verify": "bash scripts/deploy.sh --verify-only",
+    "init-secrets": "bash scripts/init-secrets.sh",
+    "cron-command": "bash scripts/cron-command.sh",
+    "realtime:setup": "bash scripts/realtime/setup-hetzner.sh",
+    "realtime:snapshot": "bash scripts/realtime/build-snapshot.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.1"
+  }
+}

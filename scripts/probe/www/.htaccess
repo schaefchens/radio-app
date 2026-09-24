@@ -1,0 +1,12 @@
+# /_probe/ — throwaway host probe (scripts/probe). Kept minimal ON PURPOSE:
+# every directive under test lives in htaccess-test/, so a directive this host
+# forbids produces a 500 there and not here.
+Options -Indexes
+DirectoryIndex index.html
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+# The real site's root rewrite (SPA fallback) must not swallow the probe.
+<IfModule mod_rewrite.c>
+  RewriteEngine Off
+</IfModule>

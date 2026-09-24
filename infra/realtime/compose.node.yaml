@@ -1,0 +1,43 @@
+# What every realtime node runs, installed at /opt/arche by
+# scripts/realtime/build-snapshot.sh and started by arche-node.service.
+#
+# /etc/arche/node.env is written by cloud-init when the PHP wake controller
+# creates the server (cloud-init.yaml.tmpl). It is also passed to
+# `docker compose --env-file`, which is where ${IMAGE} comes from: the tag of
+# the realtime image baked into this snapshot. `pull_policy: never` because
+# nodes have no registry — the image is already on disk.
+name: arche-node
+
+services:
+  realtime:
+    image: ${IMAGE:?IMAGE must be set in /etc/arche/node.env}
+    pull_policy: never
+    env_file: /etc/arche/node.env
+    environment:
+      PORT: "8787"
+    restart: unless-stopped
+    stop_grace_period: 10s
+    expose:
+      - "8787"
+
+  caddy:
+    image: caddy:2
+    pull_policy: never
+    # Only what the Caddyfile reads; the node secret stays out of this container.
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?PUBLIC_HOST must be set in /etc/arche/node.env}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL must be set in /etc/arche/node.env}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/arche/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and the ACME account live on the slot's Hetzner Volume,
+      # which outlives the server. A node booting on empty storage would ask
+      # Let's Encrypt for a new certificate every time — five a week is the
+      # limit — so arche-node.service refuses to start without the mount.
+      - /var/lib/arche-caddy/data:/data
+      - /var/lib/arche-caddy/config:/config
+    depends_on:
+      - realtime

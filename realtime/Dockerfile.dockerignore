@@ -1,0 +1,11 @@
+# Used by BuildKit for realtime/Dockerfile only (context = repo root). An
+# allow-list: the context would otherwise include node_modules, .data and the
+# repo .env with every secret in it.
+*
+!package.json
+!package-lock.json
+!shared/package.json
+!shared/src/**
+!realtime/package.json
+!realtime/src/**
+!app/package.json

@@ -1,0 +1,13 @@
+# Build context for the php/web dev images (realtime has its own
+# realtime/Dockerfile.dockerignore). Secrets and bulky trees never go in.
+.env
+.env.*
+!.env.example
+sftp.env
+.git
+.data
+build
+**/node_modules
+**/dist
+server/vendor
+scripts/probe/.probe.env

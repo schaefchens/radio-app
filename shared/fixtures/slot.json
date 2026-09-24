@@ -1,0 +1,61 @@
+{
+  "v": 1,
+  "channel": "main",
+  "t": 1790190000000,
+  "gen": 1790189640000,
+  "current": "worship",
+  "next": { "p": "prayer", "start": 1790193600000 },
+  "submissions": { "song": "open", "prayer": "closing" },
+  "programs": {
+    "worship": {
+      "id": "worship",
+      "title": { "en": "Worship Music", "de": "Lobpreis" },
+      "subtitle": { "en": "Uplifting Hearts Worldwide", "de": "Herzen weltweit erheben" },
+      "color": "#2f7bff",
+      "stage": { "mode": "flyins", "image": "/media/stage/3f2a.webp", "tagline": { "en": "A Global Family in Worship", "de": "Eine weltweite Familie im Lobpreis" } },
+      "allowed": ["song", "prayer"]
+    }
+  },
+  "items": [
+    {
+      "id": "i7kq2m",
+      "type": "song",
+      "start": 1790189880000,
+      "dur": 298000,
+      "p": "worship",
+      "yt": "dQw4w9WgXcQ",
+      "title": "Good God",
+      "artist": "Chris Tomlin",
+      "thumb": "/media/thumbs/dQw4w9WgXcQ.jpg",
+      "request": { "name": "Jenny", "place": "Munich" },
+      "fallback": null
+    },
+    {
+      "id": "i7kq2n",
+      "type": "host",
+      "start": 1790190178000,
+      "dur": 21400,
+      "p": "worship",
+      "kind": "break",
+      "audio": { "en": "/media/host/20260923/9c1e.en.mp3", "de": "/media/host/20260923/9c1e.de.mp3" },
+      "text": { "en": "That was Good God…", "de": "Das war Good God…" },
+      "voices": [{ "id": "v81", "name": "Maria", "country": "DE", "text": "What a beautiful song!", "at": 1790189700000 }]
+    },
+    { "id": "i7kq2p", "type": "jingle", "start": 1790190199400, "dur": 6000, "p": "worship", "audio": "/media/jingles/a41b.mp3" },
+    { "id": "i7kq2q", "type": "silence", "start": 1790190205400, "dur": 60000, "p": "worship", "label": { "en": "A moment of silence", "de": "Ein Moment der Stille" } },
+    {
+      "id": "i7kq2r",
+      "type": "contrib",
+      "start": 1790190265400,
+      "dur": 74000,
+      "p": "worship",
+      "kind": "story",
+      "audio": "/media/contrib/51de.mp3",
+      "caption": { "en": "How God carried me through a hard year.", "de": "Wie Gott mich durch ein schweres Jahr getragen hat." },
+      "name": "Lena",
+      "place": "Brazil"
+    },
+    { "id": "i7kq2s", "type": "stage", "start": 1790190339400, "dur": 120000, "p": "worship", "label": { "en": "Stay with us", "de": "Bleib dran" } },
+    { "id": "i7kq2t", "type": "gap", "start": 1790190459400, "dur": 60000, "p": "worship" }
+  ]
+}

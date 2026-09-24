@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "channel": "main",
+  "gen": 1790190012000,
+  "listeners": 12482,
+  "voices": [
+    { "id": "v81", "name": "Maria", "country": "DE", "text": "What a beautiful song! 🙏", "at": 1790189700000 },
+    { "id": "v82", "name": "James", "country": "US", "text": "This really speaks to my heart today.", "at": 1790189820000 }
+  ],
+  "blocked": ["i7kq2s"],
+  "pulse": 120
+}

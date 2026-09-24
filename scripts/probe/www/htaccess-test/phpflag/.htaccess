@@ -1,0 +1,2 @@
+# Same question as ../phpvalue for php_flag (the "engine off" upload trick).
+php_flag engine off

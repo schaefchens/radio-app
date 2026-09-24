@@ -1,0 +1,3 @@
+# php_value is only understood by mod_php (or the htscanner extension). Under
+# PHP-FPM it is usually a hard 500. This directory tells which it is here.
+php_value upload_max_filesize 8M

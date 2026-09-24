@@ -1,0 +1,31 @@
+# /program — static program files written by the generator. Deployed from
+# server/public/program/.htaccess; the files themselves are never uploaded.
+Options -Indexes
+
+<FilesMatch "\.ph(p[0-9]?|tml|ar)$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_mime.c>
+  AddType application/json .json
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set Access-Control-Allow-Origin "*"
+  # Minute files never change once written.
+  <FilesMatch "^[0-9]{4}\.json$">
+    Header set Cache-Control "public, max-age=86400, immutable"
+  </FilesMatch>
+  <FilesMatch "^live\.json$">
+    Header set Cache-Control "public, max-age=15"
+  </FilesMatch>
+  <FilesMatch "^(channels|[0-9]{4}-[0-9]{2}-[0-9]{2})\.json$">
+    Header set Cache-Control "public, max-age=60"
+  </FilesMatch>
+  <FilesMatch "^evergreen-[0-9a-f]+\.json$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # `Header set` only touches successful responses; a minute that does not
+  # exist yet must not be cached by a browser or CDN.
+  Header always set Cache-Control "no-store" "expr=%{REQUEST_STATUS} == 404"
+</IfModule>

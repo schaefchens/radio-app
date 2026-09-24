@@ -1,0 +1,6 @@
+# The /media/ pattern: whatever lands in an upload folder is served, never
+# executed. Options -ExecCGI rides on the same override as -Indexes.
+Options -Indexes -ExecCGI
+<FilesMatch "\.(php[0-9]?|phtml|phar|pl|py|cgi|sh)$">
+  Require all denied
+</FilesMatch>

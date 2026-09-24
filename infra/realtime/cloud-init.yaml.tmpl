@@ -1,0 +1,47 @@
+#cloud-config
+# ARCHE realtime node: user_data rendered by the PHP wake controller when it
+# creates a server from the realtime snapshot. Placeholders are the variable
+# names below wrapped in double curly braces, replaced verbatim. After
+# rendering, no double curly brace may remain anywhere in the output (this
+# comment deliberately contains none), so the renderer can refuse any output
+# that still has one. Every placeholder is required:
+#
+#   PUBLIC_HOST       rt1.radio.schaefchens.de, the name Caddy certifies
+#   NODE_SLOT         rt1, also sent as X-Arche-Node on every report
+#   API_BASE          https://radio.schaefchens.de, where reports go
+#   NODE_SECRET       HMAC key for POST /api/realtime/report
+#   TOKEN_PUBLIC_KEY  raw Ed25519 public key, base64 (tokens are verified
+#                     here, never minted: the signing key stays in PHP)
+#   ACME_EMAIL        Let's Encrypt account address
+#   VOLUME_ID         numeric Hetzner Volume id of this slot (certificates)
+#   IMAGE             realtime image baked into the snapshot, i.e.
+#                     arche-realtime:<the snapshot's `version` label>
+#
+# Values must be single-line and free of YAML-significant characters (all of
+# the above are hostnames, URLs, ids, base64 or hex).
+#
+# Create the server with automount=false: this file mounts the Volume itself,
+# at a fixed path, before the service starts.
+
+write_files:
+  - path: /etc/arche/node.env
+    owner: root:root
+    permissions: '0600'
+    content: |
+      PUBLIC_HOST={{PUBLIC_HOST}}
+      NODE_SLOT={{NODE_SLOT}}
+      API_BASE={{API_BASE}}
+      NODE_SECRET={{NODE_SECRET}}
+      TOKEN_PUBLIC_KEY={{TOKEN_PUBLIC_KEY}}
+      ACME_EMAIL={{ACME_EMAIL}}
+      IMAGE={{IMAGE}}
+      PORT=8787
+
+mounts:
+  - ["/dev/disk/by-id/scsi-0HC_Volume_{{VOLUME_ID}}", "/var/lib/arche-caddy", "ext4", "discard,nofail,defaults", "0", "0"]
+
+runcmd:
+  - [mkdir, -p, /var/lib/arche-caddy]
+  - [sh, -c, "mountpoint -q /var/lib/arche-caddy || mount /var/lib/arche-caddy"]
+  - [systemctl, daemon-reload]
+  - [systemctl, start, arche-node.service]

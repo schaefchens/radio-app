@@ -1,0 +1,63 @@
+# Web root of ARCHE (radio.schaefchens.de) — deployed from server/public/.htaccess.
+# Edit it there, never on the server: the next deploy overwrites it. Every
+# directive here was checked against the host by scripts/probe (an
+# AllowOverride violation is a hard 500 for the whole site).
+
+DirectoryIndex index.html
+Options -Indexes
+
+# Dotfiles are bookkeeping (.htaccess, .deploy-manifest, .user.ini).
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+<IfModule mod_mime.c>
+  AddType image/webp                .webp
+  AddType application/manifest+json .webmanifest
+  AddType audio/mpeg                .mp3
+  AddType font/woff2                .woff2
+</IfModule>
+
+<IfModule mod_deflate.c>
+  # text/javascript is what this host sends for .js; without it the bundle
+  # goes out uncompressed with no visible symptom.
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml
+  AddOutputFilterByType DEFLATE text/javascript application/javascript
+  AddOutputFilterByType DEFLATE application/json application/manifest+json
+  AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  # NOT no-referrer: YouTube refuses to play embeds that arrive without a
+  # Referer (player error 153), which would take every song off the air.
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), geolocation=(), microphone=(self)"
+
+  # PWA entry points are always revalidated, or a stale index.html boots asset
+  # hashes that no longer exist.
+  <FilesMatch "^(index\.html|sw\.js|registerSW\.js|manifest\.webmanifest)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # The YouTube IFrame API script and player, our own everything else. The
+  # player is framed from youtube-nocookie.com (privacy-enhanced mode).
+  <FilesMatch "\.html$">
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://www.youtube.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; img-src 'self' data: blob: https://i.ytimg.com; media-src 'self' blob: data:; connect-src 'self' wss: https://www.youtube.com; style-src 'self' 'unsafe-inline'; font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  # Real directories keep their own rules; they never fall back to the app.
+  RewriteRule ^(api|program|media|_arche|assets|icons|fonts)(/|$) - [L]
+  # Single-page app: any path that is not a file gets index.html — except
+  # paths with an extension, so a missing asset stays a 404.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !\.[a-zA-Z0-9]{1,6}$
+  RewriteRule ^ index.html [L]
+</IfModule>
