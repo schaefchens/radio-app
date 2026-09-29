@@ -1,26 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 125" role="img" aria-labelledby="title">
-  <title id="title">Arche Radio</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 170" role="img" aria-labelledby="title">
+  <title id="title">Arche Radio · Das Brüder-Radio in Christus</title>
   <defs>
-    <path id="letter-arc" d="M 14 99 Q 225 28 432 99"/>
-    <linearGradient id="rainbow" x1="0" y1="0" x2="430" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#ff454a"/>
-      <stop offset="0.18" stop-color="#ff9d1c"/>
-      <stop offset="0.36" stop-color="#34b92e"/>
-      <stop offset="0.52" stop-color="#08a7c9"/>
-      <stop offset="0.7" stop-color="#087fe5"/>
-      <stop offset="1" stop-color="#633bd9"/>
+    <path id="letter-arc" d="M 12 125 Q 225 35 438 125"/>
+    <path id="subtitle-arc" d="M 48 154 Q 225 100 402 154"/>
+    <linearGradient id="rainbow" x1="0" y1="0" x2="435" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff4148"/>
+      <stop offset="0.18" stop-color="#ffa126"/>
+      <stop offset="0.36" stop-color="#39bb32"/>
+      <stop offset="0.53" stop-color="#04a9d0"/>
+      <stop offset="0.72" stop-color="#087fe8"/>
+      <stop offset="1" stop-color="#6637dc"/>
     </linearGradient>
     <linearGradient id="waves" x1="440" y1="0" x2="520" y2="0" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#079ce5"/>
-      <stop offset="1" stop-color="#0959d5"/>
+      <stop stop-color="#059dea"/>
+      <stop offset="1" stop-color="#095bd5"/>
     </linearGradient>
   </defs>
-  <text fill="url(#rainbow)" font-family="Arial Rounded MT Bold, Trebuchet MS, system-ui, sans-serif" font-size="72" font-weight="800" letter-spacing="-2">
+  <text fill="#fff" stroke="#fff" stroke-width="20" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="99" font-weight="700" textLength="420" lengthAdjust="spacingAndGlyphs">
     <textPath href="#letter-arc" startOffset="50%" text-anchor="middle">Arche Radio</textPath>
   </text>
-  <g fill="none" stroke="url(#waves)" stroke-width="8" stroke-linecap="round">
-    <path d="M 449 61 Q 463 77 449 94"/>
-    <path d="M 466 49 Q 489 77 466 107"/>
-    <path d="M 484 37 Q 517 77 484 119"/>
+  <text fill="url(#rainbow)" stroke="url(#rainbow)" stroke-width="4" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="99" font-weight="700" textLength="420" lengthAdjust="spacingAndGlyphs">
+    <textPath href="#letter-arc" startOffset="50%" text-anchor="middle">Arche Radio</textPath>
+  </text>
+  <text fill="#fff" stroke="#fff" stroke-width="7" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="31" font-weight="700" textLength="365" lengthAdjust="spacingAndGlyphs">
+    <textPath href="#subtitle-arc" startOffset="50%" text-anchor="middle">Das Brüder-Radio in Christus</textPath>
+  </text>
+  <text fill="#063a84" stroke="#063a84" stroke-width="1" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="31" font-weight="700" textLength="365" lengthAdjust="spacingAndGlyphs">
+    <textPath href="#subtitle-arc" startOffset="50%" text-anchor="middle">Das Brüder-Radio in Christus</textPath>
+  </text>
+  <g fill="none" stroke="url(#waves)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" paint-order="stroke fill">
+    <path d="M 450 68 Q 466 92 450 117" stroke="#fff" stroke-width="23"/>
+    <path d="M 467 56 Q 493 93 467 132" stroke="#fff" stroke-width="23"/>
+    <path d="M 485 42 Q 522 93 485 149" stroke="#fff" stroke-width="23"/>
+    <path d="M 450 68 Q 466 92 450 117"/>
+    <path d="M 467 56 Q 493 93 467 132"/>
+    <path d="M 485 42 Q 522 93 485 149"/>
   </g>
 </svg>

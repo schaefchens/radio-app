@@ -29,9 +29,8 @@
     .page, .mobile-dock {
       --ink: #092d67; --muted: #587095; --accent: #0782ec; --line: #bbdaf0;
       --surface: #ffffffed; --soft: #edf7fce8; --base: #f6fbff;
+      --menu-surface: #fffffff2; --desktop-menu-surface: #fffffff2;
       --texture: url('theme-assets/light-background.webp');
-      --mobile-bottom-art: url('theme-assets/light-bottom-mobile.webp');
-      --header-art: url('theme-assets/light-top.webp');
       --mobile-hero-height: clamp(180px, 58cqw, 320px); --header-strip-height: 16px;
       color: var(--ink); background: var(--base) var(--texture) center top / 650px auto repeat;
     }
@@ -39,9 +38,8 @@
     [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock {
       --ink: #eef6ff; --muted: #b5c7e7; --accent: #31b9ff; --line: #17618a;
       --surface: #042541eb; --soft: #103855c9; --base: #03234a;
+      --menu-surface: #042541f2; --desktop-menu-surface: #00182af2;
       --texture: url('theme-assets/dark-background.webp');
-      --mobile-bottom-art: url('theme-assets/dark-bottom-mobile.webp');
-      --header-art: url('theme-assets/dark-top.webp');
     }
     .hero { position: relative; }
     .hero-art { display: block; width: 100%; height: auto; mask-image: linear-gradient(#000 85%, transparent); }
@@ -51,7 +49,7 @@
     .brand-title-arc { display: block; width: 100%; height: auto; }
     .brand-mark, .brand-subtitle-dark-mobile { display: none; }
     .brand p { margin: 7px 0 0; font-size: clamp(8px, 1.3cqw, 17px); font-weight: 650; color: #164d85; }
-    [data-theme="light"] .brand p { margin-top: -8px; }
+    [data-theme="light"] .brand p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     [data-theme="dark"] .brand { left: 46%; top: 28%; width: 47%; }
     [data-theme="dark"] .brand h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: clamp(25px, 5.3cqw, 68px); letter-spacing: -0.045em; }
     [data-theme="dark"] .brand-title { position: static; width: auto; height: auto; overflow: visible; clip-path: none; color: #f8fcff; }
@@ -61,7 +59,6 @@
     .content { position: relative; width: min(900px, 94%); margin: -12px auto 0; }
     .player-dock { min-width: 0; }
     .desktop-nav, .host-card { display: none; }
-    .header-strip { display: none; }
     .card { border: 1px solid var(--line); background: var(--surface); border-radius: 22px; box-shadow: 0 8px 24px #0632540b; overflow: hidden; }
     .station-row { display: flex; align-items: center; gap: 18px; padding: 20px 26px; }
     .live { display: inline-flex; align-items: center; gap: 8px; color: white; background: #ff2344; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 800; letter-spacing: .04em; }
@@ -148,7 +145,7 @@
     .bottom-art { position: absolute; inset: auto 0 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; mask-image: linear-gradient(transparent, #000 18%); }
     .lower-content { position: relative; width: min(900px, 94%); margin: auto auto 0; }
     .mobile-dock { display: none; }
-    .mobile-dock.is-mobile { display: block; position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 8; container-type: inline-size; background: var(--mobile-bottom-art) center bottom / 100% var(--mobile-art-height, 320px) no-repeat; box-shadow: none; }
+    .mobile-dock.is-mobile { display: block; position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 8; container-type: inline-size; background: none; box-shadow: none; }
     .tray-toggle { display: none; }
     .actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
     .action { min-height: 106px; border: 1px solid #ffffff65; border-radius: 20px; padding: 16px 10px; color: white; box-shadow: inset 0 2px 4px #ffffff40, 0 7px 16px #03284a20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; font-size: 12px; line-height: 1.35; font-weight: 700; text-shadow: 0 1px 3px #0002; }
@@ -165,7 +162,7 @@
     [data-theme="dark"] .green { background: linear-gradient(145deg, #079e98, #006b68); }
     [data-theme="dark"] .blue { background: linear-gradient(145deg, #066df7, #003fc4); }
     [data-theme="dark"] .gold { background: linear-gradient(145deg, #e7a30a, #ad6100); }
-    .navigation { display: grid; grid-template-columns: repeat(4, 1fr); padding: 13px 8px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); }
+    .navigation { display: grid; grid-template-columns: repeat(4, 1fr); padding: 13px 8px; border-radius: 18px; border: 1px solid var(--line); background: var(--menu-surface); }
     .nav-item { border: 0; background: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11px; padding: 5px; }
     .nav-item[aria-current="page"] { color: var(--accent); font-weight: 750; }
     .nav-item[aria-current="page"] svg { color: #ff294a; }
@@ -180,10 +177,10 @@
       .brand p { font-size: clamp(11px, 1.15cqw, 17px); }
       [data-theme="dark"] .brand { top: 26%; left: 68%; width: 30%; text-shadow: 0 2px 10px #00203b; }
       [data-theme="dark"] .brand h1 { font-size: clamp(34px, 3.8cqw, 58px); }
-      .desktop-nav { display: flex; position: absolute; right: 3%; bottom: 18px; width: 45%; z-index: 1; align-items: center; justify-content: space-around; gap: 5px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
+      .desktop-nav { display: flex; position: absolute; right: 3%; bottom: 18px; width: 45%; z-index: 1; align-items: center; justify-content: space-around; gap: 5px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 24px; background: var(--desktop-menu-surface); }
       .desktop-nav .nav-item { flex-direction: row; gap: 8px; font-size: clamp(11px, 1.1cqw, 16px); padding: 6px 10px; }
       .desktop-nav .nav-item[aria-current="page"] { box-shadow: 0 3px 0 var(--accent); }
-      [data-theme="dark"] .desktop-nav { width: clamp(420px, 45cqw, 640px); background: #00182ae6; }
+      [data-theme="dark"] .desktop-nav { width: clamp(420px, 45cqw, 640px); }
       .content { display: grid; width: calc(100% - 20px); max-width: 1480px; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: 'player host' 'player community'; align-items: start; gap: 14px; margin-top: -14px; }
       .player-dock { grid-area: player; }
       .host-card { display: block; grid-area: host; }
@@ -213,9 +210,9 @@
     }
     @container (max-width: 600px) {
       /* Enlarge the ark on mobile and let the scenery crop off the right edge. */
-      .hero { height: var(--mobile-hero-height); overflow: hidden; }
+      .hero { position: sticky; top: calc(var(--preview-top, 0px) - var(--header-sample-y, 0px)); height: var(--mobile-hero-height); overflow: hidden; }
       .hero-art { height: 100%; object-fit: cover; object-position: left center; mask-image: none; }
-      .brand { top: 43%; left: 50%; width: 48%; }
+      .brand { top: 43%; left: 48%; width: 52%; }
       .brand h1 { font-size: clamp(24px, 7cqw, 42px); }
       .brand p { margin-top: 6px; font-size: clamp(8px, 2.25cqw, 13px); }
       [data-theme="dark"] .brand { top: 38%; left: 48%; width: 50%; text-shadow: 0 2px 8px #001429, 0 1px 2px #001429; }
@@ -231,7 +228,6 @@
       .content { display: contents; }
       .player-dock { position: sticky; top: calc(var(--preview-top, 0px) + var(--header-strip-height)); z-index: 5; isolation: isolate; width: 96%; margin: -56px auto 0; }
       .player-dock.is-pinned::before { content: ''; position: absolute; top: 0; bottom: -10px; left: 50%; width: 100cqw; transform: translateX(-50%); background: var(--base) var(--texture) center top / 650px auto; z-index: -1; box-shadow: 0 8px 14px #00142918; }
-      .player-dock.is-pinned .header-strip { display: block; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); width: 100cqw; height: var(--header-strip-height); background: var(--base) var(--header-art) left calc(-1 * var(--header-sample-y)) / auto var(--mobile-hero-height) no-repeat; pointer-events: none; }
       .community { width: 96%; margin: 14px auto 0; }
       .card { border-radius: 16px; }
       .station-row { padding: 8px 12px; gap: 8px; }
@@ -269,7 +265,7 @@
       .quote time { display: block; margin-left: 0; }
       .quote strong { font-size: 12px; }
       .lower-scene { display: none; }
-      .page > .bottom-art { top: 0; bottom: auto; height: 76cqw; width: 100%; object-fit: cover; pointer-events: none; z-index: 0; }
+      .page > .bottom-art { position: fixed; top: auto; right: auto; bottom: 0; left: 50%; transform: translateX(-50%); height: 76cqw; width: 100cqw; object-fit: cover; pointer-events: none; z-index: 0; }
       .community { position: relative; z-index: 1; }
       .actions { gap: 7px; margin-bottom: 14px; }
       .mobile-dock .lower-content { width: 96%; margin: 0 auto; }
@@ -290,19 +286,23 @@
       .mobile-dock[data-expanded="true"] .action svg { width: 20px; height: 20px; }
       .mobile-dock[data-expanded="true"] .action-copy { min-width: 0; width: 100%; }
       .mobile-dock .navigation { margin-top: 0; }
-      [data-theme="dark"] .mobile-dock .navigation { background: #042541b8; }
+      [data-theme="dark"] .mobile-dock .navigation { background: var(--menu-surface); }
       [data-theme="light"] .mobile-dock .lower-content { width: 92%; }
       [data-theme="light"] .mobile-dock .action-tray { width: 86%; margin-inline: auto; }
-      [data-theme="light"] .mobile-dock .navigation { left: auto; width: 100%; transform: none; padding: 9px 5px; border: 1px solid var(--line); border-radius: 15px; margin-bottom: 12px; background: #ffffffb8; box-shadow: 0 8px 20px #1b5b9626; }
+      [data-theme="light"] .mobile-dock .navigation { left: auto; width: 100%; transform: none; padding: 6px 5px; border: 1px solid var(--line); border-radius: 15px; margin-bottom: 12px; background: var(--menu-surface); box-shadow: 0 8px 20px #1b5b9626; }
       .action { border-radius: 14px; padding: 12px 4px; min-height: 105px; font-size: 10px; }
       .action svg { width: 25px; height: 25px; }
-      .navigation { position: relative; left: 50%; width: 100cqw; transform: translateX(-50%); padding: 9px 0; border-left: 0; border-right: 0; border-radius: 0; }
-      .nav-item { font-size: 10px; }
+      .navigation { position: relative; left: 50%; width: 100cqw; transform: translateX(-50%); padding: 6px 0; border-left: 0; border-right: 0; border-radius: 0; }
+      .nav-item { font-size: 10px; padding-block: 4px; }
     }
     @container (max-width: 400px) {
       .mobile-dock .actions-window { --expanded-height: 60px; }
       .mobile-dock[data-expanded="true"] .actions-window { height: 60px; }
       .mobile-dock .action { min-height: 60px; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .page, .mobile-dock { --menu-surface: #fff; --desktop-menu-surface: #fff; }
+      [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock { --menu-surface: #042541; --desktop-menu-surface: #00182a; }
     }
     @media (max-width: 650px) {
       .toolbar { position: static; padding: 11px 12px; gap: 10px; flex-wrap: wrap; }
@@ -351,7 +351,7 @@
       <div class="page">
         <header class="hero">
           <img class="hero-art" data-art="top" src="theme-assets/light-top.webp" width="2172" height="724" alt="">
-          <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><img class="brand-title-arc" src="theme-assets/light-logo.svg" alt=""><p><span class="brand-subtitle-default">Brüder Radio in Christus</span><span class="brand-subtitle-dark-mobile">Das Brüder-Radio in Christus</span></p></div>
+          <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><img class="brand-title-arc" src="theme-assets/light-logo.svg" alt=""><p><span class="brand-subtitle-default">Das Brüder-Radio in Christus</span><span class="brand-subtitle-dark-mobile">Das Brüder-Radio in Christus</span></p></div>
           <nav class="desktop-nav" aria-label="Desktop-Navigation">
             <button type="button" class="nav-item" aria-current="page" data-nav="Live"><svg aria-hidden="true"><use href="#i-radio"/></svg>Live</button>
             <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Programm</button>
@@ -361,7 +361,6 @@
         </header>
         <main class="content">
           <div class="player-dock">
-            <div class="header-strip" aria-hidden="true"></div>
           <section class="card" aria-label="Radio-Player Demo">
             <div class="station-row">
               <span class="live">LIVE</span>
@@ -653,15 +652,10 @@
     let scrollFrame = 0;
     let wasAtBottom = false;
     let autoExpandedAtBottom = false;
-    function updateBottomArt() {
-      if (!mobilePreview) return;
-      const top = window.innerHeight - bottomArt.getBoundingClientRect().height - page.getBoundingClientRect().top;
-      bottomArt.style.top = `${Math.max(0, top)}px`;
-    }
     function updatePinnedState() {
       scrollFrame = 0;
-      playerDock.classList.toggle('is-pinned', mobilePreview && playerDock.getBoundingClientRect().top <= pinOffset + 0.5);
-      updateBottomArt();
+      const distanceToPin = playerDock.getBoundingClientRect().top - pinOffset;
+      playerDock.classList.toggle('is-pinned', mobilePreview && distanceToPin <= 0.5);
       const atBottom = mobilePreview && window.scrollY > 0 && document.documentElement.scrollHeight - window.scrollY - window.innerHeight <= 6;
       if (atBottom && !wasAtBottom && trayToggle.getAttribute('aria-expanded') !== 'true') {
         setTrayExpanded(true);
@@ -674,13 +668,10 @@
     }
     function updateDockSpace() {
       if (mobilePreview) {
-        const artHeight = bottomArt.getBoundingClientRect().height;
         const expandedHeight = parseFloat(getComputedStyle(actionsWindow).getPropertyValue('--expanded-height'));
         const trayHeight = actionsWindow.getBoundingClientRect().height;
-        mobileDock.style.setProperty('--mobile-art-height', `${artHeight}px`);
         const expandedDockHeight = mobileDock.getBoundingClientRect().height + Math.max(0, expandedHeight - trayHeight);
         page.style.paddingBottom = `${Math.round(expandedDockHeight / 2)}px`;
-        updateBottomArt();
       }
     }
     function setSubmissionAccess(enabled) {
@@ -718,7 +709,6 @@
         if (bottomArt.parentElement !== lowerScene) lowerScene.prepend(bottomArt);
         const desktopArt = `theme-assets/${root.dataset.theme}-bottom.webp`;
         if (!bottomArt.src.endsWith(desktopArt)) bottomArt.src = desktopArt;
-        bottomArt.style.removeProperty('top');
         if (lowerContent.parentElement !== lowerScene) lowerScene.append(lowerContent);
         mobileDock.classList.remove('is-mobile');
         setSubmissionAccess(true);
