@@ -76,16 +76,41 @@
     .playback-note a, .video-link { color: var(--accent); }
     .video-link { font-size: 11px; text-decoration: none; white-space: nowrap; }
     .video-link:hover { text-decoration: underline; }
-    .track-row { display: flex; align-items: center; gap: 16px; padding: 20px 26px; }
+    .track-row { position: relative; display: grid; grid-template-columns: 68px minmax(0, 1fr) auto; grid-template-areas: 'cover track reactions' 'cover progress progress'; align-items: center; gap: 8px 16px; padding: 20px 26px; }
+    .track-row .cover { grid-area: cover; width: 100%; height: 88px; }
+    .track-row .track { grid-area: track; }
+    .track strong a { color: inherit; text-decoration: none; }
+    .track strong a:hover { text-decoration: underline; }
+    .track .eyebrow { display: flex; align-items: center; gap: 5px; }
+    .track .eyebrow svg { width: 13px; height: 13px; }
+    .track-progress { grid-area: progress; display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .track-progress time { flex-shrink: 0; }
+    .song-progress { --progress: 0%; appearance: none; -webkit-appearance: none; flex: 1; min-width: 24px; width: 100%; height: 18px; margin: 0; background: transparent; cursor: pointer; }
+    .song-progress:disabled { cursor: default; opacity: 1; }
+    .song-progress:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 5px; }
+    .song-progress::-webkit-slider-runnable-track { height: 5px; border-radius: 5px; background: linear-gradient(to right, var(--accent) var(--progress), var(--line) var(--progress)); }
+    .song-progress::-moz-range-track { height: 5px; border-radius: 5px; background: linear-gradient(to right, var(--accent) var(--progress), var(--line) var(--progress)); }
+    .song-progress::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -3.5px; border: 0; border-radius: 50%; background: var(--accent); }
+    .song-progress::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--accent); }
     .cover { width: 68px; height: 68px; border-radius: 12px; object-fit: cover; object-position: 53% center; flex-shrink: 0; }
     .track { flex: 1; min-width: 0; }
     .eyebrow { color: var(--accent); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .track strong { display: block; font-size: 17px; line-height: 1.35; }
     .track small { font-size: 12px; color: var(--muted); }
-    .reactions { display: flex; gap: 8px; }
+    .reactions { position: relative; grid-area: reactions; align-self: start; display: flex; gap: 8px; padding-top: 8px; }
+    .reactions .icon-button { border-color: var(--line); color: var(--ink); }
+    .reactions .icon-button[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+    .reactions .selected-emoji { font-size: 21px; line-height: 1; }
+    .emoji-picker { position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 8; width: 212px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--base); box-shadow: 0 8px 30px #00142955; }
+    .emoji-picker p { margin: 0 0 8px; font-size: 12px; font-weight: 650; color: var(--ink); }
+    .emoji-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .emoji-options button { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid transparent; border-radius: 10px; background: var(--soft); font-size: 23px; }
+    .emoji-options button:hover, .emoji-options button[aria-pressed="true"] { border-color: var(--accent); background: var(--surface); }
     .icon-button { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid transparent; border-radius: 12px; background: var(--soft); color: var(--accent); }
     .icon-button[aria-pressed="true"] { color: #ff3c64; border-color: #ff3c64; }
     .icon-button[aria-pressed="true"] svg { fill: #ff3c6424; }
+    .icon-button[data-reaction="prayer"][aria-pressed="true"] { color: #dda12b; border-color: #dda12b; }
+    .icon-button[data-reaction="prayer"][aria-pressed="true"] svg { fill: #dda12b24; }
     .community { margin-top: 20px; padding: 24px 26px; }
     .section-heading { display: flex; align-items: center; gap: 11px; }
     .section-heading h2 { margin: 0; flex: 1; font-size: 17px; letter-spacing: -.02em; }
@@ -200,23 +225,29 @@
       .player-dock.is-pinned .header-strip { display: block; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); width: 100cqw; height: var(--header-strip-height); background: var(--base) var(--header-art) left top / auto var(--mobile-hero-height) no-repeat; pointer-events: none; }
       .community { width: 92%; margin: 14px auto 0; }
       .card { border-radius: 16px; }
-      .station-row { padding: 14px; gap: 10px; }
-      .live { padding: 6px 9px; font-size: 10px; gap: 5px; border-radius: 7px; }
+      .station-row { padding: 8px 12px; gap: 8px; }
+      .live { padding: 6px 9px; font-size: 10px; line-height: 1.2; gap: 5px; border-radius: 7px; flex-shrink: 0; }
       .live::before { width: 6px; height: 6px; }
-      .station-name strong { font-size: 15px; }
-      .station-name small { font-size: 9px; }
-      .listeners { gap: 5px; font-size: 8px; }
+      .station-name strong { font-size: 16px; line-height: 1.2; white-space: nowrap; }
+      .station-name small { display: block; margin-top: 2px; font-size: 10px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .listeners { gap: 5px; font-size: 8px; line-height: 1.2; white-space: nowrap; flex-shrink: 0; }
       .listeners svg { width: 19px; }
       .listeners strong { font-size: 14px; }
       .player-stage { min-height: 200px; }
       .play-button { width: 62px; height: 62px; }
       .stage-subtitle { font-size: 9px; }
-      .track-row { padding: 15px 14px; gap: 10px; }
-      .cover { width: 45px; height: 45px; border-radius: 9px; }
-      .track strong { font-size: 14px; }
-      .track small { font-size: 10px; }
-      .reactions { gap: 5px; }
-      .icon-button { width: 33px; height: 35px; border-radius: 9px; }
+      .track-row { grid-template-columns: clamp(44px, 14cqw, 60px) minmax(0, 1fr) auto; padding: 8px 12px; gap: 3px 8px; }
+      .track-row .cover { height: clamp(56px, 15.5cqw, 66px); border-radius: 9px; }
+      .track strong { font-size: clamp(13px, 4cqw, 18px); line-height: 1.15; }
+      .track small { display: block; margin-top: 0; font-size: clamp(11px, 3.1cqw, 14px); line-height: 1.2; }
+      .track .eyebrow { margin-bottom: 2px; gap: 3px; font-size: clamp(8px, 2.4cqw, 11px); line-height: 1.1; letter-spacing: .025em; white-space: nowrap; }
+      .track .eyebrow svg { width: 11px; height: 11px; }
+      .track-progress { gap: 6px; font-size: 10px; }
+      .song-progress { min-width: 20px; }
+      .song-progress::-webkit-slider-thumb { width: 10px; height: 10px; margin-top: -2.5px; }
+      .song-progress::-moz-range-thumb { width: 10px; height: 10px; }
+      .reactions { gap: 4px; padding-top: 8px; }
+      .icon-button { width: clamp(28px, 8cqw, 36px); height: clamp(30px, 8.5cqw, 38px); border-radius: 9px; }
       .icon-button svg { width: 20px; }
       .community { margin-top: 14px; padding: 19px 15px; }
       .section-heading { gap: 8px; }
@@ -260,6 +291,8 @@
     <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/></symbol>
     <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="17" rx="2"/><path d="M7 2v6M17 2v6M3 11h18"/></symbol>
     <symbol id="i-broadcast" viewBox="0 0 24 24" overflow="visible"><circle cx="12" cy="11" r="2" fill="currentColor" stroke="none"/><path d="M12 13v9M8 7a6 6 0 0 0 0 8M16 7a6 6 0 0 1 0 8M5 4a10 10 0 0 0 0 14M19 4a10 10 0 0 1 0 14M2 1a14 14 0 0 0 0 20M22 1a14 14 0 0 1 0 20"/></symbol>
+    <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14a4.5 4.5 0 0 0 8 0"/><circle cx="9" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r=".8" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-levels" viewBox="0 0 24 24"><path d="M3 13v8M9 3v18M15 8v13M21 15v6" stroke-width="3" stroke-linecap="butt"/></symbol>
     <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></symbol>
     <symbol id="i-prayer" viewBox="0 0 24 24"><path d="M12 3v12m0-12c-2 0-2 5-3 8s-3 5-6 7l4 4 5-7m0-12c2 0 2 5 3 8s3 5 6 7l-4 4-5-7"/></symbol>
   </svg>
@@ -307,10 +340,29 @@
             <p class="playback-note" id="local-playback-note" hidden>Für den Videoplayer bitte <a href="http://localhost:4187/theme-preview.html" id="local-preview-link">die lokale Vorschau öffnen</a>. Falls sie nicht läuft: <strong>start-preview.command</strong> in diesem Ordner doppelklicken.</p>
             <div class="track-row">
               <img class="cover" src="theme-assets/good-good-father-poster.webp" width="68" height="68" alt="Chris Tomlin">
-              <div class="track"><span class="eyebrow">Musik in dieser Vorschau</span><strong>Good Good Father</strong><small>Chris Tomlin</small> <a class="video-link" href="https://www.youtube.com/watch?v=qlsQrycKKsY" target="_blank" rel="noopener">YouTube ↗</a></div>
-              <div class="reactions">
-                <button type="button" class="icon-button" id="favorite" aria-label="Gefällt mir" aria-pressed="false"><svg aria-hidden="true"><use href="#i-heart"/></svg></button>
-                <button type="button" class="icon-button" data-demo="Gebetsanliegen teilen" aria-label="Gebetsanliegen teilen"><svg aria-hidden="true"><use href="#i-prayer"/></svg></button>
+              <div class="track"><span class="eyebrow"><svg aria-hidden="true"><use href="#i-levels"/></svg>Läuft gerade</span><strong><a href="https://www.youtube.com/watch?v=qlsQrycKKsY" target="_blank" rel="noopener" title="Good Good Father auf YouTube öffnen">Good Good Father</a></strong><small>Chris Tomlin</small></div>
+              <div class="track-progress">
+                <time id="song-elapsed">0:00</time>
+                <input class="song-progress" id="song-progress" type="range" min="0" max="260" value="0" step="1" aria-label="Position im Lied" aria-valuetext="0:00 von 4:20" disabled>
+                <time id="song-duration">4:20</time>
+              </div>
+              <div class="reactions" role="group" aria-label="Auf das Lied reagieren">
+                <button type="button" class="icon-button" id="favorite" data-reaction="heart" aria-label="Gefällt mir" aria-pressed="false"><svg aria-hidden="true"><use href="#i-heart"/></svg></button>
+                <button type="button" class="icon-button" data-reaction="prayer" aria-label="Ich bete mit" aria-pressed="false"><svg aria-hidden="true"><use href="#i-prayer"/></svg></button>
+                <button type="button" class="icon-button" id="emoji-toggle" aria-label="Weitere Emojis auswählen" aria-expanded="false" aria-controls="emoji-picker"><svg aria-hidden="true"><use href="#i-smile"/></svg><span class="selected-emoji" aria-hidden="true" hidden></span></button>
+                <div class="emoji-picker" id="emoji-picker" role="group" aria-label="Weitere Reaktionen" hidden>
+                  <p>Deine Reaktion</p>
+                  <div class="emoji-options">
+                    <button type="button" data-emoji="🙌" data-label="Halleluja" aria-label="Halleluja" aria-pressed="false">🙌</button>
+                    <button type="button" data-emoji="😊" data-label="Freude" aria-label="Freude" aria-pressed="false">😊</button>
+                    <button type="button" data-emoji="😍" data-label="Begeisterung" aria-label="Begeisterung" aria-pressed="false">😍</button>
+                    <button type="button" data-emoji="🥹" data-label="Berührt" aria-label="Berührt" aria-pressed="false">🥹</button>
+                    <button type="button" data-emoji="🕊️" data-label="Frieden" aria-label="Frieden" aria-pressed="false">🕊️</button>
+                    <button type="button" data-emoji="✨" data-label="Hoffnung" aria-label="Hoffnung" aria-pressed="false">✨</button>
+                    <button type="button" data-emoji="🎉" data-label="Feiern" aria-label="Feiern" aria-pressed="false">🎉</button>
+                    <button type="button" data-emoji="🔥" data-label="Feuer und Flamme" aria-label="Feuer und Flamme" aria-pressed="false">🔥</button>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -385,6 +437,76 @@
     });
     const videoStage = document.querySelector('#video-stage');
     let videoLoaded = false;
+    let youtubePlayer;
+    let progressTimer;
+    let seeking = false;
+    const songProgress = document.querySelector('#song-progress');
+    const songElapsed = document.querySelector('#song-elapsed');
+    const songDuration = document.querySelector('#song-duration');
+    function formatTime(seconds) {
+      const value = Math.max(0, Math.floor(seconds || 0));
+      return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
+    }
+    function renderProgress(current, duration) {
+      const total = Math.max(1, duration);
+      const position = Math.min(total, Math.max(0, current));
+      songProgress.max = String(total);
+      songProgress.value = String(position);
+      songProgress.style.setProperty('--progress', `${position / total * 100}%`);
+      songElapsed.textContent = formatTime(position);
+      songDuration.textContent = formatTime(Math.ceil(total));
+      songProgress.setAttribute('aria-valuetext', `${formatTime(position)} von ${formatTime(Math.ceil(total))}`);
+    }
+    function syncProgress() {
+      if (!youtubePlayer || typeof youtubePlayer.getDuration !== 'function' || seeking) return;
+      const duration = youtubePlayer.getDuration();
+      if (duration > 0) {
+        songProgress.disabled = false;
+        renderProgress(youtubePlayer.getCurrentTime(), duration);
+      }
+    }
+    function connectVideoProgress(iframe) {
+      function attachPlayer() {
+        youtubePlayer = new YT.Player(iframe, {
+          events: {
+            onReady: () => {
+              syncProgress();
+              if (youtubePlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                clearInterval(progressTimer);
+                progressTimer = setInterval(syncProgress, 500);
+              }
+            },
+            onStateChange: event => {
+              clearInterval(progressTimer);
+              syncProgress();
+              if (event.data === YT.PlayerState.PLAYING) progressTimer = setInterval(syncProgress, 500);
+            },
+            onError: () => {
+              clearInterval(progressTimer);
+              songProgress.disabled = true;
+              notify('Das Video ist gerade nicht verfügbar. Über den Liedtitel kannst du es auf YouTube öffnen.');
+            }
+          }
+        });
+      }
+      if (window.YT && window.YT.Player) attachPlayer();
+      else {
+        window.onYouTubeIframeAPIReady = attachPlayer;
+        const api = document.createElement('script');
+        api.src = 'https://www.youtube.com/iframe_api';
+        api.async = true;
+        document.head.append(api);
+      }
+    }
+    songProgress.addEventListener('input', () => {
+      seeking = true;
+      renderProgress(Number(songProgress.value), Number(songProgress.max));
+    });
+    songProgress.addEventListener('change', () => {
+      if (youtubePlayer && !songProgress.disabled) youtubePlayer.seekTo(Number(songProgress.value), true);
+      seeking = false;
+    });
+    songProgress.addEventListener('blur', () => { seeking = false; });
     function loadVideo() {
       if (videoLoaded) return;
       if (location.protocol === 'file:') {
@@ -402,16 +524,56 @@
       iframe.allowFullscreen = true;
       iframe.referrerPolicy = 'strict-origin-when-cross-origin';
       const videoUrl = new URL('https://www.youtube.com/embed/qlsQrycKKsY');
-      videoUrl.search = new URLSearchParams({ autoplay: '1', playsinline: '1', rel: '0', origin: location.origin });
+      videoUrl.search = new URLSearchParams({ autoplay: '1', playsinline: '1', rel: '0', enablejsapi: '1', origin: location.origin });
       iframe.src = videoUrl.href;
       videoStage.replaceChildren(iframe);
       videoLoaded = true;
+      connectVideoProgress(iframe);
       iframe.focus();
     }
     document.querySelector('#play').addEventListener('click', loadVideo);
-    document.querySelector('#favorite').addEventListener('click', event => {
-      const button = event.currentTarget;
-      button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
+    document.querySelectorAll('[data-reaction]').forEach(button => {
+      button.addEventListener('click', () => {
+        button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
+      });
+    });
+    const emojiToggle = document.querySelector('#emoji-toggle');
+    const emojiPicker = document.querySelector('#emoji-picker');
+    const reactionGroup = document.querySelector('.reactions');
+    function closeEmojiPicker(returnFocus = false) {
+      emojiPicker.hidden = true;
+      emojiToggle.setAttribute('aria-expanded', 'false');
+      if (returnFocus) emojiToggle.focus();
+    }
+    emojiToggle.addEventListener('click', () => {
+      const opening = emojiPicker.hidden;
+      emojiPicker.hidden = !opening;
+      emojiToggle.setAttribute('aria-expanded', String(opening));
+      if (opening) emojiPicker.querySelector('button').focus();
+    });
+    emojiPicker.querySelectorAll('[data-emoji]').forEach(button => {
+      button.addEventListener('click', () => {
+        const selecting = button.getAttribute('aria-pressed') !== 'true';
+        emojiPicker.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(selecting && item === button)));
+        const selectedEmoji = emojiToggle.querySelector('.selected-emoji');
+        selectedEmoji.textContent = selecting ? button.dataset.emoji : '';
+        selectedEmoji.hidden = !selecting;
+        emojiToggle.querySelector('svg').style.display = selecting ? 'none' : '';
+        emojiToggle.setAttribute('aria-label', selecting ? `Reaktion: ${button.dataset.label}. Weitere Emojis auswählen` : 'Weitere Emojis auswählen');
+        closeEmojiPicker(true);
+      });
+    });
+    document.addEventListener('click', event => {
+      if (!reactionGroup.contains(event.target)) closeEmojiPicker();
+    });
+    document.addEventListener('focusin', event => {
+      if (!reactionGroup.contains(event.target)) closeEmojiPicker();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !emojiPicker.hidden) {
+        event.preventDefault();
+        closeEmojiPicker(true);
+      }
     });
     document.querySelectorAll('[data-demo]').forEach(button => {
       button.addEventListener('click', () => notify(`${button.dataset.demo} · Nur Designvorschau`));
