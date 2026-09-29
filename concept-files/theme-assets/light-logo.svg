@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 125" role="img" aria-labelledby="title">
+  <title id="title">Arche Radio</title>
+  <defs>
+    <path id="letter-arc" d="M 14 99 Q 225 28 432 99"/>
+    <linearGradient id="rainbow" x1="0" y1="0" x2="430" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff454a"/>
+      <stop offset="0.18" stop-color="#ff9d1c"/>
+      <stop offset="0.36" stop-color="#34b92e"/>
+      <stop offset="0.52" stop-color="#08a7c9"/>
+      <stop offset="0.7" stop-color="#087fe5"/>
+      <stop offset="1" stop-color="#633bd9"/>
+    </linearGradient>
+    <linearGradient id="waves" x1="440" y1="0" x2="520" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#079ce5"/>
+      <stop offset="1" stop-color="#0959d5"/>
+    </linearGradient>
+  </defs>
+  <text fill="url(#rainbow)" font-family="Arial Rounded MT Bold, Trebuchet MS, system-ui, sans-serif" font-size="72" font-weight="800" letter-spacing="-2">
+    <textPath href="#letter-arc" startOffset="50%" text-anchor="middle">Arche Radio</textPath>
+  </text>
+  <g fill="none" stroke="url(#waves)" stroke-width="8" stroke-linecap="round">
+    <path d="M 449 61 Q 463 77 449 94"/>
+    <path d="M 466 49 Q 489 77 466 107"/>
+    <path d="M 484 37 Q 517 77 484 119"/>
+  </g>
+</svg>

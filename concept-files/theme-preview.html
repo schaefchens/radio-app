@@ -23,36 +23,42 @@
     .segmented { display: flex; gap: 3px; padding: 4px; border-radius: 10px; background: #edf0f5; }
     .segmented button { border: 0; background: transparent; color: #626f83; border-radius: 7px; padding: 7px 13px; font-size: 12px; font-weight: 650; }
     .segmented button[aria-pressed="true"] { color: #152440; background: white; box-shadow: 0 1px 5px #15244018; }
-    .workspace { padding: 28px 20px 40px; }
+    .workspace { padding: 28px 10px 40px; }
     .preview { container-type: inline-size; width: 100%; max-width: 1536px; margin: auto; border-radius: 18px; overflow: clip; box-shadow: 0 18px 60px #14274425; }
     .preview[data-width="mobile"] { max-width: 420px; }
-    .page {
+    .page, .mobile-dock {
       --ink: #092d67; --muted: #587095; --accent: #0782ec; --line: #bbdaf0;
       --surface: #ffffffed; --soft: #edf7fce8; --base: #f6fbff;
       --texture: url('theme-assets/light-background.webp');
+      --mobile-bottom-art: url('theme-assets/light-bottom-mobile.webp');
       --header-art: url('theme-assets/light-top.webp');
       --mobile-hero-height: clamp(180px, 58cqw, 320px); --header-strip-height: 16px;
       color: var(--ink); background: var(--base) var(--texture) center top / 650px auto repeat;
     }
-    [data-theme="dark"] .page {
+    .page { position: relative; }
+    [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock {
       --ink: #eef6ff; --muted: #b5c7e7; --accent: #31b9ff; --line: #17618a;
       --surface: #042541eb; --soft: #103855c9; --base: #03234a;
       --texture: url('theme-assets/dark-background.webp');
+      --mobile-bottom-art: url('theme-assets/dark-bottom-mobile.webp');
       --header-art: url('theme-assets/dark-top.webp');
     }
     .hero { position: relative; }
     .hero-art { display: block; width: 100%; height: auto; mask-image: linear-gradient(#000 85%, transparent); }
     .brand { position: absolute; top: 39%; left: 31%; width: 39%; text-align: center; line-height: 1.1; }
     .brand h1 { margin: 0; font-size: clamp(22px, 4.3cqw, 58px); font-weight: 850; letter-spacing: -0.055em; white-space: nowrap; }
-    .brand-title { background: linear-gradient(90deg, #ff4146 0%, #ff8523 20%, #29b638 40%, #079bd5 62%, #0869e7 80%, #6932d9); color: transparent; background-clip: text; }
+    .brand-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .brand-title-arc { display: block; width: 100%; height: auto; }
     .brand-mark, .brand-subtitle-dark-mobile { display: none; }
     .brand p { margin: 7px 0 0; font-size: clamp(8px, 1.3cqw, 17px); font-weight: 650; color: #164d85; }
+    [data-theme="light"] .brand p { margin-top: -8px; }
     [data-theme="dark"] .brand { left: 46%; top: 28%; width: 47%; }
     [data-theme="dark"] .brand h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: clamp(25px, 5.3cqw, 68px); letter-spacing: -0.045em; }
-    [data-theme="dark"] .brand-title { background: none; color: #f8fcff; }
+    [data-theme="dark"] .brand-title { position: static; width: auto; height: auto; overflow: visible; clip-path: none; color: #f8fcff; }
+    [data-theme="dark"] .brand-title-arc { display: none; }
     [data-theme="dark"] .brand-title span { color: #ffd06c; }
     [data-theme="dark"] .brand p { color: #e4f0fc; font-weight: 450; }
-    .content { position: relative; width: min(900px, 88%); margin: -12px auto 0; }
+    .content { position: relative; width: min(900px, 94%); margin: -12px auto 0; }
     .player-dock { min-width: 0; }
     .desktop-nav, .host-card { display: none; }
     .header-strip { display: none; }
@@ -140,7 +146,10 @@
     .dots i:first-child { background: var(--accent); }
     .lower-scene { position: relative; margin-top: 20px; padding: 30px 0 24px; min-height: 30cqw; display: flex; flex-direction: column; justify-content: flex-end; }
     .bottom-art { position: absolute; inset: auto 0 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; mask-image: linear-gradient(transparent, #000 18%); }
-    .lower-content { position: relative; width: min(900px, 88%); margin: auto auto 0; }
+    .lower-content { position: relative; width: min(900px, 94%); margin: auto auto 0; }
+    .mobile-dock { display: none; }
+    .mobile-dock.is-mobile { display: block; position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 8; container-type: inline-size; background: var(--mobile-bottom-art) center bottom / 100% var(--mobile-art-height, 320px) no-repeat; box-shadow: none; }
+    .tray-toggle { display: none; }
     .actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
     .action { min-height: 106px; border: 1px solid #ffffff65; border-radius: 20px; padding: 16px 10px; color: white; box-shadow: inset 0 2px 4px #ffffff40, 0 7px 16px #03284a20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; font-size: 12px; line-height: 1.35; font-weight: 700; text-shadow: 0 1px 3px #0002; }
     .action:hover { filter: brightness(1.08); }
@@ -175,7 +184,7 @@
       .desktop-nav .nav-item { flex-direction: row; gap: 8px; font-size: clamp(11px, 1.1cqw, 16px); padding: 6px 10px; }
       .desktop-nav .nav-item[aria-current="page"] { box-shadow: 0 3px 0 var(--accent); }
       [data-theme="dark"] .desktop-nav { width: clamp(420px, 45cqw, 640px); background: #00182ae6; }
-      .content { display: grid; width: calc(100% - 40px); max-width: 1480px; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: 'player host' 'player community'; align-items: start; gap: 14px; margin-top: -14px; }
+      .content { display: grid; width: calc(100% - 20px); max-width: 1480px; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: 'player host' 'player community'; align-items: start; gap: 14px; margin-top: -14px; }
       .player-dock { grid-area: player; }
       .host-card { display: block; grid-area: host; }
       .community { grid-area: community; padding: 16px; margin: 0; }
@@ -195,7 +204,7 @@
       .quote p { font-size: 12px; line-height: 1.45; }
       .dots { padding-top: 12px; }
       .lower-scene { min-height: 180px; margin-top: 0; padding: 46px 0 28px; }
-      .lower-content { width: calc(100% - 64px); max-width: 1440px; }
+      .lower-content { width: calc(100% - 32px); max-width: 1440px; }
       .actions { gap: 16px; margin-bottom: 0; }
       .action { min-height: 86px; flex-direction: row; gap: 14px; text-align: left; padding: 16px; border-radius: 18px; font-size: clamp(13px, 1.2cqw, 18px); }
       .action svg { width: 34px; height: 34px; }
@@ -217,13 +226,13 @@
       [data-theme="dark"] .brand-subtitle-dark-mobile { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
       [data-theme="dark"] .brand-subtitle-dark-mobile::before, [data-theme="dark"] .brand-subtitle-dark-mobile::after { content: ''; flex: 1; min-width: 8px; height: 1px; background: #ffd06c; }
       [data-theme="dark"] .player-dock { margin-top: clamp(-75px, -20cqw, -64px); }
-      .content, .lower-content { width: 92%; }
+      .content, .lower-content { width: 96%; }
       /* No enclosing content box: the player stays pinned through the footer. */
       .content { display: contents; }
-      .player-dock { position: sticky; top: calc(var(--preview-top, 0px) + var(--header-strip-height)); z-index: 5; isolation: isolate; width: 92%; margin: -56px auto 0; }
-      .player-dock.is-pinned::before { content: ''; position: absolute; top: calc(-1 * var(--header-strip-height)); bottom: -10px; left: 50%; width: 100cqw; transform: translateX(-50%); background: var(--base) var(--texture) center top / 650px auto; z-index: -1; box-shadow: 0 8px 14px #00142918; }
-      .player-dock.is-pinned .header-strip { display: block; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); width: 100cqw; height: var(--header-strip-height); background: var(--base) var(--header-art) left top / auto var(--mobile-hero-height) no-repeat; pointer-events: none; }
-      .community { width: 92%; margin: 14px auto 0; }
+      .player-dock { position: sticky; top: calc(var(--preview-top, 0px) + var(--header-strip-height)); z-index: 5; isolation: isolate; width: 96%; margin: -56px auto 0; }
+      .player-dock.is-pinned::before { content: ''; position: absolute; top: 0; bottom: -10px; left: 50%; width: 100cqw; transform: translateX(-50%); background: var(--base) var(--texture) center top / 650px auto; z-index: -1; box-shadow: 0 8px 14px #00142918; }
+      .player-dock.is-pinned .header-strip { display: block; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); width: 100cqw; height: var(--header-strip-height); background: var(--base) var(--header-art) left calc(-1 * var(--header-sample-y)) / auto var(--mobile-hero-height) no-repeat; pointer-events: none; }
+      .community { width: 96%; margin: 14px auto 0; }
       .card { border-radius: 16px; }
       .station-row { padding: 8px 12px; gap: 8px; }
       .live { padding: 6px 9px; font-size: 10px; line-height: 1.2; gap: 5px; border-radius: 7px; flex-shrink: 0; }
@@ -259,20 +268,48 @@
       .quote p { font-size: 12px; }
       .quote time { display: block; margin-left: 0; }
       .quote strong { font-size: 12px; }
-      .lower-scene { margin-top: 8px; padding: 90px 0 14px; }
-      .bottom-art { object-fit: cover; width: 100%; }
+      .lower-scene { display: none; }
+      .page > .bottom-art { top: 0; bottom: auto; height: 76cqw; width: 100%; object-fit: cover; pointer-events: none; z-index: 0; }
+      .community { position: relative; z-index: 1; }
       .actions { gap: 7px; margin-bottom: 14px; }
+      .mobile-dock .lower-content { width: 96%; margin: 0 auto; }
+      .mobile-dock .action-tray { position: relative; padding-top: 25px; }
+      .mobile-dock .tray-toggle { display: flex; position: absolute; top: 0; left: 50%; transform: translateX(-50%); align-items: center; justify-content: center; width: 48px; height: 26px; padding: 0; border: 0; background: none; color: var(--accent); }
+      .mobile-dock .tray-toggle svg { width: 26px; height: 26px; stroke-width: 3; filter: drop-shadow(0 1px 2px #00162bbb); transition: transform .22s ease; }
+      [data-theme="light"] .mobile-dock .tray-toggle { color: #0b407a; }
+      [data-theme="dark"] .mobile-dock .tray-toggle { color: #effaff; }
+      .mobile-dock[data-expanded="true"] .tray-toggle svg { transform: rotate(180deg); }
+      .mobile-dock .actions-window { --expanded-height: 54px; height: 36px; overflow: hidden; transition: height .22s ease; }
+      .mobile-dock[data-expanded="true"] .actions-window { height: 54px; }
+      .mobile-dock .actions { margin-bottom: 0; }
+      .mobile-dock .action { min-height: 54px; min-width: 0; border-bottom: 0; border-radius: 14px 14px 0 0; padding: 7px 3px 3px; font-size: 9px; line-height: 1.1; }
+      .mobile-dock .action svg { width: 23px; height: 23px; }
+      .mobile-dock[data-expanded="false"] .action { justify-content: flex-start; }
+      .mobile-dock[data-expanded="false"] .action-copy { display: none; }
+      .mobile-dock[data-expanded="true"] .action { flex-direction: column; justify-content: center; align-items: center; gap: 2px; padding: 3px; text-align: center; }
+      .mobile-dock[data-expanded="true"] .action svg { width: 20px; height: 20px; }
+      .mobile-dock[data-expanded="true"] .action-copy { min-width: 0; width: 100%; }
+      .mobile-dock .navigation { margin-top: 0; }
+      [data-theme="dark"] .mobile-dock .navigation { background: #042541b8; }
+      [data-theme="light"] .mobile-dock .lower-content { width: 92%; }
+      [data-theme="light"] .mobile-dock .action-tray { width: 86%; margin-inline: auto; }
+      [data-theme="light"] .mobile-dock .navigation { left: auto; width: 100%; transform: none; padding: 9px 5px; border: 1px solid var(--line); border-radius: 15px; margin-bottom: 12px; background: #ffffffb8; box-shadow: 0 8px 20px #1b5b9626; }
       .action { border-radius: 14px; padding: 12px 4px; min-height: 105px; font-size: 10px; }
       .action svg { width: 25px; height: 25px; }
-      .navigation { padding: 9px 5px; border-radius: 15px; }
+      .navigation { position: relative; left: 50%; width: 100cqw; transform: translateX(-50%); padding: 9px 0; border-left: 0; border-right: 0; border-radius: 0; }
       .nav-item { font-size: 10px; }
+    }
+    @container (max-width: 400px) {
+      .mobile-dock .actions-window { --expanded-height: 60px; }
+      .mobile-dock[data-expanded="true"] .actions-window { height: 60px; }
+      .mobile-dock .action { min-height: 60px; }
     }
     @media (max-width: 650px) {
       .toolbar { position: static; padding: 11px 12px; gap: 10px; flex-wrap: wrap; }
       .toolbar-title small { font-size: 10px; }
       .controls { gap: 6px; }
       .segmented button { padding: 6px 9px; font-size: 11px; }
-      .workspace { padding: 16px 8px 28px; }
+      .workspace { padding: 16px 4px 28px; }
       .preview { border-radius: 12px; }
       .asset-note { padding: 0 12px; }
     }
@@ -314,7 +351,7 @@
       <div class="page">
         <header class="hero">
           <img class="hero-art" data-art="top" src="theme-assets/light-top.webp" width="2172" height="724" alt="">
-          <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><p><span class="brand-subtitle-default">Brüder Radio in Christus</span><span class="brand-subtitle-dark-mobile">Das Brüder-Radio in Christus</span></p></div>
+          <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><img class="brand-title-arc" src="theme-assets/light-logo.svg" alt=""><p><span class="brand-subtitle-default">Brüder Radio in Christus</span><span class="brand-subtitle-dark-mobile">Das Brüder-Radio in Christus</span></p></div>
           <nav class="desktop-nav" aria-label="Desktop-Navigation">
             <button type="button" class="nav-item" aria-current="page" data-nav="Live"><svg aria-hidden="true"><use href="#i-radio"/></svg>Live</button>
             <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Programm</button>
@@ -386,11 +423,16 @@
         <footer class="lower-scene">
           <img class="bottom-art" data-art="bottom" src="theme-assets/light-bottom.webp" width="2172" height="724" alt="">
           <div class="lower-content">
-            <div class="actions" aria-label="Mitmachen">
-              <button type="button" class="action purple" data-demo="Lied wünschen"><svg aria-hidden="true"><use href="#i-music"/></svg><span class="action-copy"><strong>Lied wünschen</strong><small>Welchen Song sollen wir spielen?</small></span></button>
-              <button type="button" class="action green" data-demo="Deine Geschichte"><svg aria-hidden="true"><use href="#i-mic"/></svg><span class="action-copy"><strong>Erzähle deine Geschichte</strong><small>Teile dein Zeugnis mit uns.</small></span></button>
-              <button type="button" class="action blue" data-demo="Gebetsanliegen teilen"><svg aria-hidden="true"><use href="#i-prayer"/></svg><span class="action-copy"><strong>Gebetsanliegen teilen</strong><small>Wir beten mit dir.</small></span></button>
-              <button type="button" class="action gold" data-demo="Raum betreten"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="action-copy"><strong>Raum betreten</strong><small>Komm in den Live-Chat.</small></span></button>
+            <div class="action-tray">
+              <button type="button" class="tray-toggle" aria-controls="submission-actions" aria-expanded="false" aria-label="Mitmachen ausklappen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 15 7-7 7 7"/></svg></button>
+              <div class="actions-window">
+                <div class="actions" id="submission-actions" aria-label="Mitmachen">
+                  <button type="button" class="action purple" data-demo="Lied wünschen"><svg aria-hidden="true"><use href="#i-music"/></svg><span class="action-copy"><strong>Lied wünschen</strong><small>Welchen Song sollen wir spielen?</small></span></button>
+                  <button type="button" class="action green" data-demo="Deine Geschichte"><svg aria-hidden="true"><use href="#i-mic"/></svg><span class="action-copy"><strong>Erzähle deine Geschichte</strong><small>Teile dein Zeugnis mit uns.</small></span></button>
+                  <button type="button" class="action blue" data-demo="Gebetsanliegen teilen"><svg aria-hidden="true"><use href="#i-prayer"/></svg><span class="action-copy"><strong>Gebetsanliegen teilen</strong><small>Wir beten mit dir.</small></span></button>
+                  <button type="button" class="action gold" data-demo="Raum betreten"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="action-copy"><strong>Raum betreten</strong><small>Komm in den Live-Chat.</small></span></button>
+                </div>
+              </div>
             </div>
             <nav class="navigation" aria-label="Demo-Navigation">
               <button type="button" class="nav-item" aria-current="page" data-nav="Live"><svg aria-hidden="true"><use href="#i-radio"/></svg>Live</button>
@@ -404,6 +446,7 @@
     </div>
     <p class="asset-note">Top-Banner + Hintergrundtextur + untere Szene · Alle Grafiken aus theme-assets/</p>
   </div>
+  <div class="mobile-dock" id="mobile-dock" data-expanded="false"></div>
   <div class="toast" role="status" aria-live="polite"></div>
   <script>
     const root = document.documentElement;
@@ -421,7 +464,8 @@
         button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
       });
       document.querySelectorAll('[data-art]').forEach(img => {
-        img.src = `theme-assets/${theme}-${img.dataset.art}.webp`;
+        const mobileSuffix = img.dataset.art === 'bottom' && preview.clientWidth <= 600 ? '-mobile' : '';
+        img.src = `theme-assets/${theme}-${img.dataset.art}${mobileSuffix}.webp`;
       });
     }
     document.querySelectorAll('[data-theme-choice]').forEach(button => {
@@ -595,17 +639,100 @@
     const toolbar = document.querySelector('.toolbar');
     const playerDock = document.querySelector('.player-dock');
     const page = document.querySelector('.page');
+    const hero = document.querySelector('.hero');
+    const lowerScene = document.querySelector('.lower-scene');
+    const bottomArt = document.querySelector('.bottom-art');
+    const lowerContent = document.querySelector('.lower-content');
+    const mobileDock = document.querySelector('#mobile-dock');
+    const trayToggle = document.querySelector('.tray-toggle');
+    const submissionActions = document.querySelector('#submission-actions');
+    const actionsWindow = document.querySelector('.actions-window');
+    const submissionButtons = [...submissionActions.querySelectorAll('button')];
     let pinOffset = 16;
     let mobilePreview = false;
     let scrollFrame = 0;
+    let wasAtBottom = false;
+    let autoExpandedAtBottom = false;
+    function updateBottomArt() {
+      if (!mobilePreview) return;
+      const top = window.innerHeight - bottomArt.getBoundingClientRect().height - page.getBoundingClientRect().top;
+      bottomArt.style.top = `${Math.max(0, top)}px`;
+    }
     function updatePinnedState() {
       scrollFrame = 0;
       playerDock.classList.toggle('is-pinned', mobilePreview && playerDock.getBoundingClientRect().top <= pinOffset + 0.5);
+      updateBottomArt();
+      const atBottom = mobilePreview && window.scrollY > 0 && document.documentElement.scrollHeight - window.scrollY - window.innerHeight <= 6;
+      if (atBottom && !wasAtBottom && trayToggle.getAttribute('aria-expanded') !== 'true') {
+        setTrayExpanded(true);
+        autoExpandedAtBottom = true;
+      } else if (!atBottom && wasAtBottom && autoExpandedAtBottom) {
+        setTrayExpanded(false);
+        autoExpandedAtBottom = false;
+      }
+      wasAtBottom = atBottom;
+    }
+    function updateDockSpace() {
+      if (mobilePreview) {
+        const artHeight = bottomArt.getBoundingClientRect().height;
+        const expandedHeight = parseFloat(getComputedStyle(actionsWindow).getPropertyValue('--expanded-height'));
+        const trayHeight = actionsWindow.getBoundingClientRect().height;
+        mobileDock.style.setProperty('--mobile-art-height', `${artHeight}px`);
+        const expandedDockHeight = mobileDock.getBoundingClientRect().height + Math.max(0, expandedHeight - trayHeight);
+        page.style.paddingBottom = `${Math.round(expandedDockHeight / 2)}px`;
+        updateBottomArt();
+      }
+    }
+    function setSubmissionAccess(enabled) {
+      submissionActions.toggleAttribute('inert', !enabled);
+      submissionActions.setAttribute('aria-hidden', String(!enabled));
+      submissionActions.style.pointerEvents = enabled ? '' : 'none';
+      submissionButtons.forEach(button => {
+        if (enabled) button.removeAttribute('tabindex');
+        else button.setAttribute('tabindex', '-1');
+      });
+    }
+    function setTrayExpanded(expanded) {
+      if (trayToggle.getAttribute('aria-expanded') === String(expanded)) return;
+      trayToggle.setAttribute('aria-expanded', String(expanded));
+      trayToggle.setAttribute('aria-label', expanded ? 'Mitmachen einklappen' : 'Mitmachen ausklappen');
+      mobileDock.dataset.expanded = String(expanded);
+      setSubmissionAccess(expanded);
+      updateDockSpace();
+    }
+    trayToggle.addEventListener('click', () => {
+      autoExpandedAtBottom = false;
+      setTrayExpanded(trayToggle.getAttribute('aria-expanded') !== 'true');
+    });
+    function updateMobileDock() {
+      if (mobilePreview) {
+        mobileDock.style.width = `${preview.clientWidth}px`;
+        mobileDock.classList.add('is-mobile');
+        if (bottomArt.parentElement !== page) page.prepend(bottomArt);
+        const mobileArt = `theme-assets/${root.dataset.theme}-bottom-mobile.webp`;
+        if (!bottomArt.src.endsWith(mobileArt)) bottomArt.src = mobileArt;
+        if (lowerContent.parentElement !== mobileDock) mobileDock.append(lowerContent);
+        setSubmissionAccess(trayToggle.getAttribute('aria-expanded') === 'true');
+        updateDockSpace();
+      } else {
+        if (bottomArt.parentElement !== lowerScene) lowerScene.prepend(bottomArt);
+        const desktopArt = `theme-assets/${root.dataset.theme}-bottom.webp`;
+        if (!bottomArt.src.endsWith(desktopArt)) bottomArt.src = desktopArt;
+        bottomArt.style.removeProperty('top');
+        if (lowerContent.parentElement !== lowerScene) lowerScene.append(lowerContent);
+        mobileDock.classList.remove('is-mobile');
+        setSubmissionAccess(true);
+        page.style.removeProperty('padding-bottom');
+      }
     }
     function updateStickyLayout() {
       mobilePreview = preview.clientWidth <= 600;
+      updateMobileDock();
       const toolbarHeight = getComputedStyle(toolbar).position === 'sticky' ? toolbar.getBoundingClientRect().height : 0;
       const stripHeight = parseFloat(getComputedStyle(page).getPropertyValue('--header-strip-height'));
+      const playerMargin = parseFloat(getComputedStyle(playerDock).marginTop);
+      const sampleY = hero.getBoundingClientRect().height + playerMargin - stripHeight;
+      root.style.setProperty('--header-sample-y', `${Math.max(0, sampleY)}px`);
       root.style.setProperty('--preview-top', `${toolbarHeight}px`);
       pinOffset = toolbarHeight + stripHeight;
       updatePinnedState();
@@ -616,6 +743,8 @@
     const layoutObserver = new ResizeObserver(updateStickyLayout);
     layoutObserver.observe(preview);
     layoutObserver.observe(toolbar);
+    const dockObserver = new ResizeObserver(updateDockSpace);
+    dockObserver.observe(mobileDock);
     updateStickyLayout();
   </script>
 </body>
