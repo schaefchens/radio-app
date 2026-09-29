@@ -45,6 +45,7 @@
     .brand { position: absolute; top: 39%; left: 31%; width: 39%; text-align: center; line-height: 1.1; }
     .brand h1 { margin: 0; font-size: clamp(22px, 4.3cqw, 58px); font-weight: 850; letter-spacing: -0.055em; white-space: nowrap; }
     .brand-title { background: linear-gradient(90deg, #ff4146 0%, #ff8523 20%, #29b638 40%, #079bd5 62%, #0869e7 80%, #6932d9); color: transparent; background-clip: text; }
+    .brand-mark, .brand-subtitle-dark-mobile { display: none; }
     .brand p { margin: 7px 0 0; font-size: clamp(8px, 1.3cqw, 17px); font-weight: 650; color: #164d85; }
     [data-theme="dark"] .brand { left: 46%; top: 28%; width: 47%; }
     [data-theme="dark"] .brand h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: clamp(25px, 5.3cqw, 68px); letter-spacing: -0.045em; }
@@ -183,8 +184,14 @@
       .brand { top: 43%; left: 50%; width: 48%; }
       .brand h1 { font-size: clamp(24px, 7cqw, 42px); }
       .brand p { margin-top: 6px; font-size: clamp(8px, 2.25cqw, 13px); }
-      [data-theme="dark"] .brand { top: 34%; left: 48%; width: 50%; text-shadow: 0 2px 8px #001429, 0 1px 2px #001429; }
-      [data-theme="dark"] .brand h1 { font-size: clamp(26px, 7.7cqw, 46px); }
+      [data-theme="dark"] .brand { top: 38%; left: 48%; width: 50%; text-shadow: 0 2px 8px #001429, 0 1px 2px #001429; }
+      [data-theme="dark"] .brand h1 { font-size: clamp(26px, 8.4cqw, 50px); }
+      [data-theme="dark"] .brand p { margin-top: 4px; font-size: clamp(8px, 2.6cqw, 14px); color: #f8fcff; }
+      [data-theme="dark"] .brand-mark { display: block; position: absolute; bottom: calc(100% + 11px); left: 75%; transform: translateX(-50%); width: clamp(32px, 9.5cqw, 52px); height: clamp(32px, 9.5cqw, 52px); color: #ffd06c; filter: drop-shadow(0 1px 3px #001429); }
+      [data-theme="dark"] .brand-subtitle-default { display: none; }
+      [data-theme="dark"] .brand-subtitle-dark-mobile { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+      [data-theme="dark"] .brand-subtitle-dark-mobile::before, [data-theme="dark"] .brand-subtitle-dark-mobile::after { content: ''; flex: 1; min-width: 8px; height: 1px; background: #ffd06c; }
+      [data-theme="dark"] .player-dock { margin-top: clamp(-75px, -20cqw, -64px); }
       .content, .lower-content { width: 92%; }
       /* No enclosing content box: the player stays pinned through the footer. */
       .content { display: contents; }
@@ -252,6 +259,7 @@
     <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M2 22v-3a7 7 0 0 1 14 0v3M17 3a4 4 0 0 1 0 8M18 14a6 6 0 0 1 4 6v2"/></symbol>
     <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/></symbol>
     <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="17" rx="2"/><path d="M7 2v6M17 2v6M3 11h18"/></symbol>
+    <symbol id="i-broadcast" viewBox="0 0 24 24" overflow="visible"><circle cx="12" cy="11" r="2" fill="currentColor" stroke="none"/><path d="M12 13v9M8 7a6 6 0 0 0 0 8M16 7a6 6 0 0 1 0 8M5 4a10 10 0 0 0 0 14M19 4a10 10 0 0 1 0 14M2 1a14 14 0 0 0 0 20M22 1a14 14 0 0 1 0 20"/></symbol>
     <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></symbol>
     <symbol id="i-prayer" viewBox="0 0 24 24"><path d="M12 3v12m0-12c-2 0-2 5-3 8s-3 5-6 7l4 4 5-7m0-12c2 0 2 5 3 8s3 5 6 7l-4 4-5-7"/></symbol>
   </svg>
@@ -273,7 +281,7 @@
       <div class="page">
         <header class="hero">
           <img class="hero-art" data-art="top" src="theme-assets/light-top.webp" width="2172" height="724" alt="">
-          <div class="brand"><h1 class="brand-title">Arche <span>Radio</span></h1><p>Brüder Radio in Christus</p></div>
+          <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><p><span class="brand-subtitle-default">Brüder Radio in Christus</span><span class="brand-subtitle-dark-mobile">Das Brüder-Radio in Christus</span></p></div>
           <nav class="desktop-nav" aria-label="Desktop-Navigation">
             <button type="button" class="nav-item" aria-current="page" data-nav="Live"><svg aria-hidden="true"><use href="#i-radio"/></svg>Live</button>
             <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Programm</button>
