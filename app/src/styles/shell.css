@@ -503,6 +503,13 @@
   .page {
     padding-bottom: calc(var(--dock-nav, 64px) + 16px);
   }
+  /* Scrolling down always ends with the player pinned under the strip, even
+     when there is little to read below it: the page is at least one screen
+     plus the distance the scenery scrolls away. */
+  .page[data-dock='player'],
+  .page[data-dock='stage'] {
+    min-height: calc(100vh + var(--mobile-hero-height) - var(--header-strip-height) - var(--dock-overlap));
+  }
   .page[data-dock='player'] {
     --tray-open: 54px;
     padding-bottom: calc((var(--dock-nav, 64px) + var(--tray-open)) / 2);

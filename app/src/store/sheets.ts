@@ -13,8 +13,9 @@ interface SheetsState {
 /**
  * Which submission sheet is open. A store, not page state: the tiles render
  * in the phone dock, in the scene below the page and next to the prayer
- * wall, but each sheet is mounted once (AppShell) — a closed sheet stays in
- * the DOM, and two copies would share their form ids.
+ * wall, but each sheet is mounted once (AppShell, on Home) — a closed sheet stays in
+ * the DOM, and two copies would share their form ids. Only Home has tiles,
+ * so only Home mounts the sheets.
  */
 export const useSheets = create<SheetsState>()((set) => ({
   open: null,

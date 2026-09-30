@@ -12,7 +12,7 @@ import { ChatIcon, MicIcon, MusicIcon, PrayIcon } from '@/components/common/icon
 
 type Tile = 'song' | 'story' | 'prayer' | 'room';
 
-/** The three submission sheets, mounted once for the whole app (AppShell). */
+/** The three submission sheets, mounted once, on Home (AppShell). */
 export function SubmitSheets() {
   const open = useSheets((s) => s.open);
   const recordKind = useSheets((s) => s.recordKind);

@@ -60,7 +60,8 @@ export function AppShell() {
       <img className="mobile-art" src={art.bottomMobile} alt="" />
       <MobileDock withTiles={onHome} />
 
-      <SubmitSheets />
+      {/* Mounted once, where the tiles are (a closed sheet stays in the DOM). */}
+      {onHome && <SubmitSheets />}
       <WelcomeDialog />
     </div>
   );
