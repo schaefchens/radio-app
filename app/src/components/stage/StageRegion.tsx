@@ -14,7 +14,7 @@ import { PlayIcon } from '@/components/common/icons';
  * player (PlayerLayer) covers while a song plays. 16:9 and never lower than
  * 200 px, so the player is never below YouTube's 200×200 minimum.
  */
-export function StageRegion({ compact = false }: { compact?: boolean }) {
+export function StageRegion({ compact = false, flush = false }: { compact?: boolean; flush?: boolean }) {
   const { t } = useTranslation();
   const engine = useRadio((s) => s.engine);
   const setConsent = useSettings((s) => s.setConsent);
@@ -62,17 +62,17 @@ export function StageRegion({ compact = false }: { compact?: boolean }) {
         // The stage is a dark room in every theme: our own visuals under the
         // video take the dark tokens, whatever the page around them shows.
         data-theme="dark"
-        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-line/30 bg-soft shadow-card"
+        // flush: inside the player card, edge to edge between its rows.
+        className={clsx('player-stage relative aspect-video w-full overflow-hidden', !flush && 'rounded-2xl border border-line/30 shadow-card')}
         style={{ minHeight: 200 }}
       >
         <StageVisual engine={engine} />
         {!engine.joined && (
-          <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2 bg-gradient-to-t from-soft/95 via-soft/60 to-transparent px-4 pb-4 pt-16 text-center">
-            <button type="button" onClick={join} className="btn-primary px-6 py-3 text-base shadow-glow">
-              <PlayIcon size={18} />
-              {t('join.button')}
+          <div className="join-overlay">
+            <button type="button" onClick={join} className="play-button" aria-label={t('join.button')} title={t('join.button')}>
+              <PlayIcon />
             </button>
-            <p className="max-w-md text-[0.7rem] leading-snug text-ink-muted">
+            <p className="stage-subtitle">
               {t('join.consent')}{' '}
               <Link to="/datenschutz" className="underline">
                 {t('join.privacy')}
@@ -86,7 +86,7 @@ export function StageRegion({ compact = false }: { compact?: boolean }) {
         <button
           type="button"
           onClick={resumeRadio}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-accent-fill/30 bg-accent-fill/10 px-3 py-2 text-sm text-accent"
+          className={clsx('flex w-full items-center justify-center gap-2 border-accent/30 bg-accent/10 px-3 py-2 text-sm text-accent', flush ? 'border-y' : 'mt-2 rounded-xl border')}
         >
           <PlayIcon size={14} />
           {engine.playerVisible ? t('stage.tapVideo') : t('stage.resume')}

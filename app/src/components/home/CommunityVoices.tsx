@@ -1,88 +1,55 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import clsx from 'clsx';
-import type { Lang, ReactionKind, Voice } from '@arche/shared';
-import { useRadio } from '@/store/radio';
+import type { Voice } from '@arche/shared';
 import { reactVoice } from '@/lib/radio';
-import { ago, countryName } from '@/lib/format';
+import { ago } from '@/lib/format';
 import { useServerNow } from './useServerNow';
-import { ArrowRightIcon, HeartIcon, PrayIcon, SmileIcon } from '@/components/common/icons';
+import { Reactions } from './Reactions';
+import { useVoices } from './useVoices';
+import { ChatIcon } from '@/components/common/icons';
 
-const MORE: ReactionKind[] = ['smile', 'raise', 'peace', 'fire'];
-const EMOJI: Record<ReactionKind, string> = { heart: '❤️', pray: '🙏', smile: '😊', raise: '🙌', peace: '🕊️', fire: '🔥', love: '😍', moved: '🥹', hope: '✨', celebrate: '🎉' };
-const TINTS = ['from-pink-300 to-rose-200', 'from-sky-300 to-indigo-200', 'from-violet-300 to-fuchsia-200', 'from-amber-200 to-orange-200', 'from-emerald-200 to-teal-200'];
+/** Desktop shows this many; the phone carousel rotates through all of them. */
+const DESKTOP_VOICES = 4;
 
-/** Voices from the community: react once and the voice makes room for the next. */
-export function CommunityVoices({ voices: extra }: { voices?: Voice[] }) {
+/** "Community voices" on desktop, beside the player. */
+export function CommunityVoices() {
   const { t } = useTranslation();
-  const engine = useRadio((s) => s.engine);
-  const answered = useRadio((s) => s.answered);
-  const [leaving, setLeaving] = useState<Record<string, true>>({});
-  const all = [...(extra ?? []), ...engine.voices];
-  const seen = new Set<string>();
-  const visible = all.filter((v) => !answered[v.id] && !seen.has(v.id) && seen.add(v.id)).slice(0, 3);
-
-  const answer = (v: Voice, kind: ReactionKind): void => {
-    setLeaving((l) => ({ ...l, [v.id]: true }));
-    window.setTimeout(() => reactVoice(v.id, kind), 420);
-  };
-
+  const voices = useVoices();
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-lg font-semibold">{t('voices.title')}</h2>
-        <Link to="/chat" className="inline-flex items-center gap-1 text-sm text-accent hover:underline">
-          {t('voices.seeMore')} <ArrowRightIcon size={16} />
-        </Link>
-      </div>
-      {visible.length === 0 && <p className="card px-4 py-3 text-sm text-ink-muted">{t('voices.empty')}</p>}
-      {visible.map((v, i) => (
-        <VoiceCard key={v.id} voice={v} tint={TINTS[i % TINTS.length]!} leaving={!!leaving[v.id]} onAnswer={(k) => answer(v, k)} />
+    <section className="card community" aria-label={t('voices.title')}>
+      <VoicesHeading />
+      {voices.length === 0 && <p className="feed-empty">{t('voices.empty')}</p>}
+      {voices.slice(0, DESKTOP_VOICES).map((v) => (
+        <VoiceMessage key={v.id} voice={v} />
       ))}
     </section>
   );
 }
 
-function VoiceCard({ voice, tint, leaving, onAnswer }: { voice: Voice; tint: string; leaving: boolean; onAnswer: (k: ReactionKind) => void }) {
-  const { t, i18n } = useTranslation();
-  const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
-  const now = useServerNow(30_000);
-  const [more, setMore] = useState(false);
-  const initials = voice.name.split(/\s+/).map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase() || '?';
+export function VoicesHeading() {
+  const { t } = useTranslation();
   return (
-    <div className={clsx('card relative flex items-center gap-3 px-3 py-2.5', leaving ? 'animate-fade-out' : 'animate-fly-in')}>
-      <div className={clsx('flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-soft', tint)}>
-        {initials}
+    <div className="section-heading">
+      <ChatIcon />
+      <h2>{t('voices.title')}</h2>
+      <Link to="/chat" className="text-button">
+        {t('voices.seeMore')} →
+      </Link>
+    </div>
+  );
+}
+
+export function VoiceMessage({ voice, onActivity }: { voice: Voice; onActivity?: (pickerOpen: boolean) => void }) {
+  const { i18n } = useTranslation();
+  const now = useServerNow(30_000);
+  return (
+    <div className="quote feed-message">
+      <div className="message-copy">
+        <strong>{voice.name}</strong>
+        {voice.at > 0 && <time dateTime={new Date(voice.at).toISOString()}>{ago(voice.at, now, i18n.language)}</time>}
+        <p>{voice.text}</p>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-xs text-ink-muted">
-          <span className="font-semibold text-accent">{voice.name}</span>
-          {voice.country && ` · ${countryName(voice.country, lang)}`}
-          {voice.at > 0 && ` · ${ago(voice.at, now, lang)}`}
-        </p>
-        <p className="line-clamp-2 text-sm text-ink">{voice.text}</p>
-      </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <button type="button" aria-label={t('reactions.heart')} onClick={() => onAnswer('heart')} className="rounded-xl border border-line/30 p-2.5 text-ink-muted transition-colors hover:border-heart/50 hover:bg-heart/15 hover:text-heart">
-          <HeartIcon size={20} />
-        </button>
-        <button type="button" aria-label={t('reactions.pray')} onClick={() => onAnswer('pray')} className="rounded-xl border border-line/30 p-2.5 text-ink-muted transition-colors hover:border-accent-fill/60 hover:bg-accent-fill/20 hover:text-accent">
-          <PrayIcon size={20} />
-        </button>
-        <button type="button" aria-label={t('voices.more')} aria-expanded={more} onClick={() => setMore((m) => !m)} className="rounded-full border border-line/30 p-1.5 text-ink-muted hover:text-ink">
-          <SmileIcon size={16} />
-        </button>
-      </div>
-      {more && (
-        <div className="absolute -top-11 right-2 z-10 flex gap-1 rounded-2xl border border-line/40 bg-soft/95 p-1.5 shadow-card">
-          {MORE.map((k) => (
-            <button key={k} type="button" aria-label={t(`reactions.${k}`)} onClick={() => onAnswer(k)} className="rounded-xl px-2 py-1 text-lg hover:bg-surface">
-              {EMOJI[k]}
-            </button>
-          ))}
-        </div>
-      )}
+      <Reactions markId={`voice:${voice.id}`} variant="feed" onSend={(kind) => reactVoice(voice.id, kind)} onActivity={onActivity} />
     </div>
   );
 }

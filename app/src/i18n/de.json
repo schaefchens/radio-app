@@ -35,7 +35,8 @@
     "badge": "LIVE",
     "listeners_one": "{{count}} hört gerade zu",
     "listeners_other": "{{count}} hören gerade zu",
-    "upNext": "Gleich: {{title}} um {{time}}"
+    "upNext": "Gleich: {{title}} um {{time}}",
+    "listeningNow": "hören gerade zu"
   },
   "nowPlaying": {
     "eyebrow": "Läuft gerade",
@@ -44,27 +45,37 @@
     "host": "On air: {{name}}",
     "jingle": "Arche Radio",
     "contrib": "{{name}} erzählt",
-    "react": "Auf dieses Lied reagieren"
+    "openYouTube": "{{title}} auf YouTube öffnen",
+    "position": "{{elapsed}} von {{duration}}"
   },
   "host": {
-    "says": "Unsere KI-Moderatorin sagt:",
     "idle": "{{name}} meldet sich zwischen den Liedern wieder.",
-    "aiNote": "KI-Moderation"
+    "aiNote": "KI-Moderation",
+    "heading": "Stimme der Moderation"
   },
   "voices": {
     "title": "Stimmen der Gemeinschaft",
     "seeMore": "Mehr",
-    "empty": "Noch keine Stimmen – komm in einen Raum und sag Hallo.",
-    "more": "Weitere Reaktionen",
-    "thanks": "Danke!"
+    "empty": "Noch keine Stimmen – komm in den Raum und sag Hallo."
   },
   "reactions": {
-    "heart": "Liebe",
-    "pray": "Beten",
+    "heart": "Gefällt mir",
+    "pray": "Ich bete mit",
     "smile": "Lächeln",
     "raise": "Lob",
     "peace": "Frieden",
-    "fire": "Begeistert"
+    "fire": "Begeistert",
+    "prayed": "Ich habe mitgebetet",
+    "love": "Liebe",
+    "moved": "Berührt",
+    "hope": "Hoffnung",
+    "celebrate": "Feiern",
+    "chooseEmoji": "Emoji auswählen",
+    "chosen": "Reaktion: {{name}}. Anderes Emoji auswählen",
+    "yours": "Deine Reaktion",
+    "song": "Auf das Lied reagieren",
+    "message": "Auf die Nachricht reagieren",
+    "emojis": "Emoji-Reaktionen"
   },
   "submit": {
     "song": {
@@ -643,7 +654,7 @@
     "consentOn": "Du hast eingewilligt, dass die Musikvideos von YouTube (Google) geladen werden.",
     "consentOff": "YouTube wird nicht geladen – erst, wenn du auf „Tap to join live“ tippst.",
     "withdraw": "YouTube-Einwilligung widerrufen",
-    "forgetHint": "Lösche alles, was Arche Radio auf diesem Gerät speichert: Gerätekennung, Einstellungen und Passphrase. Deine bisherigen Einsendungen erscheinen dann hier nicht mehr unter „Meine Beiträge“.",
+    "forgetHint": "Lösche alles, was Arche Radio auf diesem Gerät speichert: Gerätekennung, Einstellungen, Reaktionen und Passphrase. Deine bisherigen Einsendungen erscheinen dann hier nicht mehr unter „Meine Beiträge“.",
     "forget": "Daten auf diesem Gerät löschen",
     "forgetConfirm": "Die Daten von Arche Radio auf diesem Gerät löschen? Ohne deine 12 Wörter kommt deine Passphrase-Identität nicht zurück."
   },
@@ -657,5 +668,38 @@
   "brand": {
     "name": "Arche Radio",
     "subtitle": "Das Brüder-Radio in Christus"
+  },
+  "player": {
+    "label": "Radio-Player",
+    "playHint": "Mit Tippen auf Play wird YouTube geladen."
+  },
+  "wall": {
+    "title": "Gebetswand",
+    "more": "Mehr",
+    "empty": "Noch keine Gebetsanliegen an der Wand.",
+    "share": "Teile deins",
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "intro": "Gebetsanliegen von Hörerinnen und Hörern, die sie teilen wollten. Betet mit."
+  },
+  "emoji": {
+    "hallelujah": "Halleluja",
+    "joy": "Freude",
+    "excited": "Begeisterung",
+    "moved": "Berührt",
+    "peace": "Frieden",
+    "hope": "Hoffnung",
+    "celebrate": "Feiern",
+    "onFire": "Feuer und Flamme",
+    "cheer": "Jubeln",
+    "thanks": "Dankbarkeit",
+    "love": "Liebe"
+  },
+  "carousel": {
+    "label": "Stimmen, Moderation und Gebetswand",
+    "roledesc": "Karussell",
+    "slide": "{{n}} von {{total}}: {{name}}",
+    "show": "Bereich anzeigen: {{name}}",
+    "pick": "Bereiche wählen"
   }
 }

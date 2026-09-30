@@ -102,7 +102,7 @@ function Linked({ text }: { text: string }) {
   );
 }
 
-const DEVICE_KEYS = ['arche.device', 'arche.settings', 'arche.passphrase'];
+const DEVICE_KEYS = ['arche.device', 'arche.settings', 'arche.passphrase', 'arche.reactions'];
 
 /** What the privacy policy promises the listener can do here, without writing to anyone. */
 function PrivacySettings() {

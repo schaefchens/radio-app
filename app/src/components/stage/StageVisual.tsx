@@ -26,7 +26,8 @@ export function StageVisual({ engine }: { engine: EngineState }) {
     <div className="absolute inset-0 z-0 select-none">
       <Backdrop image={image} color={program?.color ?? '#2f7bff'} calm={engine.mode === 'silence'} />
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center">
+      {/* Before joining, the round play button has the stage to itself. */}
+      <div className={clsx('absolute inset-0 flex flex-col items-center justify-center p-5 text-center', !engine.joined && 'invisible')}>
         {engine.mode === 'host' && (
           <HostMoment name={hostName} avatar={channel?.host.avatar ?? null} text={engine.hostText} label={t('stage.hostSpeaking', { name: hostName })} />
         )}

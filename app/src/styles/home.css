@@ -1,0 +1,1187 @@
+/*
+ * The live page of concept-files/theme-preview.html: the player card, the
+ * host, the community voices, the prayer wall, the phone carousel. Same
+ * class names as the preview; its @container rules are media queries here
+ * (phone ≤ 600 px, desktop ≥ 900), cqw is vw. See shell.css for the frame.
+ */
+
+/* --- layout ----------------------------------------------------------------- */
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  width: min(900px, 94%);
+  margin: -12px auto 0;
+}
+.player-dock {
+  position: relative;
+  z-index: 5;
+  min-width: 0;
+}
+.player-dock .player-card {
+  box-shadow: var(--player-shadow);
+}
+.content .card {
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+/* --- the player card ----------------------------------------------------------- */
+
+/* The card may not clip the song's emoji picker, which hangs below it. */
+.content .player-card {
+  overflow: visible;
+}
+.player-card > :first-child {
+  border-radius: 22px 22px 0 0;
+}
+.station-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 26px;
+}
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: #ff2344;
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.live::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+}
+.station-name {
+  flex: 1;
+  min-width: 0;
+}
+.station-name strong {
+  display: block;
+  font-size: 19px;
+  line-height: 1.3;
+}
+.station-name small {
+  display: block;
+  overflow: hidden;
+  color: rgb(var(--ink-muted));
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.channel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+.channel-button strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.channel-button svg {
+  flex: 0 0 auto;
+  color: rgb(var(--accent));
+}
+.listeners {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 9px;
+  color: rgb(var(--ink-muted));
+  font-size: 11px;
+}
+.listeners svg {
+  width: 24px;
+  height: 24px;
+}
+.listeners strong {
+  display: block;
+  color: rgb(var(--ink));
+  font-size: 18px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.player-stage {
+  background: #071525;
+}
+
+/* The join overlay: the round play button over the stage, before YouTube loads. */
+.join-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(0deg, #000a, transparent 45%);
+}
+.play-button {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: auto;
+  border: 1px solid #ffffffc0;
+  border-radius: 50%;
+  background: #08142155;
+  color: #fff;
+  box-shadow: 0 5px 30px #0002;
+  transition: transform 0.2s;
+}
+.play-button:hover {
+  transform: scale(1.06);
+}
+.play-button:focus-visible {
+  outline: 3px solid #249dff;
+  outline-offset: 4px;
+}
+.play-button svg {
+  width: 30px;
+  height: 30px;
+}
+.stage-subtitle {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  right: 12px;
+  margin: 0;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+  text-shadow: 0 1px 4px #000;
+}
+
+.track-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'cover track reactions'
+    'cover progress progress';
+  align-items: center;
+  gap: 8px 16px;
+  padding: 20px 26px;
+}
+.cover {
+  grid-area: cover;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 88px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgb(var(--soft) / var(--soft-a));
+  color: rgb(var(--ink-muted));
+}
+.cover img {
+  object-position: 53% center;
+}
+.track {
+  grid-area: track;
+  min-width: 0;
+}
+.track .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: rgb(var(--accent));
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.track .eyebrow svg {
+  width: 13px;
+  height: 13px;
+}
+.track strong {
+  display: block;
+  overflow: hidden;
+  font-size: 17px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track strong a {
+  color: inherit;
+  text-decoration: none;
+}
+.track strong a:hover {
+  text-decoration: underline;
+}
+.track small {
+  display: block;
+  overflow: hidden;
+  color: rgb(var(--ink-muted));
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track-request {
+  color: rgb(var(--accent));
+}
+.track-progress {
+  grid-area: progress;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: rgb(var(--ink-muted));
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.track-progress time {
+  flex-shrink: 0;
+}
+.song-progress {
+  position: relative;
+  flex: 1;
+  min-width: 24px;
+  height: 5px;
+  border-radius: 5px;
+  background: rgb(var(--line));
+}
+.song-progress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  background: rgb(var(--accent));
+  transition: width 0.5s linear;
+}
+.song-progress span::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgb(var(--accent));
+  transform: translateY(-50%);
+}
+
+/* --- reactions -------------------------------------------------------------- */
+
+.reactions {
+  position: relative;
+  grid-area: reactions;
+  align-self: start;
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+}
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 12px;
+  background: rgb(var(--soft) / var(--soft-a));
+  color: rgb(var(--ink));
+}
+.icon-button svg {
+  width: 24px;
+  height: 24px;
+}
+.icon-button[aria-expanded='true'] {
+  color: rgb(var(--accent));
+  border-color: rgb(var(--accent));
+}
+.icon-button[aria-pressed='true'] {
+  color: #ff3c64;
+  border-color: #ff3c64;
+}
+.icon-button[aria-pressed='true'] svg {
+  fill: #ff3c6424;
+}
+.icon-button[data-reaction='prayer'][aria-pressed='true'] {
+  color: #dda12b;
+  border-color: #dda12b;
+}
+.icon-button[data-reaction='prayer'][aria-pressed='true'] svg {
+  fill: #dda12b24;
+}
+.reactions .selected-emoji {
+  font-size: 21px;
+  line-height: 1;
+}
+/* Below the buttons, never above: above is the YouTube player. */
+.emoji-picker {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 8;
+  width: 212px;
+  padding: 12px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 14px;
+  background: rgb(var(--base));
+  box-shadow: 0 8px 30px #00142955;
+}
+.emoji-picker p {
+  margin: 0 0 8px;
+  color: rgb(var(--ink));
+  font-size: 12px;
+  font-weight: 650;
+}
+.emoji-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+.emoji-options button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgb(var(--soft) / var(--soft-a));
+  font-size: 23px;
+}
+.emoji-options button:hover,
+.emoji-options button[aria-pressed='true'] {
+  border-color: rgb(var(--accent));
+  background: rgb(var(--surface) / var(--surface-a));
+}
+
+/* --- cards: headings, voices, prayers --------------------------------------- */
+
+.community {
+  padding: 24px 26px;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.section-heading svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+.section-heading h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.text-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(var(--accent));
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.text-button:hover {
+  text-decoration: underline;
+}
+.quote {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+  margin: 19px 0 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgb(var(--soft) / var(--soft-a));
+}
+.quote strong {
+  font-size: 13px;
+}
+.quote time {
+  margin-left: 10px;
+  color: rgb(var(--ink-muted));
+  font-size: 10px;
+}
+.quote p {
+  margin: 5px 0 0;
+  color: rgb(var(--ink));
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.feed-message {
+  display: block;
+  position: relative;
+}
+.feed-message .message-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 8px;
+}
+.feed-message time {
+  margin: 0;
+  white-space: nowrap;
+}
+.feed-message p {
+  grid-column: 1 / -1;
+}
+.prayer-entry time {
+  grid-column: 2;
+  justify-self: end;
+}
+.feed-reactions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-top: 7px;
+}
+.feed-reaction {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgb(var(--line));
+  border-radius: 8px;
+  background: rgb(var(--surface) / var(--surface-a));
+  color: rgb(var(--ink-muted));
+}
+.feed-reaction svg {
+  width: 16px;
+  height: 16px;
+}
+.feed-reaction[aria-pressed='true'] {
+  color: #ff3c64;
+  border-color: currentColor;
+}
+.feed-reaction[aria-pressed='true'] svg {
+  fill: #ff3c6424;
+}
+.feed-reaction[data-reaction='prayer'][aria-pressed='true'] {
+  color: #dda12b;
+}
+.feed-reaction[data-reaction='prayer'][aria-pressed='true'] svg {
+  fill: #dda12b24;
+}
+.prayer-entry .feed-reaction[data-reaction='prayer'] {
+  font-size: 18px;
+}
+.feed-emoji-toggle[aria-expanded='true'] {
+  color: rgb(var(--accent));
+  border-color: rgb(var(--accent));
+}
+.feed-reaction .selected-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+.feed-emoji-picker {
+  position: absolute;
+  right: 7px;
+  bottom: 42px;
+  z-index: 4;
+  display: flex;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 10px;
+  background: rgb(var(--base));
+  box-shadow: 0 5px 18px #00142955;
+}
+.feed-emoji-picker button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: rgb(var(--soft) / var(--soft-a));
+  font-size: 18px;
+}
+.feed-emoji-picker button:hover,
+.feed-emoji-picker button:focus-visible,
+.feed-emoji-picker button[aria-pressed='true'] {
+  border-color: rgb(var(--accent));
+  background: rgb(var(--surface) / var(--surface-a));
+}
+.feed-empty {
+  margin: 12px 0 0;
+  color: rgb(var(--ink-muted));
+  font-size: 13px;
+}
+.feed-empty p {
+  margin: 0 0 4px;
+}
+.prayer-wall-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.prayer-wall-list .quote {
+  margin: 0;
+  padding: 12px;
+}
+
+/* --- the host --------------------------------------------------------------- */
+
+.host-card {
+  display: none;
+  padding: 18px;
+}
+.host-card .section-heading {
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgb(var(--line));
+}
+.host-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+}
+.host-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  border: 2px solid #f6c15b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, #66c3db, #164c85 65%);
+  color: #fff;
+}
+.host-avatar svg {
+  width: 32px;
+  height: 32px;
+}
+.host-message {
+  flex: 1;
+  min-width: 0;
+}
+.host-message strong {
+  font-size: 14px;
+}
+.host-message p {
+  margin: 8px 0 0;
+  color: rgb(var(--ink-muted));
+  font-size: 12px;
+}
+.host-badge {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #ff2344;
+  color: white;
+  font-size: 9px;
+  font-weight: 750;
+}
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+  margin-top: 8px;
+  color: rgb(var(--accent));
+}
+.waveform i {
+  flex: 1;
+  min-width: 2px;
+  max-width: 4px;
+  height: var(--bar);
+  border-radius: 4px;
+  background: currentColor;
+  opacity: 0.55;
+}
+.waveform.is-speaking i {
+  opacity: 1;
+  animation: wave 0.9s ease-in-out infinite alternate;
+}
+@keyframes wave {
+  from {
+    transform: scaleY(0.35);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* --- desktop: the prayer wall under the player -------------------------------- */
+
+.desktop-prayer-wall {
+  --ink: 91 59 18;
+  --ink-muted: 132 96 46;
+  --accent: 164 91 0;
+  --soft: 255 237 195;
+  --heading: 233 201 123;
+  display: none;
+  color: rgb(var(--ink));
+  background: #fff4dc;
+  border-color: #deb35f;
+}
+:root[data-theme='dark'] .desktop-prayer-wall {
+  --ink: 255 242 214;
+  --ink-muted: 223 196 156;
+  --accent: 255 203 115;
+  --soft: 73 54 27;
+  --heading: 33 24 14;
+  background: #332611;
+  border-color: #a8782c;
+}
+.is-entering {
+  animation: feed-in 0.35s ease-out both;
+}
+@keyframes feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- phone: the carousel ---------------------------------------------------------- */
+
+.mobile-carousel {
+  display: none;
+  transition:
+    background-color 0.28s ease,
+    border-color 0.28s ease,
+    color 0.28s ease;
+}
+.mobile-carousel[data-active-panel='moderator'] {
+  --accent: 8 127 145;
+  --soft: 225 242 244;
+  background: #f0fafb;
+  border-color: #a5d8e1;
+}
+:root[data-theme='dark'] .mobile-carousel[data-active-panel='moderator'] {
+  --accent: 115 214 228;
+  --soft: 23 62 80;
+  background: #0c3044;
+  border-color: #32798d;
+}
+.mobile-carousel[data-active-panel='prayers'] {
+  --ink: 91 59 18;
+  --ink-muted: 132 96 46;
+  --accent: 164 91 0;
+  --soft: 255 237 195;
+  color: rgb(var(--ink));
+  background: #fff4dc;
+  border-color: #deb35f;
+}
+:root[data-theme='dark'] .mobile-carousel[data-active-panel='prayers'] {
+  --ink: 255 242 214;
+  --ink-muted: 223 196 156;
+  --accent: 255 203 115;
+  --soft: 73 54 27;
+  background: #332611;
+  border-color: #a8782c;
+}
+.mobile-carousel .carousel-stage {
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
+  cursor: grab;
+}
+.mobile-carousel .carousel-stage:active {
+  cursor: grabbing;
+}
+.mobile-carousel .carousel-track {
+  display: flex;
+  align-items: stretch;
+  transition: transform 0.28s ease;
+}
+.mobile-carousel .carousel-slide {
+  display: flex;
+  flex: 0 0 100%;
+  flex-direction: column;
+  min-width: 0;
+}
+.mobile-carousel .carousel-body {
+  flex: 1;
+  margin-inline: 11px;
+}
+.mobile-carousel .carousel-body .quote {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-height: 110px;
+  margin-top: 9px;
+  padding: 9px;
+  border-radius: 0;
+}
+.mobile-carousel .feed-message .message-copy {
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  column-gap: 7px;
+}
+.mobile-carousel .feed-message time {
+  grid-column: 2;
+  justify-self: start;
+}
+.mobile-carousel .prayer-entry time {
+  grid-column: 1;
+}
+.mobile-carousel .feed-message p {
+  margin-top: 11px;
+}
+.mobile-carousel .prayer-entry p {
+  margin-top: 14px;
+}
+.mobile-carousel .carousel-body .feed-reactions {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  margin: 0;
+}
+.mobile-carousel .feed-emoji-picker {
+  top: 40px;
+  bottom: auto;
+}
+.mobile-carousel .carousel-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(var(--accent));
+  transform: translateY(-50%);
+}
+.mobile-carousel .carousel-arrow:hover {
+  color: rgb(var(--ink));
+}
+.mobile-carousel .carousel-arrow svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2.2;
+}
+.mobile-carousel .carousel-arrow.previous {
+  left: -6px;
+}
+.mobile-carousel .carousel-arrow.next {
+  right: -6px;
+}
+.mobile-carousel .carousel-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 5px;
+}
+.mobile-carousel .carousel-pagination button {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(var(--ink-muted));
+  opacity: 0.55;
+}
+.mobile-carousel .carousel-pagination button[aria-pressed='true'] {
+  background: rgb(var(--accent));
+  opacity: 1;
+}
+.mobile-carousel .moderator-body {
+  display: flex;
+  align-items: stretch;
+}
+.mobile-carousel .host-body {
+  width: 100%;
+  margin-top: 9px;
+  padding: 9px;
+  gap: 10px;
+  border-radius: 0;
+  background: rgb(var(--soft) / var(--soft-a));
+}
+.mobile-carousel .host-avatar {
+  width: 52px;
+  height: 52px;
+}
+.mobile-carousel .host-avatar svg {
+  width: 25px;
+  height: 25px;
+}
+.mobile-carousel .host-message p {
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.mobile-carousel .waveform {
+  height: 18px;
+  margin-top: 4px;
+}
+
+/* --- tablet: one column, everything shown ------------------------------------- */
+
+@media (min-width: 601px) {
+  .host-card,
+  .desktop-prayer-wall {
+    display: block;
+  }
+  .desktop-prayer-wall {
+    margin-top: 14px;
+    padding: 8px 12px 12px;
+  }
+}
+
+/* --- desktop ------------------------------------------------------------------ */
+
+@media (min-width: 900px) {
+  .content {
+    grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'player host'
+      'player community';
+    align-items: start;
+    width: calc(100% - 20px);
+    max-width: 1480px;
+    margin-top: -14px;
+  }
+  .player-dock {
+    grid-area: player;
+  }
+  .host-card {
+    grid-area: host;
+    padding: 8px 12px 12px;
+  }
+  .community {
+    grid-area: community;
+    margin: 0;
+    padding: 8px 12px 12px;
+  }
+  .content .card {
+    border-radius: 18px;
+  }
+  .player-card > :first-child {
+    border-radius: 18px 18px 0 0;
+  }
+  .station-row {
+    gap: 10px;
+    padding: 11px 14px;
+  }
+  .station-row .live {
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.1;
+  }
+  .station-name strong {
+    font-size: 17px;
+    line-height: 1.2;
+  }
+  .station-name small {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+  .listeners {
+    gap: 6px;
+    font-size: 10px;
+    line-height: 1.1;
+  }
+  .listeners strong {
+    font-size: 16px;
+    line-height: 1.1;
+  }
+  .track-row {
+    padding: 18px;
+  }
+  .track .eyebrow {
+    font-size: clamp(13px, 1.4vw, 19px);
+    line-height: 1.15;
+    letter-spacing: 0.04em;
+  }
+  .track .eyebrow svg {
+    width: 17px;
+    height: 17px;
+  }
+  .track strong {
+    font-size: clamp(18px, 1.7vw, 26px);
+  }
+  .track small {
+    font-size: 14px;
+  }
+  .reactions .icon-button {
+    width: 48px;
+    height: 48px;
+  }
+  .section-heading {
+    gap: 8px;
+  }
+  .section-heading h2 {
+    font-size: clamp(14px, 1.25vw, 19px);
+  }
+  .host-card .section-heading,
+  .community .section-heading,
+  .desktop-prayer-wall .section-heading {
+    margin: -8px -12px 0;
+    padding: 4px 12px 5px;
+    border-bottom: 1px solid rgb(var(--line));
+    background: rgb(var(--heading) / var(--heading-a));
+  }
+  .desktop-prayer-wall .section-heading {
+    border-bottom-color: #deb35f;
+  }
+  :root[data-theme='dark'] .desktop-prayer-wall .section-heading {
+    border-bottom-color: #a8782c;
+  }
+  .host-card .section-heading svg,
+  .community .section-heading svg,
+  .desktop-prayer-wall .section-heading svg {
+    width: 20px;
+    height: 20px;
+  }
+  .host-body {
+    padding-top: 8px;
+  }
+  .community .text-button,
+  .desktop-prayer-wall .text-button {
+    font-size: 10px;
+  }
+  .quote {
+    gap: 10px;
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid rgb(var(--line));
+    border-radius: 14px;
+  }
+  .community .feed-message,
+  .desktop-prayer-wall .feed-message {
+    min-height: 110px;
+    padding: 9px;
+    border-radius: 0;
+  }
+  .community .feed-message .message-copy,
+  .desktop-prayer-wall .feed-message .message-copy {
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+    column-gap: 7px;
+  }
+  .community .feed-message time {
+    grid-column: 2;
+    justify-self: start;
+    margin-left: 0;
+  }
+  .desktop-prayer-wall .feed-message time {
+    grid-column: 1;
+    justify-self: start;
+    margin-left: 0;
+  }
+  .community .feed-message p,
+  .desktop-prayer-wall .feed-message p {
+    margin-top: 11px;
+    padding-right: 92px;
+  }
+  .desktop-prayer-wall .feed-message p {
+    margin-top: 14px;
+  }
+  .community .feed-reactions,
+  .desktop-prayer-wall .feed-reactions {
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    margin: 0;
+  }
+  .community .feed-emoji-picker,
+  .desktop-prayer-wall .feed-emoji-picker {
+    top: 40px;
+    bottom: auto;
+  }
+  .quote strong {
+    font-size: 11px;
+  }
+  .quote time {
+    margin-left: 7px;
+    font-size: 9px;
+  }
+  .quote p {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
+
+/* --- phone ------------------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  /* No enclosing box: the player stays pinned all the way down the page. */
+  .content {
+    display: contents;
+  }
+  .player-dock {
+    position: sticky;
+    top: var(--header-strip-height);
+    isolation: isolate;
+    width: 96%;
+    margin: calc(-1 * var(--dock-overlap)) auto 0;
+  }
+  .community {
+    position: relative;
+    z-index: 1;
+    width: 96%;
+    margin: 14px auto 0;
+    padding: 14px 10px 7px;
+  }
+  :root[data-theme='dark'] .community {
+    padding-top: 10px;
+  }
+  .mobile-carousel {
+    display: block;
+  }
+  .content .card {
+    border-radius: 16px;
+  }
+  .player-card > :first-child {
+    border-radius: 16px 16px 0 0;
+  }
+  .station-row {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .live {
+    gap: 5px;
+    padding: 6px 9px;
+    border-radius: 7px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .live::before {
+    width: 6px;
+    height: 6px;
+  }
+  .station-name strong {
+    font-size: 16px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .station-name small {
+    margin-top: 2px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .listeners {
+    gap: 5px;
+    font-size: 8px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .listeners svg {
+    width: 19px;
+  }
+  .listeners strong {
+    font-size: 14px;
+  }
+  .play-button {
+    width: 62px;
+    height: 62px;
+  }
+  .stage-subtitle {
+    font-size: 9px;
+  }
+  .track-row {
+    grid-template-columns: clamp(44px, 14vw, 60px) minmax(0, 1fr) auto;
+    gap: 3px 8px;
+    padding: 8px 12px;
+  }
+  .cover {
+    height: clamp(56px, 15.5vw, 66px);
+    border-radius: 9px;
+  }
+  .track strong {
+    font-size: clamp(13px, 4vw, 18px);
+    line-height: 1.15;
+  }
+  .track small {
+    margin-top: 0;
+    font-size: clamp(11px, 3.1vw, 14px);
+    line-height: 1.2;
+  }
+  .track .eyebrow {
+    gap: 3px;
+    margin-bottom: 2px;
+    font-size: clamp(8px, 2.4vw, 11px);
+    line-height: 1.1;
+    letter-spacing: 0.025em;
+    white-space: nowrap;
+  }
+  .track .eyebrow svg {
+    width: 11px;
+    height: 11px;
+  }
+  .track-progress {
+    gap: 6px;
+    font-size: 10px;
+  }
+  .song-progress {
+    min-width: 20px;
+  }
+  .song-progress span::after {
+    width: 10px;
+    height: 10px;
+    right: -5px;
+  }
+  .reactions {
+    gap: 4px;
+    padding-top: 8px;
+  }
+  .icon-button {
+    width: clamp(28px, 8vw, 36px);
+    height: clamp(30px, 8.5vw, 38px);
+    border-radius: 9px;
+  }
+  .icon-button svg {
+    width: 20px;
+  }
+  .section-heading {
+    gap: 8px;
+  }
+  .section-heading h2 {
+    font-size: 14px;
+  }
+  .section-heading svg {
+    width: 21px;
+  }
+  .text-button {
+    font-size: 10px;
+  }
+  :root[data-theme='dark'] .community .text-button {
+    font-size: 13px;
+  }
+  .quote {
+    gap: 10px;
+    margin-top: 14px;
+    padding: 14px 12px;
+  }
+  :root[data-theme='dark'] .community .section-heading + .quote {
+    margin-top: 9px;
+  }
+  .quote p {
+    font-size: 12px;
+  }
+  .quote time {
+    display: block;
+    margin-left: 0;
+  }
+  .quote strong {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waveform.is-speaking i {
+    animation: none;
+  }
+}

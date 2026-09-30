@@ -180,11 +180,13 @@ export function react(itemId: string, kind: ReactionKind): void {
   reactToItem(itemId, kind);
 }
 
-/** A voice from the connected room is a message: reacting likes it there. */
+/**
+ * A reaction on a community voice or a prayer on the wall. A voice from the
+ * connected room is a message: reacting likes it there.
+ */
 export function reactVoice(voiceId: string, kind: ReactionKind): void {
   if (realtime.isConnected() && realtime.hasMessage(voiceId)) realtime.like(voiceId);
   else reactToVoice(voiceId, kind);
-  useRadio.getState().answer(voiceId);
 }
 
 export { setPulseInterval };

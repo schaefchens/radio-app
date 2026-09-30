@@ -56,3 +56,18 @@ export function guessCountry(): string {
   if (tz === 'Europe/Zurich') return 'CH';
   return '';
 }
+
+/** "today", "yesterday" or null for an instant, by the listener's own calendar. */
+export function dayKey(ms: number, now: number): 'today' | 'yesterday' | null {
+  const day = (t: number) => {
+    const d = new Date(t);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  };
+  const today = day(now);
+  const then = day(ms);
+  if (then === today) return 'today';
+  // Not today - 86 400 000: a day with a DST change is 23 or 25 hours long.
+  const y = new Date(today);
+  y.setDate(y.getDate() - 1);
+  return then === y.getTime() ? 'yesterday' : null;
+}

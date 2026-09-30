@@ -510,7 +510,9 @@
   .lower-scene {
     display: none;
   }
-  .mobile-art {
+  /* Home only: behind the other pages' text (no cards there) it would
+     take the words away; they keep the plain texture. */
+  .page[data-dock='player'] .mobile-art {
     display: block;
     position: fixed;
     bottom: 0;
