@@ -103,7 +103,7 @@ function Backdrop({ image, color, calm }: { image: string | null; color: string;
 function Logo() {
   return (
     <div className="flex items-center justify-center gap-2 text-ink">
-      <span className="text-3xl font-light tracking-logo sm:text-4xl">ARCHE</span>
+      <span className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">Arche Radio</span>
       <RadioIcon size={30} className="text-accent" />
     </div>
   );

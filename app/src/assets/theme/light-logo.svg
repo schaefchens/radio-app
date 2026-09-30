@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 170" role="img" aria-labelledby="title">
+  <title id="title">Arche Radio · Das Brüder-Radio in Christus</title>
+  <defs>
+    <path id="letter-arc" d="M 12 125 Q 225 35 438 125"/>
+    <path id="subtitle-arc" d="M 48 154 Q 225 100 402 154"/>
+    <linearGradient id="rainbow" x1="0" y1="0" x2="435" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff4148"/>
+      <stop offset="0.18" stop-color="#ffa126"/>
+      <stop offset="0.36" stop-color="#39bb32"/>
+      <stop offset="0.53" stop-color="#04a9d0"/>
+      <stop offset="0.72" stop-color="#087fe8"/>
+      <stop offset="1" stop-color="#6637dc"/>
+    </linearGradient>
+    <linearGradient id="waves" x1="440" y1="0" x2="520" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#059dea"/>
+      <stop offset="1" stop-color="#095bd5"/>
+    </linearGradient>
+  </defs>
+  <text fill="#fff" stroke="#fff" stroke-width="20" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="99" font-weight="700" textLength="420" lengthAdjust="spacingAndGlyphs">
+    <textPath href="#letter-arc" startOffset="50%" text-anchor="middle">Arche Radio</textPath>
+  </text>
+  <text fill="url(#rainbow)" stroke="url(#rainbow)" stroke-width="4" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="99" font-weight="700" textLength="420" lengthAdjust="spacingAndGlyphs">
+    <textPath href="#letter-arc" startOffset="50%" text-anchor="middle">Arche Radio</textPath>
+  </text>
+  <text fill="#fff" stroke="#fff" stroke-width="7" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="31" font-weight="700" textLength="365" lengthAdjust="spacingAndGlyphs">
+    <textPath href="#subtitle-arc" startOffset="50%" text-anchor="middle">Das Brüder-Radio in Christus</textPath>
+  </text>
+  <text fill="#063a84" stroke="#063a84" stroke-width="1" stroke-linejoin="round" paint-order="stroke fill" font-family="Comic Sans MS, Chalkboard SE, cursive" font-size="31" font-weight="700" textLength="365" lengthAdjust="spacingAndGlyphs">
+    <textPath href="#subtitle-arc" startOffset="50%" text-anchor="middle">Das Brüder-Radio in Christus</textPath>
+  </text>
+  <g fill="none" stroke="url(#waves)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" paint-order="stroke fill">
+    <path d="M 450 68 Q 466 92 450 117" stroke="#fff" stroke-width="23"/>
+    <path d="M 467 56 Q 493 93 467 132" stroke="#fff" stroke-width="23"/>
+    <path d="M 485 42 Q 522 93 485 149" stroke="#fff" stroke-width="23"/>
+    <path d="M 450 68 Q 466 92 450 117"/>
+    <path d="M 467 56 Q 493 93 467 132"/>
+    <path d="M 485 42 Q 522 93 485 149"/>
+  </g>
+</svg>

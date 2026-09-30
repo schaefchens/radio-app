@@ -1,7 +1,7 @@
 import type { Lang } from '@arche/shared';
 
 /**
- * The station page (/about): what ARCHE is, the imprint and the privacy
+ * The station page (/about): what Arche Radio is, the imprint and the privacy
  * policy. The operator details come from schaefchens.de (same operator).
  *
  * The privacy policy describes what this code actually does — keep them in
@@ -33,12 +33,12 @@ const OPERATOR = 'Christoph Scharf\nMühltorstraße 1\n67245 Lambsheim';
 
 const de = (host: string): StationTexts => ({
   bindingNote: null,
-  notice: 'ARCHE ist ein eigenständiges Projekt und hat trotz seines Namens nichts mit der Arche Gemeinde in Hamburg zu tun.',
+  notice: 'Arche Radio ist ein eigenständiges Projekt und hat trotz seines Namens nichts mit der Arche Gemeinde in Hamburg zu tun.',
   about: [
     {
       h: 'Ein Programm. Viele Nationen. Eine Familie.',
       p:
-        'ARCHE ist ein christliches Community-Radio. Alle, die einschalten, hören im selben Moment denselben Song, ' +
+        'Arche Radio ist ein christliches Community-Radio. Alle, die einschalten, hören im selben Moment denselben Song, ' +
         'dasselbe Gebet und dieselbe Geschichte – egal, wo auf der Welt sie gerade sind.',
     },
     {
@@ -60,19 +60,19 @@ const de = (host: string): StationTexts => ({
       p:
         'Wünsch dir einen Song, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als Sprachaufnahme, oder schick ' +
         `uns ein Gebetsanliegen – ${host} betet auf Sendung dafür. In den Community-Räumen kannst du mit anderen ` +
-        'Hörerinnen und Hörern schreiben. ARCHE braucht kein Konto; wer möchte, nimmt seine Identität mit einer ' +
+        'Hörerinnen und Hörern schreiben. Arche Radio braucht kein Konto; wer möchte, nimmt seine Identität mit einer ' +
         'Passphrase aus 12 Wörtern auf ein anderes Gerät mit.',
     },
     {
       h: 'Ein Projekt von Schäfchens',
-      p: `ARCHE ist ein nicht-kommerzielles Projekt von Schäfchens (https://schaefchens.de). Fragen und Hinweise: ${CONTACT}`,
+      p: `Arche Radio ist ein nicht-kommerzielles Projekt von Schäfchens (https://schaefchens.de). Fragen und Hinweise: ${CONTACT}`,
     },
   ],
   imprint: [
     { h: 'Angaben gemäß § 5 DDG', p: `${OPERATOR}\nDeutschland` },
     { h: 'Kontakt', p: `E-Mail: ${CONTACT}` },
     { h: 'Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV', p: 'Christoph Scharf, Anschrift wie oben' },
-    { h: 'Umsatzsteuer', p: 'ARCHE wird nicht gewerblich angeboten. Es wird keine Umsatzsteuer ausgewiesen.' },
+    { h: 'Umsatzsteuer', p: 'Arche Radio wird nicht gewerblich angeboten. Es wird keine Umsatzsteuer ausgewiesen.' },
     {
       h: 'Online-Streitbeilegung und Verbraucherschlichtung',
       p: 'Zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle sind wir nicht verpflichtet und nicht bereit.',
@@ -92,7 +92,7 @@ const de = (host: string): StationTexts => ({
     },
     {
       h: 'Urheberrecht',
-      p: 'Texte und Gestaltung von ARCHE sind urheberrechtlich geschützt. Die Rechte an der Musik liegen bei den jeweiligen Urheberinnen und Urhebern.',
+      p: 'Texte und Gestaltung von Arche Radio sind urheberrechtlich geschützt. Die Rechte an der Musik liegen bei den jeweiligen Urheberinnen und Urhebern.',
     },
   ],
   privacy: [
@@ -100,7 +100,7 @@ const de = (host: string): StationTexts => ({
     {
       h: 'Das Wichtigste in Kürze',
       p:
-        'ARCHE funktioniert ohne Konto, ohne Werbung, ohne Analyse- oder Tracking-Dienste und ohne Cookies des ' +
+        'Arche Radio funktioniert ohne Konto, ohne Werbung, ohne Analyse- oder Tracking-Dienste und ohne Cookies des ' +
         'Betreibers. Wir verarbeiten nur, was für das Radio, Ihre Einsendungen und die Community-Räume nötig ist. ' +
         'Schriftarten liefern wir von unserem eigenen Server aus, Programm, Audiobeiträge und Bilder über das ' +
         'Content-Delivery-Netzwerk BunnyCDN.',
@@ -221,12 +221,12 @@ const de = (host: string): StationTexts => ({
 
 const en = (host: string): StationTexts => ({
   bindingNote: 'The imprint and privacy policy in English are provided for convenience; the German version is legally binding.',
-  notice: 'ARCHE is an independent project. Despite its name, it has nothing to do with the Arche church (Arche Gemeinde) in Hamburg.',
+  notice: 'Arche Radio is an independent project. Despite its name, it has nothing to do with the Arche church (Arche Gemeinde) in Hamburg.',
   about: [
     {
       h: 'One program. Many nations. One family.',
       p:
-        'ARCHE is a Christian community radio. Everyone who tunes in hears the same song, the same prayer and the ' +
+        'Arche Radio is a Christian community radio. Everyone who tunes in hears the same song, the same prayer and the ' +
         'same story at the same moment — wherever in the world they are.',
     },
     {
@@ -245,19 +245,19 @@ const en = (host: string): StationTexts => ({
       h: 'Take part',
       p:
         'Request a song, share your story, a testimony or a greeting as a voice recording, or send a prayer request — ' +
-        `${host} prays for it on air. In the community rooms you can write with other listeners. ARCHE needs no ` +
+        `${host} prays for it on air. In the community rooms you can write with other listeners. Arche Radio needs no ` +
         'account; if you like, a passphrase of 12 words takes your identity to another device.',
     },
     {
       h: 'A project of Schäfchens',
-      p: `ARCHE is a non-commercial project of Schäfchens (https://schaefchens.de). Questions and feedback: ${CONTACT}`,
+      p: `Arche Radio is a non-commercial project of Schäfchens (https://schaefchens.de). Questions and feedback: ${CONTACT}`,
     },
   ],
   imprint: [
     { h: 'Details pursuant to § 5 DDG', p: `${OPERATOR}\nGermany` },
     { h: 'Contact', p: `Email: ${CONTACT}` },
     { h: 'Responsible for content under § 18 (2) MStV', p: 'Christoph Scharf, address as above' },
-    { h: 'VAT', p: 'ARCHE is not offered commercially. No VAT is charged.' },
+    { h: 'VAT', p: 'Arche Radio is not offered commercially. No VAT is charged.' },
     {
       h: 'Online dispute resolution',
       p: 'We are neither obliged nor willing to take part in dispute resolution proceedings before a consumer arbitration board.',
@@ -271,14 +271,14 @@ const en = (host: string): StationTexts => ({
         'YouTube player; their rights holders are responsible for their content. The operators of linked external ' +
         'sites are responsible for their content; no legal violations were apparent at the time of linking.',
     },
-    { h: 'Copyright', p: "ARCHE's texts and design are protected by copyright. The rights to the music belong to its creators." },
+    { h: 'Copyright', p: "Arche Radio's texts and design are protected by copyright. The rights to the music belong to its creators." },
   ],
   privacy: [
     { h: 'Controller', p: `${OPERATOR}, Germany\nEmail: ${CONTACT}` },
     {
       h: 'In short',
       p:
-        'ARCHE works without an account, without advertising, without analytics or tracking and without cookies of ' +
+        'Arche Radio works without an account, without advertising, without analytics or tracking and without cookies of ' +
         'its own. We process only what the radio, your submissions and the community rooms need. Fonts come from our ' +
         'own server; the program, audio and images through the content delivery network BunnyCDN.',
     },

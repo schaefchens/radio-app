@@ -10,7 +10,7 @@ import { api, asDevice, cron, ensureAdmin, liveFile, newDevice, serverNow, slotA
 test('setup is closed once the station has its administrator', async ({ page }) => {
   await fakeYouTube(page);
   await page.goto('/setup');
-  await expect(page.getByText('ARCHE is already set up.')).toBeVisible();
+  await expect(page.getByText('Arche Radio is already set up.')).toBeVisible();
 });
 
 test('a listener is sent away from /mod', async ({ page }) => {

@@ -59,6 +59,9 @@ export function StageRegion({ compact = false }: { compact?: boolean }) {
       <div
         ref={ref}
         data-stage-slot=""
+        // The stage is a dark room in every theme: our own visuals under the
+        // video take the dark tokens, whatever the page around them shows.
+        data-theme="dark"
         className="relative aspect-video w-full overflow-hidden rounded-2xl border border-line/30 bg-soft shadow-card"
         style={{ minHeight: 200 }}
       >

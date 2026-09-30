@@ -41,7 +41,7 @@
     "requestedBy": "Requested by {{name}}",
     "requestedByFrom": "Requested by {{name}} from {{place}}",
     "host": "On air: {{name}}",
-    "jingle": "ARCHE",
+    "jingle": "Arche Radio",
     "contrib": "{{name}} shares",
     "react": "React to this song"
   },
@@ -88,11 +88,11 @@
     "sent": "Thank you! We'll let you know when it's on air.",
     "name": "Your first name",
     "place": "Where are you from? (city or country)",
-    "consentAir": "I agree that this is broadcast on ARCHE.",
+    "consentAir": "I agree that this is broadcast on Arche Radio.",
     "consentReplay": "It may be replayed in future programs.",
     "send": "Send",
     "cancel": "Cancel",
-    "privacyNote": "By sending, you agree that ARCHE processes what you share — including your faith or health, if you mention them — to check it and put it on air, also with an automated check by OpenAI.",
+    "privacyNote": "By sending, you agree that Arche Radio processes what you share — including your faith or health, if you mention them — to check it and put it on air, also with an automated check by OpenAI.",
     "privacyLink": "Privacy policy"
   },
   "songForm": {
@@ -231,18 +231,18 @@
     "identity": "Your listener id: {{id}}"
   },
   "setup": {
-    "title": "Set up ARCHE",
+    "title": "Set up Arche Radio",
     "intro": "Claim the first administrator account with the setup key from the server configuration.",
     "needPassphrase": "Create a passphrase first — administrators need one.",
     "key": "Setup key",
     "claim": "Become administrator",
     "done": "You are the administrator now.",
     "goProfile": "Go to your profile",
-    "notNeeded": "ARCHE is already set up.",
+    "notNeeded": "Arche Radio is already set up.",
     "goMod": "Open moderation"
   },
   "updates": {
-    "banner": "A new version of ARCHE is ready — tap to update"
+    "banner": "A new version of Arche Radio is ready — tap to update"
   },
   "errors": {
     "offline": "You're offline.",
@@ -259,7 +259,7 @@
     "unknown_passphrase": "Unknown passphrase.",
     "generic": "Something went wrong. Please try again.",
     "bad_setup_key": "That setup key is not right.",
-    "setup_done": "ARCHE is already set up.",
+    "setup_done": "Arche Radio is already set up.",
     "already_claimed": "This identity already has a passphrase.",
     "device_has_other_passphrase": "This device is linked to another passphrase. Log out first.",
     "needs_passphrase": "This needs a passphrase identity.",
@@ -633,7 +633,7 @@
     }
   },
   "about": {
-    "open": "About ARCHE",
+    "open": "About Arche Radio",
     "legal": "Legal",
     "imprint": "Imprint",
     "privacy": "Privacy policy",
@@ -641,8 +641,15 @@
     "consentOn": "You agreed to load the music videos from YouTube (Google).",
     "consentOff": "YouTube is not loaded. It loads only when you tap “Tap to join live”.",
     "withdraw": "Withdraw YouTube consent",
-    "forgetHint": "Delete everything ARCHE keeps on this device: your device id, settings and passphrase. Submissions you sent then no longer show under “My submissions” here.",
+    "forgetHint": "Delete everything Arche Radio keeps on this device: your device id, settings and passphrase. Submissions you sent then no longer show under “My submissions” here.",
     "forget": "Delete data on this device",
-    "forgetConfirm": "Delete ARCHE’s data on this device? Without your 12 words your passphrase identity cannot come back."
+    "forgetConfirm": "Delete Arche Radio’s data on this device? Without your 12 words your passphrase identity cannot come back."
+  },
+  "theme": {
+    "label": "Design",
+    "auto": "Automatic",
+    "autoHint": "Follows your device",
+    "light": "Kids Ark",
+    "dark": "Storm Ark"
   }
 }

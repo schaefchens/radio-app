@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Lang } from '@arche/shared';
+import type { ThemeId } from '@/lib/theme';
 
 /**
  * Per-device preferences. Language defaults to German for German browsers and
@@ -18,11 +19,17 @@ interface SettingsState {
   keepAwake: boolean;
   /** The listener agreed to load YouTube (Google) — asked at "tap to join". */
   consent: boolean;
+  /** Kids Ark or Storm Ark; null follows the device until the listener picks. */
+  theme: ThemeId | null;
+  /** The welcome dialog was seen (closed once, however). */
+  welcomed: boolean;
   setLang: (lang: Lang) => void;
   setChannel: (channel: string) => void;
   setVolume: (v: number) => void;
   setKeepAwake: (on: boolean) => void;
   setConsent: (on: boolean) => void;
+  setTheme: (theme: ThemeId | null) => void;
+  setWelcomed: () => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -33,11 +40,15 @@ export const useSettings = create<SettingsState>()(
       volume: 1,
       keepAwake: false,
       consent: false,
+      theme: null,
+      welcomed: false,
       setLang: (lang) => set({ lang }),
       setChannel: (channel) => set({ channel }),
       setVolume: (volume) => set({ volume: Math.max(0, Math.min(1, volume)) }),
       setKeepAwake: (keepAwake) => set({ keepAwake }),
       setConsent: (consent) => set({ consent }),
+      setTheme: (theme) => set({ theme }),
+      setWelcomed: () => set({ welcomed: true }),
     }),
     { name: 'arche.settings', version: 1 },
   ),

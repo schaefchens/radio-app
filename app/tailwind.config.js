@@ -1,10 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
+  // lib/theme.ts sets <html data-theme>; dark: follows it, not the device.
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       // Roles, not hues (bible-assistant's convention): values live in CSS
-      // variables in src/index.css as RGB channels, so alpha modifiers work.
+      // variables in src/styles/tokens.css as RGB channels, so alpha modifiers work.
       colors: {
         base: 'rgb(var(--base) / <alpha-value>)', // page background
         surface: 'rgb(var(--surface) / <alpha-value>)', // cards
@@ -21,6 +23,7 @@ export default {
         },
         live: 'rgb(var(--live) / <alpha-value>)',
         heart: 'rgb(var(--heart) / <alpha-value>)',
+        gold: 'rgb(var(--gold) / <alpha-value>)', // praying along
         ok: 'rgb(var(--ok) / <alpha-value>)',
         warn: 'rgb(var(--warn) / <alpha-value>)',
         // The four submission tiles from the mockup.
@@ -31,10 +34,13 @@ export default {
       },
       fontFamily: {
         sans: ['"Inter Variable"', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        // The dark theme's "Arche Radio": a system serif, nothing to download.
+        serif: ['Georgia', '"Times New Roman"', 'serif'],
       },
       boxShadow: {
         glow: '0 0 0 1px rgb(var(--accent-fill) / 0.35), 0 8px 30px -6px rgb(var(--accent-fill) / 0.35)',
-        card: '0 10px 30px -12px rgb(0 0 0 / 0.6)',
+        card: 'var(--card-shadow)',
+        player: 'var(--player-shadow)',
       },
       animation: {
         'pulse-soft': 'pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite',

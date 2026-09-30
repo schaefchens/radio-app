@@ -81,7 +81,7 @@ test('the schedule shows today’s programs in local time', async ({ page }) => 
 test('the logo opens the station page with the imprint and the privacy policy', async ({ page }) => {
   await fakeYouTube(page);
   await page.goto('/');
-  await page.getByRole('link', { name: 'About ARCHE' }).first().click();
+  await page.getByRole('link', { name: 'About Arche Radio' }).first().click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(page.locator('#about').getByText(/nothing to do with the Arche church \(Arche Gemeinde\) in Hamburg/)).toBeVisible();
   await expect(page.locator('#about').getByText('One program. Many nations. One family.')).toBeVisible();
@@ -233,7 +233,7 @@ test.describe('recordings', () => {
     await expect(sheet.getByLabel('Listen back')).toBeVisible();
     await sheet.getByLabel('Your first name').fill('Esther');
     await sheet.getByLabel(/Where are you from/).fill('Nairobi');
-    await sheet.getByLabel('I agree that this is broadcast on ARCHE.').check();
+    await sheet.getByLabel('I agree that this is broadcast on Arche Radio.').check();
     await sheet.getByRole('button', { name: 'Send' }).click();
     await expect(sheet.getByText(SENT)).toBeVisible({ timeout: 30_000 });
 

@@ -1,0 +1,114 @@
+/*
+ * The two looks of concept-files/theme-preview.html as role tokens. Colors
+ * are RGB channels so Tailwind's alpha modifiers (bg-accent/20) work; the
+ * see-through surfaces take their alpha from the *-a variables, so one media
+ * query below makes every one of them opaque.
+ *
+ * <html data-theme> picks the theme (lib/theme.ts). Until the script has set
+ * it, the device's scheme decides — that is why the dark block is repeated
+ * inside prefers-color-scheme: without it a dark phone would flash the light
+ * page on every start.
+ */
+
+/* Kinderarche (Kids Ark): the light theme, the default for light devices. */
+:root,
+[data-theme='light'] {
+  --base: 246 251 255;
+  --surface: 255 255 255;
+  --surface-a: 0.93;
+  --soft: 237 247 252;
+  --soft-a: 0.91;
+  --line: 187 218 240;
+  --ink: 9 45 103;
+  --ink-muted: 88 112 149;
+  --ink-faint: 125 145 176;
+  --accent: 7 130 236;
+  --accent-fill: 8 125 226;
+  --live: 255 35 68;
+  --heart: 255 60 100;
+  --gold: 221 161 43;
+  --ok: 4 140 98;
+  --warn: 176 90 6;
+  /* The phone menu, the desktop menu in the hero, and card heading strips. */
+  --menu: 255 255 255;
+  --menu-a: 0.95;
+  --menu-desk: 255 255 255;
+  --menu-desk-a: 0.95;
+  --heading: 228 243 250;
+  --heading-a: 0.8;
+  --card-shadow: 0 8px 24px rgb(6 50 84 / 0.04);
+  --player-shadow: 0 18px 30px -14px rgb(9 40 81 / 0.45);
+  --texture: url('../assets/theme/light-background.webp');
+
+  color-scheme: light;
+}
+
+/* Sturmarche (Storm Ark): the dark theme. Keep in step with the copy below. */
+[data-theme='dark'] {
+  --base: 3 35 74;
+  --surface: 4 37 65;
+  --surface-a: 0.92;
+  --soft: 16 56 85;
+  --soft-a: 0.79;
+  --line: 23 97 138;
+  --ink: 238 246 255;
+  --ink-muted: 181 199 231;
+  --ink-faint: 127 151 190;
+  --accent: 49 185 255;
+  --accent-fill: 6 109 247;
+  --live: 255 35 68;
+  --heart: 255 60 100;
+  --gold: 221 161 43;
+  --ok: 110 231 183;
+  --warn: 252 211 77;
+  --menu: 4 37 65;
+  --menu-a: 0.95;
+  --menu-desk: 0 24 42;
+  --menu-desk-a: 0.95;
+  --heading: 0 27 54;
+  --heading-a: 0.79;
+  --card-shadow: 0 8px 24px rgb(0 10 20 / 0.25);
+  --player-shadow: 0 18px 30px -14px rgb(0 0 0 / 0.67);
+  --texture: url('../assets/theme/dark-background.webp');
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --base: 3 35 74;
+    --surface: 4 37 65;
+    --surface-a: 0.92;
+    --soft: 16 56 85;
+    --soft-a: 0.79;
+    --line: 23 97 138;
+    --ink: 238 246 255;
+    --ink-muted: 181 199 231;
+    --ink-faint: 127 151 190;
+    --accent: 49 185 255;
+    --accent-fill: 6 109 247;
+    --ok: 110 231 183;
+    --warn: 252 211 77;
+    --menu: 4 37 65;
+    --menu-desk: 0 24 42;
+    --heading: 0 27 54;
+    --heading-a: 0.79;
+    --card-shadow: 0 8px 24px rgb(0 10 20 / 0.25);
+    --player-shadow: 0 18px 30px -14px rgb(0 0 0 / 0.67);
+    --texture: url('../assets/theme/dark-background.webp');
+
+    color-scheme: dark;
+  }
+}
+
+/* The operating system asks for less transparency: every surface opaque. */
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  [data-theme] {
+    --surface-a: 1;
+    --soft-a: 1;
+    --menu-a: 1;
+    --menu-desk-a: 1;
+    --heading-a: 1;
+  }
+}

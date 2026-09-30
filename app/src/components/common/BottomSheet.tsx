@@ -195,7 +195,7 @@ export function BottomSheet({ open, onClose, title, onBack, children }: Props) {
         onKeyDown={onTrapKeyDown}
         className={clsx(
           'fixed left-0 right-0 bottom-0 z-50 outline-none',
-          'rounded-t-3xl border-t border-line/40 bg-soft/95 shadow-2xl backdrop-blur-xl',
+          'float-surface rounded-t-3xl border-x-0 border-b-0 shadow-2xl backdrop-blur-xl',
           'will-change-transform',
           // Suppress the transition only while a finger is on it, so the sheet
           // tracks the drag exactly instead of lagging 300ms behind.

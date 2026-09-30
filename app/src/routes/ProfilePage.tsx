@@ -9,6 +9,7 @@ import { checkForUpdates } from '@/lib/pwaUpdate';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { PassphrasePanel } from '@/components/profile/PassphrasePanel';
 import { MySubmissions } from '@/components/profile/MySubmissions';
+import { ThemePicker } from '@/components/profile/ThemePicker';
 import { ShieldIcon, VolumeIcon } from '@/components/common/icons';
 
 const IOS = isIOS();
@@ -36,6 +37,7 @@ export function ProfilePage() {
         <div className="flex flex-col gap-4">
           <section className="card flex flex-col gap-4 p-4">
             <ProfileForm key={identity?.id ?? 'new'} identity={identity} saved={!!identity && savedFor === identity.id} onSaved={setSavedFor} />
+            <ThemePicker />
             {!IOS && (
               <label className="flex items-center gap-3">
                 <VolumeIcon size={20} className="shrink-0 text-ink-muted" />

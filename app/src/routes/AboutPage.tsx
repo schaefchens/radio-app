@@ -9,7 +9,7 @@ import { ConfirmButton } from '@/components/mod/ui';
 import { RadioIcon } from '@/components/common/icons';
 
 /**
- * The station page behind the logo: what ARCHE is, the imprint (Impressum)
+ * The station page behind the logo: what Arche Radio is, the imprint (Impressum)
  * and the privacy policy (Datenschutz), plus the privacy settings they
  * promise. /impressum and /datenschutz open it at their section — both must
  * be reachable directly and at all times.
@@ -31,7 +31,7 @@ export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' }
     <div className="mx-auto flex max-w-3xl flex-col gap-4 pt-2">
       <section id="about" className="card flex flex-col gap-4 p-5">
         <div className="flex items-center gap-2 text-ink">
-          <span className="text-3xl font-light tracking-logo">ARCHE</span>
+          <span className="font-serif text-3xl font-bold tracking-tight">Arche Radio</span>
           <RadioIcon size={28} className="text-accent" />
         </div>
         <p className="rounded-xl border border-accent-fill/30 bg-accent-fill/10 px-4 py-3 text-sm leading-relaxed text-ink">{texts.notice}</p>

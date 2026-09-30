@@ -1,31 +1,12 @@
 @import '@fontsource-variable/inter';
+@import './styles/tokens.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/*
- * The palette of the mockups: a deep night-blue page, glassy cards with a
- * faint blue hairline, one bright ARCHE blue, the red LIVE badge. Stored as
- * RGB channels so Tailwind's alpha modifiers (bg-accent/20) work. Dark only —
- * the stage and the video want a dark room.
- */
+/* The themes' tokens (colors, surfaces, the page texture): styles/tokens.css. */
 :root {
-  --base: 7 15 36;
-  --soft: 4 9 24;
-  --surface: 16 30 64;
-  --line: 72 110 190;
-  --ink: 236 242 255;
-  --ink-muted: 164 182 222;
-  --ink-faint: 110 128 170;
-  --accent-fill: 47 123 255;
-  --accent: 96 165 255;
-  --live: 239 51 64;
-  --heart: 244 63 122;
-  --ok: 110 231 183;
-  --warn: 252 211 77;
-
-  color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -36,33 +17,38 @@ body,
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 20% -10%, rgb(47 123 255 / 0.18), transparent 60%),
-    radial-gradient(900px 500px at 110% 10%, rgb(142 77 255 / 0.12), transparent 60%),
-    rgb(var(--base));
-  background-attachment: fixed;
+  background: rgb(var(--base)) var(--texture) center top / 650px auto repeat;
   overscroll-behavior-y: none;
 }
 
 @layer components {
-  /* The glass card every panel in the mockup is made of. */
+  /* The card every panel of the design is made of: see-through unless the
+     system asks for less transparency (the alpha comes from the tokens). */
   .card {
-    @apply rounded-2xl border border-line/25 bg-surface/60 shadow-card backdrop-blur-md;
+    @apply rounded-2xl border border-line;
+    background-color: rgb(var(--surface) / var(--surface-a));
+    box-shadow: var(--card-shadow);
   }
   .card-inset {
-    @apply rounded-xl border border-line/20 bg-soft/50;
+    @apply rounded-xl border border-line/60;
+    background-color: rgb(var(--soft) / var(--soft-a));
+  }
+  /* What floats over the page: sheets, menus, pickers. */
+  .float-surface {
+    @apply border border-line shadow-card;
+    background-color: rgb(var(--base) / var(--menu-a));
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-accent-fill text-white hover:bg-accent;
+    @apply btn bg-accent-fill text-white hover:brightness-110;
   }
   .btn-ghost {
-    @apply btn border border-line/30 bg-soft/40 text-ink hover:bg-surface;
+    @apply btn border border-line bg-soft/60 text-ink hover:bg-soft;
   }
   .field {
-    @apply w-full rounded-xl border border-line/30 bg-soft/60 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent-fill focus:outline-none focus:ring-2 focus:ring-accent-fill/30;
+    @apply w-full rounded-xl border border-line bg-soft px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30;
   }
   .label {
     @apply mb-1 block text-xs font-medium uppercase tracking-wider text-ink-muted;
@@ -85,6 +71,14 @@ body {
   }
   .tracking-logo {
     letter-spacing: 0.42em;
+  }
+}
+
+/* Blur only where the surface is see-through at all. */
+@media (prefers-reduced-transparency: reduce) {
+  * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 }
 

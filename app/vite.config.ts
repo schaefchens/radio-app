@@ -46,11 +46,12 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'ARCHE — Christian community radio',
-        short_name: 'ARCHE',
+        name: 'Arche Radio — Christian community radio',
+        short_name: 'Arche Radio',
         description: 'One program. Many nations. One family.',
-        theme_color: '#0a1633',
-        background_color: '#070f24',
+        // The installed app's frame; the page sets the bar per theme at runtime.
+        theme_color: '#03234a',
+        background_color: '#03234a',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',
