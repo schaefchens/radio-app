@@ -711,5 +711,17 @@
     "slide": "{{n}} of {{total}}: {{name}}",
     "show": "Show: {{name}}",
     "pick": "Choose a panel"
+  },
+  "welcome": {
+    "title": "Welcome to Arche Radio!",
+    "intro": "You are Arche Radio. Your song requests, stories, and prayers give this station its voice. Send us something and help shape it together!",
+    "music": "Request a song for the program.",
+    "voices": "Share your story and encourage others.",
+    "prayer": "Send a prayer request and pray for others.",
+    "disclaimer": "Note: Arche Radio is an independent project and is not affiliated with Arche Gemeinde in Hamburg.",
+    "language": "Language",
+    "start": "Let's get started",
+    "later": "You can change language and theme later through Profile.",
+    "close": "Close"
   }
 }

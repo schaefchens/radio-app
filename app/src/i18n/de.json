@@ -711,5 +711,17 @@
     "slide": "{{n}} von {{total}}: {{name}}",
     "show": "Bereich anzeigen: {{name}}",
     "pick": "Bereiche wählen"
+  },
+  "welcome": {
+    "title": "Willkommen bei Arche Radio!",
+    "intro": "Ihr seid das Radio. Eure Musikwünsche, Geschichten und Gebete geben Arche Radio seine Stimme. Schickt uns eure Beiträge und gestaltet mit!",
+    "music": "Wünscht euch ein Lied für das Programm.",
+    "voices": "Erzählt eure Geschichten und ermutigt andere.",
+    "prayer": "Teilt eure Gebetsanliegen und betet füreinander.",
+    "disclaimer": "Hinweis: Arche Radio ist ein unabhängiges Projekt und steht in keiner Verbindung zur Arche Gemeinde in Hamburg.",
+    "language": "Sprache",
+    "start": "Los geht's",
+    "later": "Sprache und Design kannst du später über Profil ändern.",
+    "close": "Schließen"
   }
 }

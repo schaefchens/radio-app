@@ -1,0 +1,228 @@
+/*
+ * The first visit's dialog (concept-files/theme-preview.html, .welcome-*).
+ * A native <dialog> in the top layer; its colors are the preview's own, per
+ * theme, not the page tokens.
+ */
+
+.welcome-dialog {
+  width: min(520px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  overflow: auto;
+  border: 1px solid #bfd5e9;
+  border-radius: 22px;
+  background: #fff;
+  color: #163659;
+  box-shadow: 0 24px 80px #001b38a8;
+}
+.welcome-dialog::backdrop {
+  background: #04172bb8;
+  backdrop-filter: blur(5px);
+}
+.welcome-art {
+  height: 132px;
+  background: center 42% / cover no-repeat;
+}
+.welcome-content {
+  padding: 21px 26px 24px;
+}
+.welcome-topline {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.welcome-topline h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1.15;
+}
+.welcome-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  margin: -3px -7px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 25px;
+  line-height: 1;
+}
+.welcome-close:hover {
+  background: #e8f2fa;
+}
+.welcome-intro {
+  margin: 10px 0 12px;
+  color: #49617d;
+  font-size: 14px;
+}
+.welcome-points {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 19px;
+  padding: 0;
+  list-style: none;
+  color: #315170;
+  font-size: 13px;
+}
+.welcome-points li {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.welcome-points span[aria-hidden='true'] {
+  color: #0782ec;
+  font-size: 17px;
+}
+.welcome-disclaimer {
+  margin: -4px 0 17px;
+  padding: 8px 10px;
+  border-left: 3px solid #7aaed5;
+  background: #edf6fd;
+  color: #49617d;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.welcome-settings {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.6fr) minmax(225px, 1.4fr);
+  gap: 15px;
+}
+.welcome-settings label,
+.welcome-settings legend {
+  display: block;
+  margin-bottom: 6px;
+  padding: 0;
+  color: #254d70;
+  font-size: 12px;
+  font-weight: 750;
+}
+.welcome-settings select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid #bad2e6;
+  border-radius: 10px;
+  background: #f4f9fd;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.welcome-theme {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.welcome-theme-options {
+  display: flex;
+  gap: 6px;
+}
+.welcome-theme-options label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 42px;
+  margin: 0;
+  border: 1px solid #bad2e6;
+  border-radius: 10px;
+  background: #f4f9fd;
+  font-weight: 600;
+  cursor: pointer;
+}
+.welcome-theme-options label:has(input:checked) {
+  border-color: #0782ec;
+  background: #e5f4ff;
+  color: #07599c;
+}
+.welcome-theme-options input {
+  accent-color: #0782ec;
+}
+.welcome-start {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 11px;
+  background: #087de2;
+  color: #fff;
+  font-weight: 750;
+}
+.welcome-start:hover {
+  background: #0667bc;
+}
+.welcome-dialog button:focus-visible,
+.welcome-dialog select:focus-visible {
+  outline: 3px solid #249dff;
+  outline-offset: 3px;
+}
+.welcome-later {
+  margin: 9px 0 0;
+  color: #607992;
+  font-size: 11px;
+  text-align: center;
+}
+:root[data-theme='dark'] .welcome-dialog {
+  border-color: #2b7395;
+  background: #092c48;
+  color: #eef6ff;
+}
+:root[data-theme='dark'] .welcome-intro,
+:root[data-theme='dark'] .welcome-points {
+  color: #c2d8e9;
+}
+:root[data-theme='dark'] .welcome-disclaimer {
+  border-color: #64b6e2;
+  background: #153b58;
+  color: #c2d8e9;
+}
+:root[data-theme='dark'] .welcome-later {
+  color: #a8c7dd;
+}
+:root[data-theme='dark'] .welcome-settings label,
+:root[data-theme='dark'] .welcome-settings legend {
+  color: #d9ebf8;
+}
+:root[data-theme='dark'] .welcome-settings select,
+:root[data-theme='dark'] .welcome-theme-options label {
+  border-color: #477a99;
+  background: #143e5b;
+  color: #eef6ff;
+}
+:root[data-theme='dark'] .welcome-theme-options label:has(input:checked) {
+  border-color: #31b9ff;
+  background: #155277;
+  color: #eef6ff;
+}
+:root[data-theme='dark'] .welcome-close:hover {
+  background: #174763;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .welcome-dialog::backdrop {
+    background: #04172b;
+    backdrop-filter: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .welcome-dialog {
+    width: min(396px, calc(100vw - 24px));
+  }
+  .welcome-content {
+    padding: 18px 18px 20px;
+  }
+  .welcome-settings {
+    grid-template-columns: 1fr;
+  }
+  .welcome-art {
+    height: 100px;
+  }
+}

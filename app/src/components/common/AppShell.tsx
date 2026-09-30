@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { UpdateBanner } from './UpdateBanner';
 import { MainNav } from './MainNav';
 import { MobileDock } from './MobileDock';
+import { WelcomeDialog } from './WelcomeDialog';
 import { BroadcastIcon } from './icons';
 import { StageRegion } from '@/components/stage/StageRegion';
 import { SubmitSheets, SubmitTiles } from '@/components/home/SubmitTiles';
@@ -60,6 +61,7 @@ export function AppShell() {
       <MobileDock withTiles={onHome} />
 
       <SubmitSheets />
+      <WelcomeDialog />
     </div>
   );
 }
