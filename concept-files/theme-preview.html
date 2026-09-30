@@ -143,6 +143,28 @@
     .dots { display: flex; justify-content: center; gap: 7px; padding-top: 18px; }
     .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
     .dots i:first-child { background: var(--accent); }
+    .mobile-carousel { display: none; }
+    .mobile-carousel .carousel-stage { overflow: hidden; }
+    .mobile-carousel .carousel-track { display: flex; align-items: stretch; transition: transform .28s ease; }
+    .mobile-carousel .carousel-slide { display: flex; flex: 0 0 100%; flex-direction: column; min-width: 0; }
+    .mobile-carousel .carousel-body { flex: 1; margin-inline: 26px; }
+    .mobile-carousel .carousel-body .quote { margin-top: 9px; }
+    .mobile-carousel .carousel-arrow { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 32px; height: 44px; padding: 0; border: 0; background: none; color: var(--accent); transform: translateY(-50%); }
+    .mobile-carousel .carousel-arrow:hover { color: var(--ink); }
+    .mobile-carousel .carousel-arrow svg { width: 26px; height: 26px; stroke-width: 2.4; }
+    .mobile-carousel .carousel-arrow.previous { left: 1px; }
+    .mobile-carousel .carousel-arrow.next { right: 1px; }
+    .mobile-carousel .carousel-pagination { display: flex; justify-content: center; gap: 8px; padding-top: 12px; }
+    .mobile-carousel .carousel-pagination button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: var(--muted); opacity: .55; }
+    .mobile-carousel .carousel-pagination button[aria-pressed="true"] { background: var(--accent); opacity: 1; }
+    .mobile-carousel .moderator-body { display: flex; align-items: center; }
+    .mobile-carousel .host-body { width: 100%; margin-top: 9px; padding: 12px; border-radius: 14px; background: var(--soft); }
+    .mobile-carousel .host-avatar { width: 52px; height: 52px; }
+    .mobile-carousel .host-avatar svg { width: 25px; height: 25px; }
+    .mobile-carousel .host-message p { margin-top: 4px; line-height: 1.4; }
+    .mobile-carousel .waveform { height: 18px; margin-top: 4px; }
+    .mobile-carousel .prayer-entry .avatar { background: linear-gradient(145deg, #28bfff, #0075ed); }
+    .mobile-carousel .prayer-entry .avatar svg { width: 20px; height: 20px; }
     .lower-scene { position: relative; margin-top: 20px; padding: 30px 0 24px; min-height: 30cqw; display: flex; flex-direction: column; justify-content: flex-end; }
     .bottom-art { position: absolute; inset: auto 0 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; mask-image: linear-gradient(transparent, #000 18%); }
     .lower-content { position: relative; width: min(900px, 94%); margin: auto auto 0; }
@@ -232,6 +254,8 @@
       .content { display: contents; }
       .player-dock { position: sticky; top: calc(var(--preview-top, 0px) + var(--header-strip-height)); z-index: 5; isolation: isolate; width: 96%; margin: -56px auto 0; }
       .community { width: 96%; margin: 14px auto 0; }
+      .community:not(.mobile-carousel) { display: none; }
+      .mobile-carousel { display: block; }
       .card { border-radius: 16px; }
       .station-row { padding: 8px 12px; gap: 8px; }
       .live { padding: 6px 9px; font-size: 10px; line-height: 1.2; gap: 5px; border-radius: 7px; flex-shrink: 0; }
@@ -334,6 +358,8 @@
     <symbol id="i-levels" viewBox="0 0 24 24"><path d="M3 13v8M9 3v18M15 8v13M21 15v6" stroke-width="3" stroke-linecap="butt"/></symbol>
     <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></symbol>
     <symbol id="i-moderation" viewBox="0 0 24 24"><path d="M12 2 20 5v6c0 5-3.4 8.6-8 11-4.6-2.4-8-6-8-11V5l8-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 4-8 8 8 8"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 4 8 8-8 8"/></symbol>
     <symbol id="i-prayer" viewBox="0 0 24 24"><path d="M12 3v12m0-12c-2 0-2 5-3 8s-3 5-6 7l4 4 5-7m0-12c2 0 2 5 3 8s3 5 6 7l-4 4-5-7"/></symbol>
   </svg>
   <header class="toolbar">
@@ -425,6 +451,31 @@
             <div class="quote"><div class="avatar" aria-hidden="true">A</div><div><strong>Anna</strong><time>Vor 28 Minuten</time><p>Wie schön, gemeinsam zuzuhören. Ich wünsche euch allen einen gesegneten Tag. 🌈</p></div></div>
             <div class="quote"><div class="avatar" aria-hidden="true">T</div><div><strong>Thomas</strong><time>Vor 42 Minuten</time><p>Dieses Lied kommt für mich genau zur richtigen Zeit. Danke für eure Gemeinschaft!</p></div></div>
             <div class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          </section>
+          <section class="card community mobile-carousel" role="region" aria-label="Stimmen, Moderation und Gebetswand" aria-roledescription="Karussell">
+            <button type="button" class="carousel-arrow previous" aria-label="Vorherigen Bereich anzeigen"><svg aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+            <div class="carousel-stage">
+              <div class="carousel-track">
+                <div class="carousel-slide" data-panel-title="Stimmen der Gemeinschaft" role="group" aria-label="1 von 3: Stimmen der Gemeinschaft">
+                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-chat"/></svg><h2>Stimmen der Gemeinschaft</h2><button type="button" class="text-button" data-demo="Gemeinschaft">Mehr →</button></div>
+                  <div class="carousel-body" data-message-list="voices"></div>
+                </div>
+                <div class="carousel-slide" data-panel-title="Stimme der Moderation" role="group" aria-label="2 von 3: Stimme der Moderation" aria-hidden="true" inert>
+                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-mic"/></svg><h2>Stimme der Moderation</h2><span class="host-badge">VORSCHAU</span></div>
+                  <div class="carousel-body moderator-body"></div>
+                </div>
+                <div class="carousel-slide" data-panel-title="Gebetswand" role="group" aria-label="3 von 3: Gebetswand" aria-hidden="true" inert>
+                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-prayer"/></svg><h2>Gebetswand</h2><button type="button" class="text-button" data-demo="Gebetswand">Mehr →</button></div>
+                  <div class="carousel-body" data-message-list="prayers">
+                    <div class="quote prayer-entry"><div class="avatar" aria-hidden="true"><svg><use href="#i-prayer"/></svg></div><div><strong>Für unsere Familien</strong><time>Heute</time><p>Bitte betet für Frieden und neue Kraft in unseren Familien.</p></div></div>
+                    <div class="quote prayer-entry"><div class="avatar" aria-hidden="true"><svg><use href="#i-prayer"/></svg></div><div><strong>Für Menschen in Not</strong><time>Heute</time><p>Wir denken an alle, die gerade Trost und Hilfe brauchen.</p></div></div>
+                    <div class="quote prayer-entry"><div class="avatar" aria-hidden="true"><svg><use href="#i-prayer"/></svg></div><div><strong>Dankbarkeit</strong><time>Gestern</time><p>Danke für diese Gemeinschaft und alle Gebete füreinander.</p></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="carousel-arrow next" aria-label="Nächsten Bereich anzeigen"><svg aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+            <div class="carousel-pagination" role="group" aria-label="Bereiche wählen"></div>
           </section>
         </main>
         <footer class="lower-scene">
@@ -654,6 +705,46 @@
         notify(`${button.dataset.nav} · Nur Designvorschau`);
       });
     });
+    const mobileCarousel = document.querySelector('.mobile-carousel');
+    const carouselTrack = mobileCarousel.querySelector('.carousel-track');
+    const carouselSlides = [...mobileCarousel.querySelectorAll('.carousel-slide')];
+    const carouselPagination = mobileCarousel.querySelector('.carousel-pagination');
+    const voiceBody = mobileCarousel.querySelector('[data-message-list="voices"]');
+    voiceBody.append(...[...document.querySelectorAll('.community:not(.mobile-carousel) .quote')].map(quote => quote.cloneNode(true)));
+    mobileCarousel.querySelector('.moderator-body').append(document.querySelector('.host-card .host-body').cloneNode(true));
+    const messageLists = [voiceBody, mobileCarousel.querySelector('[data-message-list="prayers"]')];
+    const carouselDots = carouselSlides.map((slide, index) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.setAttribute('aria-label', `${slide.dataset.panelTitle} anzeigen`);
+      dot.addEventListener('click', () => selectCarouselPanel(index));
+      carouselPagination.append(dot);
+      return dot;
+    });
+    let carouselIndex = 0;
+    function selectCarouselPanel(index) {
+      carouselIndex = (index + carouselSlides.length) % carouselSlides.length;
+      carouselTrack.style.transform = `translateX(-${carouselIndex * 100}%)`;
+      carouselSlides.forEach((slide, slideIndex) => {
+        const active = slideIndex === carouselIndex;
+        slide.inert = !active;
+        slide.setAttribute('aria-hidden', String(!active));
+        carouselDots[slideIndex].setAttribute('aria-pressed', String(active));
+      });
+      const previous = carouselSlides[(carouselIndex - 1 + carouselSlides.length) % carouselSlides.length];
+      const next = carouselSlides[(carouselIndex + 1) % carouselSlides.length];
+      mobileCarousel.querySelector('.carousel-arrow.previous').setAttribute('aria-label', `${previous.dataset.panelTitle} anzeigen`);
+      mobileCarousel.querySelector('.carousel-arrow.next').setAttribute('aria-label', `${next.dataset.panelTitle} anzeigen`);
+    }
+    mobileCarousel.querySelector('.carousel-arrow.previous').addEventListener('click', () => selectCarouselPanel(carouselIndex - 1));
+    mobileCarousel.querySelector('.carousel-arrow.next').addEventListener('click', () => selectCarouselPanel(carouselIndex + 1));
+    mobileCarousel.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        selectCarouselPanel(carouselIndex + (event.key === 'ArrowRight' ? 1 : -1));
+      }
+    });
+    selectCarouselPanel(0);
     const parameters = new URLSearchParams(location.search);
     const initialTheme = parameters.get('theme');
     if (initialTheme === 'dark') setTheme('dark');
@@ -735,6 +826,34 @@
         page.style.removeProperty('padding-bottom');
       }
     }
+    function updateMobilePanelDensity() {
+      if (!mobilePreview) return;
+      const allMessages = messageLists.map(list => [...list.querySelectorAll('.quote')]);
+      allMessages.flat().forEach(message => { message.hidden = false; });
+      const expandedHeight = parseFloat(getComputedStyle(actionsWindow).getPropertyValue('--expanded-height'));
+      const trayHeight = actionsWindow.getBoundingClientRect().height;
+      const dockHeight = mobileDock.getBoundingClientRect().height + Math.max(0, expandedHeight - trayHeight);
+      const toolbarHeight = getComputedStyle(toolbar).position === 'sticky' ? toolbar.getBoundingClientRect().height : 0;
+      const stripHeight = parseFloat(getComputedStyle(page).getPropertyValue('--header-strip-height'));
+      const availableHeight = window.innerHeight - toolbarHeight - stripHeight - playerDock.getBoundingClientRect().height - dockHeight - 24;
+      const panelStyle = getComputedStyle(mobileCarousel);
+      const chromeHeight = parseFloat(panelStyle.paddingTop) + parseFloat(panelStyle.paddingBottom)
+        + mobileCarousel.querySelector('.section-heading').getBoundingClientRect().height
+        + carouselPagination.getBoundingClientRect().height + 2;
+      let usedHeight = chromeHeight;
+      let visibleCount = 0;
+      for (let index = 0; index < 3; index++) {
+        const rowHeight = Math.max(...allMessages.map(messages => {
+          const message = messages[index];
+          return message ? message.getBoundingClientRect().height + parseFloat(getComputedStyle(message).marginTop) : 0;
+        }));
+        if (index > 0 && usedHeight + rowHeight > availableHeight) break;
+        usedHeight += rowHeight;
+        visibleCount++;
+      }
+      allMessages.forEach(messages => messages.forEach((message, index) => { message.hidden = index >= visibleCount; }));
+      mobileCarousel.dataset.visibleMessages = String(visibleCount);
+    }
     function updateStickyLayout() {
       mobilePreview = preview.clientWidth <= 600;
       updateMobileDock();
@@ -744,6 +863,7 @@
       const sampleY = hero.getBoundingClientRect().height + playerMargin - stripHeight;
       root.style.setProperty('--header-sample-y', `${Math.max(0, sampleY)}px`);
       root.style.setProperty('--preview-top', `${toolbarHeight}px`);
+      updateMobilePanelDensity();
       updatePinnedState();
     }
     window.addEventListener('scroll', () => {
@@ -752,6 +872,8 @@
     const layoutObserver = new ResizeObserver(updateStickyLayout);
     layoutObserver.observe(preview);
     layoutObserver.observe(toolbar);
+    layoutObserver.observe(playerDock);
+    window.addEventListener('resize', updateStickyLayout);
     const dockObserver = new ResizeObserver(updateDockSpace);
     dockObserver.observe(mobileDock);
     updateStickyLayout();
