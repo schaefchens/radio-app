@@ -146,13 +146,15 @@ test.describe('the CDN', () => {
 
 test.describe('YouTube required minimum functionality', () => {
   for (const viewport of [
-    { name: 'desktop', width: 1280, height: 900 },
-    { name: 'phone', width: 390, height: 844 },
+    { name: 'desktop', width: 1280, height: 900, theme: undefined },
+    { name: 'phone', width: 390, height: 844, theme: undefined },
+    // Storm Ark pulls the pinned player further up into the scenery.
+    { name: 'phone, dark', width: 390, height: 844, theme: 'dark' as const },
   ]) {
     test(`nothing covers the playing video and it is at least 200×200 (${viewport.name})`, async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await waitForSong();
-      await fakeYouTube(page);
+      await fakeYouTube(page, { theme: viewport.theme });
       await join(page);
       await playing(page);
       const frame = page.locator('iframe[data-fake-youtube]');
@@ -172,6 +174,46 @@ test.describe('YouTube required minimum functionality', () => {
       expect(covered).toEqual([]);
     });
   }
+
+  test('on a phone the player stays pinned, uncovered and playing while the page scrolls', async ({ page }) => {
+    // A short screen, so the page scrolls far enough to pin the player.
+    await page.setViewportSize({ width: 390, height: 640 });
+    await waitForSong();
+    await fakeYouTube(page, { theme: 'dark' });
+    await join(page);
+    await playing(page);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const place = () =>
+      page.evaluate(() => {
+        const f = document.querySelector('iframe[data-fake-youtube]');
+        const slot = document.querySelector('[data-stage-slot]');
+        const dock = document.querySelector('.player-dock');
+        if (!f || !slot || !dock) return null;
+        const r = f.getBoundingClientRect();
+        const s = slot.getBoundingClientRect();
+        const points: [number, number][] = [[0.5, 0.5], [0.05, 0.05], [0.95, 0.05], [0.05, 0.95], [0.95, 0.95]];
+        return {
+          pinned: Math.round(dock.getBoundingClientRect().top) === Math.round(parseFloat(getComputedStyle(dock).top)),
+          follows: Math.abs(r.top - s.top) < 1 && Math.abs(r.height - s.height) < 1,
+          size: Math.min(r.width, r.height) >= 200,
+          covered: points.filter(([x, y]) => document.elementFromPoint(r.left + r.width * x, r.top + r.height * y) !== f).length,
+        };
+      });
+    await expect.poll(place).toEqual({ pinned: true, follows: true, size: true, covered: 0 });
+    expect((await ytNow(page))?.state).toBe(YT_PLAYING);
+    // At the bottom of the page the tiles unfold above the menu.
+    await expect(page.locator('.mobile-dock')).toHaveAttribute('data-expanded', 'true');
+
+    // Back up they fold away; a first tap unfolds them, the second one opens.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.locator('.mobile-dock')).toHaveAttribute('data-expanded', 'false');
+    const tile = page.locator('.mobile-dock').getByRole('button', { name: /Share a prayer request/ });
+    await tile.click();
+    await expect(page.locator('.mobile-dock')).toHaveAttribute('data-expanded', 'true');
+    await expect(page.getByRole('dialog', { name: 'Share a prayer request' })).not.toBeInViewport();
+    await tile.click();
+    await expect(page.getByRole('dialog', { name: 'Share a prayer request' })).toBeInViewport();
+  });
 
   test('a sheet over the stage pauses the video; closing it resumes at the live position', async ({ page }) => {
     await waitForSong(40_000);

@@ -134,6 +134,13 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
 - **Rejections**: /mod → Review → Rejected shows why each submission was
   declined (the automatic check's verdict and note, or the failed YouTube
   check) and approves it anyway where it can still air.
+- **Prayer wall**: typed prayer requests whose senders ticked "show on the
+  prayer wall" appear there once approved, without name or place (the newest
+  30). /mod → Review → Prayer wall takes one down, or puts it back, at once.
+- **Themes**: Kids Ark (light) and Storm Ark (dark), following the device
+  until a listener picks one (welcome dialog, Profile). The design they
+  implement is `concept-files/theme-preview.html`; the scenery lives in
+  `app/src/assets/theme/`.
 - **Retention** (the privacy policy states these — change both together):
   minute files and host audio 48 h, day files 60 days, submissions 90 days
   (`RETAIN_SUBMISSIONS_DAYS`; recordings allowed for replays stay in the

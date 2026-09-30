@@ -125,6 +125,29 @@ and anything else is `missed`: a recording that will never air is not
 published, or removed when the tick sweeps the queue. Intake closes 15 minutes
 before a program ends ("last chance" from 25).
 
+The **prayer wall** (`Submissions::wall`, `live.json.wall`) shows typed prayer
+requests that are approved, scheduled or aired — only with the sender's own
+tick (never pre-ticked: Art. 9 needs a clear yes), anonymous (text and time,
+no name or place), the newest 30. In live.json, not the minute files, so a
+moderator's takedown (/mod → Review → Prayer wall, `submissions.hidden`)
+applies at once. Community voices are chat highlights only.
+
+**Themes** (`app/src/lib/theme.ts`, `app/src/styles/`). The design is
+`concept-files/theme-preview.html`: Kids Ark (light) and Storm Ark (dark),
+desktop and phone. A theme is one registry entry (name, scenery, bar color)
+plus one token block in `styles/tokens.css`, picked by `<html data-theme>`;
+with no choice (`settings.theme = null`) the device's scheme decides — the
+tokens repeat the dark block under `prefers-color-scheme` because the CSP
+allows no inline script to set the attribute before the first paint.
+See-through surfaces take their alpha from `--*-a` variables, which
+`prefers-reduced-transparency` sets to 1. `shell.css`/`home.css`/`welcome.css`
+keep the preview's class names (its container queries are media queries
+here: phone ≤ 600, desktop ≥ 900) and load after `index.css`, after
+Tailwind's reset. The stage is `data-theme="dark"` in both themes. The
+scenery is not precached (workbox `globIgnores`, cached on first use). A
+first visit gets the welcome dialog (language, theme); reactions stay
+pressed per device (`arche.reactions`).
+
 **Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
 imprint and the privacy policy describe what this code does — the data flows
 (YouTube only after the join tap, OpenAI for texts/voice/transcripts/checks,
@@ -232,14 +255,26 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   to `vite dev`. The silent unlock MP3 is a `data:` URI (`media-src … data:`);
   WebSockets are `wss:` only. The e2e suite runs against the built app.
 
+- **Nothing opens over the stage.** An emoji picker or channel list above the
+  player's row would sit in front of the YouTube player (z 35, fixed): pickers
+  open downward, the channel list is a sheet. A modal (sheet, the welcome
+  `<dialog>`) must `pushOverlay` so the video pauses under it.
+- **No `container-type` above the fixed layers.** Its layout containment makes
+  the element the containing block for `position: fixed` — the phone dock and
+  scenery would stick to the page instead of the screen (the preview uses
+  container queries only because it sits in a demo frame).
+- **The phone scenery at the bottom is Home's only**: behind the other pages'
+  text, which has no cards, it took the words away.
+
 ## Testing
 
 "A test is earned by a risk." Server: `npm run test:php` (enoch-style harness,
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
 generator's timing invariants, the PHP→fixture contract, identity, submissions
-(request blocks, late approvals, the queue sweep, intake times), moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+(request blocks, late approvals, the queue sweep, intake times, the prayer wall), moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
-timeline, clock, i18n keys, passphrase, realtime client, CDN fallback). Shared:
+timeline, clock, i18n keys, passphrase, realtime client, CDN fallback, theme,
+the phone carousel's fit, the prayer wall's day). Shared:
 fixture parsing. Lint + typecheck gate all.
 
 End to end: `npm run e2e` starts the e2e stack (`scripts/e2e-stack.sh`: project
@@ -254,7 +289,11 @@ Covered: live position on join, two listeners in sync, evergreen fallback, no
 Google request before consent, RMF (nothing over the player, ≥ 200×200, paused
 under a sheet), no sideways scroll at 360/390 px on every page, passphrase on a
 second device, song/prayer/recording through moderation, /mod gate, library,
-pull from air, a rejection explained and overruled in /mod, chat between two
+pull from air, a rejection explained and overruled in /mod, the welcome dialog
+(language and theme, once; `fakeYouTube()` pre-dismisses it for every other
+test), the theme following the device until Profile picks one, the pinned
+phone player and the tiles unfolding, a prayer on the prayer wall (anonymous),
+no sideways scroll and the stage uncovered in both themes, chat between two
 listeners, the program read cross-origin from
 the stand-in CDN (CSP included) and from the site when the CDN is down.
 `npm run e2e:reset` starts over.

@@ -24,12 +24,28 @@ export interface YtNow {
 
 const GOOGLE = /^https:\/\/([a-z0-9-]+\.)*(youtube\.com|youtube-nocookie\.com|ytimg\.com|googlevideo\.com|google\.com|doubleclick\.net)\//;
 
+export interface FakeYouTubeOptions {
+  /** Keep the first visit's welcome dialog (the welcome test); every other test starts past it. */
+  welcome?: boolean;
+  /** Start in this theme instead of following the browser's scheme. */
+  theme?: 'light' | 'dark';
+}
+
 /**
  * Serve the fake IFrame API and answer oEmbed from the fixture videos; every
  * other request to YouTube or Google is refused, so a run never leaves the
  * machine. Returns the list of Google URLs the page asked for, in order.
+ *
+ * Every test starts with fresh storage, so every page would open with the
+ * welcome dialog — a modal over everything. A device without settings gets
+ * "already welcomed" (and the theme) before the app starts; a later reload
+ * keeps whatever the app stored meanwhile.
  */
-export async function fakeYouTube(page: Page): Promise<string[]> {
+export async function fakeYouTube(page: Page, opts: FakeYouTubeOptions = {}): Promise<string[]> {
+  await page.addInitScript(({ welcome, theme }) => {
+    if (welcome || localStorage.getItem('arche.settings')) return;
+    localStorage.setItem('arche.settings', JSON.stringify({ state: { welcomed: true, ...(theme ? { theme } : {}) }, version: 1 }));
+  }, { welcome: !!opts.welcome, theme: opts.theme ?? null });
   const requested: string[] = [];
   await page.route(GOOGLE, async (route) => {
     const url = new URL(route.request().url());

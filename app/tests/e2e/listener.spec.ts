@@ -138,7 +138,7 @@ test('a passphrase takes the listener’s identity to a second device', async ({
   await Promise.all([first.context().close(), second.context().close()]);
 });
 
-test('a prayer request is checked, accepted and shown as a community voice', async ({ page }) => {
+test('a prayer request is checked, accepted and shown on the prayer wall', async ({ page }) => {
   await fakeYouTube(page);
   await page.goto('/');
   const sheet = await openSheet(page, /Share a prayer request/, 'Share a prayer request');
@@ -159,13 +159,20 @@ test('a prayer request is checked, accepted and shown as a community voice', asy
     .poll(
       async () => {
         await cron();
-        return (await liveFile())?.voices.some((v) => v.text === text);
+        return (await liveFile())?.wall.some((e) => e.text === text);
       },
       { timeout: 90_000, intervals: [3000] },
     )
     .toBe(true);
+  // Anonymous: the wall carries the text and the time, never the name or place.
+  const entry = (await liveFile())?.wall.find((e) => e.text === text);
+  expect(Object.keys(entry ?? {}).sort()).toEqual(['at', 'id', 'text']);
+  expect((await liveFile())?.voices.some((v) => v.text === text)).toBe(false);
   await page.keyboard.press('Escape');
-  await expect(page.getByText(text)).toBeVisible({ timeout: 45_000 });
+  // The card shows one request at a time; "More" lists the whole wall.
+  const wall = page.getByRole('region', { name: 'Prayer wall' });
+  await wall.getByRole('button', { name: /More/ }).click({ timeout: 45_000 });
+  await expect(page.getByRole('dialog', { name: 'Prayer wall' }).getByText(text)).toBeVisible({ timeout: 45_000 });
 });
 
 test('before the listener agrees to YouTube, a song request asks YouTube nothing', async ({ page }) => {
