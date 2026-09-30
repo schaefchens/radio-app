@@ -164,9 +164,11 @@
     [data-theme="dark"] .blue { background: linear-gradient(145deg, #066df7, #003fc4); }
     [data-theme="dark"] .gold { background: linear-gradient(145deg, #e7a30a, #ad6100); }
     .navigation { display: grid; grid-template-columns: repeat(4, 1fr); padding: 13px 8px; border-radius: 18px; border: 1px solid var(--line); background: var(--menu-surface); }
-    .nav-item { border: 0; background: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11px; padding: 5px; }
+    .navigation.has-moderation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .nav-item { position: relative; border: 0; background: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11px; padding: 5px; }
     .nav-item[aria-current="page"] { color: var(--accent); font-weight: 750; }
-    .nav-item[aria-current="page"] svg { color: #ff294a; }
+    .nav-item:hover { color: var(--accent); }
+    .nav-item[data-nav="Live"] svg { color: #ff294a; }
     .asset-note { margin: 18px auto 0; color: #69758a; font-size: 11px; text-align: center; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 20; background: #142b45; color: white; border: 1px solid #ffffff30; border-radius: 12px; box-shadow: 0 8px 30px #0003; padding: 12px 18px; font-size: 13px; text-align: center; max-width: calc(100% - 32px); width: max-content; }
     .toast:empty { display: none; }
@@ -182,6 +184,7 @@
       .desktop-nav .nav-item { flex-direction: row; gap: 8px; font-size: clamp(11px, 1.1cqw, 16px); padding: 6px 10px; }
       .desktop-nav .nav-item[aria-current="page"] { box-shadow: 0 3px 0 var(--accent); }
       [data-theme="dark"] .desktop-nav { width: clamp(420px, 45cqw, 640px); }
+      .desktop-nav.has-moderation { width: clamp(560px, 55cqw, 810px); }
       .content { display: grid; width: calc(100% - 20px); max-width: 1480px; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: 'player host' 'player community'; align-items: start; gap: 14px; margin-top: -14px; }
       .player-dock { grid-area: player; }
       .host-card { display: block; grid-area: host; }
@@ -213,7 +216,7 @@
       /* Enlarge the ark on mobile and let the scenery crop off the right edge. */
       .hero { position: sticky; z-index: 2; top: calc(var(--preview-top, 0px) - var(--header-sample-y, 0px)); height: var(--mobile-hero-height); overflow: hidden; }
       .hero-art { height: 100%; object-fit: cover; object-position: left center; mask-image: none; }
-      .brand { top: 43%; left: 48%; width: 52%; }
+      .brand { top: 29%; left: 48%; width: 52%; }
       .brand h1 { font-size: clamp(24px, 7cqw, 42px); }
       .brand p { margin-top: 6px; font-size: clamp(8px, 2.25cqw, 13px); }
       [data-theme="dark"] .brand { top: 38%; left: 48%; width: 50%; text-shadow: 0 2px 8px #001429, 0 1px 2px #001429; }
@@ -255,11 +258,14 @@
       .icon-button { width: clamp(28px, 8cqw, 36px); height: clamp(30px, 8.5cqw, 38px); border-radius: 9px; }
       .icon-button svg { width: 20px; }
       .community { margin-top: 14px; padding: 19px 15px; }
+      [data-theme="dark"] .community { padding-top: 10px; }
       .section-heading { gap: 8px; }
       .section-heading h2 { font-size: 14px; }
       .text-button { font-size: 10px; }
+      [data-theme="dark"] .community .text-button { font-size: 13px; }
       .section-heading svg { width: 21px; }
       .quote { padding: 14px 12px; gap: 10px; margin-top: 14px; }
+      [data-theme="dark"] .community .section-heading + .quote { margin-top: 9px; }
       .avatar { width: 35px; height: 35px; font-size: 16px; }
       .quote p { font-size: 12px; }
       .quote time { display: block; margin-left: 0; }
@@ -288,6 +294,7 @@
       .action svg { width: 25px; height: 25px; }
       .navigation { position: relative; left: 50%; width: 100cqw; transform: translateX(-50%); padding: 6px 0; border-left: 0; border-right: 0; border-radius: 0; }
       .nav-item { font-size: 10px; padding-block: 4px; }
+      .mobile-dock .nav-item[aria-current="page"]::after { content: ""; position: absolute; bottom: -5px; left: 50%; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); transform: translateX(-50%); pointer-events: none; }
     }
     @container (max-width: 400px) {
       .mobile-dock .actions-window { --expanded-height: 60px; }
@@ -326,6 +333,7 @@
     <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14a4.5 4.5 0 0 0 8 0"/><circle cx="9" cy="9" r=".8" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r=".8" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-levels" viewBox="0 0 24 24"><path d="M3 13v8M9 3v18M15 8v13M21 15v6" stroke-width="3" stroke-linecap="butt"/></symbol>
     <symbol id="i-radio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></symbol>
+    <symbol id="i-moderation" viewBox="0 0 24 24"><path d="M12 2 20 5v6c0 5-3.4 8.6-8 11-4.6-2.4-8-6-8-11V5l8-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
     <symbol id="i-prayer" viewBox="0 0 24 24"><path d="M12 3v12m0-12c-2 0-2 5-3 8s-3 5-6 7l4 4 5-7m0-12c2 0 2 5 3 8s3 5 6 7l-4 4-5-7"/></symbol>
   </svg>
   <header class="toolbar">
@@ -338,6 +346,10 @@
       <div class="segmented" role="group" aria-label="Vorschaubreite">
         <button type="button" data-width-choice="desktop" aria-pressed="true">Desktop</button>
         <button type="button" data-width-choice="mobile" aria-pressed="false">Mobil</button>
+      </div>
+      <div class="segmented" role="group" aria-label="Menürolle">
+        <button type="button" data-role-choice="standard" aria-pressed="true">Standard</button>
+        <button type="button" data-role-choice="moderator" aria-pressed="false">Moderator</button>
       </div>
     </div>
   </header>
@@ -352,6 +364,7 @@
             <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Programm</button>
             <button type="button" class="nav-item" data-nav="Chat"><svg aria-hidden="true"><use href="#i-chat"/></svg>Chat</button>
             <button type="button" class="nav-item" data-nav="Profil"><svg aria-hidden="true"><use href="#i-user"/></svg>Profil</button>
+            <button type="button" class="nav-item" data-nav="Moderation" hidden><svg aria-hidden="true"><use href="#i-moderation"/></svg>Moderation</button>
           </nav>
         </header>
         <main class="content">
@@ -432,6 +445,7 @@
               <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Programm</button>
               <button type="button" class="nav-item" data-nav="Chat"><svg aria-hidden="true"><use href="#i-chat"/></svg>Chat</button>
               <button type="button" class="nav-item" data-nav="Profil"><svg aria-hidden="true"><use href="#i-user"/></svg>Profil</button>
+              <button type="button" class="nav-item" data-nav="Moderation" hidden><svg aria-hidden="true"><use href="#i-moderation"/></svg>Moderation</button>
             </nav>
           </div>
         </footer>
@@ -471,6 +485,22 @@
           item.setAttribute('aria-pressed', String(item === button));
         });
       });
+    });
+    function setModeratorPreview(enabled) {
+      document.querySelectorAll('[data-role-choice]').forEach(button => {
+        button.setAttribute('aria-pressed', String((button.dataset.roleChoice === 'moderator') === enabled));
+      });
+      document.querySelectorAll('.desktop-nav, .navigation').forEach(nav => nav.classList.toggle('has-moderation', enabled));
+      if (!enabled && document.querySelector('[data-nav="Moderation"][aria-current="page"]')) {
+        document.querySelectorAll('[data-nav]').forEach(item => {
+          if (item.dataset.nav === 'Live') item.setAttribute('aria-current', 'page');
+          else item.removeAttribute('aria-current');
+        });
+      }
+      document.querySelectorAll('[data-nav="Moderation"]').forEach(item => { item.hidden = !enabled; });
+    }
+    document.querySelectorAll('[data-role-choice]').forEach(button => {
+      button.addEventListener('click', () => setModeratorPreview(button.dataset.roleChoice === 'moderator'));
     });
     const videoStage = document.querySelector('#video-stage');
     let videoLoaded = false;
