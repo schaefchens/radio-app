@@ -19,6 +19,8 @@
     .toolbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 24px; background: #fff; border-bottom: 1px solid #dce1e8; color: #152440; box-shadow: 0 3px 20px #15244008; }
     .toolbar-title { font-weight: 750; font-size: 14px; }
     .toolbar-title small { display: block; color: #69758a; font-size: 11px; font-weight: 450; margin-top: 2px; }
+    .toolbar-heading { display: flex; align-items: center; gap: 10px; }
+    .welcome-reopen { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 auto; border: 1px solid #c9d6e4; border-radius: 50%; background: #f7faff; color: #315d85; font-size: 15px; font-weight: 800; }
     .controls { display: flex; gap: 12px; flex-wrap: wrap; }
     .segmented { display: flex; gap: 3px; padding: 4px; border-radius: 10px; background: #edf0f5; }
     .segmented button { border: 0; background: transparent; color: #626f83; border-radius: 7px; padding: 7px 13px; font-size: 12px; font-weight: 650; }
@@ -121,14 +123,24 @@
     .section-heading h2 { margin: 0; flex: 1; font-size: 17px; letter-spacing: -.02em; }
     .text-button { background: none; border: 0; padding: 0; font-size: 12px; color: var(--accent); font-weight: 650; }
     .quote { display: flex; gap: 15px; align-items: flex-start; margin: 19px 0 0; padding: 20px; border-radius: 16px; background: var(--soft); }
-    .avatar { display: grid; place-items: center; border-radius: 50%; width: 44px; height: 44px; flex-shrink: 0; font-size: 19px; font-weight: 650; color: #fff; background: linear-gradient(140deg, #ff65a0, #f03d80); }
-    [data-theme="dark"] .avatar { background: linear-gradient(140deg, #2684ff, #7546ec); }
     .quote strong { font-size: 13px; }
     .quote time { font-size: 10px; color: var(--muted); margin-left: 10px; }
     .quote p { margin: 5px 0 0; font-size: 14px; color: var(--ink); }
-    .quote:nth-of-type(3) .avatar { background: linear-gradient(140deg, #19c8b5, #008c88); }
-    .quote:nth-of-type(4) .avatar { background: linear-gradient(140deg, #b567ff, #7625cd); }
-    .quote:nth-of-type(5) .avatar { background: linear-gradient(140deg, #ffca3a, #ec8700); }
+    .feed-message { display: block; position: relative; }
+    .feed-message .message-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 8px; }
+    .feed-message time { margin: 0; white-space: nowrap; }
+    .feed-message p { grid-column: 1 / -1; }
+    .prayer-entry time { grid-column: 2; justify-self: end; }
+    .feed-reactions { display: flex; justify-content: flex-end; gap: 5px; margin-top: 7px; }
+    .feed-reaction { display: grid; place-items: center; width: 27px; height: 26px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); }
+    .feed-reaction svg { width: 16px; height: 16px; }
+    .feed-reaction[aria-pressed="true"] { color: #ff3c64; border-color: currentColor; }
+    .feed-reaction[data-feed-reaction="prayer"][aria-pressed="true"] { color: #dda12b; }
+    .prayer-entry .feed-reaction[data-feed-reaction="prayer"] { font-size: 18px; }
+    .feed-reaction .selected-emoji { font-size: 17px; line-height: 1; }
+    .feed-emoji-picker { position: absolute; right: 7px; bottom: 42px; z-index: 4; display: flex; gap: 3px; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: var(--base); box-shadow: 0 5px 18px #00142955; }
+    .feed-emoji-picker button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: var(--soft); font-size: 18px; }
+    .feed-emoji-picker button:hover, .feed-emoji-picker button:focus-visible { background: var(--surface); }
     .host-card { padding: 18px; }
     .host-card .section-heading { padding-bottom: 15px; border-bottom: 1px solid var(--line); }
     .host-body { display: flex; align-items: center; gap: 16px; padding-top: 16px; }
@@ -143,28 +155,41 @@
     .dots { display: flex; justify-content: center; gap: 7px; padding-top: 18px; }
     .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
     .dots i:first-child { background: var(--accent); }
-    .mobile-carousel { display: none; }
-    .mobile-carousel .carousel-stage { overflow: hidden; }
+    .mobile-carousel { display: none; transition: background-color .28s ease, border-color .28s ease, color .28s ease; }
+    .mobile-carousel[data-active-panel="moderator"] { --accent: #087f91; --soft: #e1f2f4; background: #f0fafb; border-color: #a5d8e1; }
+    [data-theme="dark"] .mobile-carousel[data-active-panel="moderator"] { --accent: #73d6e4; --soft: #173e50; background: #0c3044; border-color: #32798d; }
+    .mobile-carousel[data-active-panel="prayers"] { --ink: #5b3b12; --muted: #84602e; --accent: #a45b00; --soft: #ffedc3; color: var(--ink); background: #fff4dc; border-color: #deb35f; }
+    [data-theme="dark"] .mobile-carousel[data-active-panel="prayers"] { --ink: #fff2d6; --muted: #dfc49c; --accent: #ffcb73; --soft: #49361b; background: #332611; border-color: #a8782c; }
+    .mobile-carousel .carousel-stage { overflow: hidden; touch-action: pan-y pinch-zoom; cursor: grab; }
+    .mobile-carousel .carousel-stage:active { cursor: grabbing; }
     .mobile-carousel .carousel-track { display: flex; align-items: stretch; transition: transform .28s ease; }
     .mobile-carousel .carousel-slide { display: flex; flex: 0 0 100%; flex-direction: column; min-width: 0; }
-    .mobile-carousel .carousel-body { flex: 1; margin-inline: 26px; }
-    .mobile-carousel .carousel-body .quote { margin-top: 9px; }
+    .mobile-carousel .carousel-body { flex: 1; margin-inline: 11px; }
+    .mobile-carousel .carousel-body .quote { display: flex; flex-direction: column; align-items: stretch; min-height: 110px; margin-top: 9px; padding: 9px; gap: 8px; border-radius: 0; }
+    .mobile-carousel .feed-message .message-copy { grid-template-columns: max-content max-content minmax(0, 1fr); column-gap: 7px; }
+    .mobile-carousel .feed-message time { grid-column: 2; justify-self: start; }
+    .mobile-carousel .prayer-entry time { grid-column: 1; }
+    .mobile-carousel .feed-message p { margin-top: 11px; }
+    .mobile-carousel .carousel-body .feed-reactions { position: absolute; top: 9px; right: 9px; margin: 0; }
+    .mobile-carousel .feed-emoji-picker { top: 40px; bottom: auto; }
+    .mobile-carousel .carousel-body.is-leaving { animation: feed-out .25s ease-in forwards; }
+    .mobile-carousel .carousel-body.is-entering { animation: feed-in .35s ease-out both; }
+    @keyframes feed-out { to { opacity: 0; transform: translateY(-7px); } }
+    @keyframes feed-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
     .mobile-carousel .carousel-arrow { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 32px; height: 44px; padding: 0; border: 0; background: none; color: var(--accent); transform: translateY(-50%); }
     .mobile-carousel .carousel-arrow:hover { color: var(--ink); }
-    .mobile-carousel .carousel-arrow svg { width: 26px; height: 26px; stroke-width: 2.4; }
-    .mobile-carousel .carousel-arrow.previous { left: 1px; }
-    .mobile-carousel .carousel-arrow.next { right: 1px; }
-    .mobile-carousel .carousel-pagination { display: flex; justify-content: center; gap: 8px; padding-top: 12px; }
+    .mobile-carousel .carousel-arrow svg { width: 19px; height: 19px; stroke-width: 2.2; }
+    .mobile-carousel .carousel-arrow.previous { left: -6px; }
+    .mobile-carousel .carousel-arrow.next { right: -6px; }
+    .mobile-carousel .carousel-pagination { display: flex; justify-content: center; gap: 8px; padding-top: 5px; }
     .mobile-carousel .carousel-pagination button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: var(--muted); opacity: .55; }
     .mobile-carousel .carousel-pagination button[aria-pressed="true"] { background: var(--accent); opacity: 1; }
     .mobile-carousel .moderator-body { display: flex; align-items: center; }
-    .mobile-carousel .host-body { width: 100%; margin-top: 9px; padding: 12px; border-radius: 14px; background: var(--soft); }
+    .mobile-carousel .host-body { width: 100%; margin-top: 9px; padding: 9px; gap: 10px; border-radius: 14px; background: var(--soft); }
     .mobile-carousel .host-avatar { width: 52px; height: 52px; }
     .mobile-carousel .host-avatar svg { width: 25px; height: 25px; }
     .mobile-carousel .host-message p { margin-top: 4px; line-height: 1.4; }
     .mobile-carousel .waveform { height: 18px; margin-top: 4px; }
-    .mobile-carousel .prayer-entry .avatar { background: linear-gradient(145deg, #28bfff, #0075ed); }
-    .mobile-carousel .prayer-entry .avatar svg { width: 20px; height: 20px; }
     .lower-scene { position: relative; margin-top: 20px; padding: 30px 0 24px; min-height: 30cqw; display: flex; flex-direction: column; justify-content: flex-end; }
     .bottom-art { position: absolute; inset: auto 0 0; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; mask-image: linear-gradient(transparent, #000 18%); }
     .lower-content { position: relative; width: min(900px, 94%); margin: auto auto 0; }
@@ -194,6 +219,40 @@
     .asset-note { margin: 18px auto 0; color: #69758a; font-size: 11px; text-align: center; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 20; background: #142b45; color: white; border: 1px solid #ffffff30; border-radius: 12px; box-shadow: 0 8px 30px #0003; padding: 12px 18px; font-size: 13px; text-align: center; max-width: calc(100% - 32px); width: max-content; }
     .toast:empty { display: none; }
+    .welcome-dialog { width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; overflow: auto; border: 1px solid #bfd5e9; border-radius: 22px; background: #fff; color: #163659; box-shadow: 0 24px 80px #001b38a8; }
+    html[data-preview-width="mobile"] .welcome-dialog { width: min(396px, calc(100vw - 24px)); }
+    .welcome-dialog::backdrop { background: #04172bb8; backdrop-filter: blur(5px); }
+    .welcome-art { height: 132px; background: url('theme-assets/light-top.webp') center 42% / cover; }
+    .welcome-content { padding: 21px 26px 24px; }
+    .welcome-topline { display: flex; align-items: flex-start; gap: 12px; }
+    .welcome-topline h2 { flex: 1; margin: 0; font-size: 24px; line-height: 1.15; }
+    .welcome-close { display: grid; place-items: center; width: 30px; height: 30px; flex: 0 0 auto; margin: -3px -7px 0 0; padding: 0; border: 0; border-radius: 8px; background: transparent; color: inherit; font-size: 25px; line-height: 1; }
+    .welcome-close:hover { background: #e8f2fa; }
+    .welcome-intro { margin: 10px 0 12px; color: #49617d; font-size: 14px; }
+    .welcome-points { display: grid; gap: 6px; margin: 0 0 19px; padding: 0; list-style: none; color: #315170; font-size: 13px; }
+    .welcome-points li { display: flex; align-items: baseline; gap: 9px; }
+    .welcome-points span[aria-hidden="true"] { color: #0782ec; font-size: 17px; }
+    .welcome-disclaimer { margin: -4px 0 17px; padding: 8px 10px; border-left: 3px solid #7aaed5; background: #edf6fd; color: #49617d; font-size: 11px; line-height: 1.45; }
+    .welcome-settings { display: grid; grid-template-columns: minmax(100px, .6fr) minmax(225px, 1.4fr); gap: 15px; }
+    .welcome-settings label, .welcome-settings legend { display: block; margin-bottom: 6px; padding: 0; color: #254d70; font-size: 12px; font-weight: 750; }
+    .welcome-settings select { width: 100%; min-height: 42px; padding: 8px 11px; border: 1px solid #bad2e6; border-radius: 10px; background: #f4f9fd; color: inherit; font: inherit; font-size: 13px; }
+    .welcome-theme { min-width: 0; margin: 0; padding: 0; border: 0; }
+    .welcome-theme-options { display: flex; gap: 6px; }
+    .welcome-theme-options label { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; min-height: 42px; margin: 0; border: 1px solid #bad2e6; border-radius: 10px; background: #f4f9fd; cursor: pointer; }
+    .welcome-theme-options label:has(input:checked) { border-color: #0782ec; background: #e5f4ff; color: #07599c; }
+    .welcome-theme-options input { accent-color: #0782ec; }
+    .welcome-start { width: 100%; min-height: 44px; margin-top: 20px; border: 0; border-radius: 11px; background: #087de2; color: #fff; font-weight: 750; }
+    .welcome-start:hover { background: #0667bc; }
+    .welcome-later { margin: 9px 0 0; color: #607992; font-size: 11px; text-align: center; }
+    [data-theme="dark"] .welcome-dialog { border-color: #2b7395; background: #092c48; color: #eef6ff; }
+    [data-theme="dark"] .welcome-art { background-image: url('theme-assets/dark-top.webp'); }
+    [data-theme="dark"] .welcome-intro, [data-theme="dark"] .welcome-points { color: #c2d8e9; }
+    [data-theme="dark"] .welcome-disclaimer { border-color: #64b6e2; background: #153b58; color: #c2d8e9; }
+    [data-theme="dark"] .welcome-later { color: #a8c7dd; }
+    [data-theme="dark"] .welcome-settings label, [data-theme="dark"] .welcome-settings legend { color: #d9ebf8; }
+    [data-theme="dark"] .welcome-settings select, [data-theme="dark"] .welcome-theme-options label { border-color: #477a99; background: #143e5b; color: #eef6ff; }
+    [data-theme="dark"] .welcome-theme-options label:has(input:checked) { border-color: #31b9ff; background: #155277; color: #eef6ff; }
+    [data-theme="dark"] .welcome-close:hover { background: #174763; }
     @container (min-width: 900px) {
       .hero { height: clamp(240px, 26cqw, 400px); overflow: hidden; background: var(--base); }
       .hero-art { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; mask-image: linear-gradient(#000 88%, transparent); }
@@ -221,7 +280,6 @@
       .section-heading h2 { font-size: clamp(14px, 1.25cqw, 19px); }
       .community .text-button { font-size: 10px; }
       .quote { gap: 10px; margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
-      .avatar { width: 34px; height: 34px; font-size: 17px; }
       .quote strong { font-size: 11px; }
       .quote time { margin-left: 7px; font-size: 9px; }
       .quote p { font-size: 12px; line-height: 1.45; }
@@ -281,7 +339,7 @@
       .reactions { gap: 4px; padding-top: 8px; }
       .icon-button { width: clamp(28px, 8cqw, 36px); height: clamp(30px, 8.5cqw, 38px); border-radius: 9px; }
       .icon-button svg { width: 20px; }
-      .community { margin-top: 14px; padding: 19px 15px; }
+      .community { margin-top: 14px; padding: 14px 10px 7px; }
       [data-theme="dark"] .community { padding-top: 10px; }
       .section-heading { gap: 8px; }
       .section-heading h2 { font-size: 14px; }
@@ -290,7 +348,6 @@
       .section-heading svg { width: 21px; }
       .quote { padding: 14px 12px; gap: 10px; margin-top: 14px; }
       [data-theme="dark"] .community .section-heading + .quote { margin-top: 9px; }
-      .avatar { width: 35px; height: 35px; font-size: 16px; }
       .quote p { font-size: 12px; }
       .quote time { display: block; margin-left: 0; }
       .quote strong { font-size: 12px; }
@@ -329,6 +386,7 @@
       .page, .mobile-dock { --surface: #fff; --soft: #edf7fc; --menu-surface: #fff; --desktop-menu-surface: #fff; }
       [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock { --surface: #042541; --soft: #103855; --menu-surface: #042541; --desktop-menu-surface: #00182a; }
       .play-button { background: #081421; border-color: #fff; }
+      .welcome-dialog::backdrop { background: #04172b; backdrop-filter: none; }
     }
     @media (max-width: 650px) {
       .toolbar { position: static; padding: 11px 12px; gap: 10px; flex-wrap: wrap; }
@@ -338,8 +396,11 @@
       .workspace { padding: 16px 4px 28px; }
       .preview { border-radius: 12px; }
       .asset-note { padding: 0 12px; }
+      .welcome-content { padding: 18px 18px 20px; }
+      .welcome-settings { grid-template-columns: 1fr; }
+      .welcome-art { height: 100px; }
     }
-    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   </style>
 </head>
 <body>
@@ -363,18 +424,18 @@
     <symbol id="i-prayer" viewBox="0 0 24 24"><path d="M12 3v12m0-12c-2 0-2 5-3 8s-3 5-6 7l4 4 5-7m0-12c2 0 2 5 3 8s3 5 6 7l-4 4-5-7"/></symbol>
   </svg>
   <header class="toolbar">
-    <div class="toolbar-title">Arche Radio · Theme-Vorschau<small>Designvorschau · YouTube startet nach Klick</small></div>
+    <div class="toolbar-heading"><div class="toolbar-title"><span data-i18n="previewTitle">Arche Radio · Theme-Vorschau</span><small data-i18n="previewSubtitle">Designvorschau · YouTube startet nach Klick</small></div><button type="button" class="welcome-reopen" id="welcome-reopen" data-i18n-aria="welcomeOpen" aria-label="Einführung und Einstellungen öffnen" title="Einführung und Einstellungen öffnen">?</button></div>
     <div class="controls">
       <div class="segmented" role="group" aria-label="Farbschema">
-        <button type="button" data-theme-choice="light" aria-pressed="true">☀ Hell</button>
-        <button type="button" data-theme-choice="dark" aria-pressed="false">☾ Dunkel</button>
+        <button type="button" data-theme-choice="light" data-i18n="lightChoice" aria-pressed="true">☀ Hell</button>
+        <button type="button" data-theme-choice="dark" data-i18n="darkChoice" aria-pressed="false">☾ Dunkel</button>
       </div>
       <div class="segmented" role="group" aria-label="Vorschaubreite">
         <button type="button" data-width-choice="desktop" aria-pressed="true">Desktop</button>
-        <button type="button" data-width-choice="mobile" aria-pressed="false">Mobil</button>
+        <button type="button" data-width-choice="mobile" data-i18n="mobileChoice" aria-pressed="false">Mobil</button>
       </div>
       <div class="segmented" role="group" aria-label="Menürolle">
-        <button type="button" data-role-choice="standard" aria-pressed="true">Standard</button>
+        <button type="button" data-role-choice="standard" data-i18n="standardChoice" aria-pressed="true">Standard</button>
         <button type="button" data-role-choice="moderator" aria-pressed="false">Moderator</button>
       </div>
     </div>
@@ -387,9 +448,9 @@
           <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><img class="brand-title-arc" src="theme-assets/light-logo.svg" alt=""><p><span class="brand-subtitle-default">Das Brüder-Radio in Christus</span><span class="brand-subtitle-dark-mobile">Das Brüder-Radio in Christus</span></p></div>
           <nav class="desktop-nav" aria-label="Desktop-Navigation">
             <button type="button" class="nav-item" aria-current="page" data-nav="Live"><svg aria-hidden="true"><use href="#i-radio"/></svg>Live</button>
-            <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Programm</button>
+            <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg><span data-i18n="programNav">Programm</span></button>
             <button type="button" class="nav-item" data-nav="Chat"><svg aria-hidden="true"><use href="#i-chat"/></svg>Chat</button>
-            <button type="button" class="nav-item" data-nav="Profil"><svg aria-hidden="true"><use href="#i-user"/></svg>Profil</button>
+            <button type="button" class="nav-item" data-nav="Profil"><svg aria-hidden="true"><use href="#i-user"/></svg><span data-i18n="profileNav">Profil</span></button>
             <button type="button" class="nav-item" data-nav="Moderation" hidden><svg aria-hidden="true"><use href="#i-moderation"/></svg>Moderation</button>
           </nav>
         </header>
@@ -398,39 +459,39 @@
           <section class="card" aria-label="Radio-Player Demo">
             <div class="station-row">
               <span class="live">LIVE</span>
-              <div class="station-name"><strong>Arche Radio</strong><small>Gemeinsam glauben. Gemeinsam hören.</small></div>
-              <div class="listeners"><svg aria-hidden="true"><use href="#i-people"/></svg><div><strong>1.482</strong>hören gerade zu</div></div>
+              <div class="station-name"><strong>Arche Radio</strong><small data-i18n="stationTagline">Gemeinsam glauben. Gemeinsam hören.</small></div>
+              <div class="listeners"><svg aria-hidden="true"><use href="#i-people"/></svg><div><strong>1.482</strong><span data-i18n="listeningNow">hören gerade zu</span></div></div>
             </div>
             <div class="player-stage" id="video-stage">
               <div class="player-placeholder">
-                <button type="button" class="play-button" id="play" aria-label="Good Good Father von Chris Tomlin auf YouTube abspielen"><svg aria-hidden="true"><use href="#i-play"/></svg></button>
-                <p class="stage-subtitle">Mit Klick auf Play wird YouTube geladen.</p>
+                <button type="button" class="play-button" id="play" data-i18n-aria="playYouTube" aria-label="Good Good Father von Chris Tomlin auf YouTube abspielen"><svg aria-hidden="true"><use href="#i-play"/></svg></button>
+                <p class="stage-subtitle" data-i18n="playHint">Mit Klick auf Play wird YouTube geladen.</p>
               </div>
             </div>
             <p class="playback-note" id="local-playback-note" hidden>Für den Videoplayer bitte <a href="http://localhost:4187/theme-preview.html" id="local-preview-link">die lokale Vorschau öffnen</a>. Falls sie nicht läuft: <strong>start-preview.command</strong> in diesem Ordner doppelklicken.</p>
             <div class="track-row">
               <img class="cover" src="theme-assets/good-good-father-poster.webp" width="68" height="68" alt="Chris Tomlin">
-              <div class="track"><span class="eyebrow"><svg aria-hidden="true"><use href="#i-levels"/></svg>Läuft gerade</span><strong><a href="https://www.youtube.com/watch?v=qlsQrycKKsY" target="_blank" rel="noopener" title="Good Good Father auf YouTube öffnen">Good Good Father</a></strong><small>Chris Tomlin</small></div>
+              <div class="track"><span class="eyebrow"><svg aria-hidden="true"><use href="#i-levels"/></svg><span data-i18n="playingNow">Läuft gerade</span></span><strong><a href="https://www.youtube.com/watch?v=qlsQrycKKsY" target="_blank" rel="noopener" title="Good Good Father auf YouTube öffnen">Good Good Father</a></strong><small>Chris Tomlin</small></div>
               <div class="track-progress">
                 <time id="song-elapsed">0:00</time>
-                <input class="song-progress" id="song-progress" type="range" min="0" max="260" value="0" step="1" aria-label="Position im Lied" aria-valuetext="0:00 von 4:20" disabled>
+                <input class="song-progress" id="song-progress" data-i18n-aria="songPosition" type="range" min="0" max="260" value="0" step="1" aria-label="Position im Lied" aria-valuetext="0:00 von 4:20" disabled>
                 <time id="song-duration">4:20</time>
               </div>
               <div class="reactions" role="group" aria-label="Auf das Lied reagieren">
-                <button type="button" class="icon-button" id="favorite" data-reaction="heart" aria-label="Gefällt mir" aria-pressed="false"><svg aria-hidden="true"><use href="#i-heart"/></svg></button>
-                <button type="button" class="icon-button" data-reaction="prayer" aria-label="Ich bete mit" aria-pressed="false"><svg aria-hidden="true"><use href="#i-prayer"/></svg></button>
-                <button type="button" class="icon-button" id="emoji-toggle" aria-label="Weitere Emojis auswählen" aria-expanded="false" aria-controls="emoji-picker"><svg aria-hidden="true"><use href="#i-smile"/></svg><span class="selected-emoji" aria-hidden="true" hidden></span></button>
+                <button type="button" class="icon-button" id="favorite" data-reaction="heart" data-i18n-aria="like" aria-label="Gefällt mir" aria-pressed="false"><svg aria-hidden="true"><use href="#i-heart"/></svg></button>
+                <button type="button" class="icon-button" data-reaction="prayer" data-i18n-aria="prayAlong" aria-label="Ich bete mit" aria-pressed="false"><svg aria-hidden="true"><use href="#i-prayer"/></svg></button>
+                <button type="button" class="icon-button" id="emoji-toggle" data-i18n-aria="chooseEmoji" aria-label="Weitere Emojis auswählen" aria-expanded="false" aria-controls="emoji-picker"><svg aria-hidden="true"><use href="#i-smile"/></svg><span class="selected-emoji" aria-hidden="true" hidden></span></button>
                 <div class="emoji-picker" id="emoji-picker" role="group" aria-label="Weitere Reaktionen" hidden>
-                  <p>Deine Reaktion</p>
+                  <p data-i18n="yourReaction">Deine Reaktion</p>
                   <div class="emoji-options">
-                    <button type="button" data-emoji="🙌" data-label="Halleluja" aria-label="Halleluja" aria-pressed="false">🙌</button>
-                    <button type="button" data-emoji="😊" data-label="Freude" aria-label="Freude" aria-pressed="false">😊</button>
-                    <button type="button" data-emoji="😍" data-label="Begeisterung" aria-label="Begeisterung" aria-pressed="false">😍</button>
-                    <button type="button" data-emoji="🥹" data-label="Berührt" aria-label="Berührt" aria-pressed="false">🥹</button>
-                    <button type="button" data-emoji="🕊️" data-label="Frieden" aria-label="Frieden" aria-pressed="false">🕊️</button>
-                    <button type="button" data-emoji="✨" data-label="Hoffnung" aria-label="Hoffnung" aria-pressed="false">✨</button>
-                    <button type="button" data-emoji="🎉" data-label="Feiern" aria-label="Feiern" aria-pressed="false">🎉</button>
-                    <button type="button" data-emoji="🔥" data-label="Feuer und Flamme" aria-label="Feuer und Flamme" aria-pressed="false">🔥</button>
+                    <button type="button" data-emoji="🙌" data-i18n-aria="emojiHallelujah" aria-label="Halleluja" aria-pressed="false">🙌</button>
+                    <button type="button" data-emoji="😊" data-i18n-aria="emojiJoy" aria-label="Freude" aria-pressed="false">😊</button>
+                    <button type="button" data-emoji="😍" data-i18n-aria="emojiExcited" aria-label="Begeisterung" aria-pressed="false">😍</button>
+                    <button type="button" data-emoji="🥹" data-i18n-aria="emojiMoved" aria-label="Berührt" aria-pressed="false">🥹</button>
+                    <button type="button" data-emoji="🕊️" data-i18n-aria="emojiPeace" aria-label="Frieden" aria-pressed="false">🕊️</button>
+                    <button type="button" data-emoji="✨" data-i18n-aria="emojiHope" aria-label="Hoffnung" aria-pressed="false">✨</button>
+                    <button type="button" data-emoji="🎉" data-i18n-aria="emojiCelebrate" aria-label="Feiern" aria-pressed="false">🎉</button>
+                    <button type="button" data-emoji="🔥" data-i18n-aria="emojiOnFire" aria-label="Feuer und Flamme" aria-pressed="false">🔥</button>
                   </div>
                 </div>
               </div>
@@ -438,38 +499,38 @@
           </section>
           </div>
           <section class="card host-card" aria-labelledby="host-title">
-            <div class="section-heading"><svg aria-hidden="true"><use href="#i-mic"/></svg><h2 id="host-title">Stimme der Moderation</h2><span class="host-badge">VORSCHAU</span></div>
+            <div class="section-heading"><svg aria-hidden="true"><use href="#i-mic"/></svg><h2 id="host-title" data-i18n="moderatorHeading">Stimme der Moderation</h2><span class="host-badge" data-i18n="previewBadge">VORSCHAU</span></div>
             <div class="host-body">
               <div class="host-avatar" aria-hidden="true"><svg><use href="#i-mic"/></svg></div>
-              <div class="host-message"><strong>Hope</strong><div class="waveform" aria-hidden="true"><i style="--bar:20%"></i><i style="--bar:45%"></i><i style="--bar:65%"></i><i style="--bar:35%"></i><i style="--bar:85%"></i><i style="--bar:55%"></i><i style="--bar:100%"></i><i style="--bar:70%"></i><i style="--bar:40%"></i><i style="--bar:80%"></i><i style="--bar:55%"></i><i style="--bar:30%"></i><i style="--bar:65%"></i><i style="--bar:95%"></i><i style="--bar:60%"></i><i style="--bar:35%"></i><i style="--bar:75%"></i><i style="--bar:50%"></i><i style="--bar:25%"></i><i style="--bar:45%"></i></div><p>Hope meldet sich gleich wieder zwischen den Liedern. Danke für eure Gebete!</p></div>
+              <div class="host-message"><strong>Hope</strong><div class="waveform" aria-hidden="true"><i style="--bar:20%"></i><i style="--bar:45%"></i><i style="--bar:65%"></i><i style="--bar:35%"></i><i style="--bar:85%"></i><i style="--bar:55%"></i><i style="--bar:100%"></i><i style="--bar:70%"></i><i style="--bar:40%"></i><i style="--bar:80%"></i><i style="--bar:55%"></i><i style="--bar:30%"></i><i style="--bar:65%"></i><i style="--bar:95%"></i><i style="--bar:60%"></i><i style="--bar:35%"></i><i style="--bar:75%"></i><i style="--bar:50%"></i><i style="--bar:25%"></i><i style="--bar:45%"></i></div><p data-i18n="hostMessage">Hope meldet sich gleich wieder zwischen den Liedern. Danke für eure Gebete!</p></div>
             </div>
           </section>
           <section class="card community" aria-labelledby="community-title">
-            <div class="section-heading"><svg aria-hidden="true"><use href="#i-chat"/></svg><h2 id="community-title">Stimmen der Gemeinschaft</h2><button type="button" class="text-button" data-demo="Gemeinschaft">Mehr →</button></div>
-            <div class="quote"><div class="avatar" aria-hidden="true">S</div><div><strong>Sarah</strong><time>Gerade eben</time><p>Vielen Dank für dieses Lied. Es gibt mir so viel Kraft in einer schweren Zeit. ❤️</p></div></div>
-            <div class="quote"><div class="avatar" aria-hidden="true">M</div><div><strong>Markus</strong><time>Vor 12 Minuten</time><p>Danke für diesen wunderbaren Anfang in den Tag. Die Musik hat mich heute sehr ermutigt.</p></div></div>
-            <div class="quote"><div class="avatar" aria-hidden="true">A</div><div><strong>Anna</strong><time>Vor 28 Minuten</time><p>Wie schön, gemeinsam zuzuhören. Ich wünsche euch allen einen gesegneten Tag. 🌈</p></div></div>
-            <div class="quote"><div class="avatar" aria-hidden="true">T</div><div><strong>Thomas</strong><time>Vor 42 Minuten</time><p>Dieses Lied kommt für mich genau zur richtigen Zeit. Danke für eure Gemeinschaft!</p></div></div>
+            <div class="section-heading"><svg aria-hidden="true"><use href="#i-chat"/></svg><h2 id="community-title" data-i18n="voicesHeading">Stimmen der Gemeinschaft</h2><button type="button" class="text-button" data-demo="Gemeinschaft" data-i18n="moreButton">Mehr →</button></div>
+            <div class="quote feed-message"><div class="message-copy"><strong>Sarah</strong><time data-i18n="timeNow">Gerade eben</time><p data-i18n="voiceSarah">Vielen Dank für dieses Lied. Es gibt mir so viel Kraft in einer schweren Zeit. ❤️</p></div></div>
+            <div class="quote feed-message"><div class="message-copy"><strong>Markus</strong><time data-i18n="time12">Vor 12 Minuten</time><p data-i18n="voiceMarkus">Danke für diesen wunderbaren Anfang in den Tag. Die Musik hat mich heute sehr ermutigt.</p></div></div>
+            <div class="quote feed-message"><div class="message-copy"><strong>Anna</strong><time data-i18n="time28">Vor 28 Minuten</time><p data-i18n="voiceAnna">Wie schön, gemeinsam zuzuhören. Ich wünsche euch allen einen gesegneten Tag. 🌈</p></div></div>
+            <div class="quote feed-message"><div class="message-copy"><strong>Thomas</strong><time data-i18n="time42">Vor 42 Minuten</time><p data-i18n="voiceThomas">Dieses Lied kommt für mich genau zur richtigen Zeit. Danke für eure Gemeinschaft!</p></div></div>
             <div class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           </section>
           <section class="card community mobile-carousel" role="region" aria-label="Stimmen, Moderation und Gebetswand" aria-roledescription="Karussell">
             <button type="button" class="carousel-arrow previous" aria-label="Vorherigen Bereich anzeigen"><svg aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
             <div class="carousel-stage">
               <div class="carousel-track">
-                <div class="carousel-slide" data-panel-title="Stimmen der Gemeinschaft" role="group" aria-label="1 von 3: Stimmen der Gemeinschaft">
-                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-chat"/></svg><h2>Stimmen der Gemeinschaft</h2><button type="button" class="text-button" data-demo="Gemeinschaft">Mehr →</button></div>
+                <div class="carousel-slide" data-panel="voices" data-panel-title="Stimmen der Gemeinschaft" role="group" aria-label="1 von 3: Stimmen der Gemeinschaft">
+                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-chat"/></svg><h2 data-i18n="voicesHeading">Stimmen der Gemeinschaft</h2><button type="button" class="text-button" data-demo="Gemeinschaft" data-i18n="moreButton">Mehr →</button></div>
                   <div class="carousel-body" data-message-list="voices"></div>
                 </div>
-                <div class="carousel-slide" data-panel-title="Stimme der Moderation" role="group" aria-label="2 von 3: Stimme der Moderation" aria-hidden="true" inert>
-                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-mic"/></svg><h2>Stimme der Moderation</h2><span class="host-badge">VORSCHAU</span></div>
+                <div class="carousel-slide" data-panel="moderator" data-panel-title="Stimme der Moderation" role="group" aria-label="2 von 3: Stimme der Moderation" aria-hidden="true" inert>
+                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-mic"/></svg><h2 data-i18n="moderatorHeading">Stimme der Moderation</h2><span class="host-badge" data-i18n="previewBadge">VORSCHAU</span></div>
                   <div class="carousel-body moderator-body"></div>
                 </div>
-                <div class="carousel-slide" data-panel-title="Gebetswand" role="group" aria-label="3 von 3: Gebetswand" aria-hidden="true" inert>
-                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-prayer"/></svg><h2>Gebetswand</h2><button type="button" class="text-button" data-demo="Gebetswand">Mehr →</button></div>
+                <div class="carousel-slide" data-panel="prayers" data-panel-title="Gebetswand" role="group" aria-label="3 von 3: Gebetswand" aria-hidden="true" inert>
+                  <div class="section-heading"><svg aria-hidden="true"><use href="#i-prayer"/></svg><h2 data-i18n="prayerHeading">Gebetswand</h2><button type="button" class="text-button" data-demo="Gebetswand" data-i18n="moreButton">Mehr →</button></div>
                   <div class="carousel-body" data-message-list="prayers">
-                    <div class="quote prayer-entry"><div class="avatar" aria-hidden="true"><svg><use href="#i-prayer"/></svg></div><div><strong>Für unsere Familien</strong><time>Heute</time><p>Bitte betet für Frieden und neue Kraft in unseren Familien.</p></div></div>
-                    <div class="quote prayer-entry"><div class="avatar" aria-hidden="true"><svg><use href="#i-prayer"/></svg></div><div><strong>Für Menschen in Not</strong><time>Heute</time><p>Wir denken an alle, die gerade Trost und Hilfe brauchen.</p></div></div>
-                    <div class="quote prayer-entry"><div class="avatar" aria-hidden="true"><svg><use href="#i-prayer"/></svg></div><div><strong>Dankbarkeit</strong><time>Gestern</time><p>Danke für diese Gemeinschaft und alle Gebete füreinander.</p></div></div>
+                    <div class="quote feed-message prayer-entry"><div class="message-copy"><time data-i18n="today">Heute</time><p data-i18n="prayerOne">Bitte betet für Frieden und neue Kraft in unseren Familien.</p></div></div>
+                    <div class="quote feed-message prayer-entry"><div class="message-copy"><time data-i18n="today">Heute</time><p data-i18n="prayerTwo">Wir denken an alle, die gerade Trost und Hilfe brauchen.</p></div></div>
+                    <div class="quote feed-message prayer-entry"><div class="message-copy"><time data-i18n="yesterday">Gestern</time><p data-i18n="prayerThree">Danke für diese Gemeinschaft und alle Gebete füreinander.</p></div></div>
                   </div>
                 </div>
               </div>
@@ -484,18 +545,18 @@
             <div class="action-tray">
               <div class="actions-window">
                 <div class="actions" id="submission-actions" aria-label="Mitmachen">
-                  <button type="button" class="action purple" data-demo="Lied wünschen"><svg aria-hidden="true"><use href="#i-music"/></svg><span class="action-copy"><strong>Lied wünschen</strong><small>Welchen Song sollen wir spielen?</small></span></button>
-                  <button type="button" class="action green" data-demo="Deine Geschichte"><svg aria-hidden="true"><use href="#i-mic"/></svg><span class="action-copy"><strong>Erzähle deine Geschichte</strong><small>Teile dein Zeugnis mit uns.</small></span></button>
-                  <button type="button" class="action blue" data-demo="Gebetsanliegen teilen"><svg aria-hidden="true"><use href="#i-prayer"/></svg><span class="action-copy"><strong>Gebetsanliegen teilen</strong><small>Wir beten mit dir.</small></span></button>
-                  <button type="button" class="action gold" data-demo="Raum betreten"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="action-copy"><strong>Raum betreten</strong><small>Komm in den Live-Chat.</small></span></button>
+                  <button type="button" class="action purple" data-demo="Lied wünschen"><svg aria-hidden="true"><use href="#i-music"/></svg><span class="action-copy"><strong data-i18n="requestSong">Lied wünschen</strong><small data-i18n="requestSongHint">Welchen Song sollen wir spielen?</small></span></button>
+                  <button type="button" class="action green" data-demo="Deine Geschichte"><svg aria-hidden="true"><use href="#i-mic"/></svg><span class="action-copy"><strong data-i18n="tellStory">Erzähle deine Geschichte</strong><small data-i18n="tellStoryHint">Teile dein Zeugnis mit uns.</small></span></button>
+                  <button type="button" class="action blue" data-demo="Gebetsanliegen teilen"><svg aria-hidden="true"><use href="#i-prayer"/></svg><span class="action-copy"><strong data-i18n="sharePrayer">Gebetsanliegen teilen</strong><small data-i18n="sharePrayerHint">Wir beten mit dir.</small></span></button>
+                  <button type="button" class="action gold" data-demo="Raum betreten"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="action-copy"><strong data-i18n="enterRoom">Raum betreten</strong><small data-i18n="enterRoomHint">Komm in den Live-Chat.</small></span></button>
                 </div>
               </div>
             </div>
             <nav class="navigation" aria-label="Demo-Navigation">
               <button type="button" class="nav-item" aria-current="page" data-nav="Live"><svg aria-hidden="true"><use href="#i-radio"/></svg>Live</button>
-              <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Programm</button>
+              <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg><span data-i18n="programNav">Programm</span></button>
               <button type="button" class="nav-item" data-nav="Chat"><svg aria-hidden="true"><use href="#i-chat"/></svg>Chat</button>
-              <button type="button" class="nav-item" data-nav="Profil"><svg aria-hidden="true"><use href="#i-user"/></svg>Profil</button>
+              <button type="button" class="nav-item" data-nav="Profil"><svg aria-hidden="true"><use href="#i-user"/></svg><span data-i18n="profileNav">Profil</span></button>
               <button type="button" class="nav-item" data-nav="Moderation" hidden><svg aria-hidden="true"><use href="#i-moderation"/></svg>Moderation</button>
             </nav>
           </div>
@@ -506,10 +567,101 @@
   </div>
   <div class="mobile-dock" id="mobile-dock" data-expanded="false"></div>
   <div class="toast" role="status" aria-live="polite"></div>
+  <dialog class="welcome-dialog" id="welcome-dialog" aria-labelledby="welcome-title" aria-describedby="welcome-intro">
+    <div class="welcome-art" aria-hidden="true"></div>
+    <div class="welcome-content">
+      <div class="welcome-topline"><h2 id="welcome-title" data-i18n="welcomeTitle">Willkommen bei Arche Radio!</h2><button type="button" class="welcome-close" id="welcome-close" data-i18n-aria="welcomeClose" aria-label="Schließen">×</button></div>
+      <p class="welcome-intro" id="welcome-intro" data-i18n="welcomeIntro">Ihr seid das Radio. Eure Musikwünsche, Geschichten und Gebete geben Arche Radio seine Stimme. Schickt uns eure Beiträge und gestaltet mit!</p>
+      <ul class="welcome-points">
+        <li><span aria-hidden="true">♫</span><span data-i18n="welcomeMusic">Wünscht euch ein Lied für das Programm.</span></li>
+        <li><span aria-hidden="true">♡</span><span data-i18n="welcomeVoices">Erzählt eure Geschichten und ermutigt andere.</span></li>
+        <li><span aria-hidden="true">🙏</span><span data-i18n="welcomePrayer">Teilt eure Gebetsanliegen und betet füreinander.</span></li>
+      </ul>
+      <p class="welcome-disclaimer" data-i18n="welcomeDisclaimer">Hinweis: Arche Radio ist ein unabhängiges Projekt und steht in keiner Verbindung zur Arche Gemeinde in Hamburg.</p>
+      <div class="welcome-settings">
+        <div><label for="welcome-language" data-i18n="languageLabel">Sprache</label><select id="welcome-language"><option value="de">Deutsch</option><option value="en">English</option></select></div>
+        <fieldset class="welcome-theme"><legend data-i18n="themeLabel">Design</legend><div class="welcome-theme-options"><label><input type="radio" name="welcome-theme" value="light"><span data-i18n="lightLabel">Kinderarche</span></label><label><input type="radio" name="welcome-theme" value="dark"><span data-i18n="darkLabel">Sturmarche</span></label></div></fieldset>
+      </div>
+      <button type="button" class="welcome-start" id="welcome-start" data-i18n="welcomeStart">Los geht's</button>
+      <p class="welcome-later" data-i18n="welcomeLater">Sprache und Design kannst du später über Profil ändern.</p>
+    </div>
+  </dialog>
   <script>
     const root = document.documentElement;
     const preview = document.querySelector('.preview');
     const toast = document.querySelector('.toast');
+    const welcomeDialog = document.querySelector('#welcome-dialog');
+    const welcomeLanguage = document.querySelector('#welcome-language');
+    const preferencePrefix = 'arche-radio-preview-';
+    function readPreference(key) {
+      try { return localStorage.getItem(preferencePrefix + key); } catch { return null; }
+    }
+    function savePreference(key, value) {
+      try { localStorage.setItem(preferencePrefix + key, value); } catch { /* The preview still works without storage. */ }
+    }
+    const copy = {
+      de: {
+        previewTitle: 'Arche Radio · Theme-Vorschau', previewSubtitle: 'Designvorschau · YouTube startet nach Klick', lightChoice: '☀ Hell', darkChoice: '☾ Dunkel', mobileChoice: 'Mobil', standardChoice: 'Standard',
+        welcomeTitle: 'Willkommen bei Arche Radio!', welcomeIntro: 'Ihr seid das Radio. Eure Musikwünsche, Geschichten und Gebete geben Arche Radio seine Stimme. Schickt uns eure Beiträge und gestaltet mit!',
+        welcomeMusic: 'Wünscht euch ein Lied für das Programm.', welcomeVoices: 'Erzählt eure Geschichten und ermutigt andere.', welcomePrayer: 'Teilt eure Gebetsanliegen und betet füreinander.', welcomeDisclaimer: 'Hinweis: Arche Radio ist ein unabhängiges Projekt und steht in keiner Verbindung zur Arche Gemeinde in Hamburg.',
+        languageLabel: 'Sprache', themeLabel: 'Design', lightLabel: 'Kinderarche', darkLabel: 'Sturmarche', welcomeStart: "Los geht's", welcomeLater: 'Sprache und Design kannst du später über Profil ändern.', welcomeOpen: 'Einführung und Einstellungen öffnen', welcomeClose: 'Schließen',
+        stationTagline: 'Gemeinsam glauben. Gemeinsam hören.', listeningNow: 'hören gerade zu', playHint: 'Mit Klick auf Play wird YouTube geladen.', playingNow: 'Läuft gerade', playYouTube: 'Good Good Father von Chris Tomlin auf YouTube abspielen', songPosition: 'Position im Lied', prayAlong: 'Ich bete mit',
+        moderatorHeading: 'Stimme der Moderation', previewBadge: 'VORSCHAU', hostMessage: 'Hope meldet sich gleich wieder zwischen den Liedern. Danke für eure Gebete!',
+        voicesHeading: 'Stimmen der Gemeinschaft', prayerHeading: 'Gebetswand', moreButton: 'Mehr →', programNav: 'Programm', profileNav: 'Profil',
+        timeNow: 'Gerade eben', time12: 'Vor 12 Minuten', time28: 'Vor 28 Minuten', time42: 'Vor 42 Minuten', today: 'Heute', yesterday: 'Gestern',
+        voiceSarah: 'Vielen Dank für dieses Lied. Es gibt mir so viel Kraft in einer schweren Zeit. ❤️', voiceMarkus: 'Danke für diesen wunderbaren Anfang in den Tag. Die Musik hat mich heute sehr ermutigt.',
+        voiceAnna: 'Wie schön, gemeinsam zuzuhören. Ich wünsche euch allen einen gesegneten Tag. 🌈', voiceThomas: 'Dieses Lied kommt für mich genau zur richtigen Zeit. Danke für eure Gemeinschaft!',
+        prayerOne: 'Bitte betet für Frieden und neue Kraft in unseren Familien.', prayerTwo: 'Wir denken an alle, die gerade Trost und Hilfe brauchen.', prayerThree: 'Danke für diese Gemeinschaft und alle Gebete füreinander.',
+        requestSong: 'Lied wünschen', requestSongHint: 'Welchen Song sollen wir spielen?', tellStory: 'Erzähle deine Geschichte', tellStoryHint: 'Teile dein Zeugnis mit uns.',
+        sharePrayer: 'Gebetsanliegen teilen', sharePrayerHint: 'Wir beten mit dir.', enterRoom: 'Raum betreten', enterRoomHint: 'Komm in den Live-Chat.',
+        like: 'Gefällt mir', prayed: 'Ich habe mitgebetet', chooseEmoji: 'Emoji auswählen', chooseAnotherEmoji: 'Anderes Emoji auswählen', reaction: 'Reaktion', reactionsLabel: 'Auf die Nachricht reagieren', emojiReactions: 'Emoji-Reaktionen', showPanel: 'Bereich anzeigen:',
+        yourReaction: 'Deine Reaktion', emojiCheer: 'Jubeln', emojiHallelujah: 'Halleluja', emojiJoy: 'Freude', emojiExcited: 'Begeisterung', emojiMoved: 'Berührt', emojiPeace: 'Frieden', emojiHope: 'Hoffnung', emojiCelebrate: 'Feiern', emojiOnFire: 'Feuer und Flamme', emojiThanks: 'Dankbarkeit', emojiLove: 'Liebe', demoOnly: 'Nur Designvorschau', of: 'von',
+        videoUnavailable: 'Das Video ist gerade nicht verfügbar. Über den Liedtitel kannst du es auf YouTube öffnen.'
+      },
+      en: {
+        previewTitle: 'Arche Radio · Theme preview', previewSubtitle: 'Design preview · YouTube starts after a click', lightChoice: '☀ Light', darkChoice: '☾ Dark', mobileChoice: 'Mobile', standardChoice: 'Standard',
+        welcomeTitle: 'Welcome to Arche Radio!', welcomeIntro: 'You are Arche Radio. Your song requests, stories, and prayers give this station its voice. Send us something and help shape it together!',
+        welcomeMusic: 'Request a song for the program.', welcomeVoices: 'Share your story and encourage others.', welcomePrayer: 'Send a prayer request and pray for others.', welcomeDisclaimer: 'Note: Arche Radio is an independent project and is not affiliated with Arche Gemeinde in Hamburg.',
+        languageLabel: 'Language', themeLabel: 'Theme', lightLabel: 'Kids Ark', darkLabel: 'Storm Ark', welcomeStart: "Let's get started", welcomeLater: 'You can change language and theme later through Profile.', welcomeOpen: 'Open introduction and settings', welcomeClose: 'Close',
+        stationTagline: 'Believing together. Listening together.', listeningNow: 'listening now', playHint: 'Click Play to load YouTube.', playingNow: 'Now playing', playYouTube: 'Play Good Good Father by Chris Tomlin on YouTube', songPosition: 'Position in song', prayAlong: 'Pray along',
+        moderatorHeading: 'From the host', previewBadge: 'PREVIEW', hostMessage: 'Hope will be back between songs. Thank you for your prayers!',
+        voicesHeading: 'Community voices', prayerHeading: 'Prayer wall', moreButton: 'More →', programNav: 'Schedule', profileNav: 'Profile',
+        timeNow: 'Just now', time12: '12 minutes ago', time28: '28 minutes ago', time42: '42 minutes ago', today: 'Today', yesterday: 'Yesterday',
+        voiceSarah: 'Thank you for this song. It gives me so much strength during a difficult time. ❤️', voiceMarkus: 'Thank you for such a wonderful start to the day. The music really encouraged me today.',
+        voiceAnna: 'It is lovely to listen together. Wishing you all a blessed day. 🌈', voiceThomas: 'This song came at just the right time for me. Thank you for this community!',
+        prayerOne: 'Please pray for peace and renewed strength in our families.', prayerTwo: 'We are thinking of everyone who needs comfort and help right now.', prayerThree: 'Thank you for this community and for praying for one another.',
+        requestSong: 'Request a song', requestSongHint: 'What should we play?', tellStory: 'Tell your story', tellStoryHint: 'Share your testimony with us.',
+        sharePrayer: 'Share a prayer request', sharePrayerHint: 'We will pray with you.', enterRoom: 'Join the room', enterRoomHint: 'Come to the live chat.',
+        like: 'Like', prayed: 'I prayed', chooseEmoji: 'Choose emoji', chooseAnotherEmoji: 'Choose another emoji', reaction: 'Reaction', reactionsLabel: 'React to this message', emojiReactions: 'Emoji reactions', showPanel: 'Show panel:',
+        yourReaction: 'Your reaction', emojiCheer: 'Celebrate', emojiHallelujah: 'Hallelujah', emojiJoy: 'Joy', emojiExcited: 'Excited', emojiMoved: 'Moved', emojiPeace: 'Peace', emojiHope: 'Hope', emojiCelebrate: 'Celebrate', emojiOnFire: 'On fire', emojiThanks: 'Gratitude', emojiLove: 'Love', demoOnly: 'Design preview only', of: 'of',
+        videoUnavailable: 'The video is unavailable right now. You can open it on YouTube from the song title.'
+      }
+    };
+    let language = 'de';
+    function t(key) { return copy[language][key] || copy.de[key] || key; }
+    function setLanguage(value) {
+      language = value === 'en' ? 'en' : 'de';
+      root.lang = language;
+      welcomeLanguage.value = language;
+      document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
+      document.querySelectorAll('[data-i18n-aria]').forEach(element => { element.setAttribute('aria-label', t(element.dataset.i18nAria)); });
+      document.querySelector('#welcome-reopen').title = t('welcomeOpen');
+      document.querySelectorAll('.feed-reactions').forEach(element => element.setAttribute('aria-label', t('reactionsLabel')));
+      document.querySelectorAll('.feed-emoji-picker').forEach(element => element.setAttribute('aria-label', t('emojiReactions')));
+      document.querySelectorAll('.feed-emoji-toggle').forEach(element => element.setAttribute('aria-label', t('chooseEmoji')));
+      document.querySelectorAll('.carousel-slide').forEach((slide, index) => {
+        slide.dataset.panelTitle = t({ voices: 'voicesHeading', moderator: 'moderatorHeading', prayers: 'prayerHeading' }[slide.dataset.panel]);
+        slide.setAttribute('aria-label', `${index + 1} ${t('of')} 3: ${slide.dataset.panelTitle}`);
+      });
+      document.querySelectorAll('.carousel-pagination button').forEach((dot, index) => {
+        dot.setAttribute('aria-label', `${t('showPanel')} ${document.querySelectorAll('.carousel-slide')[index].dataset.panelTitle}`);
+      });
+      document.querySelectorAll('#submission-actions button').forEach(button => button.setAttribute('aria-label', button.querySelector('strong').textContent));
+      selectCarouselPanel(carouselIndex);
+      renderProgress(Number(songProgress.value), Number(songProgress.max));
+      document.title = t('previewTitle');
+      savePreference('language', language);
+    }
     let toastTimer;
     function notify(message) {
       clearTimeout(toastTimer);
@@ -518,6 +670,7 @@
     }
     function setTheme(theme) {
       root.dataset.theme = theme;
+      document.querySelector(`input[name="welcome-theme"][value="${theme}"]`).checked = true;
       document.querySelectorAll('[data-theme-choice]').forEach(button => {
         button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
       });
@@ -525,13 +678,26 @@
         const mobileSuffix = img.dataset.art === 'bottom' && preview.clientWidth <= 600 ? '-mobile' : '';
         img.src = `theme-assets/${theme}-${img.dataset.art}${mobileSuffix}.webp`;
       });
+      savePreference('theme', theme);
     }
     document.querySelectorAll('[data-theme-choice]').forEach(button => {
       button.addEventListener('click', () => setTheme(button.dataset.themeChoice));
     });
+    function openWelcome() {
+      if (!welcomeDialog.open) welcomeDialog.showModal();
+    }
+    document.querySelector('#welcome-reopen').addEventListener('click', openWelcome);
+    document.querySelector('#welcome-close').addEventListener('click', () => welcomeDialog.close());
+    document.querySelector('#welcome-start').addEventListener('click', () => welcomeDialog.close());
+    welcomeDialog.addEventListener('close', () => savePreference('welcome-seen', '1'));
+    welcomeLanguage.addEventListener('change', () => setLanguage(welcomeLanguage.value));
+    document.querySelectorAll('input[name="welcome-theme"]').forEach(input => {
+      input.addEventListener('change', () => { if (input.checked) setTheme(input.value); });
+    });
     document.querySelectorAll('[data-width-choice]').forEach(button => {
       button.addEventListener('click', () => {
         preview.dataset.width = button.dataset.widthChoice;
+        root.dataset.previewWidth = button.dataset.widthChoice;
         document.querySelectorAll('[data-width-choice]').forEach(item => {
           item.setAttribute('aria-pressed', String(item === button));
         });
@@ -573,7 +739,7 @@
       songProgress.style.setProperty('--progress', `${position / total * 100}%`);
       songElapsed.textContent = formatTime(position);
       songDuration.textContent = formatTime(Math.ceil(total));
-      songProgress.setAttribute('aria-valuetext', `${formatTime(position)} von ${formatTime(Math.ceil(total))}`);
+      songProgress.setAttribute('aria-valuetext', `${formatTime(position)} ${t('of')} ${formatTime(Math.ceil(total))}`);
     }
     function syncProgress() {
       if (!youtubePlayer || typeof youtubePlayer.getDuration !== 'function' || seeking) return;
@@ -602,7 +768,7 @@
             onError: () => {
               clearInterval(progressTimer);
               songProgress.disabled = true;
-              notify('Das Video ist gerade nicht verfügbar. Über den Liedtitel kannst du es auf YouTube öffnen.');
+        notify(t('videoUnavailable'));
             }
           }
         });
@@ -677,7 +843,7 @@
         selectedEmoji.textContent = selecting ? button.dataset.emoji : '';
         selectedEmoji.hidden = !selecting;
         emojiToggle.querySelector('svg').style.display = selecting ? 'none' : '';
-        emojiToggle.setAttribute('aria-label', selecting ? `Reaktion: ${button.dataset.label}. Weitere Emojis auswählen` : 'Weitere Emojis auswählen');
+        emojiToggle.setAttribute('aria-label', selecting ? `${t('reaction')}: ${button.getAttribute('aria-label')}. ${t('chooseAnotherEmoji')}` : t('chooseEmoji'));
         closeEmojiPicker(true);
       });
     });
@@ -694,15 +860,19 @@
       }
     });
     document.querySelectorAll('[data-demo]:not(.action)').forEach(button => {
-      button.addEventListener('click', () => notify(`${button.dataset.demo} · Nur Designvorschau`));
+      button.addEventListener('click', () => notify(`${button.closest('.section-heading')?.querySelector('h2')?.textContent || button.dataset.demo} · ${t('demoOnly')}`));
     });
     document.querySelectorAll('[data-nav]').forEach(button => {
       button.addEventListener('click', () => {
+        if (button.dataset.nav === 'Profil') {
+          openWelcome();
+          return;
+        }
         document.querySelectorAll('[data-nav]').forEach(item => {
           if (item.dataset.nav === button.dataset.nav) item.setAttribute('aria-current', 'page');
           else item.removeAttribute('aria-current');
         });
-        notify(`${button.dataset.nav} · Nur Designvorschau`);
+        notify(`${button.querySelector('span')?.textContent || button.dataset.nav} · ${t('demoOnly')}`);
       });
     });
     const mobileCarousel = document.querySelector('.mobile-carousel');
@@ -710,9 +880,114 @@
     const carouselSlides = [...mobileCarousel.querySelectorAll('.carousel-slide')];
     const carouselPagination = mobileCarousel.querySelector('.carousel-pagination');
     const voiceBody = mobileCarousel.querySelector('[data-message-list="voices"]');
-    voiceBody.append(...[...document.querySelectorAll('.community:not(.mobile-carousel) .quote')].map(quote => quote.cloneNode(true)));
+    const prayerBody = mobileCarousel.querySelector('[data-message-list="prayers"]');
+    const sourceVoices = [...document.querySelectorAll('.community:not(.mobile-carousel) .feed-message')];
+    function addFeedReactions(message) {
+      const actions = document.createElement('div');
+      actions.className = 'feed-reactions';
+      actions.setAttribute('role', 'group');
+      actions.setAttribute('aria-label', 'Auf die Nachricht reagieren');
+      const prayerIcon = message.classList.contains('prayer-entry') ? '🙏' : '<svg aria-hidden="true"><use href="#i-prayer"/></svg>';
+      actions.innerHTML = `<button type="button" class="feed-reaction" data-feed-reaction="heart" data-i18n-aria="like" aria-label="Gefällt mir" aria-pressed="false"><svg aria-hidden="true"><use href="#i-heart"/></svg></button>
+        <button type="button" class="feed-reaction" data-feed-reaction="prayer" data-i18n-aria="prayed" aria-label="Ich habe mitgebetet" aria-pressed="false">${prayerIcon}</button>
+        <button type="button" class="feed-reaction feed-emoji-toggle" data-i18n-aria="chooseEmoji" aria-label="Emoji auswählen" aria-expanded="false"><svg aria-hidden="true"><use href="#i-smile"/></svg><span class="selected-emoji" aria-hidden="true" hidden></span></button>`;
+      const picker = document.createElement('div');
+      picker.className = 'feed-emoji-picker';
+      picker.setAttribute('role', 'group');
+      picker.setAttribute('aria-label', 'Emoji-Reaktionen');
+      picker.hidden = true;
+      picker.innerHTML = '<button type="button" data-i18n-aria="emojiCheer" aria-label="Jubeln">🙌</button><button type="button" data-i18n-aria="emojiJoy" aria-label="Freude">😊</button><button type="button" data-i18n-aria="emojiPeace" aria-label="Frieden">🕊️</button><button type="button" data-i18n-aria="emojiThanks" aria-label="Dankbarkeit">✨</button><button type="button" data-i18n-aria="emojiLove" aria-label="Liebe">❤️</button>';
+      message.append(actions, picker);
+    }
+    [...sourceVoices, ...prayerBody.querySelectorAll('.feed-message')].forEach(addFeedReactions);
+    voiceBody.append(...sourceVoices.map(quote => quote.cloneNode(true)));
+    const feedMessages = [...document.querySelectorAll('.feed-message')];
+    function closeFeedEmojiPickers() {
+      feedMessages.forEach(message => {
+        message.querySelector('.feed-emoji-picker').hidden = true;
+        message.querySelector('.feed-emoji-toggle').setAttribute('aria-expanded', 'false');
+      });
+    }
+    feedMessages.forEach(message => {
+      message.querySelectorAll('[data-feed-reaction]').forEach(button => {
+        button.addEventListener('click', () => {
+          button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
+          stopFeedRotation();
+          scheduleFeedRotation();
+        });
+      });
+      const toggle = message.querySelector('.feed-emoji-toggle');
+      const picker = message.querySelector('.feed-emoji-picker');
+      toggle.addEventListener('click', () => {
+        const opening = picker.hidden;
+        closeFeedEmojiPickers();
+        picker.hidden = !opening;
+        toggle.setAttribute('aria-expanded', String(opening));
+        if (opening) picker.querySelector('button').focus();
+      });
+      picker.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+          const selected = toggle.querySelector('.selected-emoji');
+          const selecting = selected.hidden || selected.textContent !== button.textContent;
+          selected.textContent = selecting ? button.textContent : '';
+          selected.hidden = !selecting;
+          toggle.querySelector('svg').hidden = selecting;
+          toggle.setAttribute('aria-label', selecting ? `Reaktion: ${button.getAttribute('aria-label')}. Anderes Emoji auswählen` : 'Emoji auswählen');
+          toggle.setAttribute('aria-pressed', String(selecting));
+          closeFeedEmojiPickers();
+          toggle.focus();
+          stopFeedRotation();
+          scheduleFeedRotation();
+        });
+      });
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.feed-emoji-picker, .feed-emoji-toggle')) closeFeedEmojiPickers();
+    });
     mobileCarousel.querySelector('.moderator-body').append(document.querySelector('.host-card .host-body').cloneNode(true));
-    const messageLists = [voiceBody, mobileCarousel.querySelector('[data-message-list="prayers"]')];
+    const rotatingFeeds = {
+      voices: { body: voiceBody, messages: [...voiceBody.querySelectorAll('.feed-message')], offset: 0 },
+      prayers: { body: prayerBody, messages: [...prayerBody.querySelectorAll('.feed-message')], offset: 0 }
+    };
+    let visibleMessages = 1;
+    let mobilePreview = false;
+    let feedRotationTimer;
+    let feedAnimationTimer;
+    function renderFeed(feed) {
+      const ordered = feed.messages.map((_, index) => feed.messages[(feed.offset + index) % feed.messages.length]);
+      if (feed.body.firstElementChild !== ordered[0]) feed.body.append(...ordered);
+      ordered.forEach((message, index) => { message.hidden = index >= visibleMessages; });
+    }
+    function stopFeedRotation() {
+      clearTimeout(feedRotationTimer);
+      clearTimeout(feedAnimationTimer);
+      feedRotationTimer = undefined;
+      feedAnimationTimer = undefined;
+      Object.values(rotatingFeeds).forEach(feed => feed.body.classList.remove('is-leaving', 'is-entering'));
+    }
+    function scheduleFeedRotation() {
+      if (feedRotationTimer || !mobilePreview || document.hidden || !rotatingFeeds[carouselSlides[carouselIndex].dataset.panel]) return;
+      feedRotationTimer = setTimeout(() => {
+        feedRotationTimer = undefined;
+        const feed = rotatingFeeds[carouselSlides[carouselIndex].dataset.panel];
+        if (feed.body.querySelector('.feed-emoji-picker:not([hidden])')) {
+          scheduleFeedRotation();
+          return;
+        }
+        feed.body.classList.add('is-leaving');
+        feedAnimationTimer = setTimeout(() => {
+          feed.offset = (feed.offset + 1) % feed.messages.length;
+          renderFeed(feed);
+          feed.body.classList.remove('is-leaving');
+          feed.body.classList.add('is-entering');
+          feedAnimationTimer = setTimeout(() => {
+            feed.body.classList.remove('is-entering');
+            feedAnimationTimer = undefined;
+            scheduleFeedRotation();
+          }, 350);
+        }, 250);
+      }, 11000);
+    }
     const carouselDots = carouselSlides.map((slide, index) => {
       const dot = document.createElement('button');
       dot.type = 'button';
@@ -723,7 +998,9 @@
     });
     let carouselIndex = 0;
     function selectCarouselPanel(index) {
+      stopFeedRotation();
       carouselIndex = (index + carouselSlides.length) % carouselSlides.length;
+      mobileCarousel.dataset.activePanel = carouselSlides[carouselIndex].dataset.panel;
       carouselTrack.style.transform = `translateX(-${carouselIndex * 100}%)`;
       carouselSlides.forEach((slide, slideIndex) => {
         const active = slideIndex === carouselIndex;
@@ -733,11 +1010,31 @@
       });
       const previous = carouselSlides[(carouselIndex - 1 + carouselSlides.length) % carouselSlides.length];
       const next = carouselSlides[(carouselIndex + 1) % carouselSlides.length];
-      mobileCarousel.querySelector('.carousel-arrow.previous').setAttribute('aria-label', `${previous.dataset.panelTitle} anzeigen`);
-      mobileCarousel.querySelector('.carousel-arrow.next').setAttribute('aria-label', `${next.dataset.panelTitle} anzeigen`);
+      mobileCarousel.querySelector('.carousel-arrow.previous').setAttribute('aria-label', `${t('showPanel')} ${previous.dataset.panelTitle}`);
+      mobileCarousel.querySelector('.carousel-arrow.next').setAttribute('aria-label', `${t('showPanel')} ${next.dataset.panelTitle}`);
+      scheduleFeedRotation();
     }
     mobileCarousel.querySelector('.carousel-arrow.previous').addEventListener('click', () => selectCarouselPanel(carouselIndex - 1));
     mobileCarousel.querySelector('.carousel-arrow.next').addEventListener('click', () => selectCarouselPanel(carouselIndex + 1));
+    const carouselStage = mobileCarousel.querySelector('.carousel-stage');
+    let swipeStart = null;
+    carouselStage.addEventListener('pointerdown', event => {
+      swipeStart = null;
+      if (!event.isPrimary || event.button !== 0 || event.target.closest('button, a, input, textarea, select')) return;
+      swipeStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      if (event.pointerType === 'mouse') event.preventDefault();
+      carouselStage.setPointerCapture(event.pointerId);
+    });
+    carouselStage.addEventListener('pointerup', event => {
+      if (!swipeStart || event.pointerId !== swipeStart.id) return;
+      const dx = event.clientX - swipeStart.x;
+      const dy = event.clientY - swipeStart.y;
+      if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+        selectCarouselPanel(carouselIndex + (dx < 0 ? 1 : -1));
+      }
+      swipeStart = null;
+    });
+    carouselStage.addEventListener('pointercancel', () => { swipeStart = null; });
     mobileCarousel.addEventListener('keydown', event => {
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
@@ -746,8 +1043,8 @@
     });
     selectCarouselPanel(0);
     const parameters = new URLSearchParams(location.search);
-    const initialTheme = parameters.get('theme');
-    if (initialTheme === 'dark') setTheme('dark');
+    const initialTheme = parameters.get('theme') || readPreference('theme');
+    setTheme(initialTheme === 'dark' ? 'dark' : 'light');
     if (parameters.get('view') === 'mobile') document.querySelector('[data-width-choice="mobile"]').click();
 
     const toolbar = document.querySelector('.toolbar');
@@ -761,7 +1058,6 @@
     const submissionActions = document.querySelector('#submission-actions');
     const actionsWindow = document.querySelector('.actions-window');
     const submissionButtons = [...submissionActions.querySelectorAll('button')];
-    let mobilePreview = false;
     let scrollFrame = 0;
     let wasAtBottom = false;
     let autoExpandedAtBottom = false;
@@ -797,7 +1093,7 @@
       button.setAttribute('aria-label', button.querySelector('strong').textContent);
       button.addEventListener('click', () => {
         if (!mobilePreview) {
-          notify(`${button.dataset.demo} · Nur Designvorschau`);
+          notify(`${button.querySelector('strong').textContent} · ${t('demoOnly')}`);
           return;
         }
         const wasExpanded = mobileDock.dataset.expanded === 'true';
@@ -805,7 +1101,7 @@
         setTrayExpanded(true);
         clearTimeout(trayHideTimer);
         trayHideTimer = setTimeout(() => setTrayExpanded(false), trayHideDelay);
-        if (wasExpanded) notify(`${button.dataset.demo} · Nur Designvorschau`);
+        if (wasExpanded) notify(`${button.querySelector('strong').textContent} · ${t('demoOnly')}`);
       });
     });
     function updateMobileDock() {
@@ -828,7 +1124,7 @@
     }
     function updateMobilePanelDensity() {
       if (!mobilePreview) return;
-      const allMessages = messageLists.map(list => [...list.querySelectorAll('.quote')]);
+      const allMessages = Object.values(rotatingFeeds).map(feed => feed.messages);
       allMessages.flat().forEach(message => { message.hidden = false; });
       const expandedHeight = parseFloat(getComputedStyle(actionsWindow).getPropertyValue('--expanded-height'));
       const trayHeight = actionsWindow.getBoundingClientRect().height;
@@ -843,15 +1139,14 @@
       let usedHeight = chromeHeight;
       let visibleCount = 0;
       for (let index = 0; index < 3; index++) {
-        const rowHeight = Math.max(...allMessages.map(messages => {
-          const message = messages[index];
-          return message ? message.getBoundingClientRect().height + parseFloat(getComputedStyle(message).marginTop) : 0;
-        }));
+        const rowHeight = Math.max(...allMessages.flat().map(message =>
+          message.getBoundingClientRect().height + parseFloat(getComputedStyle(message).marginTop)));
         if (index > 0 && usedHeight + rowHeight > availableHeight) break;
         usedHeight += rowHeight;
         visibleCount++;
       }
-      allMessages.forEach(messages => messages.forEach((message, index) => { message.hidden = index >= visibleCount; }));
+      visibleMessages = visibleCount;
+      Object.values(rotatingFeeds).forEach(renderFeed);
       mobileCarousel.dataset.visibleMessages = String(visibleCount);
     }
     function updateStickyLayout() {
@@ -865,7 +1160,13 @@
       root.style.setProperty('--preview-top', `${toolbarHeight}px`);
       updateMobilePanelDensity();
       updatePinnedState();
+      if (mobilePreview) scheduleFeedRotation();
+      else stopFeedRotation();
     }
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopFeedRotation();
+      else scheduleFeedRotation();
+    });
     window.addEventListener('scroll', () => {
       if (!scrollFrame) scrollFrame = requestAnimationFrame(updatePinnedState);
     }, { passive: true });
@@ -877,6 +1178,8 @@
     const dockObserver = new ResizeObserver(updateDockSpace);
     dockObserver.observe(mobileDock);
     updateStickyLayout();
+    setLanguage(readPreference('language') || 'de');
+    if (readPreference('welcome-seen') !== '1') openWelcome();
   </script>
 </body>
 </html>
