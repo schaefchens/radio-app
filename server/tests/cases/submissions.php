@@ -144,14 +144,14 @@ test('submissions: a recording is transcribed, published only after approval, an
     check(($contrib[0]['payload']['caption']['de'] ?? '') !== '', 'with a German caption');
 });
 
-test('submissions: text prayers are prayed for by the host and shown as voices', function () {
+test('submissions: text prayers are prayed for by the host and shown on the prayer wall', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $app->tick()->run('test');
     $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for my mother in hospital.', 'name' => 'Maria', 'place' => 'Germany', 'consent_air' => '1']);
     runJobs($app);
     eq($app->submissions()->byPublicId($sub['id'])['status'], 'approved', 'approved');
-    check(count($app->presence()->voices('main')) === 1, 'shown as a community voice');
+    eq(array_column($app->submissions()->wall('main'), 'id'), ['p' . $sub['id']], 'shown on the prayer wall');
     for ($i = 0; $i < 50; $i++) {
         $app->tick()->run('test');
         TestKit::clock($app)->advance(60_000);

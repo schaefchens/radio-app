@@ -7,6 +7,10 @@
     { "id": "v81", "name": "Maria", "country": "DE", "text": "What a beautiful song! 🙏", "at": 1790189700000 },
     { "id": "v82", "name": "James", "country": "US", "text": "This really speaks to my heart today.", "at": 1790189820000 }
   ],
+  "wall": [
+    { "id": "pk3v9q2m7x4tb", "text": "Please pray for my mother, she has surgery on Friday.", "at": 1790189940000 },
+    { "id": "pa8r2w5n1c6yd", "text": "Bitte betet für unsere Gemeinde und für Frieden in unserer Stadt.", "at": 1790186400000 }
+  ],
   "blocked": ["i7kq2s"],
   "pulse": 120
 }

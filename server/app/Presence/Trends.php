@@ -14,7 +14,11 @@ use Arche\App;
  */
 final class Trends
 {
-    public const WEIGHTS = ['heart' => 1.0, 'pray' => 1.2, 'smile' => 0.6, 'raise' => 0.8, 'peace' => 0.8, 'fire' => 0.8];
+    /** One per kind in shared REACTION_KINDS: a kind missing here is dropped by /pulse and by node reports. */
+    public const WEIGHTS = [
+        'heart' => 1.0, 'pray' => 1.2, 'smile' => 0.6, 'raise' => 0.8, 'peace' => 0.8, 'fire' => 0.8,
+        'love' => 0.8, 'moved' => 0.8, 'hope' => 0.8, 'celebrate' => 0.8,
+    ];
     private const HALF_LIFE_HOURS = 72.0;
 
     public function __construct(private App $app) {}

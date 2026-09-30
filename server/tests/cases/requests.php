@@ -167,12 +167,16 @@ test('requests: intake closes 15 minutes before a program ends, last chance from
     eq($saved['settings']['closed_min'], intdiv(Timing::DRAFT + Timing::MIN_SONG, 60_000) + 1, 'never below what a request sent at the last moment needs');
 
     $app->store()->query('UPDATE programs SET settings = ? WHERE id = ?', [json_encode(['closing_min' => 35, 'closed_min' => 20, 'max_queue_min' => 45]), $pid]);
+    // Back to a version-1 database: the later migrations run again, and one
+    // that adds a column fails on a column that is already there.
+    $app->store()->db->exec('DROP INDEX submissions_wall; ALTER TABLE submissions DROP COLUMN hidden;');
     $app->store()->set('schema', 1);
     $version = $app->catalog()->version();
     Arche\Schema::migrate($app->store(), $app->clock->nowMs());
     $s = json_decode((string) $app->store()->value('SELECT settings FROM programs WHERE id = ?', [$pid]), true);
     eq([$s['closing_min'], $s['closed_min'], $s['max_queue_min']], [25, 15, 45], 'the old defaults become the new ones; the rest stays');
     eq($app->catalog()->version(), $version + 1, 'and the drafts made the old way are planned again');
+    check(in_array('hidden', array_column($app->store()->all('PRAGMA table_info(submissions)'), 'name'), true), 'an existing database gets the prayer wall column');
 });
 
 test('requests: a requested song pulled from air takes its announcement along; the request is marked missed', function () {

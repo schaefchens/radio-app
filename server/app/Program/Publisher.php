@@ -12,7 +12,7 @@ use Arche\Support\Files;
  *
  *   channels.json                  on change
  *   <ch>/slots/YYYYMMDD/HHMM.json  one per minute, immutable, up to now + LEAD
- *   <ch>/live.json                 every tick (listeners, voices, blocked, pulse)
+ *   <ch>/live.json                 every tick (listeners, voices, prayer wall, blocked, pulse)
  *   <ch>/days/YYYY-MM-DD.json      structure + what already played
  *   <ch>/evergreen-<hash>.json     the fallback loop, versioned by content
  *
@@ -150,6 +150,9 @@ final class Publisher
             'gen' => $this->app->clock->nowMs(),
             'listeners' => $this->app->presence()->listeners($slug),
             'voices' => $this->app->presence()->voices($slug),
+            // Here, not in the minute files: a moderator's takedown must
+            // reach every listener with the next tick, and those files never change.
+            'wall' => $this->app->submissions()->wall($slug),
             'blocked' => $this->blocked((int) $channel['id']),
             'pulse' => $this->app->config->int('PULSE_SECONDS', 120),
         ];

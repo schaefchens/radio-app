@@ -338,6 +338,14 @@ final class Schema
             INSERT INTO kv(key, value) VALUES('plan_version', '1')
               ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT);
             SQL,
+            // 3 — the prayer wall: a moderator can take a typed prayer off it
+            // without touching its status (it may still be prayed for on air).
+            // live.json reads the wall every tick, inside the publish phase,
+            // so it gets its own index instead of scanning 90 days of rows.
+            <<<'SQL'
+            ALTER TABLE submissions ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
+            CREATE INDEX submissions_wall ON submissions(channel_id, created) WHERE type = 'prayer' AND mode = 'text' AND consent_air = 1;
+            SQL,
         ];
     }
 }

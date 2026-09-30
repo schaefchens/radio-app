@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { EvergreenFile, LiveFile, SlotFile, TimelineItem } from '@arche/shared';
-import { RadioEngine, type AudioLike, type EngineState, type PlayerLike } from '@/lib/engine';
+import { RadioEngine, initialState, type AudioLike, type EngineState, type PlayerLike } from '@/lib/engine';
 import { YTState } from '@/lib/youtube';
 
 function fakePlayer(): PlayerLike & { calls: string[]; t: number; st: number } {
@@ -38,7 +38,16 @@ const items: TimelineItem[] = [
   { id: 's2', type: 'song', start: 220_000, dur: 300_000, p: 'live', yt: 'BBBBBBBBBBB', title: 'Two', artist: 'Y', thumb: null, request: null, fallback: null },
 ];
 const slotFile: SlotFile = { v: 1, channel: 'main', t: 0, gen: 0, current: 'live', next: null, submissions: { song: 'open' }, programs: {}, items };
-const live: LiveFile = { v: 1, channel: 'main', gen: 0, listeners: 7, voices: [], blocked: [], pulse: 120 };
+const live: LiveFile = {
+  v: 1,
+  channel: 'main',
+  gen: 0,
+  listeners: 7,
+  voices: [],
+  wall: [{ id: 'pk3v9q2m7x4tb', text: 'Please pray for my mother.', at: 1000 }],
+  blocked: [],
+  pulse: 120,
+};
 
 function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?: EvergreenFile } = {}) {
   let now = 50_000;
@@ -147,11 +156,18 @@ describe('RadioEngine', () => {
     t.engine.stop();
   });
 
-  it('keeps listeners and voices from live.json', async () => {
+  it('keeps listeners, voices and the prayer wall from live.json; a channel switch clears the wall', async () => {
     const s = setup();
     vi.useFakeTimers();
     await s.engine.start('main');
     expect(s.engine.snapshot.listeners).toBe(7);
+    expect(s.engine.snapshot.wall).toEqual(live.wall);
+    const switching = s.engine.start('night');
+    // Until night's live.json arrives, main's prayers must not show as night's.
+    expect(s.engine.snapshot.wall).toEqual([]);
+    // The same empty list every time: a new [] per state would loop a zustand selector.
+    expect(s.engine.snapshot.wall).toBe(initialState().wall);
+    await switching;
     s.engine.stop();
     vi.useRealTimers();
   });

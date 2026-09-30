@@ -35,8 +35,11 @@ export type SubmissionType = (typeof SUBMISSION_TYPES)[number];
 export const SUBMISSION_STATES = ['open', 'closing', 'closed'] as const;
 export type SubmissionState = (typeof SUBMISSION_STATES)[number];
 
-/** heart and pray are the two big buttons; the rest sit behind the smile. */
-export const REACTION_KINDS = ['heart', 'pray', 'smile', 'raise', 'peace', 'fire'] as const;
+/** heart and pray are the two big buttons; the rest sit behind the emoji
+ *  picker — 🙌 raise, 😊 smile, 😍 love, 🥹 moved, 🕊️ peace, ✨ hope,
+ *  🎉 celebrate, 🔥 fire. The server counts only kinds it has a weight for
+ *  (server/app/Presence/Trends.php), so a kind added here goes there too. */
+export const REACTION_KINDS = ['heart', 'pray', 'smile', 'raise', 'peace', 'fire', 'love', 'moved', 'hope', 'celebrate'] as const;
 export type ReactionKind = (typeof REACTION_KINDS)[number];
 
 export const ROLES = ['listener', 'moderator', 'admin'] as const;

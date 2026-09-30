@@ -178,7 +178,7 @@ final class Submissions
             'name' => self::text($in['name'] ?? '', 30),
             'place' => self::text($in['place'] ?? '', 40),
             'lang' => ($in['lang'] ?? '') === 'de' ? 'de' : 'en',
-            // Shown as a community voice on the main screen only with consent.
+            // Shown on the prayer wall (text and day only) only with consent.
             'consent_air' => empty($in['consent_air']) ? 0 : 1,
         ]);
         return $this->publicView($row);
@@ -539,6 +539,40 @@ final class Submissions
             [(int) $identity['id'], (int) $identity['id'], $limit],
         );
         return array_map(fn($r) => $this->publicView($r), $rows);
+    }
+
+    /**
+     * The prayer wall: typed prayer requests the sender agreed to show,
+     * accepted and not taken down by a moderator, newest first. Text and day
+     * only — no name, no place: a prayer can reveal faith or health (Art. 9
+     * GDPR), and the wall is readable by anyone who fetches live.json.
+     * The id is the one community voices used for prayers ('p' + public id),
+     * so the app's reactions on a wall entry keep their shape.
+     *
+     * @return list<array{id:string,text:string,at:int}>
+     */
+    public function wall(string $channel, int $limit = 30): array
+    {
+        $rows = $this->app->store()->all(
+            "SELECT s.public_id, s.text, s.created FROM submissions s JOIN channels c ON c.id = s.channel_id
+             WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.hidden = 0
+             AND s.status IN ('approved', 'scheduled', 'aired') ORDER BY s.created DESC, s.id DESC LIMIT ?",
+            [$channel, $limit],
+        );
+        return array_map(fn($r) => ['id' => 'p' . $r['public_id'], 'text' => (string) $r['text'], 'at' => (int) $r['created'] * 1000], $rows);
+    }
+
+    /**
+     * A moderator takes a typed prayer off the wall (or puts it back). Only
+     * the wall changes: its status, and so whether the host prays for it on
+     * air, stays as it was.
+     *
+     * @return bool false when there is no typed prayer with this id
+     */
+    public function setHidden(string $publicId, bool $hidden): bool
+    {
+        return $this->app->store()->update('submissions', ['hidden' => $hidden ? 1 : 0, 'updated' => $this->app->clock->now()],
+            "public_id = ? AND type = 'prayer' AND mode = 'text'", [$publicId]) === 1;
     }
 
     /**

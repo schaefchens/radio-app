@@ -42,6 +42,12 @@ describe('program file fixtures', () => {
 
     const live = parseLiveFile(load('live.json'));
     expect(live?.voices).toHaveLength(2);
+    expect(live?.wall).toHaveLength(2);
+    expect(live?.wall[0]).toEqual({
+      id: 'pk3v9q2m7x4tb',
+      text: 'Please pray for my mother, she has surgery on Friday.',
+      at: 1790189940000,
+    });
     expect(live?.blocked).toEqual(['i7kq2s']);
 
     const channels = parseChannelsFile(load('channels.json'));
@@ -49,6 +55,18 @@ describe('program file fixtures', () => {
 
     const evergreen = parseEvergreenFile(load('evergreen.json'));
     expect(evergreen?.total).toBe(543000);
+  });
+
+  it('reads a live.json from before the prayer wall as an empty wall', () => {
+    // During a deploy the CDN can still hand out the old generator's file.
+    const { wall: _wall, ...old } = load('live.json') as Record<string, unknown>;
+    const live = parseLiveFile(old);
+    expect(live?.wall).toEqual([]);
+    expect(live?.voices).toHaveLength(2);
+    // An entry without text is dropped, not shown as an empty card.
+    expect(parseLiveFile({ ...old, wall: [{ id: 'p1', at: 1 }, { id: 'p2', text: 'Amen', at: 2 }] })?.wall).toEqual([
+      { id: 'p2', text: 'Amen', at: 2 },
+    ]);
   });
 
   it('rejects unknown versions and drops unknown item types', () => {

@@ -344,7 +344,10 @@ final class ModApi
     /**
      * Submissions for the moderators, with the full verdict: ?status=review
      * (the automatic check was unsure; the default), rejected (newest first,
-     * with whether the rejection can still be overruled) or all.
+     * with whether the rejection can still be overruled), wall (the typed
+     * prayers the prayer wall can show, newest first — the ones taken down
+     * too, so they can be put back) or all. `hidden` and `consentAir` say
+     * whether an item is off the wall and whether it may be on it at all.
      */
     public function review(): array
     {
@@ -352,6 +355,7 @@ final class ModApi
         $subs = $this->c->app->submissions();
         [$where, $order] = match ((string) ($this->c->req->query['status'] ?? 'review')) {
             'rejected' => ["s.status = 'rejected'", 's.updated DESC'],
+            'wall' => ["s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.status IN ('approved', 'scheduled', 'aired')", 's.created DESC, s.id DESC'],
             'all' => ['1 = 1', 's.created DESC'],
             default => ["s.status = 'review'", 's.created'],
         };
@@ -369,6 +373,7 @@ final class ModApi
                 'verdict' => json_decode((string) $s['verdict'], true), 'created' => (int) $s['created'] * 1000,
                 'status' => $s['status'], 'reason' => $s['reason'], 'updated' => (int) $s['updated'] * 1000,
                 'blocker' => $s['status'] === 'rejected' ? $subs->overruleBlocker($s) : null,
+                'hidden' => (bool) $s['hidden'], 'consentAir' => (bool) $s['consent_air'],
             ];
         }
         return ['items' => $out];
@@ -415,6 +420,30 @@ final class ModApi
             $subs->reject((int) $sub['id'], (string) $this->c->req->input('reason', 'not_accepted'), $verdict + ['human' => true], $this->actor());
         }
         return ['submission' => $subs->publicView($subs->get((int) $sub['id']) ?? $sub)];
+    }
+
+    /**
+     * Take a typed prayer off the prayer wall, or put it back: body
+     * {hidden: bool}. live.json is rewritten at once, so it is gone from the
+     * next fetch (≤ 30 s in the app), not only after the next tick.
+     *
+     * @param array<string,string> $a
+     */
+    public function reviewWall(array $a): array
+    {
+        $this->mod();
+        $app = $this->c->app;
+        $publicId = (string) ($a['id'] ?? '');
+        $hidden = $this->c->req->input('hidden');
+        // Only a real boolean: a malformed body must not put a prayer that
+        // was taken down back on the wall.
+        if (!is_bool($hidden)) throw new ApiError(422, 'bad_hidden');
+        if (!$app->submissions()->setHidden($publicId, $hidden)) throw new ApiError(404, 'not_found');
+        $sub = $app->submissions()->byPublicId($publicId) ?? throw new ApiError(404, 'not_found');
+        $channel = $app->catalog()->channel((int) $sub['channel_id']);
+        if ($channel !== null) $app->publisher()->publishLive($channel);
+        $app->store()->audit($this->actor(), $hidden ? 'Removed from the prayer wall' : 'Shown on the prayer wall', $publicId);
+        return ['ok' => true, 'hidden' => $hidden];
     }
 
     // --- users (admin) -----------------------------------------------------------------------------

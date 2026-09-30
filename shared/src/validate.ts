@@ -17,6 +17,7 @@ import type {
   StageConfig,
   TimelineItem,
   Voice,
+  WallEntry,
 } from './program.ts';
 
 /**
@@ -62,6 +63,11 @@ function compact<T>(items: unknown[], parse: (v: unknown) => T | null): T[] {
 export function parseVoice(v: unknown): Voice | null {
   if (!isObj(v) || !isStr(v.id) || !isStr(v.text)) return null;
   return { id: v.id, name: str(v.name), country: str(v.country), text: v.text, at: isNum(v.at) ? v.at : 0 };
+}
+
+export function parseWallEntry(v: unknown): WallEntry | null {
+  if (!isObj(v) || !isStr(v.id) || !isStr(v.text) || v.text === '') return null;
+  return { id: v.id, text: v.text, at: isNum(v.at) ? v.at : 0 };
 }
 
 function stage(v: unknown): StageConfig {
@@ -219,6 +225,9 @@ export function parseLiveFile(v: unknown): LiveFile | null {
     gen: isNum(v.gen) ? v.gen : 0,
     listeners: isNum(v.listeners) ? Math.max(0, Math.round(v.listeners)) : 0,
     voices: compact(arr(v.voices), parseVoice),
+    // A live.json from a generator older than the wall (a CDN copy during a
+    // deploy) has none: an empty wall, not a rejected file.
+    wall: compact(arr(v.wall), parseWallEntry),
     blocked: arr(v.blocked).filter(isStr),
     pulse: isNum(v.pulse) ? Math.max(0, v.pulse) : 0,
   };

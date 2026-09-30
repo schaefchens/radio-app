@@ -8,6 +8,7 @@ import type {
   SubmissionType,
   TimelineItem,
   Voice,
+  WallEntry,
 } from '@arche/shared';
 import { MINUTE_MS, floorMinute } from '@arche/shared';
 import { Timeline } from './timeline';
@@ -59,6 +60,8 @@ export interface EngineState {
   lastHost: { text: string; at: number } | null;
   listeners: number;
   voices: Voice[];
+  /** The prayer wall from live.json: anonymous typed prayer requests, newest first. */
+  wall: WallEntry[];
   hasData: boolean;
 }
 
@@ -103,6 +106,9 @@ const SEEK_COOLDOWN_MS = 10_000;
 const MAX_SEEKS_PER_MINUTE = 3;
 const TAP_HINT_AFTER_MS = 2500;
 const LIVE_EVERY_MS = 30_000;
+/** One empty wall for every reset: a fresh [] per state would give a zustand
+ *  selector a new reference each time and loop React. */
+const NO_WALL: WallEntry[] = [];
 
 export function initialState(channel = ''): EngineState {
   return {
@@ -121,6 +127,7 @@ export function initialState(channel = ''): EngineState {
     lastHost: null,
     listeners: 0,
     voices: [],
+    wall: NO_WALL,
     hasData: false,
   };
 }
@@ -280,7 +287,7 @@ export class RadioEngine {
     if (!live || gen !== this.generation) return;
     const wasBlocked = this.state.item !== null && !this.blocked.has(this.state.item.id) && live.blocked.includes(this.state.item.id);
     this.blocked = new Set(live.blocked);
-    this.state = { ...this.state, listeners: live.listeners, voices: live.voices };
+    this.state = { ...this.state, listeners: live.listeners, voices: live.voices, wall: live.wall };
     if (wasBlocked) this.key = null;
     this.emit();
   }

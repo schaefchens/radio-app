@@ -39,6 +39,15 @@ export interface Voice {
   at: number;
 }
 
+/** A typed prayer request on the prayer wall. Anonymous by design — text and
+ *  day only, no name or place: prayers can reveal faith or health. `id` is
+ *  the key for reactions (sent like a voice's). */
+export interface WallEntry {
+  id: string;
+  text: string;
+  at: number;
+}
+
 interface ItemBase {
   /** Stable public id; also the key for reactions and `blocked`. */
   id: string;
@@ -163,6 +172,10 @@ export interface LiveFile {
   gen: number;
   listeners: number;
   voices: Voice[];
+  /** Typed prayer requests the sender agreed to show, anonymous, newest
+   *  first, at most 30. In live.json (not the minute files) so that a
+   *  moderator's takedown applies with the next tick. */
+  wall: WallEntry[];
   /** Item ids a moderator pulled from air after they were published. */
   blocked: string[];
   /** Seconds between presence pulses; 0 = do not pulse. Raised under load. */

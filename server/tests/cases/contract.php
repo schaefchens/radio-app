@@ -61,6 +61,11 @@ test('contract: generated program files match shared/fixtures', function () {
     unset($j);
     $ch = TestKit::main($app);
     $app->catalog()->saveProgram((int) $ch['fallback_program_id'], (int) $ch['id'], ['settings' => ['silence' => ['every_min' => 20, 'dur_s' => 30]]], 'test');
+    // One prayer on the wall, or live.json's wall would be an empty list whose entries are never compared.
+    $identity = listener($app);
+    $app->store()->insert('submissions', ['public_id' => 'k3v9q2m7x4tb', 'identity_id' => (int) $identity['id'], 'channel_id' => (int) $ch['id'],
+        'program_id' => (int) $ch['fallback_program_id'], 'type' => 'prayer', 'mode' => 'text', 'status' => 'aired', 'name' => 'Ruth',
+        'place' => 'Lagos', 'text' => 'Please pray for my mother.', 'consent_air' => 1, 'created' => $app->clock->now(), 'updated' => $app->clock->now()]);
     for ($i = 0; $i < 40; $i++) {
         $app->tick()->run('test');
         TestKit::clock($app)->advance(60_000);
@@ -78,11 +83,13 @@ test('contract: generated program files match shared/fixtures', function () {
     $day = json_decode((string) file_get_contents($app->publicPath('program/main/days/' . gmdate('Y-m-d', intdiv($now, 1000)) . '.json')));
     shape($day, fixture('day.json'), 'day', ['programs']);
     check(count($day->played) > 0, 'played list filled');
-    shape(json_decode((string) file_get_contents($app->publicPath('program/main/live.json'))), fixture('live.json'), 'live', []);
+    $live = json_decode((string) file_get_contents($app->publicPath('program/main/live.json')));
+    shape($live, fixture('live.json'), 'live', []);
+    eq(count($live->wall), 1, 'a wall entry was compared');
     $channels = json_decode((string) file_get_contents($app->publicPath('program/channels.json')));
     shape($channels, fixture('channels.json'), 'channels', []);
     check(is_string($channels->channels[0]->evergreen), 'evergreen pointer');
     shape(json_decode((string) file_get_contents($app->publicPath(ltrim($channels->channels[0]->evergreen, '/')))), fixture('evergreen.json'), 'evergreen', []);
-    unset($j, $types, $now, $maps);
+    unset($j, $types, $now, $maps, $live, $identity);
     eq(Timing::COMMIT, Timing::WINDOW + Timing::LEAD, 'timing constants');
 });
