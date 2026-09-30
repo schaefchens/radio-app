@@ -32,6 +32,7 @@
       --ink: #092d67; --muted: #587095; --accent: #0782ec; --line: #bbdaf0;
       --surface: #ffffffed; --soft: #edf7fce8; --base: #f6fbff;
       --menu-surface: #fffffff2; --desktop-menu-surface: #fffffff2;
+      --panel-heading-surface: #e4f3facc;
       --texture: url('theme-assets/light-background.webp');
       --mobile-hero-height: clamp(180px, 58cqw, 320px); --header-strip-height: 16px;
       color: var(--ink); background: var(--base) var(--texture) center top / 650px auto repeat;
@@ -41,6 +42,7 @@
       --ink: #eef6ff; --muted: #b5c7e7; --accent: #31b9ff; --line: #17618a;
       --surface: #042541eb; --soft: #103855c9; --base: #03234a;
       --menu-surface: #042541f2; --desktop-menu-surface: #00182af2;
+      --panel-heading-surface: #001b36c9;
       --texture: url('theme-assets/dark-background.webp');
     }
     .hero { position: relative; }
@@ -49,7 +51,7 @@
     .brand h1 { margin: 0; font-size: clamp(22px, 4.3cqw, 58px); font-weight: 850; letter-spacing: -0.055em; white-space: nowrap; }
     .brand-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .brand-title-arc { display: block; width: 100%; height: auto; }
-    .brand-mark, .brand-subtitle-dark-mobile { display: none; }
+    .brand-mark, .brand-subtitle-dark { display: none; }
     .brand p { margin: 7px 0 0; font-size: clamp(8px, 1.3cqw, 17px); font-weight: 650; color: #164d85; }
     [data-theme="light"] .brand p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     [data-theme="dark"] .brand { left: 46%; top: 28%; width: 47%; }
@@ -58,6 +60,10 @@
     [data-theme="dark"] .brand-title-arc { display: none; }
     [data-theme="dark"] .brand-title span { color: #ffd06c; }
     [data-theme="dark"] .brand p { color: #e4f0fc; font-weight: 450; }
+    [data-theme="dark"] .brand-mark { display: block; position: absolute; bottom: calc(100% + 11px); left: 75%; transform: translateX(-50%); width: clamp(32px, 9.5cqw, 52px); height: clamp(32px, 9.5cqw, 52px); color: #ffd06c; filter: drop-shadow(0 1px 3px #001429); }
+    [data-theme="dark"] .brand-subtitle-default { display: none; }
+    [data-theme="dark"] .brand-subtitle-dark { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+    [data-theme="dark"] .brand-subtitle-dark::before, [data-theme="dark"] .brand-subtitle-dark::after { content: ''; flex: 1; min-width: 8px; height: 1px; background: #ffd06c; }
     .content { position: relative; width: min(900px, 94%); margin: -12px auto 0; }
     .player-dock { min-width: 0; }
     .desktop-nav, .host-card { display: none; }
@@ -155,11 +161,12 @@
     .dots { display: flex; justify-content: center; gap: 7px; padding-top: 18px; }
     .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
     .dots i:first-child { background: var(--accent); }
-    .mobile-carousel { display: none; transition: background-color .28s ease, border-color .28s ease, color .28s ease; }
+    .mobile-carousel, .desktop-prayer-wall { display: none; }
+    .mobile-carousel { transition: background-color .28s ease, border-color .28s ease, color .28s ease; }
     .mobile-carousel[data-active-panel="moderator"] { --accent: #087f91; --soft: #e1f2f4; background: #f0fafb; border-color: #a5d8e1; }
     [data-theme="dark"] .mobile-carousel[data-active-panel="moderator"] { --accent: #73d6e4; --soft: #173e50; background: #0c3044; border-color: #32798d; }
-    .mobile-carousel[data-active-panel="prayers"] { --ink: #5b3b12; --muted: #84602e; --accent: #a45b00; --soft: #ffedc3; color: var(--ink); background: #fff4dc; border-color: #deb35f; }
-    [data-theme="dark"] .mobile-carousel[data-active-panel="prayers"] { --ink: #fff2d6; --muted: #dfc49c; --accent: #ffcb73; --soft: #49361b; background: #332611; border-color: #a8782c; }
+    .mobile-carousel[data-active-panel="prayers"], .desktop-prayer-wall { --ink: #5b3b12; --muted: #84602e; --accent: #a45b00; --soft: #ffedc3; --panel-heading-surface: #e9c97bc9; color: var(--ink); background: #fff4dc; border-color: #deb35f; }
+    [data-theme="dark"] .mobile-carousel[data-active-panel="prayers"], [data-theme="dark"] .desktop-prayer-wall { --ink: #fff2d6; --muted: #dfc49c; --accent: #ffcb73; --soft: #49361b; --panel-heading-surface: #21180ec9; background: #332611; border-color: #a8782c; }
     .mobile-carousel .carousel-stage { overflow: hidden; touch-action: pan-y pinch-zoom; cursor: grab; }
     .mobile-carousel .carousel-stage:active { cursor: grabbing; }
     .mobile-carousel .carousel-track { display: flex; align-items: stretch; transition: transform .28s ease; }
@@ -173,8 +180,8 @@
     .mobile-carousel .prayer-entry p { margin-top: 14px; }
     .mobile-carousel .carousel-body .feed-reactions { position: absolute; top: 9px; right: 9px; margin: 0; }
     .mobile-carousel .feed-emoji-picker { top: 40px; bottom: auto; }
-    .mobile-carousel .carousel-body.is-leaving { animation: feed-out .25s ease-in forwards; }
-    .mobile-carousel .carousel-body.is-entering { animation: feed-in .35s ease-out both; }
+    .mobile-carousel .carousel-body.is-leaving, .desktop-prayer-body.is-leaving { animation: feed-out .25s ease-in forwards; }
+    .mobile-carousel .carousel-body.is-entering, .desktop-prayer-body.is-entering { animation: feed-in .35s ease-out both; }
     @keyframes feed-out { to { opacity: 0; transform: translateY(-7px); } }
     @keyframes feed-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
     .mobile-carousel .carousel-arrow { position: absolute; top: 50%; z-index: 2; display: grid; place-items: center; width: 32px; height: 44px; padding: 0; border: 0; background: none; color: var(--accent); transform: translateY(-50%); }
@@ -260,8 +267,11 @@
       .brand { top: 24%; left: 33%; width: 34%; z-index: 1; }
       .brand h1 { font-size: clamp(34px, 4.2cqw, 62px); }
       .brand p { font-size: clamp(11px, 1.15cqw, 17px); }
-      [data-theme="dark"] .brand { top: 26%; left: 68%; width: 30%; text-shadow: 0 2px 10px #00203b; }
+      [data-theme="dark"] .brand { top: 36%; left: 68%; width: 30%; text-shadow: 0 2px 10px #00203b; }
       [data-theme="dark"] .brand h1 { font-size: clamp(34px, 3.8cqw, 58px); }
+      [data-theme="dark"] .brand p { font-size: clamp(14px, 1.5cqw, 20px); }
+      [data-theme="dark"] .brand-subtitle-dark { justify-content: center; }
+      [data-theme="dark"] .brand-subtitle-dark::before, [data-theme="dark"] .brand-subtitle-dark::after { flex: 0 0 18px; min-width: 0; }
       .desktop-nav { display: flex; position: absolute; right: 3%; bottom: 18px; width: 45%; z-index: 1; align-items: center; justify-content: space-around; gap: 5px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 24px; background: var(--desktop-menu-surface); }
       .desktop-nav .nav-item { flex-direction: row; gap: 8px; font-size: clamp(11px, 1.1cqw, 16px); padding: 6px 10px; }
       .desktop-nav .nav-item[aria-current="page"] { box-shadow: 0 3px 0 var(--accent); }
@@ -270,17 +280,37 @@
       .content { display: grid; width: calc(100% - 20px); max-width: 1480px; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: 'player host' 'player community'; align-items: start; gap: 14px; margin-top: -14px; }
       .player-dock { grid-area: player; }
       .host-card { display: block; grid-area: host; }
-      .community { grid-area: community; padding: 16px; margin: 0; }
+      .community { grid-area: community; padding: 8px 12px 12px; margin: 0; }
+      .desktop-prayer-wall { display: block; margin-top: 14px; padding: 8px 12px 12px; }
       .card { border-radius: 18px; }
-      .station-row { padding: 16px 18px; gap: 14px; }
+      .station-row { padding: 11px 14px; gap: 10px; }
+      .station-row .live { padding: 5px 10px; font-size: 12px; line-height: 1.1; border-radius: 8px; }
+      .station-name strong { font-size: 17px; line-height: 1.2; }
+      .station-name small { display: block; font-size: 13px; line-height: 1.2; }
+      .listeners { gap: 6px; font-size: 10px; line-height: 1.1; }
+      .listeners strong { font-size: 16px; line-height: 1.1; }
       .track-row { padding: 18px; }
+      .track .eyebrow { font-size: clamp(13px, 1.4cqw, 19px); line-height: 1.15; letter-spacing: .04em; }
+      .track .eyebrow svg { width: 17px; height: 17px; }
       .track strong { font-size: clamp(18px, 1.7cqw, 26px); }
       .track small { font-size: 14px; }
       .reactions .icon-button { width: 48px; height: 48px; }
       .section-heading { gap: 8px; }
       .section-heading h2 { font-size: clamp(14px, 1.25cqw, 19px); }
-      .community .text-button { font-size: 10px; }
-      .quote { gap: 10px; margin-top: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
+      .host-card { padding: 8px 12px 12px; }
+      .host-card .section-heading, .community:not(.mobile-carousel) .section-heading, .desktop-prayer-wall .section-heading { margin: -8px -12px 0; padding: 4px 12px 5px; border-bottom: 1px solid var(--line); background: var(--panel-heading-surface); }
+      .host-card .section-heading svg { width: 20px; height: 20px; }
+      .host-body { padding-top: 8px; }
+      .community .text-button, .desktop-prayer-wall .text-button { font-size: 10px; }
+      .quote { gap: 10px; margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
+      .community:not(.mobile-carousel) .feed-message, .desktop-prayer-wall .feed-message { min-height: 110px; padding: 9px; border-radius: 0; }
+      .community:not(.mobile-carousel) .feed-message .message-copy, .desktop-prayer-wall .feed-message .message-copy { grid-template-columns: max-content max-content minmax(0, 1fr); column-gap: 7px; }
+      .community:not(.mobile-carousel) .feed-message time { grid-column: 2; justify-self: start; margin-left: 0; }
+      .desktop-prayer-wall .feed-message time { grid-column: 1; justify-self: start; margin-left: 0; }
+      .community:not(.mobile-carousel) .feed-message p, .desktop-prayer-wall .feed-message p { margin-top: 11px; }
+      .desktop-prayer-wall .feed-message p { margin-top: 14px; }
+      .community:not(.mobile-carousel) .feed-reactions, .desktop-prayer-wall .feed-reactions { position: absolute; top: 9px; right: 9px; margin: 0; }
+      .community:not(.mobile-carousel) .feed-emoji-picker, .desktop-prayer-wall .feed-emoji-picker { top: 40px; bottom: auto; }
       .quote strong { font-size: 11px; }
       .quote time { margin-left: 7px; font-size: 9px; }
       .quote p { font-size: 12px; line-height: 1.45; }
@@ -303,10 +333,6 @@
       [data-theme="dark"] .brand { top: 38%; left: 48%; width: 50%; text-shadow: 0 2px 8px #001429, 0 1px 2px #001429; }
       [data-theme="dark"] .brand h1 { font-size: clamp(26px, 8.4cqw, 50px); }
       [data-theme="dark"] .brand p { margin-top: 4px; font-size: clamp(8px, 2.6cqw, 14px); color: #f8fcff; }
-      [data-theme="dark"] .brand-mark { display: block; position: absolute; bottom: calc(100% + 11px); left: 75%; transform: translateX(-50%); width: clamp(32px, 9.5cqw, 52px); height: clamp(32px, 9.5cqw, 52px); color: #ffd06c; filter: drop-shadow(0 1px 3px #001429); }
-      [data-theme="dark"] .brand-subtitle-default { display: none; }
-      [data-theme="dark"] .brand-subtitle-dark-mobile { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-      [data-theme="dark"] .brand-subtitle-dark-mobile::before, [data-theme="dark"] .brand-subtitle-dark-mobile::after { content: ''; flex: 1; min-width: 8px; height: 1px; background: #ffd06c; }
       [data-theme="dark"] .player-dock { margin-top: clamp(-75px, -20cqw, -64px); }
       .content, .lower-content { width: 96%; }
       /* No enclosing content box: the player stays pinned through the footer. */
@@ -384,8 +410,10 @@
       .mobile-dock .action { min-height: 60px; }
     }
     @media (prefers-reduced-transparency: reduce) {
-      .page, .mobile-dock { --surface: #fff; --soft: #edf7fc; --menu-surface: #fff; --desktop-menu-surface: #fff; }
-      [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock { --surface: #042541; --soft: #103855; --menu-surface: #042541; --desktop-menu-surface: #00182a; }
+      .page, .mobile-dock { --surface: #fff; --soft: #edf7fc; --menu-surface: #fff; --desktop-menu-surface: #fff; --panel-heading-surface: #e4f3fa; }
+      [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock { --surface: #042541; --soft: #103855; --menu-surface: #042541; --desktop-menu-surface: #00182a; --panel-heading-surface: #001b36; }
+      .desktop-prayer-wall { --panel-heading-surface: #e9c97b; }
+      [data-theme="dark"] .desktop-prayer-wall { --panel-heading-surface: #21180e; }
       .play-button { background: #081421; border-color: #fff; }
       .welcome-dialog::backdrop { background: #04172b; backdrop-filter: none; }
     }
@@ -446,7 +474,7 @@
       <div class="page">
         <header class="hero">
           <img class="hero-art" data-art="top" src="theme-assets/light-top.webp" width="2172" height="724" alt="">
-          <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><img class="brand-title-arc" src="theme-assets/light-logo.svg" alt=""><p><span class="brand-subtitle-default">Das Brüder-Radio in Christus</span><span class="brand-subtitle-dark-mobile">Das Brüder-Radio in Christus</span></p></div>
+          <div class="brand"><svg class="brand-mark" aria-hidden="true" overflow="visible"><use href="#i-broadcast"/></svg><h1 class="brand-title">Arche <span>Radio</span></h1><img class="brand-title-arc" src="theme-assets/light-logo.svg" alt=""><p><span class="brand-subtitle-default">Das Brüder-Radio in Christus</span><span class="brand-subtitle-dark">Das Brüder-Radio in Christus</span></p></div>
           <nav class="desktop-nav" aria-label="Desktop-Navigation">
             <button type="button" class="nav-item" aria-current="page" data-nav="Live"><svg aria-hidden="true"><use href="#i-radio"/></svg>Live</button>
             <button type="button" class="nav-item" data-nav="Programm"><svg aria-hidden="true"><use href="#i-calendar"/></svg><span data-i18n="programNav">Programm</span></button>
@@ -497,6 +525,10 @@
                 </div>
               </div>
             </div>
+          </section>
+          <section class="card desktop-prayer-wall" aria-labelledby="desktop-prayer-title">
+            <div class="section-heading"><svg aria-hidden="true"><use href="#i-prayer"/></svg><h2 id="desktop-prayer-title" data-i18n="prayerHeading">Gebetswand</h2><button type="button" class="text-button" data-demo="Gebetswand" data-i18n="moreButton">Mehr →</button></div>
+            <div class="desktop-prayer-body"></div>
           </section>
           </div>
           <section class="card host-card" aria-labelledby="host-title">
@@ -902,6 +934,10 @@
     }
     [...sourceVoices, ...prayerBody.querySelectorAll('.feed-message')].forEach(addFeedReactions);
     voiceBody.append(...sourceVoices.map(quote => quote.cloneNode(true)));
+    const desktopPrayerBody = document.querySelector('.desktop-prayer-body');
+    desktopPrayerBody.append(...[...prayerBody.querySelectorAll('.feed-message')].map(prayer => prayer.cloneNode(true)));
+    const desktopPrayerMessages = [...desktopPrayerBody.querySelectorAll('.feed-message')];
+    desktopPrayerMessages.slice(1).forEach(message => { message.hidden = true; });
     const feedMessages = [...document.querySelectorAll('.feed-message')];
     function closeFeedEmojiPickers() {
       feedMessages.forEach(message => {
@@ -915,6 +951,10 @@
           button.setAttribute('aria-pressed', String(button.getAttribute('aria-pressed') !== 'true'));
           stopFeedRotation();
           scheduleFeedRotation();
+          if (desktopPrayerBody.contains(message)) {
+            stopDesktopPrayerRotation();
+            scheduleDesktopPrayerRotation();
+          }
         });
       });
       const toggle = message.querySelector('.feed-emoji-toggle');
@@ -939,6 +979,10 @@
           toggle.focus();
           stopFeedRotation();
           scheduleFeedRotation();
+          if (desktopPrayerBody.contains(message)) {
+            stopDesktopPrayerRotation();
+            scheduleDesktopPrayerRotation();
+          }
         });
       });
     });
@@ -954,6 +998,9 @@
     let mobilePreview = false;
     let feedRotationTimer;
     let feedAnimationTimer;
+    let desktopPrayerTimer;
+    let desktopPrayerAnimationTimer;
+    let desktopPrayerIndex = 0;
     function renderFeed(feed) {
       const ordered = feed.messages.map((_, index) => feed.messages[(feed.offset + index) % feed.messages.length]);
       if (feed.body.firstElementChild !== ordered[0]) feed.body.append(...ordered);
@@ -985,6 +1032,36 @@
             feed.body.classList.remove('is-entering');
             feedAnimationTimer = undefined;
             scheduleFeedRotation();
+          }, 350);
+        }, 250);
+      }, 11000);
+    }
+    function stopDesktopPrayerRotation() {
+      clearTimeout(desktopPrayerTimer);
+      clearTimeout(desktopPrayerAnimationTimer);
+      desktopPrayerTimer = undefined;
+      desktopPrayerAnimationTimer = undefined;
+      desktopPrayerBody.classList.remove('is-leaving', 'is-entering');
+    }
+    function scheduleDesktopPrayerRotation() {
+      if (desktopPrayerTimer || mobilePreview || document.hidden) return;
+      desktopPrayerTimer = setTimeout(() => {
+        desktopPrayerTimer = undefined;
+        if (desktopPrayerBody.querySelector('.feed-emoji-picker:not([hidden])')) {
+          scheduleDesktopPrayerRotation();
+          return;
+        }
+        desktopPrayerBody.classList.add('is-leaving');
+        desktopPrayerAnimationTimer = setTimeout(() => {
+          desktopPrayerMessages[desktopPrayerIndex].hidden = true;
+          desktopPrayerIndex = (desktopPrayerIndex + 1) % desktopPrayerMessages.length;
+          desktopPrayerMessages[desktopPrayerIndex].hidden = false;
+          desktopPrayerBody.classList.remove('is-leaving');
+          desktopPrayerBody.classList.add('is-entering');
+          desktopPrayerAnimationTimer = setTimeout(() => {
+            desktopPrayerBody.classList.remove('is-entering');
+            desktopPrayerAnimationTimer = undefined;
+            scheduleDesktopPrayerRotation();
           }, 350);
         }, 250);
       }, 11000);
@@ -1161,12 +1238,20 @@
       root.style.setProperty('--preview-top', `${toolbarHeight}px`);
       updateMobilePanelDensity();
       updatePinnedState();
-      if (mobilePreview) scheduleFeedRotation();
-      else stopFeedRotation();
+      if (mobilePreview) {
+        stopDesktopPrayerRotation();
+        scheduleFeedRotation();
+      } else {
+        stopFeedRotation();
+        scheduleDesktopPrayerRotation();
+      }
     }
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) stopFeedRotation();
-      else scheduleFeedRotation();
+      if (document.hidden) {
+        stopFeedRotation();
+        stopDesktopPrayerRotation();
+      } else if (mobilePreview) scheduleFeedRotation();
+      else scheduleDesktopPrayerRotation();
     });
     window.addEventListener('scroll', () => {
       if (!scrollFrame) scrollFrame = requestAnimationFrame(updatePinnedState);
