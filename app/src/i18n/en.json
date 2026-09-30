@@ -8,7 +8,8 @@
     "schedule": "Schedule",
     "chat": "Chat",
     "profile": "Profile",
-    "mod": "Moderation"
+    "mod": "Moderation",
+    "label": "Main menu"
   },
   "channel": {
     "label": "Channel",
@@ -67,20 +68,20 @@
   },
   "submit": {
     "song": {
-      "title": "Request a Song",
-      "subtitle": "Share a song that encourages others"
+      "title": "Request a song",
+      "subtitle": "What should we play?"
     },
     "story": {
-      "title": "Share Your Story",
-      "subtitle": "Tell how God is working in your life"
+      "title": "Tell your story",
+      "subtitle": "Share your testimony with us."
     },
     "prayer": {
-      "title": "Prayer Request",
-      "subtitle": "Let us pray with you"
+      "title": "Share a prayer request",
+      "subtitle": "We will pray with you."
     },
     "room": {
-      "title": "Join a Room",
-      "subtitle": "Connect and worship together"
+      "title": "Join the room",
+      "subtitle": "Come to the live chat."
     },
     "closing": "Last chance",
     "closed": "Closed for this program",
@@ -93,7 +94,8 @@
     "send": "Send",
     "cancel": "Cancel",
     "privacyNote": "By sending, you agree that Arche Radio processes what you share — including your faith or health, if you mention them — to check it and put it on air, also with an automated check by OpenAI.",
-    "privacyLink": "Privacy policy"
+    "privacyLink": "Privacy policy",
+    "label": "Take part"
   },
   "songForm": {
     "url": "YouTube link",
@@ -651,5 +653,9 @@
     "autoHint": "Follows your device",
     "light": "Kids Ark",
     "dark": "Storm Ark"
+  },
+  "brand": {
+    "name": "Arche Radio",
+    "subtitle": "Das Brüder-Radio in Christus"
   }
 }

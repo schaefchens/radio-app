@@ -141,7 +141,7 @@ test('a passphrase takes the listener’s identity to a second device', async ({
 test('a prayer request is checked, accepted and shown as a community voice', async ({ page }) => {
   await fakeYouTube(page);
   await page.goto('/');
-  const sheet = await openSheet(page, /Prayer Request/, 'Prayer Request');
+  const sheet = await openSheet(page, /Share a prayer request/, 'Share a prayer request');
   const text = `Please pray for my sister's recovery (${Date.now() % 100_000}).`;
   await sheet.getByLabel('Your prayer request').fill(text);
   await sheet.getByLabel('Show it to the community so others can pray with me.').check();
@@ -171,7 +171,7 @@ test('a prayer request is checked, accepted and shown as a community voice', asy
 test('before the listener agrees to YouTube, a song request asks YouTube nothing', async ({ page }) => {
   const google = await fakeYouTube(page);
   await page.goto('/');
-  const sheet = await openSheet(page, /Request a Song/, 'Request a Song');
+  const sheet = await openSheet(page, /Request a song/, 'Request a song');
   await sheet.getByLabel('YouTube link').fill('https://youtu.be/e2eReqOk001');
   await page.waitForTimeout(1500);
   expect(google).toEqual([]);
@@ -182,7 +182,7 @@ test('before the listener agrees to YouTube, a song request asks YouTube nothing
 test('a song request is checked against YouTube and accepted', async ({ page }) => {
   await fakeYouTube(page);
   await joined(page);
-  const sheet = await openSheet(page, /Request a Song/, 'Request a Song');
+  const sheet = await openSheet(page, /Request a song/, 'Request a song');
   await sheet.getByLabel('YouTube link').fill('https://youtu.be/e2eReqOk001');
   await expect(sheet.getByText('Hillside Choir - Carried (Lyric Video)')).toBeVisible();
   await sheet.getByLabel('Dedication or greeting (optional)').fill('For everyone who needs courage today.');
@@ -200,7 +200,7 @@ test('a song request is checked against YouTube and accepted', async ({ page }) 
 test('a song that is too long is declined with a general reason', async ({ page }) => {
   await fakeYouTube(page);
   await joined(page);
-  const sheet = await openSheet(page, /Request a Song/, 'Request a Song');
+  const sheet = await openSheet(page, /Request a song/, 'Request a song');
   await sheet.getByLabel('YouTube link').fill('https://www.youtube.com/watch?v=e2eReqLong1');
   await expect(sheet.getByText('E2E Worship - Ten Thousand Reasons Medley')).toBeVisible();
   await sheet.getByRole('button', { name: 'Send' }).click();
@@ -214,7 +214,7 @@ test('a song that is too long is declined with a general reason', async ({ page 
 test('a video that cannot be embedded is refused before sending', async ({ page }) => {
   await fakeYouTube(page);
   await joined(page);
-  const sheet = await openSheet(page, /Request a Song/, 'Request a Song');
+  const sheet = await openSheet(page, /Request a song/, 'Request a song');
   await sheet.getByLabel('YouTube link').fill('https://www.youtube.com/watch?v=e2eNoEmbed1');
   await expect(sheet.getByText(/This video can.t be played in other apps\./)).toBeVisible();
   await expect(sheet.getByRole('button', { name: 'Send' })).toBeDisabled();
@@ -226,7 +226,7 @@ test.describe('recordings', () => {
   test('a recorded story is encoded in the browser, checked and accepted', async ({ page }) => {
     await fakeYouTube(page);
     await page.goto('/');
-    const sheet = await openSheet(page, /Share Your Story/, 'Share Your Story');
+    const sheet = await openSheet(page, /Tell your story/, 'Tell your story');
     await sheet.getByRole('button', { name: 'Start recording' }).click();
     await page.waitForTimeout(4500);
     await sheet.getByRole('button', { name: 'Stop' }).click();

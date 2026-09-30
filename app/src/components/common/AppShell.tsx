@@ -1,112 +1,81 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import clsx from 'clsx';
 import { UpdateBanner } from './UpdateBanner';
-import { CalendarIcon, ChatIcon, LiveIcon, RadioIcon, ShieldIcon, UserIcon } from './icons';
+import { MainNav } from './MainNav';
+import { MobileDock } from './MobileDock';
+import { BroadcastIcon } from './icons';
 import { StageRegion } from '@/components/stage/StageRegion';
-import { ChannelPicker } from '@/components/home/ChannelPicker';
-import { useSession, isModerator } from '@/store/session';
+import { SubmitSheets, SubmitTiles } from '@/components/home/SubmitTiles';
+import { THEME, useTheme } from '@/lib/theme';
+import logo from '@/assets/theme/light-logo.svg';
 
 /**
- * Header, the persistent stage, the page, and the bottom nav.
+ * The design's frame (concept-files/theme-preview.html): the scenery with
+ * the brand and, on desktop, the menu on top; the page; the scene below
+ * with the four tiles; on phones a dock with the tiles and the menu.
  *
  * The stage (and with it the one YouTube player) lives here, above every
  * page, so music never stops when the listener opens the schedule or the chat
  * — and the player is always on screen while it plays, as YouTube requires.
  * On Home the page renders the big stage itself; elsewhere a compact one sits
- * above the page.
+ * above the page. Moderation pages get no stage, and nothing plays there.
  */
 export function AppShell() {
-  const { t } = useTranslation();
   const location = useLocation();
-  const identity = useSession((s) => s.identity);
+  const theme = useTheme();
   const onHome = location.pathname === '/';
   const onMod = location.pathname.startsWith('/mod');
+  const art = THEME[theme].art;
 
   return (
-    <div className="flex min-h-full flex-col pt-safe px-safe">
+    // data-dock tells the phone layout how far the pinned player reaches into
+    // the scenery (styles/shell.css), so the header keeps just a strip.
+    <div className="page" data-dock={onHome ? 'player' : onMod ? 'none' : 'stage'}>
       <UpdateBanner />
-      <header className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 pb-2 pt-4 lg:px-6">
-        <NavLink to="/about" className="min-w-0 shrink-0" aria-label={t('about.open')} title={t('about.open')}>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-light tracking-logo text-ink sm:text-3xl">ARCHE</span>
-            <RadioIcon size={26} className="text-accent" />
-          </div>
-          {/* Two lines, broken where the text says (\n) and nowhere else. */}
-          <p className="hidden text-xs leading-snug text-ink-muted sm:block">
-            {t('app.tagline').split('\n').map((line) => (
-              <span key={line} className="block whitespace-nowrap">
-                {line}
-              </span>
-            ))}
-          </p>
-        </NavLink>
-        <nav className="mx-auto hidden items-center gap-1 lg:flex" aria-label="main">
-          <TopTab to="/" label={t('nav.home')} icon={<LiveIcon className="text-live" />} end />
-          <TopTab to="/schedule" label={t('nav.schedule')} icon={<CalendarIcon />} />
-          <TopTab to="/chat" label={t('nav.chat')} icon={<ChatIcon />} />
-          <TopTab to="/profile" label={t('nav.profile')} icon={<UserIcon />} />
-          {isModerator(identity) && <TopTab to="/mod" label={t('nav.mod')} icon={<ShieldIcon />} />}
-        </nav>
-        <div className="ml-auto min-w-0">
-          <ChannelPicker />
-        </div>
+      <header className="hero">
+        <img className="hero-art" src={art.top} width={2172} height={724} alt="" />
+        <Brand />
+        <MainNav className="desktop-nav" />
       </header>
 
-      {/* One stage for all pages: big on Home (placed by the page), compact above
-          the others. Moderation pages get no stage, and nothing plays there. */}
-      <div className={clsx('mx-auto w-full max-w-7xl px-4 lg:px-6', (onHome || onMod) && 'hidden')}>
-        <div className="sticky top-0 z-30 py-2 lg:max-w-xl">
-          {!onHome && !onMod && <StageRegion compact />}
+      {!onHome && !onMod && (
+        <div className="stage-dock">
+          <StageRegion compact />
         </div>
-      </div>
+      )}
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-28 lg:px-6 lg:pb-10">
+      <main className={onHome ? 'content' : 'page-content'}>
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line/30 bg-soft/90 pb-safe backdrop-blur-lg lg:hidden" aria-label="main">
-        <BottomTab to="/" label={t('nav.home')} icon={<LiveIcon size={24} className="text-live" />} end />
-        <BottomTab to="/schedule" label={t('nav.schedule')} icon={<CalendarIcon size={24} />} />
-        <BottomTab to="/chat" label={t('nav.chat')} icon={<ChatIcon size={24} />} />
-        <BottomTab to="/profile" label={t('nav.profile')} icon={<UserIcon size={24} />} />
-      </nav>
+      <footer className="lower-scene">
+        <img className="bottom-art" src={art.bottom} width={2172} height={724} alt="" loading="lazy" />
+        <div className="lower-content">
+          {onHome && <SubmitTiles />}
+          <MainNav className="navigation" />
+        </div>
+      </footer>
+      {/* Phones: the lower scenery stays put behind the page. */}
+      <img className="mobile-art" src={art.bottomMobile} alt="" />
+      <MobileDock withTiles={onHome} />
+
+      <SubmitSheets />
     </div>
   );
 }
 
-function TopTab({ to, label, icon, end = false }: { to: string; label: string; icon: React.ReactNode; end?: boolean }) {
+/** The station's name over the scenery, linking to the station page. */
+function Brand() {
+  const { t } = useTranslation();
   return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        clsx(
-          'flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm transition-colors',
-          isActive ? 'bg-accent-fill/20 text-ink shadow-glow' : 'text-ink-muted hover:text-ink',
-        )
-      }
-    >
-      {icon}
-      {label}
-    </NavLink>
-  );
-}
-
-function BottomTab({ to, label, icon, end = false }: { to: string; label: string; icon: React.ReactNode; end?: boolean }) {
-  return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) => clsx('flex flex-col items-center gap-1 py-2.5 text-xs', isActive ? 'text-accent' : 'text-ink-muted')}
-    >
-      {({ isActive }) => (
-        <>
-          {icon}
-          <span>{label}</span>
-          <span className={clsx('h-1 w-1 rounded-full', isActive ? 'bg-accent' : 'bg-transparent')} />
-        </>
-      )}
+    <NavLink to="/about" className="brand" aria-label={t('about.open')} title={t('about.open')}>
+      <BroadcastIcon className="brand-mark" />
+      <span className="brand-title">
+        Arche <span>Radio</span>
+      </span>
+      {/* The light theme draws the name as the rainbow arc. */}
+      <img className="brand-title-arc" src={logo} alt="" />
+      <span className="brand-subtitle">{t('brand.subtitle')}</span>
     </NavLink>
   );
 }

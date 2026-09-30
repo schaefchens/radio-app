@@ -1,0 +1,24 @@
+import { create } from 'zustand';
+
+export type Sheet = 'song' | 'record' | 'prayer';
+export type RecordKind = 'story' | 'prayer';
+
+interface SheetsState {
+  open: Sheet | null;
+  recordKind: RecordKind;
+  show: (sheet: Sheet, kind?: RecordKind) => void;
+  close: () => void;
+}
+
+/**
+ * Which submission sheet is open. A store, not page state: the tiles render
+ * in the phone dock, in the scene below the page and next to the prayer
+ * wall, but each sheet is mounted once (AppShell) — a closed sheet stays in
+ * the DOM, and two copies would share their form ids.
+ */
+export const useSheets = create<SheetsState>()((set) => ({
+  open: null,
+  recordKind: 'story',
+  show: (sheet, kind) => set((s) => ({ open: sheet, recordKind: kind ?? s.recordKind })),
+  close: () => set({ open: null }),
+}));

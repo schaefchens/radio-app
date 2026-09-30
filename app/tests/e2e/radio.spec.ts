@@ -178,7 +178,7 @@ test.describe('YouTube required minimum functionality', () => {
     await fakeYouTube(page);
     await join(page);
     await playing(page);
-    await page.getByRole('button', { name: /Prayer Request/ }).first().click();
+    await page.getByRole('button', { name: /Share a prayer request/ }).first().click();
     await expect.poll(async () => (await ytNow(page))?.state).not.toBe(YT_PLAYING);
     await page.keyboard.press('Escape');
     await playing(page);

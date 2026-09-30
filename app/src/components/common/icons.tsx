@@ -30,26 +30,25 @@ export const LiveIcon = (p: IconProps) => (
 );
 export const CalendarIcon = (p: IconProps) => (
   <Icon {...p}>
-    <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
-    <path d="M3.5 10h17M8 3v4M16 3v4" />
+    <rect x="3" y="5" width="18" height="17" rx="2" />
+    <path d="M7 2v6M17 2v6M3 11h18" />
   </Icon>
 );
 export const ChatIcon = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12Z" />
+    <path d="M21 11.5a9 9 0 0 1-9 9 10 10 0 0 1-4-.8L3 22l1.7-5.2A9 9 0 1 1 21 11.5Z" />
   </Icon>
 );
 export const UserIcon = (p: IconProps) => (
   <Icon {...p}>
-    <circle cx="12" cy="8" r="4" />
-    <path d="M4 21a8 8 0 0 1 16 0" />
+    <circle cx="12" cy="7" r="4" />
+    <path d="M4 22v-2a8 8 0 0 1 16 0v2" />
   </Icon>
 );
 export const UsersIcon = (p: IconProps) => (
   <Icon {...p}>
-    <circle cx="9" cy="8" r="3.5" />
-    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-    <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M2 22v-3a7 7 0 0 1 14 0v3M17 3a4 4 0 0 1 0 8M18 14a6 6 0 0 1 4 6v2" />
   </Icon>
 );
 export const RadioIcon = (p: IconProps) => (
@@ -70,33 +69,34 @@ export const ArrowRightIcon = (p: IconProps) => (
 );
 export const HeartIcon = ({ filled, ...p }: IconProps & { filled?: boolean }) => (
   <Icon {...p} fill={filled ? 'currentColor' : 'none'}>
-    <path d="M12 20.5s-7.5-4.4-9.2-9.3C1.6 7.8 3.9 4.5 7.3 4.5c2 0 3.4 1.1 4.7 2.7 1.3-1.6 2.7-2.7 4.7-2.7 3.4 0 5.7 3.3 4.5 6.7-1.7 4.9-9.2 9.3-9.2 9.3Z" />
+    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" />
   </Icon>
 );
-/** Praying hands, drawn as two mirrored palms. */
+/** Praying hands, drawn as two mirrored palms (the design's symbol). */
 export const PrayIcon = ({ filled, ...p }: IconProps & { filled?: boolean }) => (
   <Icon {...p} fill={filled ? 'currentColor' : 'none'}>
-    <path d="M11.3 3.5 8 11.8l-4.4 5.4a1.4 1.4 0 0 0 .1 1.9l1.6 1.4 5.4-5.4c.4-.4.6-.9.6-1.5V3.9a.4.4 0 0 0-.7-.4Z" />
-    <path d="M12.7 3.5 16 11.8l4.4 5.4a1.4 1.4 0 0 1-.1 1.9l-1.6 1.4-5.4-5.4a2.1 2.1 0 0 1-.6-1.5V3.9a.4.4 0 0 1 .7-.4Z" />
+    <path d="M12 3v12m0-12c-2 0-2 5-3 8s-3 5-6 7l4 4 5-7m0-12c2 0 2 5 3 8s3 5 6 7l-4 4-5-7" />
   </Icon>
 );
 export const SmileIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="9" />
-    <path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01" />
+    <path d="M8 14a4.5 4.5 0 0 0 8 0" />
+    <circle cx="9" cy="9" r=".8" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="9" r=".8" fill="currentColor" stroke="none" />
   </Icon>
 );
 export const MusicIcon = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M9 18V5.5l11-2V16" />
-    <circle cx="6.5" cy="18" r="2.5" />
-    <circle cx="17.5" cy="16" r="2.5" />
+    <path d="M9 18V5l11-2v13M9 9l11-2" />
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="17" cy="16" r="3" />
   </Icon>
 );
 export const MicIcon = (p: IconProps) => (
   <Icon {...p}>
-    <rect x="9" y="3" width="6" height="11" rx="3" />
-    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
+    <rect x="9" y="2" width="6" height="13" rx="3" />
+    <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />
   </Icon>
 );
 export const RoomIcon = (p: IconProps) => (
@@ -150,5 +150,33 @@ export const SunIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="4" />
     <path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
+  </Icon>
+);
+
+/** The menu's "Live": a ring around a dot (the caller colours it red). */
+export const NavLiveIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <circle cx="12" cy="12" r="9" />
+  </Icon>
+);
+/** The mast above the dark theme's "Arche Radio". */
+export const BroadcastIcon = (p: IconProps) => (
+  <Icon {...p} overflow="visible">
+    <circle cx="12" cy="11" r="2" fill="currentColor" stroke="none" />
+    <path d="M12 13v9M8 7a6 6 0 0 0 0 8M16 7a6 6 0 0 1 0 8M5 4a10 10 0 0 0 0 14M19 4a10 10 0 0 1 0 14M2 1a14 14 0 0 0 0 20M22 1a14 14 0 0 1 0 20" />
+  </Icon>
+);
+/** The level bars in front of "Now playing". */
+export const LevelsIcon = (p: IconProps) => (
+  <Icon {...p} strokeWidth={3} strokeLinecap="butt">
+    <path d="M3 13v8M9 3v18M15 8v13M21 15v6" />
+  </Icon>
+);
+/** The menu's "Moderation": a shield with a tick. */
+export const ModerationIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 2 20 5v6c0 5-3.4 8.6-8 11-4.6-2.4-8-6-8-11V5l8-3Z" />
+    <path d="m9 12 2 2 4-4" />
   </Icon>
 );

@@ -10,7 +10,7 @@ import { useServerNow } from './useServerNow';
 import { ArrowRightIcon, HeartIcon, PrayIcon, SmileIcon } from '@/components/common/icons';
 
 const MORE: ReactionKind[] = ['smile', 'raise', 'peace', 'fire'];
-const EMOJI: Record<ReactionKind, string> = { heart: '❤️', pray: '🙏', smile: '😊', raise: '🙌', peace: '🕊️', fire: '🔥' };
+const EMOJI: Record<ReactionKind, string> = { heart: '❤️', pray: '🙏', smile: '😊', raise: '🙌', peace: '🕊️', fire: '🔥', love: '😍', moved: '🥹', hope: '✨', celebrate: '🎉' };
 const TINTS = ['from-pink-300 to-rose-200', 'from-sky-300 to-indigo-200', 'from-violet-300 to-fuchsia-200', 'from-amber-200 to-orange-200', 'from-emerald-200 to-teal-200'];
 
 /** Voices from the community: react once and the voice makes room for the next. */

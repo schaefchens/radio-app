@@ -64,9 +64,21 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webp}'],
+        // The scenery of both themes is ~1.8 MB: fetched when a theme shows
+        // it (cached below), not precached for every visitor.
+        globIgnores: ['**/assets/{light,dark}-*.webp'],
         // PHP and the generator own these paths; the app shell never answers for them.
         navigateFallbackDenylist: [/^\/api\//, /^\/program\//, /^\/media\//, /^\/cron\.php/, /^\/_arche\//],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /^\/assets\/(light|dark)-.*\.webp$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'arche-theme',
+              cacheableResponse: { statuses: [200] },
+              expiration: { maxEntries: 20 },
+            },
+          },
           {
             // Program structure and the fallback loop, for a flaky connection.
             urlPattern: ({ url }) => url.pathname.startsWith('/program/') && !url.pathname.includes('/slots/') && !url.pathname.endsWith('/live.json'),

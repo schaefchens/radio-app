@@ -8,7 +8,8 @@
     "schedule": "Programm",
     "chat": "Chat",
     "profile": "Profil",
-    "mod": "Moderation"
+    "mod": "Moderation",
+    "label": "Hauptmenü"
   },
   "channel": {
     "label": "Kanal",
@@ -68,19 +69,19 @@
   "submit": {
     "song": {
       "title": "Lied wünschen",
-      "subtitle": "Teile ein Lied, das andere ermutigt"
+      "subtitle": "Welchen Song sollen wir spielen?"
     },
     "story": {
-      "title": "Erzähl deine Geschichte",
-      "subtitle": "Wie Gott in deinem Leben wirkt"
+      "title": "Erzähle deine Geschichte",
+      "subtitle": "Teile dein Zeugnis mit uns."
     },
     "prayer": {
-      "title": "Gebetsanliegen",
-      "subtitle": "Lass uns mit dir beten"
+      "title": "Gebetsanliegen teilen",
+      "subtitle": "Wir beten mit dir."
     },
     "room": {
       "title": "Raum betreten",
-      "subtitle": "Gemeinsam verbunden und lobend"
+      "subtitle": "Komm in den Live-Chat."
     },
     "closing": "Letzte Chance",
     "closed": "Für diese Sendung geschlossen",
@@ -93,7 +94,8 @@
     "send": "Senden",
     "cancel": "Abbrechen",
     "privacyNote": "Mit dem Senden willigst du ein, dass Arche Radio deine Angaben – auch zu Glauben oder Gesundheit, wenn du sie nennst – prüft und sendet, auch mit einer automatischen Prüfung durch OpenAI.",
-    "privacyLink": "Datenschutz"
+    "privacyLink": "Datenschutz",
+    "label": "Mitmachen"
   },
   "songForm": {
     "url": "YouTube-Link",
@@ -651,5 +653,9 @@
     "autoHint": "Folgt deinem Gerät",
     "light": "Kinderarche",
     "dark": "Sturmarche"
+  },
+  "brand": {
+    "name": "Arche Radio",
+    "subtitle": "Das Brüder-Radio in Christus"
   }
 }

@@ -6,8 +6,6 @@ import { LiveBar } from '@/components/home/LiveBar';
 import { NowPlaying } from '@/components/home/NowPlaying';
 import { HostCard } from '@/components/home/HostCard';
 import { CommunityVoices } from '@/components/home/CommunityVoices';
-import { SubmitButtons, SubmitSheets } from '@/components/home/SubmitButtons';
-import { useSubmitSheets } from '@/components/home/useSubmitSheets';
 import { DayBlocks } from '@/components/home/TodayProgram';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { ChevronIcon } from '@/components/common/icons';
@@ -26,7 +24,6 @@ export function HomePage() {
   const today = useRadio((s) => s.today);
   const chatVoices = useChatVoices();
   const [todayOpen, setTodayOpen] = useState(false);
-  const sheets = useSubmitSheets();
 
   return (
     <div className="flex flex-col gap-4 pt-2">
@@ -44,10 +41,6 @@ export function HomePage() {
         </div>
       </div>
 
-      <div className="hidden lg:block">
-        <SubmitButtons variant="wide" onOpen={sheets.show} />
-      </div>
-
       <div className="card flex flex-col gap-3 p-3 lg:hidden">
         <button type="button" onClick={() => setTodayOpen(true)} className="flex flex-col items-center gap-0.5 text-center">
           <span className="flex items-center gap-2 font-semibold">
@@ -56,7 +49,6 @@ export function HomePage() {
           </span>
           <span className="text-xs text-ink-muted">{t('today.swipe')}</span>
         </button>
-        <SubmitButtons variant="grid" onOpen={sheets.show} />
       </div>
 
       <button
@@ -68,8 +60,6 @@ export function HomePage() {
         <span className="font-semibold">{t('today.title')}</span>
         <span className="text-xs text-ink-muted">{t('today.open')}</span>
       </button>
-
-      <SubmitSheets state={sheets} />
 
       <BottomSheet open={todayOpen} onClose={() => setTodayOpen(false)} title={t('today.title')}>
         <BottomSheetBody>

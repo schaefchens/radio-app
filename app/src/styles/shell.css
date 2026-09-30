@@ -1,0 +1,662 @@
+/*
+ * The frame around every page, ported from concept-files/theme-preview.html
+ * with its class names, so the two can be read side by side. The preview
+ * sizes itself with container queries because it sits in a demo frame; the
+ * app is the viewport, so its @container rules are media queries here and
+ * cqw is vw. Widths: phone ≤ 600 px, tablet 601–899, desktop ≥ 900.
+ *
+ * No container-type on any ancestor of the fixed dock or art: its layout
+ * containment would make that ancestor their containing block.
+ */
+
+.page {
+  /* How much of the scenery stays above the pinned player on phones, and how
+     far the player reaches up into it (data-dock, set by AppShell). */
+  --header-strip-height: calc(16px + env(safe-area-inset-top));
+  --mobile-hero-height: clamp(180px, 58vw, 320px);
+  --dock-overlap: 56px;
+  position: relative;
+  min-height: 100%;
+  /* Scenery and brand are positioned freely; nothing may widen the page.
+     clip, not hidden: hidden would make .page a scroll box and break sticky. */
+  overflow-x: clip;
+}
+:root[data-theme='dark'] .page {
+  --dock-overlap: clamp(64px, 20vw, 75px);
+}
+.page[data-dock='none'] {
+  --dock-overlap: 0px;
+}
+
+/* --- the scenery on top and the brand ----------------------------------- */
+
+.hero {
+  position: relative;
+}
+.hero-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  mask-image: linear-gradient(#000 85%, transparent);
+}
+.brand {
+  position: absolute;
+  top: 39%;
+  left: 31%;
+  width: 39%;
+  text-align: center;
+  line-height: 1.1;
+  color: inherit;
+  text-decoration: none;
+}
+.brand-title {
+  margin: 0;
+  font-size: clamp(22px, 4.3vw, 58px);
+  font-weight: 850;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+}
+.brand-title-arc {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.brand-mark {
+  display: none;
+}
+.brand-subtitle {
+  display: block;
+  margin: 7px 0 0;
+  font-size: clamp(8px, 1.3vw, 17px);
+  font-weight: 650;
+  color: #164d85;
+}
+/* Kids Ark: the rainbow arc says the name; the text is for screen readers. */
+:root:not([data-theme='dark']) .brand-title,
+:root:not([data-theme='dark']) .brand-subtitle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Storm Ark: the name in a serif, gold "Radio", the mast above it. */
+:root[data-theme='dark'] .brand {
+  left: 46%;
+  top: 28%;
+  width: 47%;
+}
+:root[data-theme='dark'] .brand-title {
+  display: block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  font-size: clamp(25px, 5.3vw, 68px);
+  letter-spacing: -0.045em;
+  color: #f8fcff;
+}
+:root[data-theme='dark'] .brand-title span {
+  color: #ffd06c;
+}
+:root[data-theme='dark'] .brand-title-arc {
+  display: none;
+}
+:root[data-theme='dark'] .brand-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  color: #e4f0fc;
+  font-weight: 450;
+}
+:root[data-theme='dark'] .brand-subtitle::before,
+:root[data-theme='dark'] .brand-subtitle::after {
+  content: '';
+  flex: 1;
+  min-width: 8px;
+  height: 1px;
+  background: #ffd06c;
+}
+:root[data-theme='dark'] .brand-mark {
+  display: block;
+  position: absolute;
+  bottom: calc(100% + 11px);
+  left: 75%;
+  transform: translateX(-50%);
+  width: clamp(32px, 9.5vw, 52px);
+  height: clamp(32px, 9.5vw, 52px);
+  color: #ffd06c;
+  filter: drop-shadow(0 1px 3px #001429);
+}
+.brand:focus-visible {
+  outline: 3px solid rgb(var(--accent));
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* --- the menu ------------------------------------------------------------ */
+
+.desktop-nav {
+  display: none;
+}
+.nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  border: 0;
+  background: none;
+  color: rgb(var(--ink-muted));
+  font-size: 11px;
+  text-decoration: none;
+}
+.nav-item svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+.nav-item[aria-current='page'] {
+  color: rgb(var(--accent));
+  font-weight: 750;
+}
+.nav-item:hover {
+  color: rgb(var(--accent));
+}
+.nav-live svg {
+  color: #ff294a;
+}
+.navigation {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 13px 8px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 18px;
+  background: rgb(var(--menu) / var(--menu-a));
+}
+.navigation.has-moderation {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+/* --- pages other than Home, and their compact stage ----------------------- */
+
+.page-content,
+.stage-dock {
+  position: relative;
+  z-index: 1;
+  width: min(900px, 94%);
+  margin: 0 auto;
+}
+.stage-dock {
+  max-width: 640px;
+  margin-top: -12px;
+  margin-bottom: 12px;
+}
+.stage-dock [data-stage-slot] {
+  box-shadow: var(--player-shadow);
+}
+
+/* --- the scene below the page, with the four tiles ------------------------ */
+
+.lower-scene {
+  position: relative;
+  margin-top: 20px;
+  padding: 30px 0 24px;
+  min-height: 30vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.bottom-art {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  mask-image: linear-gradient(transparent, #000 18%);
+}
+.mobile-art,
+.mobile-dock {
+  display: none;
+}
+.lower-content {
+  position: relative;
+  width: min(900px, 94%);
+  margin: auto auto 0;
+}
+.actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.action {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 106px;
+  padding: 16px 10px;
+  border: 1px solid #ffffff65;
+  border-radius: 20px;
+  color: white;
+  box-shadow:
+    inset 0 2px 4px #ffffff40,
+    0 7px 16px #03284a20;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+  text-shadow: 0 1px 3px #0002;
+}
+.action:hover {
+  filter: brightness(1.08);
+}
+.action:focus-visible {
+  outline: 3px solid rgb(var(--accent));
+  outline-offset: 3px;
+}
+.action[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: saturate(0.6);
+}
+.action svg {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+}
+.action-copy {
+  display: block;
+}
+.action-copy strong {
+  font: inherit;
+}
+.action-copy small {
+  display: none;
+}
+/* "Last chance" while the program's intake is closing. */
+.action-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #0006;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.action.purple {
+  background: linear-gradient(145deg, #be64fb, #7d26e4);
+}
+.action.green {
+  background: linear-gradient(145deg, #64d370, #00a783);
+}
+.action.blue {
+  background: linear-gradient(145deg, #28bfff, #0075ed);
+}
+.action.gold {
+  background: linear-gradient(145deg, #ffd946, #ef9800);
+}
+:root[data-theme='dark'] .action.purple {
+  background: linear-gradient(145deg, #6125eb, #3012ae);
+}
+:root[data-theme='dark'] .action.green {
+  background: linear-gradient(145deg, #079e98, #006b68);
+}
+:root[data-theme='dark'] .action.blue {
+  background: linear-gradient(145deg, #066df7, #003fc4);
+}
+:root[data-theme='dark'] .action.gold {
+  background: linear-gradient(145deg, #e7a30a, #ad6100);
+}
+
+/* --- desktop --------------------------------------------------------------- */
+
+@media (min-width: 900px) {
+  .hero {
+    height: clamp(240px, 26vw, 400px);
+    overflow: hidden;
+    background: rgb(var(--base));
+  }
+  .hero-art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    mask-image: linear-gradient(#000 88%, transparent);
+  }
+  .brand {
+    top: 24%;
+    left: 33%;
+    width: 34%;
+    z-index: 1;
+  }
+  .brand-title {
+    font-size: clamp(34px, 4.2vw, 62px);
+  }
+  .brand-subtitle {
+    font-size: clamp(11px, 1.15vw, 17px);
+  }
+  :root[data-theme='dark'] .brand {
+    top: 36%;
+    left: 68%;
+    width: 30%;
+    text-shadow: 0 2px 10px #00203b;
+  }
+  :root[data-theme='dark'] .brand-title {
+    font-size: clamp(34px, 3.8vw, 58px);
+  }
+  :root[data-theme='dark'] .brand-subtitle {
+    font-size: clamp(14px, 1.5vw, 20px);
+    justify-content: center;
+  }
+  :root[data-theme='dark'] .brand-subtitle::before,
+  :root[data-theme='dark'] .brand-subtitle::after {
+    flex: 0 0 18px;
+    min-width: 0;
+  }
+  .desktop-nav {
+    display: flex;
+    position: absolute;
+    right: 3%;
+    bottom: 18px;
+    width: 45%;
+    z-index: 1;
+    align-items: center;
+    justify-content: space-around;
+    gap: 5px;
+    padding: 8px 14px;
+    border: 1px solid rgb(var(--line));
+    border-radius: 24px;
+    background: rgb(var(--menu-desk) / var(--menu-desk-a));
+  }
+  .desktop-nav .nav-item {
+    flex-direction: row;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: clamp(11px, 1.1vw, 16px);
+  }
+  .desktop-nav .nav-item[aria-current='page'] {
+    box-shadow: 0 3px 0 rgb(var(--accent));
+  }
+  :root[data-theme='dark'] .desktop-nav {
+    width: clamp(420px, 45vw, 640px);
+  }
+  .desktop-nav.has-moderation {
+    width: clamp(560px, 55vw, 810px);
+  }
+  .page-content,
+  .stage-dock {
+    width: calc(100% - 20px);
+    max-width: 1480px;
+  }
+  .stage-dock {
+    max-width: 640px;
+    margin-top: -14px;
+    margin-left: max(10px, calc((100% - 1480px) / 2));
+  }
+  .lower-scene {
+    min-height: 180px;
+    margin-top: 0;
+    padding: 46px 0 28px;
+  }
+  .lower-content {
+    width: calc(100% - 32px);
+    max-width: 1440px;
+  }
+  .actions {
+    gap: 16px;
+    margin-bottom: 0;
+  }
+  .action {
+    min-height: 86px;
+    flex-direction: row;
+    gap: 14px;
+    text-align: left;
+    padding: 16px;
+    border-radius: 18px;
+    font-size: clamp(13px, 1.2vw, 18px);
+  }
+  .action svg {
+    width: 34px;
+    height: 34px;
+  }
+  .action-copy small {
+    display: block;
+    margin-top: 3px;
+    font-size: clamp(10px, 0.85vw, 13px);
+    font-weight: 450;
+  }
+  .lower-content .navigation {
+    display: none;
+  }
+}
+
+/* --- phones ---------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  /* The scenery scrolls away until only a strip is left, above the pinned
+     player; the rest of it hides behind the player's top. */
+  .hero {
+    position: sticky;
+    z-index: 2;
+    top: calc(var(--header-strip-height) + var(--dock-overlap) - var(--mobile-hero-height));
+    height: var(--mobile-hero-height);
+    overflow: hidden;
+  }
+  .hero-art {
+    height: 100%;
+    object-fit: cover;
+    object-position: left center;
+    mask-image: none;
+  }
+  .brand {
+    top: 29%;
+    left: 48%;
+    width: 52%;
+  }
+  .brand-title {
+    font-size: clamp(24px, 7vw, 42px);
+  }
+  .brand-subtitle {
+    margin-top: 6px;
+    font-size: clamp(8px, 2.25vw, 13px);
+  }
+  :root[data-theme='dark'] .brand {
+    top: 38%;
+    left: 48%;
+    width: 50%;
+    text-shadow:
+      0 2px 8px #001429,
+      0 1px 2px #001429;
+  }
+  :root[data-theme='dark'] .brand-title {
+    font-size: clamp(26px, 8.4vw, 50px);
+  }
+  :root[data-theme='dark'] .brand-subtitle {
+    margin-top: 4px;
+    font-size: clamp(8px, 2.6vw, 14px);
+    color: #f8fcff;
+  }
+  .page-content,
+  .lower-content {
+    width: 96%;
+  }
+  .page-content {
+    margin-top: 14px;
+  }
+  .stage-dock {
+    position: sticky;
+    top: var(--header-strip-height);
+    z-index: 5;
+    width: 96%;
+    margin: calc(-1 * var(--dock-overlap)) auto 0;
+  }
+  /* Room for the dock: all of the menu, and half of the unfolded tiles on
+     Home, where they may cover the end of the page (the design). */
+  .page {
+    padding-bottom: calc(var(--dock-nav, 64px) + 16px);
+  }
+  .page[data-dock='player'] {
+    --tray-open: 54px;
+    padding-bottom: calc((var(--dock-nav, 64px) + var(--tray-open)) / 2);
+  }
+  .lower-scene {
+    display: none;
+  }
+  .mobile-art {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    z-index: 0;
+    width: 100vw;
+    height: 76vw;
+    object-fit: cover;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .mobile-dock {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+  }
+  .mobile-dock .lower-content {
+    width: 96%;
+    margin: 0 auto;
+  }
+  .mobile-dock .actions-window {
+    --expanded-height: 54px;
+    height: 36px;
+    overflow: hidden;
+    transition: height 0.22s ease;
+  }
+  .mobile-dock[data-expanded='true'] .actions-window {
+    height: var(--expanded-height);
+  }
+  .mobile-dock .actions {
+    gap: 7px;
+    margin-bottom: 0;
+  }
+  .mobile-dock .action {
+    min-height: 54px;
+    min-width: 0;
+    border-bottom: 0;
+    border-radius: 14px 14px 0 0;
+    padding: 7px 3px 3px;
+    font-size: 9px;
+    line-height: 1.1;
+  }
+  .mobile-dock .action svg {
+    width: 23px;
+    height: 23px;
+  }
+  .mobile-dock[data-expanded='false'] .action {
+    justify-content: flex-start;
+  }
+  .mobile-dock[data-expanded='false'] .action-copy,
+  .mobile-dock[data-expanded='false'] .action-badge {
+    display: none;
+  }
+  .mobile-dock[data-expanded='true'] .action {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    text-align: center;
+  }
+  .mobile-dock[data-expanded='true'] .action svg {
+    width: 20px;
+    height: 20px;
+  }
+  .mobile-dock[data-expanded='true'] .action-copy {
+    min-width: 0;
+    width: 100%;
+  }
+  .mobile-dock .action-badge {
+    top: 2px;
+    right: 2px;
+    padding: 0 4px;
+    font-size: 7px;
+  }
+  .mobile-dock .navigation {
+    margin-top: 0;
+  }
+  :root:not([data-theme='dark']) .mobile-dock .lower-content {
+    width: 92%;
+  }
+  :root:not([data-theme='dark']) .mobile-dock .action-tray {
+    width: 86%;
+    margin-inline: auto;
+  }
+  /* Kids Ark: the menu is a floating card; Storm Ark: a bar across. */
+  :root:not([data-theme='dark']) .mobile-dock .navigation {
+    left: auto;
+    width: 100%;
+    transform: none;
+    padding: 6px 5px;
+    border: 1px solid rgb(var(--line));
+    border-radius: 15px;
+    margin-bottom: calc(12px + env(safe-area-inset-bottom));
+    box-shadow: 0 8px 20px #1b5b9626;
+  }
+  .action {
+    border-radius: 14px;
+    padding: 12px 4px;
+    min-height: 105px;
+    font-size: 10px;
+  }
+  .action svg {
+    width: 25px;
+    height: 25px;
+  }
+  .navigation {
+    position: relative;
+    left: 50%;
+    width: 100vw;
+    transform: translateX(-50%);
+    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+  .nav-item {
+    font-size: 10px;
+    padding-block: 4px;
+  }
+  .mobile-dock .nav-item[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgb(var(--accent));
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .mobile-dock .actions-window {
+    --expanded-height: 60px;
+  }
+  .page[data-dock='player'] {
+    --tray-open: 60px;
+  }
+  .mobile-dock .action {
+    min-height: 60px;
+  }
+}
