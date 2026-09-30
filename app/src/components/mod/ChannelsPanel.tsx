@@ -121,7 +121,7 @@ function NewChannel({ onDone, onCancel }: { onDone: (text: string, tone?: 'ok' |
           <input className="field" value={nameDe} onChange={(e) => setNameDe(e.target.value)} />
         </Field>
         <Field label={t('mod.channels.color')}>
-          <input type="color" className="h-10 w-20 rounded-lg border border-night-line/30 bg-night-deep" value={color} onChange={(e) => setColor(e.target.value)} />
+          <input type="color" className="h-10 w-20 rounded-lg border border-line/30 bg-soft" value={color} onChange={(e) => setColor(e.target.value)} />
         </Field>
       </div>
       <div className="flex gap-2">
@@ -197,7 +197,7 @@ function ChannelEditor({ channel, onDone, onCancel }: { channel: ModChannel; onD
           <ZoneSelect value={c.timezone} onChange={(v) => set('timezone', v)} />
         </Field>
         <Field label={t('mod.channels.color')}>
-          <input type="color" className="h-10 w-20 rounded-lg border border-night-line/30 bg-night-deep" value={c.color} onChange={(e) => set('color', e.target.value)} />
+          <input type="color" className="h-10 w-20 rounded-lg border border-line/30 bg-soft" value={c.color} onChange={(e) => set('color', e.target.value)} />
         </Field>
         <Field label={t('mod.channels.hostName')}>
           <input className="field" maxLength={40} value={c.host_name} onChange={(e) => set('host_name', e.target.value)} />

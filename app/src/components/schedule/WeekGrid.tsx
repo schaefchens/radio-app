@@ -24,7 +24,7 @@ export function WeekGrid({ days, onProgram }: { days: (DayFile | null | undefine
               <p className="truncate text-center text-[0.7rem] font-semibold text-ink-muted sm:text-xs">
                 {localDate(start + 12 * 3_600_000, lang, { weekday: 'short', day: 'numeric' })}
               </p>
-              <div className="relative flex h-[480px] flex-col overflow-hidden rounded-xl border border-night-line/20 bg-night-deep/40">
+              <div className="relative flex h-[480px] flex-col overflow-hidden rounded-xl border border-line/20 bg-soft/40">
                 {day.blocks.map((b) => {
                   const p = day.programs[b.p];
                   const h = ((b.end - b.start) / total) * 100;
@@ -35,7 +35,7 @@ export function WeekGrid({ days, onProgram }: { days: (DayFile | null | undefine
                       type="button"
                       onClick={() => p && onProgram(p)}
                       title={`${localTime(b.start, lang)}–${localTime(b.end, lang)} ${p?.title[lang] ?? ''}`}
-                      className={clsx('relative min-h-[2px] w-full overflow-hidden border-b border-night/60 text-left transition-opacity hover:opacity-90', current && 'ring-2 ring-inset ring-live')}
+                      className={clsx('relative min-h-[2px] w-full overflow-hidden border-b border-base/60 text-left transition-opacity hover:opacity-90', current && 'ring-2 ring-inset ring-live')}
                       style={{ height: `${h}%`, background: `${p?.color ?? '#2f7bff'}55` }}
                     >
                       {h > 6 && (

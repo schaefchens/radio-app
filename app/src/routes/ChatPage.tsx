@@ -105,8 +105,8 @@ function Waiting({ text }: { text: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 py-10 text-center">
       <span className="relative flex h-12 w-12">
-        <span className="absolute inset-0 animate-ring rounded-full border-2 border-brand-bright/60" />
-        <span className="relative m-auto h-4 w-4 rounded-full bg-brand-bright" />
+        <span className="absolute inset-0 animate-ring rounded-full border-2 border-accent/60" />
+        <span className="relative m-auto h-4 w-4 rounded-full bg-accent" />
       </span>
       <p className="max-w-sm text-sm text-ink-muted">{text}</p>
     </div>

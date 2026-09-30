@@ -21,7 +21,7 @@ export function DayBlocks({ day, compact = false }: { day: DayFile | null; compa
             key={b.start}
             className={clsx(
               'flex gap-3 rounded-xl border px-3 py-2',
-              current ? 'border-brand/60 bg-brand/15 shadow-glow' : 'border-night-line/20 bg-night-deep/40',
+              current ? 'border-accent-fill/60 bg-accent-fill/15 shadow-glow' : 'border-line/20 bg-soft/40',
               past && 'opacity-60',
             )}
           >

@@ -15,9 +15,9 @@ export function LiveBar() {
         <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-white" />
         {t('live.badge')}
       </span>
-      <div className="min-w-0 flex-1 border-l border-night-line/30 pl-4">
+      <div className="min-w-0 flex-1 border-l border-line/30 pl-4">
         <p className="truncate text-lg font-semibold leading-tight">{program?.title[lang] ?? 'ARCHE'}</p>
-        <p className="truncate text-sm text-brand-bright">{program?.subtitle[lang] ?? t('app.tagline')}</p>
+        <p className="truncate text-sm text-accent">{program?.subtitle[lang] ?? t('app.tagline')}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2 text-right">
         <UsersIcon size={26} className="text-ink-muted" />

@@ -30,7 +30,7 @@ export function AppShell() {
         <NavLink to="/about" className="min-w-0 shrink-0" aria-label={t('about.open')} title={t('about.open')}>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-light tracking-logo text-ink sm:text-3xl">ARCHE</span>
-            <RadioIcon size={26} className="text-brand-bright" />
+            <RadioIcon size={26} className="text-accent" />
           </div>
           {/* Two lines, broken where the text says (\n) and nowhere else. */}
           <p className="hidden text-xs leading-snug text-ink-muted sm:block">
@@ -65,7 +65,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-night-line/30 bg-night-deep/90 pb-safe backdrop-blur-lg lg:hidden" aria-label="main">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line/30 bg-soft/90 pb-safe backdrop-blur-lg lg:hidden" aria-label="main">
         <BottomTab to="/" label={t('nav.home')} icon={<LiveIcon size={24} className="text-live" />} end />
         <BottomTab to="/schedule" label={t('nav.schedule')} icon={<CalendarIcon size={24} />} />
         <BottomTab to="/chat" label={t('nav.chat')} icon={<ChatIcon size={24} />} />
@@ -83,7 +83,7 @@ function TopTab({ to, label, icon, end = false }: { to: string; label: string; i
       className={({ isActive }) =>
         clsx(
           'flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm transition-colors',
-          isActive ? 'bg-brand/20 text-ink shadow-glow' : 'text-ink-muted hover:text-ink',
+          isActive ? 'bg-accent-fill/20 text-ink shadow-glow' : 'text-ink-muted hover:text-ink',
         )
       }
     >
@@ -98,13 +98,13 @@ function BottomTab({ to, label, icon, end = false }: { to: string; label: string
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) => clsx('flex flex-col items-center gap-1 py-2.5 text-xs', isActive ? 'text-brand-bright' : 'text-ink-muted')}
+      className={({ isActive }) => clsx('flex flex-col items-center gap-1 py-2.5 text-xs', isActive ? 'text-accent' : 'text-ink-muted')}
     >
       {({ isActive }) => (
         <>
           {icon}
           <span>{label}</span>
-          <span className={clsx('h-1 w-1 rounded-full', isActive ? 'bg-brand-bright' : 'bg-transparent')} />
+          <span className={clsx('h-1 w-1 rounded-full', isActive ? 'bg-accent' : 'bg-transparent')} />
         </>
       )}
     </NavLink>

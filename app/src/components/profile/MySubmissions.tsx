@@ -18,11 +18,11 @@ interface SubmissionView {
 }
 
 const TONE: Record<SubmissionView['status'], string> = {
-  pending: 'text-amber-300',
-  approved: 'text-brand-bright',
-  scheduled: 'text-brand-bright',
-  aired: 'text-emerald-300',
-  library: 'text-brand-bright',
+  pending: 'text-warn',
+  approved: 'text-accent',
+  scheduled: 'text-accent',
+  aired: 'text-ok',
+  library: 'text-accent',
   missed: 'text-ink-muted',
   rejected: 'text-ink-muted',
 };

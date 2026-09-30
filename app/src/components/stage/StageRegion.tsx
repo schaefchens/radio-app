@@ -59,12 +59,12 @@ export function StageRegion({ compact = false }: { compact?: boolean }) {
       <div
         ref={ref}
         data-stage-slot=""
-        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-night-line/30 bg-night-deep shadow-card"
+        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-line/30 bg-soft shadow-card"
         style={{ minHeight: 200 }}
       >
         <StageVisual engine={engine} />
         {!engine.joined && (
-          <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2 bg-gradient-to-t from-night-deep/95 via-night-deep/60 to-transparent px-4 pb-4 pt-16 text-center">
+          <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-2 bg-gradient-to-t from-soft/95 via-soft/60 to-transparent px-4 pb-4 pt-16 text-center">
             <button type="button" onClick={join} className="btn-primary px-6 py-3 text-base shadow-glow">
               <PlayIcon size={18} />
               {t('join.button')}
@@ -83,7 +83,7 @@ export function StageRegion({ compact = false }: { compact?: boolean }) {
         <button
           type="button"
           onClick={resumeRadio}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-brand/30 bg-brand/10 px-3 py-2 text-sm text-brand-bright"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-accent-fill/30 bg-accent-fill/10 px-3 py-2 text-sm text-accent"
         >
           <PlayIcon size={14} />
           {engine.playerVisible ? t('stage.tapVideo') : t('stage.resume')}

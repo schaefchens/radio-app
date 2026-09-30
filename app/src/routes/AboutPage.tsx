@@ -32,16 +32,16 @@ export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' }
       <section id="about" className="card flex flex-col gap-4 p-5">
         <div className="flex items-center gap-2 text-ink">
           <span className="text-3xl font-light tracking-logo">ARCHE</span>
-          <RadioIcon size={28} className="text-brand-bright" />
+          <RadioIcon size={28} className="text-accent" />
         </div>
-        <p className="rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm leading-relaxed text-ink">{texts.notice}</p>
+        <p className="rounded-xl border border-accent-fill/30 bg-accent-fill/10 px-4 py-3 text-sm leading-relaxed text-ink">{texts.notice}</p>
         <Blocks blocks={texts.about} />
       </section>
 
       <nav className="flex flex-wrap gap-3 px-1 text-sm" aria-label={t('about.legal')}>
-        <a href="#impressum" className="text-brand-bright underline">{t('about.imprint')}</a>
-        <a href="#datenschutz" className="text-brand-bright underline">{t('about.privacy')}</a>
-        <a href="#einstellungen" className="text-brand-bright underline">{t('about.settings')}</a>
+        <a href="#impressum" className="text-accent underline">{t('about.imprint')}</a>
+        <a href="#datenschutz" className="text-accent underline">{t('about.privacy')}</a>
+        <a href="#einstellungen" className="text-accent underline">{t('about.settings')}</a>
       </nav>
 
       <section id="impressum" className="card flex scroll-mt-4 flex-col gap-4 p-5">
@@ -93,7 +93,7 @@ function Linked({ text }: { text: string }) {
         if (i % 2 === 0) return <Fragment key={i}>{part}</Fragment>;
         const href = part.startsWith('http') ? part : `mailto:${part}`;
         return (
-          <a key={i} href={href} className="text-brand-bright underline" target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer">
+          <a key={i} href={href} className="text-accent underline" target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer">
             {part}
           </a>
         );

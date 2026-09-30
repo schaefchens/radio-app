@@ -33,7 +33,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 export function Check({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <label className={clsx('flex items-center gap-2 text-sm', disabled ? 'text-ink-faint' : 'text-ink')}>
-      <input type="checkbox" className="h-4 w-4 accent-brand" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
+      <input type="checkbox" className="h-4 w-4 accent-accent-fill" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
   );
@@ -108,7 +108,7 @@ export function TagsInput({ value, onChange, placeholder }: { value: string[]; o
       {shown.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {shown.map((t) => (
-            <span key={t} className="rounded-full bg-brand/15 px-2 py-0.5 text-xs text-brand-bright">
+            <span key={t} className="rounded-full bg-accent-fill/15 px-2 py-0.5 text-xs text-accent">
               {t}
             </span>
           ))}
@@ -123,10 +123,10 @@ export function Pill({ children, tone = 'default' }: { children: React.ReactNode
     <span
       className={clsx(
         'inline-flex items-center rounded-full px-2 py-0.5 text-[0.7rem] font-semibold',
-        tone === 'good' && 'bg-emerald-500/15 text-emerald-300',
+        tone === 'good' && 'bg-ok/15 text-ok',
         tone === 'bad' && 'bg-heart/15 text-heart',
-        tone === 'warn' && 'bg-amber-500/15 text-amber-300',
-        tone === 'default' && 'bg-night-line/20 text-ink-muted',
+        tone === 'warn' && 'bg-warn/15 text-warn',
+        tone === 'default' && 'bg-line/20 text-ink-muted',
       )}
     >
       {children}
@@ -141,8 +141,8 @@ export function Notice({ tone = 'info', children }: { tone?: 'info' | 'error' | 
       className={clsx(
         'rounded-xl px-3 py-2 text-sm',
         tone === 'error' && 'border border-heart/40 bg-heart/10 text-heart',
-        tone === 'ok' && 'border border-emerald-400/30 bg-emerald-500/10 text-emerald-300',
-        tone === 'info' && 'border border-night-line/30 bg-night-deep/50 text-ink-muted',
+        tone === 'ok' && 'border border-ok/30 bg-ok/10 text-ok',
+        tone === 'info' && 'border border-line/30 bg-soft/50 text-ink-muted',
       )}
     >
       {children}

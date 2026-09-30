@@ -39,9 +39,9 @@ function MessageRow({ msg }: { msg: ChatMessage }) {
   const local = msg.id.startsWith('local:');
   return (
     <li className={clsx('flex', mine ? 'justify-end' : 'justify-start')}>
-      <div className={clsx('max-w-[85%] rounded-2xl border px-3 py-2', mine ? 'border-brand/40 bg-brand/15' : 'border-night-line/25 bg-night-raised/60', local && 'opacity-60')}>
+      <div className={clsx('max-w-[85%] rounded-2xl border px-3 py-2', mine ? 'border-accent-fill/40 bg-accent-fill/15' : 'border-line/25 bg-surface/60', local && 'opacity-60')}>
         <p className="text-xs text-ink-muted">
-          <span className="font-semibold text-brand-bright">{mine ? t('chat.you') : msg.name}</span>
+          <span className="font-semibold text-accent">{mine ? t('chat.you') : msg.name}</span>
           {msg.country && ` · ${countryName(msg.country, lang)}`}
           {` · ${localTime(msg.at, lang)}`}
         </p>

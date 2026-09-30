@@ -148,7 +148,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
                     type="button"
                     disabled={!allowed(k) || recording}
                     onClick={() => setKind(k)}
-                    className={clsx('rounded-xl border px-3 py-2 text-sm', kind === k ? 'border-brand bg-brand/20 text-ink' : 'border-night-line/30 text-ink-muted', !allowed(k) && 'opacity-40')}
+                    className={clsx('rounded-xl border px-3 py-2 text-sm', kind === k ? 'border-accent-fill bg-accent-fill/20 text-ink' : 'border-line/30 text-ink-muted', !allowed(k) && 'opacity-40')}
                   >
                     {t(`record.${k}`)}
                   </button>
@@ -162,7 +162,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
                 type="button"
                 onClick={() => (recording ? stop() : void start())}
                 disabled={!allowed(kind)}
-                className={clsx('flex h-20 w-20 items-center justify-center rounded-full text-white shadow-glow transition-colors', recording ? 'bg-live' : 'bg-brand hover:bg-brand-bright')}
+                className={clsx('flex h-20 w-20 items-center justify-center rounded-full text-white shadow-glow transition-colors', recording ? 'bg-live' : 'bg-accent-fill hover:bg-accent')}
                 aria-label={recording ? t('record.stop') : blob ? t('record.again') : t('record.start')}
               >
                 <MicIcon size={32} />

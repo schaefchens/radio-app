@@ -47,7 +47,7 @@ export function SchedulePage() {
     <div className="flex flex-col gap-4 pt-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t('schedule.title')}</h1>
-        <div className="flex rounded-xl border border-night-line/30 bg-night-deep/50 p-1 text-sm" role="tablist">
+        <div className="flex rounded-xl border border-line/30 bg-soft/50 p-1 text-sm" role="tablist">
           {(['day', 'week'] as const).map((k) => (
             <button
               key={k}
@@ -55,7 +55,7 @@ export function SchedulePage() {
               role="tab"
               aria-selected={tab === k}
               onClick={() => setTab(k)}
-              className={clsx('rounded-lg px-4 py-1.5', tab === k ? 'bg-brand text-white' : 'text-ink-muted hover:text-ink')}
+              className={clsx('rounded-lg px-4 py-1.5', tab === k ? 'bg-accent-fill text-white' : 'text-ink-muted hover:text-ink')}
             >
               {t(`schedule.${k}`)}
             </button>
@@ -77,7 +77,7 @@ export function SchedulePage() {
                 onClick={() => setOffset(d)}
                 className={clsx(
                   'shrink-0 rounded-full border px-4 py-1.5 text-sm',
-                  offset === d ? 'border-brand bg-brand/20 text-ink' : 'border-night-line/30 text-ink-muted hover:text-ink',
+                  offset === d ? 'border-accent-fill bg-accent-fill/20 text-ink' : 'border-line/30 text-ink-muted hover:text-ink',
                 )}
               >
                 {chipLabel(d, dates[i]!)}

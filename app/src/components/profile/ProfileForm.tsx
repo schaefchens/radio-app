@@ -69,7 +69,7 @@ export function ProfileForm({ identity, saved, onSaved }: { identity: IdentityVi
         <button type="submit" className="btn-primary" disabled={state === 'busy'}>
           {t('profile.save')}
         </button>
-        {saved && state === 'idle' && <span className="text-sm text-emerald-300">{t('profile.saved')}</span>}
+        {saved && state === 'idle' && <span className="text-sm text-ok">{t('profile.saved')}</span>}
       </div>
     </form>
   );

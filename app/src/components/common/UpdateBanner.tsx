@@ -9,9 +9,9 @@ export function UpdateBanner() {
     <button
       type="button"
       onClick={() => void applyUpdate()}
-      className="flex w-full items-center justify-center gap-2 border-b border-brand/30 bg-brand/15 px-4 py-2 text-sm text-brand-bright transition-colors hover:bg-brand/25"
+      className="flex w-full items-center justify-center gap-2 border-b border-accent-fill/30 bg-accent-fill/15 px-4 py-2 text-sm text-accent transition-colors hover:bg-accent-fill/25"
     >
-      <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-bright" />
+      <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-accent" />
       {t('updates.banner')}
     </button>
   );

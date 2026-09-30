@@ -27,16 +27,16 @@ export function ChannelPicker() {
         aria-expanded={open}
         disabled={channels.length < 2}
         aria-label={`${t('channel.label')}: ${active?.name[lang] ?? current}`}
-        className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-night-line/40 bg-night-deep/60 px-3 py-2 text-sm hover:bg-night-raised disabled:cursor-default sm:px-4"
+        className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-line/40 bg-soft/60 px-3 py-2 text-sm hover:bg-surface disabled:cursor-default sm:px-4"
       >
-        <RadioIcon size={18} className="shrink-0 text-brand-bright" />
+        <RadioIcon size={18} className="shrink-0 text-accent" />
         {/* A phone has room for the channel's name only. */}
         <span className="hidden text-ink-muted sm:inline">{t('channel.label')}:</span>
         <span className="truncate font-semibold">{active?.name[lang] ?? current}</span>
         {channels.length > 1 && <ChevronIcon size={16} />}
       </button>
       {open && (
-        <ul role="listbox" className="absolute right-0 z-40 mt-2 min-w-[12rem] overflow-hidden rounded-2xl border border-night-line/40 bg-night-deep/95 p-1 shadow-card backdrop-blur">
+        <ul role="listbox" className="absolute right-0 z-40 mt-2 min-w-[12rem] overflow-hidden rounded-2xl border border-line/40 bg-soft/95 p-1 shadow-card backdrop-blur">
           {channels.map((c) => (
             <li key={c.id}>
               <button
@@ -47,7 +47,7 @@ export function ChannelPicker() {
                   setOpen(false);
                   if (c.id !== current) void switchChannel(c.id);
                 }}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-night-raised aria-selected:bg-brand/20"
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-surface aria-selected:bg-accent-fill/20"
               >
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />
                 {c.name[lang]}

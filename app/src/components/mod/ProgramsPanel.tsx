@@ -177,7 +177,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           </Field>
         )}
         <Field label={t('mod.programs.color')}>
-          <input type="color" className="h-10 w-20 rounded-lg border border-night-line/30 bg-night-deep" value={d.color} onChange={(e) => set('color', e.target.value)} />
+          <input type="color" className="h-10 w-20 rounded-lg border border-line/30 bg-soft" value={d.color} onChange={(e) => set('color', e.target.value)} />
         </Field>
         {text('title_en', t('mod.programs.titleEn'))}
         {text('title_de', t('mod.programs.titleDe'))}

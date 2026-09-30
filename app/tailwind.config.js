@@ -6,23 +6,23 @@ export default {
       // Roles, not hues (bible-assistant's convention): values live in CSS
       // variables in src/index.css as RGB channels, so alpha modifiers work.
       colors: {
-        night: {
-          DEFAULT: 'rgb(var(--night) / <alpha-value>)', // page background
-          deep: 'rgb(var(--night-deep) / <alpha-value>)',
-          raised: 'rgb(var(--night-raised) / <alpha-value>)', // cards
-          line: 'rgb(var(--night-line) / <alpha-value>)', // hairlines, borders
-        },
+        base: 'rgb(var(--base) / <alpha-value>)', // page background
+        surface: 'rgb(var(--surface) / <alpha-value>)', // cards
+        soft: 'rgb(var(--soft) / <alpha-value>)', // fields, insets, sheets
+        line: 'rgb(var(--line) / <alpha-value>)', // hairlines, borders
         ink: {
           DEFAULT: 'rgb(var(--ink) / <alpha-value>)',
           muted: 'rgb(var(--ink-muted) / <alpha-value>)',
           faint: 'rgb(var(--ink-faint) / <alpha-value>)',
         },
-        brand: {
-          DEFAULT: 'rgb(var(--brand) / <alpha-value>)', // ARCHE blue
-          bright: 'rgb(var(--brand-bright) / <alpha-value>)',
+        accent: {
+          DEFAULT: 'rgb(var(--accent) / <alpha-value>)', // links, icons, the current tab
+          fill: 'rgb(var(--accent-fill) / <alpha-value>)', // solid buttons under white text
         },
         live: 'rgb(var(--live) / <alpha-value>)',
         heart: 'rgb(var(--heart) / <alpha-value>)',
+        ok: 'rgb(var(--ok) / <alpha-value>)',
+        warn: 'rgb(var(--warn) / <alpha-value>)',
         // The four submission tiles from the mockup.
         song: { from: '#5b2fd6', to: '#8e4dff' },
         story: { from: '#0c6f64', to: '#13a892' },
@@ -33,7 +33,7 @@ export default {
         sans: ['"Inter Variable"', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
-        glow: '0 0 0 1px rgb(var(--brand) / 0.35), 0 8px 30px -6px rgb(var(--brand) / 0.35)',
+        glow: '0 0 0 1px rgb(var(--accent-fill) / 0.35), 0 8px 30px -6px rgb(var(--accent-fill) / 0.35)',
         card: '0 10px 30px -12px rgb(0 0 0 / 0.6)',
       },
       animation: {

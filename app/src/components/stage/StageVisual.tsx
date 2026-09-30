@@ -80,7 +80,7 @@ function Backdrop({ image, color, calm }: { image: string | null; color: string;
     return (
       <>
         <CdnImg src={image} className={clsx('absolute inset-0 h-full w-full object-cover transition-opacity duration-700', calm && 'opacity-50')} />
-        <div className="absolute inset-0 bg-gradient-to-t from-night-deep/80 via-night-deep/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-soft/80 via-soft/10 to-transparent" />
       </>
     );
   }
@@ -104,7 +104,7 @@ function Logo() {
   return (
     <div className="flex items-center justify-center gap-2 text-ink">
       <span className="text-3xl font-light tracking-logo sm:text-4xl">ARCHE</span>
-      <RadioIcon size={30} className="text-brand-bright" />
+      <RadioIcon size={30} className="text-accent" />
     </div>
   );
 }
@@ -113,12 +113,12 @@ function HostMoment({ name, avatar, text, label }: { name: string; avatar: strin
   return (
     <div className="flex max-w-xl flex-col items-center gap-3 animate-fly-in">
       <div className="relative h-20 w-20 sm:h-24 sm:w-24">
-        <span className="absolute inset-0 animate-ring rounded-full border-2 border-brand-bright/60" />
-        <span className="absolute inset-0 animate-ring rounded-full border-2 border-brand-bright/40 [animation-delay:0.7s]" />
+        <span className="absolute inset-0 animate-ring rounded-full border-2 border-accent/60" />
+        <span className="absolute inset-0 animate-ring rounded-full border-2 border-accent/40 [animation-delay:0.7s]" />
         {avatar ? (
-          <CdnImg src={avatar} className="relative h-full w-full rounded-full object-cover ring-2 ring-brand-bright/70" />
+          <CdnImg src={avatar} className="relative h-full w-full rounded-full object-cover ring-2 ring-accent/70" />
         ) : (
-          <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-brand to-song-to text-2xl font-semibold ring-2 ring-brand-bright/70">
+          <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-accent-fill to-song-to text-2xl font-semibold ring-2 ring-accent/70">
             {name.slice(0, 1)}
           </div>
         )}
@@ -135,10 +135,10 @@ function FlyIns({ voices, locale }: { voices: Voice[]; locale: Lang }) {
       {voices.slice(0, 3).map((v, i) => (
         <div
           key={v.id}
-          className="max-w-[80%] animate-fly-in rounded-2xl border border-ink/10 bg-night-deep/70 px-3 py-1.5 text-left text-xs text-ink backdrop-blur"
+          className="max-w-[80%] animate-fly-in rounded-2xl border border-ink/10 bg-soft/70 px-3 py-1.5 text-left text-xs text-ink backdrop-blur"
           style={{ animationDelay: `${i * 1.2}s` }}
         >
-          <span className="font-semibold text-brand-bright">{v.name}</span>
+          <span className="font-semibold text-accent">{v.name}</span>
           {v.country && <span className="text-ink-faint"> · {countryName(v.country, locale)}</span>}
           <span className="block text-ink/90">{v.text}</span>
         </div>

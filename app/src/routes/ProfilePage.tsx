@@ -40,12 +40,12 @@ export function ProfilePage() {
               <label className="flex items-center gap-3">
                 <VolumeIcon size={20} className="shrink-0 text-ink-muted" />
                 <span className="sr-only">{t('profile.volume')}</span>
-                <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-full accent-brand" aria-label={t('profile.volume')} />
+                <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(Number(e.target.value))} className="w-full accent-accent-fill" aria-label={t('profile.volume')} />
               </label>
             )}
             {WAKE_LOCK && (
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="h-4 w-4 accent-brand" checked={keepAwake} onChange={(e) => setKeepAwake(e.target.checked)} />
+                <input type="checkbox" className="h-4 w-4 accent-accent-fill" checked={keepAwake} onChange={(e) => setKeepAwake(e.target.checked)} />
                 {t('profile.keepAwake')}
               </label>
             )}
@@ -97,13 +97,13 @@ export function ProfilePage() {
               {checked && <span className="text-xs text-ink-muted">{t('profile.checked')}</span>}
             </div>
             <div className="flex flex-wrap gap-4 pt-2">
-              <Link to="/about" className="text-brand-bright underline">
+              <Link to="/about" className="text-accent underline">
                 {t('about.open')}
               </Link>
-              <Link to="/impressum" className="text-brand-bright underline">
+              <Link to="/impressum" className="text-accent underline">
                 {t('profile.imprint')}
               </Link>
-              <Link to="/datenschutz" className="text-brand-bright underline">
+              <Link to="/datenschutz" className="text-accent underline">
                 {t('profile.privacy')}
               </Link>
             </div>

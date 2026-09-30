@@ -70,7 +70,7 @@ export function StatusPanel() {
             </thead>
             <tbody>
               {data.channels.map((c) => (
-                <tr key={c.slug} className="border-t border-night-line/20">
+                <tr key={c.slug} className="border-t border-line/20">
                   <td className="py-1 pr-3 font-medium">{c.slug}</td>
                   <td className="py-1 pr-3 tabular-nums">{c.frontier ? localTime(c.frontier, lang) : '—'}</td>
                   <td className="py-1 pr-3 tabular-nums">
@@ -96,8 +96,8 @@ export function StatusPanel() {
           </p>
         )}
         <p className="text-sm">{t('mod.status.spend', { spent: data.spentTodayUsd.toFixed(2), budget: data.budgetUsd.toFixed(2) })}</p>
-        <div className="h-2 overflow-hidden rounded-full bg-night-line/30">
-          <div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, (data.spentTodayUsd / Math.max(0.01, data.budgetUsd)) * 100)}%` }} />
+        <div className="h-2 overflow-hidden rounded-full bg-line/30">
+          <div className="h-full rounded-full bg-accent-fill" style={{ width: `${Math.min(100, (data.spentTodayUsd / Math.max(0.01, data.budgetUsd)) * 100)}%` }} />
         </div>
         <div className="max-h-48 overflow-auto">
           <table className="w-full text-left text-xs">
@@ -111,7 +111,7 @@ export function StatusPanel() {
             </thead>
             <tbody>
               {data.usage.map((u) => (
-                <tr key={`${u.day}-${u.kind}`} className="border-t border-night-line/20">
+                <tr key={`${u.day}-${u.kind}`} className="border-t border-line/20">
                   <td className="py-1 pr-2 tabular-nums">{u.day}</td>
                   <td className="py-1 pr-2">{u.kind}</td>
                   <td className="py-1 pr-2 tabular-nums">{u.calls}</td>
@@ -163,7 +163,7 @@ export function StatusPanel() {
             </thead>
             <tbody>
               {data.realtime.nodes.map((n) => (
-                <tr key={n.slot} className="border-t border-night-line/20">
+                <tr key={n.slot} className="border-t border-line/20">
                   <td className="py-1 pr-2">{n.slot}</td>
                   <td className="py-1 pr-2">
                     {n.state}
@@ -208,7 +208,7 @@ export function StatusPanel() {
       <Section title={t('mod.status.audit')} className="lg:col-span-2">
         <ul className="flex max-h-96 flex-col gap-1 overflow-auto text-xs">
           {data.audit.map((a, i) => (
-            <li key={i} className="grid grid-cols-[7.5rem_7rem_1fr] gap-2 border-t border-night-line/10 py-1">
+            <li key={i} className="grid grid-cols-[7.5rem_7rem_1fr] gap-2 border-t border-line/10 py-1">
               <span className="tabular-nums text-ink-faint">{time(a.time * 1000)}</span>
               <span className="truncate text-ink-muted">{a.actor}</span>
               <span className="min-w-0">

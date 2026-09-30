@@ -72,7 +72,7 @@ export function PassphrasePanel({ identity }: { identity: IdentityView | null })
     const stored = readWords();
     return (
       <div className="flex flex-col gap-3">
-        <p className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">{t('profile.passphrase.claimed')}</p>
+        <p className="rounded-xl border border-ok/30 bg-ok/10 px-3 py-2 text-sm text-ok">{t('profile.passphrase.claimed')}</p>
         {stored && (
           <div className="flex flex-col gap-2">
             <button type="button" className="btn-ghost self-start" onClick={() => setShown((s) => !s)}>
@@ -123,7 +123,7 @@ export function PassphrasePanel({ identity }: { identity: IdentityView | null })
             {copied ? t('profile.passphrase.copied') : t('profile.passphrase.copy')}
           </button>
           <label className="flex items-start gap-2 text-sm text-ink">
-            <input type="checkbox" className="mt-1 h-4 w-4 accent-brand" checked={written} onChange={(e) => setWritten(e.target.checked)} />
+            <input type="checkbox" className="mt-1 h-4 w-4 accent-accent-fill" checked={written} onChange={(e) => setWritten(e.target.checked)} />
             {t('profile.passphrase.confirm')}
           </label>
           {error && <p className="text-sm text-heart">{error}</p>}

@@ -61,7 +61,7 @@ export function NowPlaying() {
   if (!title) return null;
   return (
     <div className="card flex items-center gap-4 p-3">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-night-deep text-ink-muted sm:h-20 sm:w-28">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-soft text-ink-muted sm:h-20 sm:w-28">
         {thumb ? <CdnImg src={thumb} className="h-full w-full object-cover" /> : icon}
       </div>
       <div className="min-w-0 flex-1">
@@ -71,7 +71,7 @@ export function NowPlaying() {
         <p className="truncate text-sm text-ink-muted">
           {subtitle}
           {request && (
-            <span className="text-brand-bright">
+            <span className="text-accent">
               {' · '}
               {request.place ? t('nowPlaying.requestedByFrom', { name: request.name, place: request.place }) : t('nowPlaying.requestedBy', { name: request.name })}
             </span>
@@ -80,8 +80,8 @@ export function NowPlaying() {
         {dur > 0 && (
           <div className="mt-2 flex items-center gap-3 text-xs tabular-nums text-ink-muted">
             <span>{clockDuration(pos)}</span>
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-night-line/30">
-              <div className="h-full rounded-full bg-brand transition-[width] duration-500" style={{ width: `${(pos / dur) * 100}%` }} />
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line/30">
+              <div className="h-full rounded-full bg-accent-fill transition-[width] duration-500" style={{ width: `${(pos / dur) * 100}%` }} />
             </div>
             <span>{clockDuration(dur)}</span>
           </div>
@@ -93,7 +93,7 @@ export function NowPlaying() {
             type="button"
             onClick={() => tap('heart')}
             aria-label={t('reactions.heart')}
-            className={clsx('rounded-xl border p-2 transition-colors', reacted[songId] === 'heart' ? 'border-heart/50 bg-heart/20 text-heart' : 'border-night-line/30 text-ink-muted hover:text-ink')}
+            className={clsx('rounded-xl border p-2 transition-colors', reacted[songId] === 'heart' ? 'border-heart/50 bg-heart/20 text-heart' : 'border-line/30 text-ink-muted hover:text-ink')}
           >
             <HeartIcon size={18} filled={reacted[songId] === 'heart'} />
           </button>
@@ -101,7 +101,7 @@ export function NowPlaying() {
             type="button"
             onClick={() => tap('pray')}
             aria-label={t('reactions.pray')}
-            className={clsx('rounded-xl border p-2 transition-colors', reacted[songId] === 'pray' ? 'border-brand/60 bg-brand/25 text-brand-bright' : 'border-night-line/30 text-ink-muted hover:text-ink')}
+            className={clsx('rounded-xl border p-2 transition-colors', reacted[songId] === 'pray' ? 'border-accent-fill/60 bg-accent-fill/25 text-accent' : 'border-line/30 text-ink-muted hover:text-ink')}
           >
             <PrayIcon size={18} filled={reacted[songId] === 'pray'} />
           </button>

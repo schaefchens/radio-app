@@ -16,7 +16,7 @@ export function PlayedList({ day }: { day: DayFile }) {
       <ul className="flex flex-col gap-2">
         {played.map((p) => (
           <li key={`${p.start}-${p.title}`} className="card flex items-center gap-3 px-3 py-2">
-            <div className="flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-night-deep text-ink-muted">
+            <div className="flex h-11 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-soft text-ink-muted">
               {p.thumb ? <CdnImg src={p.thumb} className="h-full w-full object-cover" /> : p.type === 'song' ? <MusicIcon /> : <MicIcon />}
             </div>
             <div className="min-w-0 flex-1">

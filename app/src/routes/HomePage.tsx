@@ -32,7 +32,7 @@ export function HomePage() {
     <div className="flex flex-col gap-4 pt-2">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex flex-col gap-3">
-          <div className="sticky top-0 z-30 -mx-4 bg-night/80 px-4 py-2 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+          <div className="sticky top-0 z-30 -mx-4 bg-base/80 px-4 py-2 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
             <StageRegion />
           </div>
           <LiveBar />
@@ -62,7 +62,7 @@ export function HomePage() {
       <button
         type="button"
         onClick={() => setTodayOpen(true)}
-        className="mx-auto hidden flex-col items-center rounded-t-3xl border border-b-0 border-night-line/40 bg-night-deep/70 px-12 py-3 text-center lg:flex"
+        className="mx-auto hidden flex-col items-center rounded-t-3xl border border-b-0 border-line/40 bg-soft/70 px-12 py-3 text-center lg:flex"
       >
         <ChevronIcon dir="up" size={16} />
         <span className="font-semibold">{t('today.title')}</span>

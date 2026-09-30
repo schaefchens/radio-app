@@ -32,7 +32,7 @@ export function CommunityVoices({ voices: extra }: { voices?: Voice[] }) {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-lg font-semibold">{t('voices.title')}</h2>
-        <Link to="/chat" className="inline-flex items-center gap-1 text-sm text-brand-bright hover:underline">
+        <Link to="/chat" className="inline-flex items-center gap-1 text-sm text-accent hover:underline">
           {t('voices.seeMore')} <ArrowRightIcon size={16} />
         </Link>
       </div>
@@ -52,32 +52,32 @@ function VoiceCard({ voice, tint, leaving, onAnswer }: { voice: Voice; tint: str
   const initials = voice.name.split(/\s+/).map((p) => p[0] ?? '').join('').slice(0, 2).toUpperCase() || '?';
   return (
     <div className={clsx('card relative flex items-center gap-3 px-3 py-2.5', leaving ? 'animate-fade-out' : 'animate-fly-in')}>
-      <div className={clsx('flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-night-deep', tint)}>
+      <div className={clsx('flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-soft', tint)}>
         {initials}
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs text-ink-muted">
-          <span className="font-semibold text-brand-bright">{voice.name}</span>
+          <span className="font-semibold text-accent">{voice.name}</span>
           {voice.country && ` · ${countryName(voice.country, lang)}`}
           {voice.at > 0 && ` · ${ago(voice.at, now, lang)}`}
         </p>
         <p className="line-clamp-2 text-sm text-ink">{voice.text}</p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
-        <button type="button" aria-label={t('reactions.heart')} onClick={() => onAnswer('heart')} className="rounded-xl border border-night-line/30 p-2.5 text-ink-muted transition-colors hover:border-heart/50 hover:bg-heart/15 hover:text-heart">
+        <button type="button" aria-label={t('reactions.heart')} onClick={() => onAnswer('heart')} className="rounded-xl border border-line/30 p-2.5 text-ink-muted transition-colors hover:border-heart/50 hover:bg-heart/15 hover:text-heart">
           <HeartIcon size={20} />
         </button>
-        <button type="button" aria-label={t('reactions.pray')} onClick={() => onAnswer('pray')} className="rounded-xl border border-night-line/30 p-2.5 text-ink-muted transition-colors hover:border-brand/60 hover:bg-brand/20 hover:text-brand-bright">
+        <button type="button" aria-label={t('reactions.pray')} onClick={() => onAnswer('pray')} className="rounded-xl border border-line/30 p-2.5 text-ink-muted transition-colors hover:border-accent-fill/60 hover:bg-accent-fill/20 hover:text-accent">
           <PrayIcon size={20} />
         </button>
-        <button type="button" aria-label={t('voices.more')} aria-expanded={more} onClick={() => setMore((m) => !m)} className="rounded-full border border-night-line/30 p-1.5 text-ink-muted hover:text-ink">
+        <button type="button" aria-label={t('voices.more')} aria-expanded={more} onClick={() => setMore((m) => !m)} className="rounded-full border border-line/30 p-1.5 text-ink-muted hover:text-ink">
           <SmileIcon size={16} />
         </button>
       </div>
       {more && (
-        <div className="absolute -top-11 right-2 z-10 flex gap-1 rounded-2xl border border-night-line/40 bg-night-deep/95 p-1.5 shadow-card">
+        <div className="absolute -top-11 right-2 z-10 flex gap-1 rounded-2xl border border-line/40 bg-soft/95 p-1.5 shadow-card">
           {MORE.map((k) => (
-            <button key={k} type="button" aria-label={t(`reactions.${k}`)} onClick={() => onAnswer(k)} className="rounded-xl px-2 py-1 text-lg hover:bg-night-raised">
+            <button key={k} type="button" aria-label={t(`reactions.${k}`)} onClick={() => onAnswer(k)} className="rounded-xl px-2 py-1 text-lg hover:bg-surface">
               {EMOJI[k]}
             </button>
           ))}

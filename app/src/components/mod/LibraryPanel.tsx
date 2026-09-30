@@ -245,7 +245,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
   return (
     <li className={clsx('card-inset flex flex-col gap-3 p-3', !active && 'opacity-60')}>
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-night-deep text-ink-muted">
+        <div className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-soft text-ink-muted">
           {item.thumb ? <img src={item.thumb} alt="" className="h-full w-full object-cover" /> : <MusicIcon />}
         </div>
         <div className="min-w-0 flex-1">
@@ -286,7 +286,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
         )}
       </div>
       {editing && (
-        <div className="flex flex-col gap-3 border-t border-night-line/20 pt-3">
+        <div className="flex flex-col gap-3 border-t border-line/20 pt-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t('mod.library.titleField')}>
               <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />

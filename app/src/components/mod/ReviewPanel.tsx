@@ -63,7 +63,7 @@ export function ReviewPanel() {
             key={f}
             type="button"
             aria-pressed={filter === f}
-            className={clsx('rounded-xl px-3 py-2 text-sm', filter === f ? 'bg-brand/20 text-ink shadow-glow' : 'text-ink-muted hover:text-ink')}
+            className={clsx('rounded-xl px-3 py-2 text-sm', filter === f ? 'bg-accent-fill/20 text-ink shadow-glow' : 'text-ink-muted hover:text-ink')}
             onClick={() => {
               setFilter(f);
               setNotice(null);
@@ -134,7 +134,7 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
             </p>
           )}
           {item.yt && (
-            <a className="text-xs text-brand-bright underline" href={`https://www.youtube.com/watch?v=${item.yt}`} target="_blank" rel="noreferrer">
+            <a className="text-xs text-accent underline" href={`https://www.youtube.com/watch?v=${item.yt}`} target="_blank" rel="noreferrer">
               youtube.com/watch?v={item.yt}
             </a>
           )}

@@ -13,14 +13,14 @@ export function HostCard() {
   return (
     <div className="card flex items-start gap-4 p-4">
       {channel?.host.avatar ? (
-        <CdnImg src={channel.host.avatar} className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-brand/40 sm:h-20 sm:w-20" />
+        <CdnImg src={channel.host.avatar} className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-accent-fill/40 sm:h-20 sm:w-20" />
       ) : (
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-song-to text-2xl font-semibold ring-2 ring-brand/40 sm:h-20 sm:w-20">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-fill to-song-to text-2xl font-semibold ring-2 ring-accent-fill/40 sm:h-20 sm:w-20">
           {name.slice(0, 1)}
         </div>
       )}
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-brand-bright">{t('host.says')}</p>
+        <p className="text-sm font-semibold text-accent">{t('host.says')}</p>
         <p className="mt-1 text-[0.95rem] leading-relaxed text-ink">{text ?? t('host.idle', { name })}</p>
       </div>
     </div>

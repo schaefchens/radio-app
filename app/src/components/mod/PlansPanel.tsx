@@ -80,13 +80,13 @@ function PlanBar({ plan, programs }: { plan: DayPlan; programs: ModProgram[] }) 
   const { i18n } = useTranslation();
   const byId = new Map(programs.map((p) => [p.id, p]));
   return (
-    <div className="relative h-8 overflow-hidden rounded-lg bg-night-deep/60">
+    <div className="relative h-8 overflow-hidden rounded-lg bg-soft/60">
       {plan.blocks.map((b) => {
         const p = byId.get(b.program_id);
         return (
           <div
             key={b.start_min}
-            className="absolute inset-y-0 overflow-hidden border-r border-night/70 px-1 text-[0.65rem] leading-8 text-ink"
+            className="absolute inset-y-0 overflow-hidden border-r border-base/70 px-1 text-[0.65rem] leading-8 text-ink"
             style={{ left: `${(b.start_min / 1440) * 100}%`, width: `${((b.end_min - b.start_min) / 1440) * 100}%`, background: `${p?.color ?? '#2f7bff'}66` }}
             title={`${minToHm(b.start_min)}–${minToHm(b.end_min)} ${p ? (i18n.language === 'de' ? p.title_de : p.title_en) : ''}`}
           >
@@ -324,7 +324,7 @@ function SpecialDays({ channelId, data, onDone }: { channelId: number; data: Pla
             <button
               key={p.key}
               type="button"
-              className="rounded-full border border-night-line/30 px-2.5 py-1 text-xs text-ink-muted hover:text-ink"
+              className="rounded-full border border-line/30 px-2.5 py-1 text-xs text-ink-muted hover:text-ink"
               onClick={() => {
                 setName(t(`mod.plans.preset.${p.key}`));
                 setKind(p.kind);
