@@ -122,7 +122,7 @@
     "textHint": "Only your first name and place are mentioned.",
     "record": "Record it instead",
     "type": "Type it instead",
-    "showAsVoice": "Show it to the community so others can pray with me."
+    "showOnWall": "Also show my request on the prayer wall, without my name, so others can pray with me."
   },
   "record": {
     "kind": "What would you like to share?",
@@ -507,7 +507,8 @@
       "empty": {
         "review": "Nothing waiting for review.",
         "rejected": "No rejected submissions.",
-        "all": "No submissions yet."
+        "all": "No submissions yet.",
+        "wall": "Nothing on the prayer wall."
       },
       "approve": "Approve",
       "reject": "Reject",
@@ -528,7 +529,8 @@
       "filter": {
         "review": "To review",
         "rejected": "Rejected",
-        "all": "All"
+        "all": "All",
+        "wall": "Prayer wall"
       },
       "types": {
         "song": "Song request",
@@ -593,6 +595,14 @@
         "recording_deleted": "Rejected recordings are deleted at once (privacy policy), so this one cannot be approved any more.",
         "video_unplayable": "YouTube does not play this video in the embedded player, so it cannot air.",
         "not_rejected": "—"
+      },
+      "wall": {
+        "on": "On the prayer wall",
+        "off": "Taken off the prayer wall",
+        "remove": "Remove from the prayer wall",
+        "show": "Show on the prayer wall",
+        "removed": "Taken off the prayer wall.",
+        "shown": "Back on the prayer wall."
       }
     },
     "chat": {

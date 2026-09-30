@@ -144,7 +144,7 @@ test('a prayer request is checked, accepted and shown as a community voice', asy
   const sheet = await openSheet(page, /Share a prayer request/, 'Share a prayer request');
   const text = `Please pray for my sister's recovery (${Date.now() % 100_000}).`;
   await sheet.getByLabel('Your prayer request').fill(text);
-  await sheet.getByLabel('Show it to the community so others can pray with me.').check();
+  await sheet.getByLabel('Also show my request on the prayer wall, without my name, so others can pray with me.').check();
   await sheet.getByLabel('Your first name').fill('Ruth');
   await sheet.getByLabel(/Where are you from/).fill('Lagos');
   await sheet.getByRole('button', { name: 'Send' }).click();

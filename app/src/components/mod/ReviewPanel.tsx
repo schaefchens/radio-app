@@ -32,17 +32,23 @@ interface ReviewItem {
   updated: number;
   /** Rejected only: why it can no longer be approved (null: it can). */
   blocker: 'recording_deleted' | 'video_unplayable' | 'not_rejected' | null;
+  /** The sender agreed to show it (prayer requests: on the prayer wall). */
+  consentAir: boolean;
+  /** A moderator took it off the prayer wall. */
+  hidden: boolean;
 }
 
 const REASONS = ['not_program_fit', 'not_suitable', 'not_accepted'] as const;
-const FILTERS = ['review', 'rejected', 'all'] as const;
+const FILTERS = ['review', 'rejected', 'wall', 'all'] as const;
 type Filter = (typeof FILTERS)[number];
 const FLAGS = ['safe', 'christian', 'program_fit', 'message_ok', 'type_allowed'] as const;
+const ON_WALL: Status[] = ['approved', 'scheduled', 'aired'];
 
 /**
  * What the automatic check decided and why: the review queue (it was unsure;
  * only with MODERATION_HUMAN_REVIEW=1), the rejections — which a moderator
- * can overrule while they can still air — and everything recent.
+ * can overrule while they can still air — the prayer wall, where a
+ * moderator can take a request down (and put it back), and everything recent.
  */
 export function ReviewPanel() {
   const { t } = useTranslation();
@@ -147,6 +153,9 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
         </div>
       )}
       {item.text && <p className="text-sm">{item.text}</p>}
+      {item.type === 'prayer' && item.mode === 'text' && item.consentAir && ON_WALL.includes(item.status) && (
+        <WallControl item={item} onDone={onDone} />
+      )}
       {item.mode === 'audio' && item.status === 'review' && <Recording id={item.id} />}
       {item.transcript && (
         <div>
@@ -180,6 +189,31 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
           <p className="text-xs text-ink-faint">{t(`mod.review.blockers.${item.blocker}`)}</p>
         ))}
     </Section>
+  );
+}
+
+/** The sender said yes to the prayer wall: shown there unless taken down. */
+function WallControl({ item, onDone }: { item: ReviewItem; onDone: (text: string, tone?: 'ok' | 'error') => void }) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  const toggle = async (): Promise<void> => {
+    setBusy(true);
+    try {
+      await api(`/mod/review/${item.id}/wall`, { body: { hidden: !item.hidden } });
+      onDone(t(item.hidden ? 'mod.review.wall.shown' : 'mod.review.wall.removed'));
+    } catch (e) {
+      onDone(modError(e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Pill tone={item.hidden ? 'default' : 'good'}>{t(item.hidden ? 'mod.review.wall.off' : 'mod.review.wall.on')}</Pill>
+      <button type="button" className={clsx('btn-ghost', !item.hidden && 'text-heart')} disabled={busy} onClick={() => void toggle()}>
+        {t(item.hidden ? 'mod.review.wall.show' : 'mod.review.wall.remove')}
+      </button>
+    </div>
   );
 }
 

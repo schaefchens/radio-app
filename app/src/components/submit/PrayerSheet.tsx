@@ -17,7 +17,8 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
   const [text, setText] = useState('');
   const [name, setName] = useState(identity?.name ?? '');
   const [place, setPlace] = useState('');
-  const [share, setShare] = useState(true);
+  // Showing a prayer request to everyone needs a clear yes: never pre-ticked.
+  const [share, setShare] = useState(false);
   const submit = useSubmit(() => api('/submissions/prayer', { body: { channel, text, name, place, lang, consent_air: share } }));
   const close = (): void => {
     onClose();
@@ -47,7 +48,7 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
             <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
             <label className="flex items-start gap-2 text-sm text-ink-muted">
               <input type="checkbox" className="mt-1" checked={share} onChange={(e) => setShare(e.target.checked)} />
-              {t('prayerForm.showAsVoice')}
+              {t('prayerForm.showOnWall')}
             </label>
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
             <PrivacyNote />

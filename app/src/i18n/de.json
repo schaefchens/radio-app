@@ -122,7 +122,7 @@
     "textHint": "Genannt werden nur dein Vorname und dein Ort.",
     "record": "Lieber aufnehmen",
     "type": "Lieber schreiben",
-    "showAsVoice": "Zeig es der Gemeinschaft, damit andere mit mir beten."
+    "showOnWall": "Zeig mein Anliegen auch an der Gebetswand, ohne meinen Namen, damit andere mit mir beten."
   },
   "record": {
     "kind": "Was möchtest du teilen?",
@@ -507,7 +507,8 @@
       "empty": {
         "review": "Nichts wartet auf Prüfung.",
         "rejected": "Keine abgelehnten Einsendungen.",
-        "all": "Noch keine Einsendungen."
+        "all": "Noch keine Einsendungen.",
+        "wall": "An der Gebetswand steht nichts."
       },
       "approve": "Annehmen",
       "reject": "Ablehnen",
@@ -528,7 +529,8 @@
       "filter": {
         "review": "Zu prüfen",
         "rejected": "Abgelehnt",
-        "all": "Alle"
+        "all": "Alle",
+        "wall": "Gebetswand"
       },
       "types": {
         "song": "Songwunsch",
@@ -593,6 +595,14 @@
         "recording_deleted": "Abgelehnte Aufnahmen werden sofort gelöscht (Datenschutzerklärung) und können nicht mehr freigegeben werden.",
         "video_unplayable": "YouTube spielt dieses Video im eingebetteten Player nicht ab; es kann nicht gesendet werden.",
         "not_rejected": "—"
+      },
+      "wall": {
+        "on": "Steht an der Gebetswand",
+        "off": "Von der Gebetswand genommen",
+        "remove": "Von der Gebetswand nehmen",
+        "show": "An der Gebetswand zeigen",
+        "removed": "Von der Gebetswand genommen.",
+        "shown": "Wieder an der Gebetswand."
       }
     },
     "chat": {
