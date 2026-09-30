@@ -146,7 +146,6 @@
     .lower-content { position: relative; width: min(900px, 94%); margin: auto auto 0; }
     .mobile-dock { display: none; }
     .mobile-dock.is-mobile { display: block; position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 8; container-type: inline-size; background: none; box-shadow: none; }
-    .tray-toggle { display: none; }
     .actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
     .action { min-height: 106px; border: 1px solid #ffffff65; border-radius: 20px; padding: 16px 10px; color: white; box-shadow: inset 0 2px 4px #ffffff40, 0 7px 16px #03284a20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; font-size: 12px; line-height: 1.35; font-weight: 700; text-shadow: 0 1px 3px #0002; }
     .action:hover { filter: brightness(1.08); }
@@ -210,7 +209,7 @@
     }
     @container (max-width: 600px) {
       /* Enlarge the ark on mobile and let the scenery crop off the right edge. */
-      .hero { position: sticky; top: calc(var(--preview-top, 0px) - var(--header-sample-y, 0px)); height: var(--mobile-hero-height); overflow: hidden; }
+      .hero { position: sticky; z-index: 2; top: calc(var(--preview-top, 0px) - var(--header-sample-y, 0px)); height: var(--mobile-hero-height); overflow: hidden; }
       .hero-art { height: 100%; object-fit: cover; object-position: left center; mask-image: none; }
       .brand { top: 43%; left: 48%; width: 52%; }
       .brand h1 { font-size: clamp(24px, 7cqw, 42px); }
@@ -269,12 +268,6 @@
       .community { position: relative; z-index: 1; }
       .actions { gap: 7px; margin-bottom: 14px; }
       .mobile-dock .lower-content { width: 96%; margin: 0 auto; }
-      .mobile-dock .action-tray { position: relative; padding-top: 25px; }
-      .mobile-dock .tray-toggle { display: flex; position: absolute; top: 0; left: 50%; transform: translateX(-50%); align-items: center; justify-content: center; width: 48px; height: 26px; padding: 0; border: 0; background: none; color: var(--accent); }
-      .mobile-dock .tray-toggle svg { width: 26px; height: 26px; stroke-width: 3; filter: drop-shadow(0 1px 2px #00162bbb); transition: transform .22s ease; }
-      [data-theme="light"] .mobile-dock .tray-toggle { color: #0b407a; }
-      [data-theme="dark"] .mobile-dock .tray-toggle { color: #effaff; }
-      .mobile-dock[data-expanded="true"] .tray-toggle svg { transform: rotate(180deg); }
       .mobile-dock .actions-window { --expanded-height: 54px; height: 36px; overflow: hidden; transition: height .22s ease; }
       .mobile-dock[data-expanded="true"] .actions-window { height: 54px; }
       .mobile-dock .actions { margin-bottom: 0; }
@@ -423,7 +416,6 @@
           <img class="bottom-art" data-art="bottom" src="theme-assets/light-bottom.webp" width="2172" height="724" alt="">
           <div class="lower-content">
             <div class="action-tray">
-              <button type="button" class="tray-toggle" aria-controls="submission-actions" aria-expanded="false" aria-label="Mitmachen ausklappen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 15 7-7 7 7"/></svg></button>
               <div class="actions-window">
                 <div class="actions" id="submission-actions" aria-label="Mitmachen">
                   <button type="button" class="action purple" data-demo="Lied wünschen"><svg aria-hidden="true"><use href="#i-music"/></svg><span class="action-copy"><strong>Lied wünschen</strong><small>Welchen Song sollen wir spielen?</small></span></button>
@@ -618,7 +610,7 @@
         closeEmojiPicker(true);
       }
     });
-    document.querySelectorAll('[data-demo]').forEach(button => {
+    document.querySelectorAll('[data-demo]:not(.action)').forEach(button => {
       button.addEventListener('click', () => notify(`${button.dataset.demo} · Nur Designvorschau`));
     });
     document.querySelectorAll('[data-nav]').forEach(button => {
@@ -643,7 +635,6 @@
     const bottomArt = document.querySelector('.bottom-art');
     const lowerContent = document.querySelector('.lower-content');
     const mobileDock = document.querySelector('#mobile-dock');
-    const trayToggle = document.querySelector('.tray-toggle');
     const submissionActions = document.querySelector('#submission-actions');
     const actionsWindow = document.querySelector('.actions-window');
     const submissionButtons = [...submissionActions.querySelectorAll('button')];
@@ -652,12 +643,14 @@
     let scrollFrame = 0;
     let wasAtBottom = false;
     let autoExpandedAtBottom = false;
+    let trayHideTimer;
+    const trayHideDelay = 6000;
     function updatePinnedState() {
       scrollFrame = 0;
       const distanceToPin = playerDock.getBoundingClientRect().top - pinOffset;
       playerDock.classList.toggle('is-pinned', mobilePreview && distanceToPin <= 0.5);
       const atBottom = mobilePreview && window.scrollY > 0 && document.documentElement.scrollHeight - window.scrollY - window.innerHeight <= 6;
-      if (atBottom && !wasAtBottom && trayToggle.getAttribute('aria-expanded') !== 'true') {
+      if (atBottom && !wasAtBottom && mobileDock.dataset.expanded !== 'true') {
         setTrayExpanded(true);
         autoExpandedAtBottom = true;
       } else if (!atBottom && wasAtBottom && autoExpandedAtBottom) {
@@ -674,26 +667,26 @@
         page.style.paddingBottom = `${Math.round(expandedDockHeight / 2)}px`;
       }
     }
-    function setSubmissionAccess(enabled) {
-      submissionActions.toggleAttribute('inert', !enabled);
-      submissionActions.setAttribute('aria-hidden', String(!enabled));
-      submissionActions.style.pointerEvents = enabled ? '' : 'none';
-      submissionButtons.forEach(button => {
-        if (enabled) button.removeAttribute('tabindex');
-        else button.setAttribute('tabindex', '-1');
-      });
-    }
     function setTrayExpanded(expanded) {
-      if (trayToggle.getAttribute('aria-expanded') === String(expanded)) return;
-      trayToggle.setAttribute('aria-expanded', String(expanded));
-      trayToggle.setAttribute('aria-label', expanded ? 'Mitmachen einklappen' : 'Mitmachen ausklappen');
+      if (!expanded) clearTimeout(trayHideTimer);
+      if (mobileDock.dataset.expanded === String(expanded)) return;
       mobileDock.dataset.expanded = String(expanded);
-      setSubmissionAccess(expanded);
       updateDockSpace();
     }
-    trayToggle.addEventListener('click', () => {
-      autoExpandedAtBottom = false;
-      setTrayExpanded(trayToggle.getAttribute('aria-expanded') !== 'true');
+    submissionButtons.forEach(button => {
+      button.setAttribute('aria-label', button.querySelector('strong').textContent);
+      button.addEventListener('click', () => {
+        if (!mobilePreview) {
+          notify(`${button.dataset.demo} · Nur Designvorschau`);
+          return;
+        }
+        const wasExpanded = mobileDock.dataset.expanded === 'true';
+        autoExpandedAtBottom = false;
+        setTrayExpanded(true);
+        clearTimeout(trayHideTimer);
+        trayHideTimer = setTimeout(() => setTrayExpanded(false), trayHideDelay);
+        if (wasExpanded) notify(`${button.dataset.demo} · Nur Designvorschau`);
+      });
     });
     function updateMobileDock() {
       if (mobilePreview) {
@@ -703,7 +696,6 @@
         const mobileArt = `theme-assets/${root.dataset.theme}-bottom-mobile.webp`;
         if (!bottomArt.src.endsWith(mobileArt)) bottomArt.src = mobileArt;
         if (lowerContent.parentElement !== mobileDock) mobileDock.append(lowerContent);
-        setSubmissionAccess(trayToggle.getAttribute('aria-expanded') === 'true');
         updateDockSpace();
       } else {
         if (bottomArt.parentElement !== lowerScene) lowerScene.prepend(bottomArt);
@@ -711,7 +703,6 @@
         if (!bottomArt.src.endsWith(desktopArt)) bottomArt.src = desktopArt;
         if (lowerContent.parentElement !== lowerScene) lowerScene.append(lowerContent);
         mobileDock.classList.remove('is-mobile');
-        setSubmissionAccess(true);
         page.style.removeProperty('padding-bottom');
       }
     }
