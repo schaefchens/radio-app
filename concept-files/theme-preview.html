@@ -60,6 +60,8 @@
     .player-dock { min-width: 0; }
     .desktop-nav, .host-card { display: none; }
     .card { border: 1px solid var(--line); background: var(--surface); border-radius: 22px; box-shadow: 0 8px 24px #0632540b; overflow: hidden; }
+    .player-dock .card { box-shadow: 0 18px 30px -14px #09285173; }
+    [data-theme="dark"] .player-dock .card { box-shadow: 0 18px 30px -14px #000a; }
     .station-row { display: flex; align-items: center; gap: 18px; padding: 20px 26px; }
     .live { display: inline-flex; align-items: center; gap: 8px; color: white; background: #ff2344; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 800; letter-spacing: .04em; }
     .live::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: white; }
@@ -226,7 +228,6 @@
       /* No enclosing content box: the player stays pinned through the footer. */
       .content { display: contents; }
       .player-dock { position: sticky; top: calc(var(--preview-top, 0px) + var(--header-strip-height)); z-index: 5; isolation: isolate; width: 96%; margin: -56px auto 0; }
-      .player-dock.is-pinned::before { content: ''; position: absolute; top: 0; bottom: -10px; left: 50%; width: 100cqw; transform: translateX(-50%); background: var(--base) var(--texture) center top / 650px auto; z-index: -1; box-shadow: 0 8px 14px #00142918; }
       .community { width: 96%; margin: 14px auto 0; }
       .card { border-radius: 16px; }
       .station-row { padding: 8px 12px; gap: 8px; }
@@ -294,8 +295,9 @@
       .mobile-dock .action { min-height: 60px; }
     }
     @media (prefers-reduced-transparency: reduce) {
-      .page, .mobile-dock { --menu-surface: #fff; --desktop-menu-surface: #fff; }
-      [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock { --menu-surface: #042541; --desktop-menu-surface: #00182a; }
+      .page, .mobile-dock { --surface: #fff; --soft: #edf7fc; --menu-surface: #fff; --desktop-menu-surface: #fff; }
+      [data-theme="dark"] .page, [data-theme="dark"] .mobile-dock { --surface: #042541; --soft: #103855; --menu-surface: #042541; --desktop-menu-surface: #00182a; }
+      .play-button { background: #081421; border-color: #fff; }
     }
     @media (max-width: 650px) {
       .toolbar { position: static; padding: 11px 12px; gap: 10px; flex-wrap: wrap; }
@@ -638,7 +640,6 @@
     const submissionActions = document.querySelector('#submission-actions');
     const actionsWindow = document.querySelector('.actions-window');
     const submissionButtons = [...submissionActions.querySelectorAll('button')];
-    let pinOffset = 16;
     let mobilePreview = false;
     let scrollFrame = 0;
     let wasAtBottom = false;
@@ -647,8 +648,6 @@
     const trayHideDelay = 6000;
     function updatePinnedState() {
       scrollFrame = 0;
-      const distanceToPin = playerDock.getBoundingClientRect().top - pinOffset;
-      playerDock.classList.toggle('is-pinned', mobilePreview && distanceToPin <= 0.5);
       const atBottom = mobilePreview && window.scrollY > 0 && document.documentElement.scrollHeight - window.scrollY - window.innerHeight <= 6;
       if (atBottom && !wasAtBottom && mobileDock.dataset.expanded !== 'true') {
         setTrayExpanded(true);
@@ -715,7 +714,6 @@
       const sampleY = hero.getBoundingClientRect().height + playerMargin - stripHeight;
       root.style.setProperty('--header-sample-y', `${Math.max(0, sampleY)}px`);
       root.style.setProperty('--preview-top', `${toolbarHeight}px`);
-      pinOffset = toolbarHeight + stripHeight;
       updatePinnedState();
     }
     window.addEventListener('scroll', () => {
