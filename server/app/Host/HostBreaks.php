@@ -130,7 +130,7 @@ final class HostBreaks
      */
     private function wallRefs(array $hb): array
     {
-        if ($hb['kind'] !== 'prayer' || !PrayerHour::applies($hb['program_id'] !== null ? $this->app->catalog()->program((int) $hb['program_id']) : null)) return [];
+        if ($hb['kind'] !== 'prayer' || !$this->inPrayerHour($hb)) return [];
         $ids = self::prayerIds($hb);
         if (isset($hb['context']['again_id'])) $ids[] = (int) $hb['context']['again_id'];
         $refs = [];
@@ -202,10 +202,15 @@ final class HostBreaks
         $c = $this->app->config;
         if (!$this->available()) return 'unavailable';
         $slug = $this->channelSlug($hb);
-        $owed = in_array($hb['kind'], ['announce', 'contrib'], true) || ($hb['kind'] === 'prayer' && self::prayerIds($hb) !== []);
+        $owed = in_array($hb['kind'], ['announce', 'contrib'], true)
+            || ($hb['kind'] === 'prayer' && self::prayerIds($hb) !== [])
+            || (in_array($hb['kind'], ['intro', 'opening', 'invite'], true) && $this->inPrayerHour($hb));
         // A listener who handed something in gets their announcement or
-        // prayer even when they are the only one listening; everything else —
-        // breaks, a prayer for everyone — needs an audience.
+        // prayer even when they are the only one listening. A prayer hour's
+        // welcome, opening prayer and invitation are written about eight
+        // minutes before the hour, before its listeners tune in: gated, the
+        // hour opened without them for everyone who came on time. Everything
+        // else — breaks, a prayer for everyone, the outro — needs an audience.
         if (!$owed && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
         $today = (int) $this->app->store()->value(
             "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND state = 'ready' AND updated >= ?",
@@ -214,6 +219,12 @@ final class HostBreaks
         if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 300)) return 'daily_cap';
         if (!$this->app->usage()->withinBudget()) return 'budget';
         return null;
+    }
+
+    /** @param array<string,mixed> $hb */
+    private function inPrayerHour(array $hb): bool
+    {
+        return PrayerHour::applies($hb['program_id'] !== null ? $this->app->catalog()->program((int) $hb['program_id']) : null);
     }
 
     /** @param array<string,mixed> $hb */

@@ -356,7 +356,7 @@ test('prayer hour: saved twice around its start it keeps one opening and the who
     check(abs(array_sum(array_map(fn($r) => $r['item']['dur_ms'], $beds)) - 480_000) < 3_000, 'the eight minutes of prayer music, not fewer');
 });
 
-test('prayer hour: with nobody listening it spends nothing but what listeners sent', function () {
+test('prayer hour: with nobody listening it voices only its opening and what listeners sent', function () {
     $app = TestKit::app(['HOST_MIN_LISTENERS' => '99']);
     TestKit::songs($app, 12);
     $p = prayerHour($app, 735);
@@ -366,13 +366,19 @@ test('prayer hour: with nobody listening it spends nothing but what listeners se
         $app->tick()->run('test');
         TestKit::clock($app)->advance(60_000);
     }
-    $tried = fn(string $kind, ?string $phase = null) => (int) $app->store()->value(
-        "SELECT COUNT(*) FROM host_breaks WHERE program_id = ? AND kind = ?" . ($phase !== null ? " AND json_extract(context, '$.phase') = ?" : ''),
-        $phase !== null ? [(int) $p['id'], $kind, $phase] : [(int) $p['id'], $kind],
+    $count = fn(string $kind, ?string $state = null, ?string $phase = null) => (int) $app->store()->value(
+        'SELECT COUNT(*) FROM host_breaks WHERE program_id = ? AND kind = ?'
+            . ($state !== null ? ' AND state = ?' : '') . ($phase !== null ? " AND json_extract(context, '$.phase') = ?" : ''),
+        array_merge([(int) $p['id'], $kind], $state !== null ? [$state] : [], $phase !== null ? [$phase] : []),
     );
-    eq([$tried('intro'), $tried('opening'), $tried('invite'), $tried('outro')], [1, 1, 1, 1], 'each opening moment tried once, not again and again');
-    check($tried('prayer', 'general') <= 14, 'a prayer for everyone not more often than every few quiet minutes (' . $tried('prayer', 'general') . ')');
+    eq([$count('intro'), $count('opening'), $count('invite'), $count('outro')], [1, 1, 1, 1], 'each opening moment tried once, not again and again');
+    // Written about eight minutes before the hour, before its listeners tune in.
+    eq([$count('intro', 'ready'), $count('opening', 'ready'), $count('invite', 'ready')], [1, 1, 1], 'the welcome, opening prayer and invitation voiced for whoever comes on time');
+    eq([$count('outro', 'ready'), $count('prayer', 'ready', 'general'), $count('prayer', 'ready', 'again')], [0, 0, 0], 'the outro and the prayers for everyone wait for an audience');
+    check($count('prayer', null, 'general') <= 14, 'a prayer for everyone not more often than every few quiet minutes (' . $count('prayer', null, 'general') . ')');
     eq($app->submissions()->byPublicId($sent)['status'], 'aired', 'the request a listener sent is prayed for all the same');
+    $music = fn(string $where) => (int) $app->store()->value("SELECT COUNT(*) FROM host_breaks WHERE program_id != ? AND $where", [(int) $p['id']]);
+    eq([$music("source = 'skipped:no_listeners'") > 0, $music("state = 'ready'")], [true, 0], 'the music program around the hour still waits for an audience');
 });
 
 test('prayer hour: ten requests at once are prayed for three at a time, with silence after each moment', function () {

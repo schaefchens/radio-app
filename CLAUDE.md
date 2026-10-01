@@ -114,6 +114,10 @@ say "heute Abend"; the English one is heard worldwide and stays time-neutral.
 All language versions share one slot length: the longest one plus padding.
 Cost gates (listeners ≥ `HOST_MIN_LISTENERS`, daily cap, `AI_DAILY_BUDGET_USD`)
 run at *script time*, so a listener who tunes in still hears the host soon.
+What listeners sent skips the listener gate, and so does a prayer hour's
+welcome, opening prayer and invitation: they are written about eight minutes
+before the hour, before its listeners tune in, and gated they were lost for
+everyone who came on time.
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
 while the minute file says `open`/`closing` (checked again server-side). One job

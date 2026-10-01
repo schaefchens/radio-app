@@ -28,10 +28,9 @@ The stack runs with `AI_MODE=stub` (no paid calls). For the real host voice:
 transcribes and moderates; with `ANTHROPIC_KEY` set, Claude writes and
 moderates instead). Costs are capped by `AI_DAILY_BUDGET_USD`; while nobody
 listens, the host voices only what listeners sent (announced requests,
-recordings, prayer requests). Locally that means a prayer hour opens without
-its welcome unless someone listened about eight minutes before it (the e2e
-stack sets `HOST_MIN_LISTENERS=0`). One real host break without touching the
-program: see `server/bin/try-host.php`.
+recordings, prayer requests) and a prayer hour's opening (welcome, opening
+prayer, invitation), which is written before its listeners tune in. One real
+host break without touching the program: see `server/bin/try-host.php`.
 
 First admin, exactly as in production: open http://localhost:5180/profile,
 create a passphrase, then open /setup and enter `ADMIN_SETUP_KEY` from `.env`.
