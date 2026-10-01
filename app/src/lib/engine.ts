@@ -32,7 +32,7 @@ import { YTState } from './youtube';
  *     loop plays, at the same second for everyone.
  */
 
-export type StageMode = 'idle' | 'song' | 'host' | 'jingle' | 'contrib' | 'silence' | 'stage' | 'evergreen' | 'offline';
+export type StageMode = 'idle' | 'song' | 'host' | 'jingle' | 'contrib' | 'bed' | 'silence' | 'stage' | 'evergreen' | 'offline';
 
 export interface EvergreenNow {
   yt: string;
@@ -80,11 +80,24 @@ export interface PlayerLike {
 export interface AudioLike {
   unlocked: boolean;
   unlock(): void;
-  play(url: string, offsetMs: number): Promise<boolean>;
+  /** `fadeInMs` > 0 rises from silence instead of starting at full volume. */
+  play(url: string, offsetMs: number, fadeInMs?: number): Promise<boolean>;
   preload(url: string): void;
   stop(): void;
   resync(expectedMs: number, toleranceMs?: number): void;
+  fadeOut(ms: number): void;
+  /** Where in `url` playback is (ms) when it is the clip playing now, else null. */
+  playingAt(url: string): number | null;
 }
+
+type OwnAudioItem = Extract<TimelineItem, { type: 'host' | 'jingle' | 'contrib' | 'bed' }>;
+
+/** Items that play our own audio, not the YouTube player. */
+const ownAudio = (item: TimelineItem): item is OwnAudioItem =>
+  item.type === 'host' || item.type === 'jingle' || item.type === 'contrib' || item.type === 'bed';
+
+/** Where in its file an item of our own audio is at `now`: a piece of prayer music starts into the track. */
+const audioPosition = (item: OwnAudioItem, now: number): number => (item.type === 'bed' ? item.offset : 0) + now - item.start;
 
 export interface EngineDeps {
   now: () => number;
@@ -106,6 +119,10 @@ const SEEK_COOLDOWN_MS = 10_000;
 const MAX_SEEKS_PER_MINUTE = 3;
 const TAP_HINT_AFTER_MS = 2500;
 const LIVE_EVERY_MS = 30_000;
+/** Prayer music rises and fades over this long: a piece can end mid-track. */
+export const BED_FADE_MS = 1500;
+/** Our audio already playing this close to where an item needs it is that item going on. */
+const CONTINUE_MS = 2000;
 /** One empty wall for every reset: a fresh [] per state would give a zustand
  *  selector a new reference each time and loop React. */
 const NO_WALL: WallEntry[] = [];
@@ -148,6 +165,7 @@ export class RadioEngine {
   private seeks: number[] = [];
   private adSince = 0;
   private loadStartedAt = 0;
+  private fadingOut: string | null = null;
   private fetching = false;
   private generation = 0;
 
@@ -345,19 +363,11 @@ export class RadioEngine {
       if (joined) needsTap = this.startVideo(item.yt, offset / 1000);
     } else {
       player.stop();
-      if (item.type === 'host' || item.type === 'jingle' || item.type === 'contrib') {
+      if (ownAudio(item)) {
         mode = item.type;
-        const url = item.type === 'host' ? (item.audio[this.lang] ?? item.audio.en ?? item.audio.de ?? null) : item.audio;
-        if (joined && url) {
-          void audio.play(url, offset).then((ok) => {
-            if (!ok && this.key === item.id) {
-              this.state = { ...this.state, needsTap: true };
-              this.emit();
-            }
-          });
-        } else {
-          audio.stop();
-        }
+        const url = this.audioUrl(item);
+        if (joined && url) this.playOwn(item, url, now);
+        else audio.stop();
       } else {
         audio.stop();
         mode = item.type === 'silence' ? 'silence' : 'stage';
@@ -380,12 +390,48 @@ export class RadioEngine {
         }
         this.loadStartedAt = 0;
       }
-    } else if (this.state.joined && (item.type === 'host' || item.type === 'jingle' || item.type === 'contrib')) {
-      if (now - this.lastDrift > 5000) {
+    } else if (this.state.joined && ownAudio(item)) {
+      if (item.type === 'bed' && item.start + item.dur - now <= BED_FADE_MS) {
+        // The music stops mid-track when its piece ends: fade it out first —
+        // unless the next piece goes on with the same file.
+        if (this.fadingOut !== item.id && !this.continuesInto(item)) {
+          this.fadingOut = item.id;
+          this.deps.audio.fadeOut(BED_FADE_MS);
+        }
+      } else if (now - this.lastDrift > 5000) {
         this.lastDrift = now;
-        this.deps.audio.resync(now - item.start);
+        this.deps.audio.resync(audioPosition(item, now));
       }
     }
+  }
+
+  private audioUrl(item: OwnAudioItem): string | null {
+    return item.type === 'host' ? (item.audio[this.lang] ?? item.audio.en ?? item.audio.de ?? null) : item.audio;
+  }
+
+  private playOwn(item: OwnAudioItem, url: string, now: number): void {
+    const { audio } = this.deps;
+    const at = audioPosition(item, now);
+    // Already playing where this item needs it — the next piece of the same
+    // prayer music, or the stage back after a sheet (reenter): stay on it.
+    // Starting it again would dip the music and fade it in once more.
+    const playing = audio.playingAt(url);
+    if (playing !== null && Math.abs(playing - at) < CONTINUE_MS) {
+      audio.resync(at);
+      return;
+    }
+    void audio.play(url, at, item.type === 'bed' ? BED_FADE_MS : 0).then((ok) => {
+      if (!ok && this.key === item.id) {
+        this.state = { ...this.state, needsTap: true };
+        this.emit();
+      }
+    });
+  }
+
+  /** The item after this piece of prayer music goes on with the same file, where this one ends. */
+  private continuesInto(item: Extract<TimelineItem, { type: 'bed' }>): boolean {
+    const next = this.timeline.next(item.start);
+    return next?.type === 'bed' && next.audio === item.audio && next.start === item.start + item.dur && Math.abs(next.offset - (item.offset + item.dur)) < CONTINUE_MS;
   }
 
   private evergreenTick(now: number, gap: TimelineItem | null): void {
@@ -491,7 +537,7 @@ export class RadioEngine {
     if (next.type === 'host') {
       const url = next.audio[this.lang] ?? next.audio.en ?? next.audio.de;
       if (url) this.deps.audio.preload(url);
-    } else if (next.type === 'jingle' || next.type === 'contrib') {
+    } else if (next.type === 'jingle' || next.type === 'contrib' || (next.type === 'bed' && !(item.type === 'bed' && item.audio === next.audio))) {
       this.deps.audio.preload(next.audio);
     }
   }

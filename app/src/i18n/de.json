@@ -46,7 +46,8 @@
     "jingle": "Arche Radio",
     "contrib": "{{name}} erzählt",
     "openYouTube": "{{title}} auf YouTube öffnen",
-    "position": "{{elapsed}} von {{duration}}"
+    "position": "{{elapsed}} von {{duration}}",
+    "bed": "Gebetsmusik"
   },
   "host": {
     "idle": "{{name}} meldet sich zwischen den Liedern wieder.",
@@ -375,7 +376,8 @@
         "all": "Alle",
         "song": "Lieder",
         "jingle": "Jingles",
-        "contrib": "Aufnahmen"
+        "contrib": "Aufnahmen",
+        "bed": "Hintergrundmusik"
       },
       "addSong": "Lied hinzufügen",
       "url": "YouTube-Link",
@@ -415,7 +417,11 @@
       "addedOk": "Zur Bibliothek hinzugefügt.",
       "none": "Keine passenden Einträge.",
       "upload": "Hochladen",
-      "generate": "Erzeugen"
+      "generate": "Erzeugen",
+      "beds": "Hintergrundmusik",
+      "bedsHint": "Ruhige Musik für die Sammelzeit einer Gebetsstunde, für sich gespielt (nie unter der Moderation). Eine MP3 von 20 Sekunden bis 10 Minuten, höchstens 8 MB – etwa 128 kbit/s für 5 Minuten. Ausgewählt wird sie unter Sendungen.",
+      "uploadBed": "Hintergrundmusik hochladen (MP3)",
+      "bedTitle": "Name, z. B. Ruhiges Klavier"
     },
     "programs": {
       "new": "Neue Sendung",

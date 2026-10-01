@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { api } from '@/lib/api';
@@ -9,7 +9,7 @@ import { modError, VOICES, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { MusicIcon } from '@/components/common/icons';
 
-type Kind = '' | 'song' | 'jingle' | 'contrib';
+type Kind = '' | 'song' | 'jingle' | 'contrib' | 'bed';
 
 export function LibraryPanel() {
   const { t } = useTranslation();
@@ -47,6 +47,7 @@ export function LibraryPanel() {
               <option value="song">{t('mod.library.kind.song')}</option>
               <option value="jingle">{t('mod.library.kind.jingle')}</option>
               <option value="contrib">{t('mod.library.kind.contrib')}</option>
+              <option value="bed">{t('mod.library.kind.bed')}</option>
             </select>
             <button type="submit" className="btn-ghost px-3 py-1.5">
               {t('mod.common.search')}
@@ -70,6 +71,7 @@ export function LibraryPanel() {
       </Section>
 
       <JinglePanel onAdded={() => done(t('mod.library.addedOk'))} />
+      <BedPanel onAdded={() => done(t('mod.library.addedOk'))} />
     </div>
   );
 }
@@ -281,7 +283,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
         <button type="button" className="btn-ghost px-3 py-1.5 text-xs" disabled={busy} onClick={() => void patch({ active: !active }, t('mod.common.saved'))}>
           {active ? t('mod.library.deactivate') : t('mod.library.activate')}
         </button>
-        {active && item.kind !== 'contrib' && (
+        {active && item.kind !== 'contrib' && item.kind !== 'bed' && (
           <ConfirmButton className="btn-ghost px-3 py-1.5 text-xs text-heart" label={t('mod.library.pull')} question={t('mod.library.pullConfirm')} onConfirm={() => void pull()} disabled={busy} />
         )}
       </div>
@@ -375,6 +377,60 @@ function JinglePanel({ onAdded }: { onAdded: () => void }) {
           </button>
         </form>
       </div>
+    </Section>
+  );
+}
+
+/**
+ * Background music (the prayer hour's prayer music). No "pull from air" on
+ * its rows: a piece taken off air leaves listeners with the YouTube fallback
+ * loop in the middle of the hour; switching it off ends it within minutes.
+ */
+function BedPanel({ onAdded }: { onAdded: () => void }) {
+  const { t } = useTranslation();
+  const fileId = useId();
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const upload = async (): Promise<void> => {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.set('audio', file);
+      form.set('title', title);
+      await api('/mod/beds', { form });
+      setFile(null);
+      setTitle('');
+      onAdded();
+    } catch (e) {
+      setError(modError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title={t('mod.library.beds')}>
+      {error && <Notice tone="error">{error}</Notice>}
+      <p className="text-sm text-ink-muted">{t('mod.library.bedsHint')}</p>
+      <form
+        className="flex flex-col gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void upload();
+        }}
+      >
+        <label className="label" htmlFor={fileId}>{t('mod.library.uploadBed')}</label>
+        <input id={fileId} type="file" accept="audio/mpeg,.mp3" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <input className="field" placeholder={t('mod.library.bedTitle')} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <button type="submit" className="btn-ghost self-start" disabled={!file || busy}>
+          {t('mod.library.upload')}
+        </button>
+      </form>
     </Section>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { EvergreenFile, LiveFile, SlotFile, TimelineItem } from '@arche/shared';
-import { RadioEngine, initialState, type AudioLike, type EngineState, type PlayerLike } from '@/lib/engine';
+import { BED_FADE_MS, RadioEngine, initialState, type AudioLike, type EngineState, type PlayerLike } from '@/lib/engine';
 import { YTState } from '@/lib/youtube';
 
 function fakePlayer(): PlayerLike & { calls: string[]; t: number; st: number } {
@@ -20,15 +20,27 @@ function fakePlayer(): PlayerLike & { calls: string[]; t: number; st: number } {
   };
 }
 
-function fakeAudio(): AudioLike & { calls: string[] } {
+/** Our audio, playing on the test's clock: it knows where its file is. */
+function fakeAudio(now: () => number): AudioLike & { calls: string[] } {
+  let url: string | null = null;
+  let base = 0;
+  let since = 0;
   return {
     unlocked: false,
     calls: [],
     unlock() { this.unlocked = true; },
-    async play(url, off) { this.calls.push(`play ${url} ${Math.round(off)}`); return true; },
-    preload(url) { this.calls.push(`preload ${url}`); },
-    stop() { this.calls.push('stop'); },
-    resync() {},
+    async play(u, off, fade = 0) {
+      this.calls.push(`play ${u} ${Math.round(off)}${fade ? ` fade ${fade}` : ''}`);
+      url = u;
+      base = off;
+      since = now();
+      return true;
+    },
+    preload(u) { this.calls.push(`preload ${u}`); },
+    stop() { this.calls.push('stop'); url = null; },
+    resync(ms) { this.calls.push(`resync ${Math.round(ms)}`); },
+    fadeOut(ms) { this.calls.push(`fadeOut ${ms}`); },
+    playingAt(u) { return u === url ? base + now() - since : null; },
   };
 }
 
@@ -52,7 +64,7 @@ const live: LiveFile = {
 function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?: EvergreenFile } = {}) {
   let now = 50_000;
   const player = fakePlayer();
-  const audio = fakeAudio();
+  const audio = fakeAudio(() => now);
   const states: EngineState[] = [];
   const errors: [string, number][] = [];
   const engine = new RadioEngine({
@@ -193,5 +205,86 @@ describe('RadioEngine', () => {
     await switching;
     s.engine.stop();
     vi.useRealTimers();
+  });
+});
+
+describe('prayer music', () => {
+  const PAD = '/media/beds/pad.mp3';
+  const bed = (id: string, start: number, dur: number, offset: number, audio = PAD): TimelineItem => ({
+    id, type: 'bed', start, dur, p: 'prayer', audio, offset, label: { en: 'What can we pray for?', de: 'Wofür dürfen wir beten?' },
+  });
+  const slot = (items: TimelineItem[]): SlotFile => ({ ...slotFile, current: 'prayer', items });
+  const plays = (calls: string[]) => calls.filter((c) => c.startsWith('play'));
+
+  it('enters at its offset into the file plus the time since it began, rising in', async () => {
+    const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 30_000)]) });
+    await s.engine.start('main');
+    s.engine.join();
+    expect(s.engine.snapshot.mode).toBe('bed');
+    expect(s.engine.snapshot.playerVisible).toBe(false);
+    expect(plays(s.audio.calls)).toEqual([`play ${PAD} 40000 fade ${BED_FADE_MS}`]);
+    s.engine.stop();
+  });
+
+  it('fades out at the end of its piece, and a song after it stops our audio', async () => {
+    const song: TimelineItem = { ...items[2]!, id: 's9', start: 100_000 };
+    const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 0), song]) });
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(99_000);
+    s.engine.tick();
+    s.engine.tick();
+    expect(s.audio.calls.filter((c) => c.startsWith('fadeOut'))).toEqual([`fadeOut ${BED_FADE_MS}`]);
+    s.setNow(100_500);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('song');
+    expect(s.audio.calls.at(-1)).toBe('stop');
+    s.engine.stop();
+  });
+
+  it('a piece that goes on with the same file plays on: no fade, no new start, nothing preloaded', async () => {
+    const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 0), bed('b2', 100_000, 60_000, 60_000)]) });
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(99_500);
+    s.engine.tick();
+    s.setNow(100_200);
+    s.engine.tick();
+    expect(s.engine.snapshot.item?.id).toBe('b2');
+    expect(plays(s.audio.calls)).toHaveLength(1);
+    expect(s.audio.calls.some((c) => c.startsWith('fadeOut') || c.startsWith('preload'))).toBe(false);
+    s.engine.stop();
+  });
+
+  it('a piece that starts the file again fades the last one out and rises in', async () => {
+    const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 240_000), bed('b2', 100_000, 60_000, 0)]) });
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(99_500);
+    s.engine.tick();
+    s.setNow(100_200);
+    s.engine.tick();
+    expect(s.audio.calls.filter((c) => c.startsWith('fadeOut'))).toHaveLength(1);
+    expect(plays(s.audio.calls).at(-1)).toBe(`play ${PAD} 200 fade ${BED_FADE_MS}`);
+    s.engine.stop();
+  });
+
+  it('entering again while it plays (a sheet closed over the stage) does not start it over', async () => {
+    const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 0)]) });
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(70_000);
+    s.engine.reenter();
+    expect(plays(s.audio.calls)).toHaveLength(1);
+    expect(s.audio.calls.at(-1)).toBe('resync 30000');
+    s.engine.stop();
+  });
+
+  it('warms the next piece when it is another file', async () => {
+    const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 0), bed('b2', 100_000, 60_000, 0, '/media/beds/other.mp3')]) });
+    await s.engine.start('main');
+    s.engine.join();
+    expect(s.audio.calls).toContain('preload /media/beds/other.mp3');
+    s.engine.stop();
   });
 });

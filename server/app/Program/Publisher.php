@@ -126,6 +126,11 @@ final class Publisher
                 'voices' => array_values((array) ($p['voices'] ?? [])),
             ],
             'jingle' => $base + ['audio' => (string) ($p['audio'] ?? '')],
+            'bed' => $base + [
+                'audio' => (string) ($p['audio'] ?? ''),
+                'label' => $p['label'] ?? ['en' => '', 'de' => ''],
+                'offset' => (int) ($p['offset'] ?? 0),
+            ],
             'silence', 'stage' => $base + ['label' => $p['label'] ?? ['en' => '', 'de' => '']],
             'contrib' => $base + [
                 'kind' => (string) ($p['kind'] ?? 'story'),

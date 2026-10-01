@@ -89,6 +89,16 @@ is not trusted). Approved requests graduate automatically (tags only — never t
 dedication). Playback errors disable an item only for codes 100/101/150 from ≥ 3
 identities *and* when YouTube confirms.
 
+Background music (kind and item `bed`: the prayer hour's prayer music) is an
+uploaded MP3 of 20 s – 10 min (`/mod/beds`). A `bed` item plays a piece of it
+from `offset`, never longer than the rest of the file, so the app never loops
+one; the next piece goes on where the last one ended, and the engine stays on
+audio already playing at the right place instead of starting it again (a
+continuing piece, or the stage back after a sheet), so the music does not dip.
+It fades in and out through `HostAudio`'s GainNode (iOS ignores
+`element.volume`). Older clients drop the unknown item type and play the
+evergreen loop for that span.
+
 **Host** (`Host\*`, `Ai\*`). Scripts and moderation verdicts come from one
 `Ai\TextModel` (`App::text()`): Claude via the Anthropic PHP SDK when
 `ANTHROPIC_KEY` is set (`claude-opus-5` by default, `fallbacks: 'default'` on

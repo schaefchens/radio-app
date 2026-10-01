@@ -79,6 +79,13 @@ test('contract: generated program files match shared/fixtures', function () {
         foreach ($slot->items as $it) $types[$it->type] = true;
     }
     foreach (['song', 'host', 'jingle', 'silence', 'gap'] as $t) check(isset($types[$t]), "a published $t item");
+    // Prayer music airs only in a prayer hour: one piece, published like any committed item.
+    $bed = $app->timeline()->addDraft((int) $ch['id'], ['type' => 'bed', 'dur_ms' => 60_000, 'est_start' => $now, 'block_start' => $now,
+        'block_end' => $now + 3_600_000, 'program_id' => (int) $ch['fallback_program_id'],
+        'payload' => ['audio' => '/media/beds/x.mp3', 'label' => ['en' => 'What can we pray for?', 'de' => 'Wofür dürfen wir beten?'], 'offset' => 0]]);
+    $app->timeline()->commit($bed['id'], $now, 60_000);
+    $fixtureBed = array_values(array_filter(fixture('slot.json')->items, fn($i) => $i->type === 'bed'))[0];
+    shape(json_decode((string) json_encode($app->publisher()->item($app->timeline()->get($bed['id']) ?? []))), $fixtureBed, 'bed', $maps);
 
     $day = json_decode((string) file_get_contents($app->publicPath('program/main/days/' . gmdate('Y-m-d', intdiv($now, 1000)) . '.json')));
     shape($day, fixture('day.json'), 'day', ['programs']);
@@ -90,6 +97,6 @@ test('contract: generated program files match shared/fixtures', function () {
     shape($channels, fixture('channels.json'), 'channels', []);
     check(is_string($channels->channels[0]->evergreen), 'evergreen pointer');
     shape(json_decode((string) file_get_contents($app->publicPath(ltrim($channels->channels[0]->evergreen, '/')))), fixture('evergreen.json'), 'evergreen', []);
-    unset($j, $types, $now, $maps, $live, $identity);
+    unset($j, $types, $now, $maps, $live, $identity, $bed, $fixtureBed);
     eq(Timing::COMMIT, Timing::WINDOW + Timing::LEAD, 'timing constants');
 });

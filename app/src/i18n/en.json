@@ -46,7 +46,8 @@
     "jingle": "Arche Radio",
     "contrib": "{{name}} shares",
     "openYouTube": "Open {{title}} on YouTube",
-    "position": "{{elapsed}} of {{duration}}"
+    "position": "{{elapsed}} of {{duration}}",
+    "bed": "Prayer music"
   },
   "host": {
     "idle": "{{name}} will be back between the songs.",
@@ -375,7 +376,8 @@
         "all": "All",
         "song": "Songs",
         "jingle": "Jingles",
-        "contrib": "Recordings"
+        "contrib": "Recordings",
+        "bed": "Background music"
       },
       "addSong": "Add a song",
       "url": "YouTube link",
@@ -415,7 +417,11 @@
       "addedOk": "Added to the library.",
       "none": "No items match.",
       "upload": "Upload",
-      "generate": "Generate"
+      "generate": "Generate",
+      "beds": "Background music",
+      "bedsHint": "Quiet music for a prayer hour's collection time, played on its own (never under the host). An MP3 of 20 seconds to 10 minutes, at most 8 MB — about 128 kbps for 5 minutes. Choose it in Programs.",
+      "uploadBed": "Upload background music (MP3)",
+      "bedTitle": "Name, e.g. Quiet piano"
     },
     "programs": {
       "new": "New program",

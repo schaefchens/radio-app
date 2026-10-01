@@ -87,6 +87,17 @@ export interface JingleItem extends ItemBase {
   audio: string;
 }
 
+/** Background music of our own (the prayer hour's prayer music), played on
+ *  its own — never under the host — while the stage shows `label`. A piece
+ *  starts `offset` ms into the file, so consecutive pieces continue the track,
+ *  and is never longer than the rest of the file: the app never loops one. */
+export interface BedItem extends ItemBase {
+  type: 'bed';
+  audio: string;
+  label: I18nText;
+  offset: number;
+}
+
 export interface SilenceItem extends ItemBase {
   type: 'silence';
   label: I18nText;
@@ -113,7 +124,7 @@ export interface StageItem extends ItemBase {
   label: I18nText;
 }
 
-export type TimelineItem = SongItem | HostItem | JingleItem | SilenceItem | ContribItem | GapItem | StageItem;
+export type TimelineItem = SongItem | HostItem | JingleItem | BedItem | SilenceItem | ContribItem | GapItem | StageItem;
 export type TimelineItemType = TimelineItem['type'];
 
 export interface SlotFile {

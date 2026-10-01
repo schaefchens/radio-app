@@ -71,7 +71,7 @@ export interface Overview {
 
 export interface LibraryItem {
   id: number;
-  kind: 'song' | 'jingle' | 'contrib';
+  kind: 'song' | 'jingle' | 'contrib' | 'bed';
   yt_id: string | null;
   audio: string | null;
   title: string;

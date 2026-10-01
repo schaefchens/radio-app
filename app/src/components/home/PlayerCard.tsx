@@ -125,6 +125,11 @@ function TrackRow() {
     subtitle = item.place;
     ({ start, dur } = item);
     icon = <MicIcon />;
+  } else if (item?.type === 'bed') {
+    title = t('nowPlaying.bed');
+    subtitle = item.label[lang];
+    ({ start, dur } = item);
+    icon = <MusicIcon />;
   } else if (item) {
     title = item.type === 'silence' || item.type === 'stage' ? item.label[lang] : t('nowPlaying.jingle');
     ({ start, dur } = item);

@@ -170,6 +170,13 @@ final class ModApi
         return ['item' => $this->c->app->library()->addJingle($file, (string) ($this->c->req->post['title'] ?? 'Jingle'), $this->actor())];
     }
 
+    public function bedUpload(): array
+    {
+        $this->mod();
+        $file = $this->c->req->file('audio') ?? throw new ApiError(422, 'missing_audio');
+        return ['item' => $this->c->app->library()->addBed($file, (string) ($this->c->req->post['title'] ?? ''), $this->actor())];
+    }
+
     public function jingleTts(): array
     {
         $this->mod();

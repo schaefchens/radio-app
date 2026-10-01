@@ -1,7 +1,7 @@
 /**
- * Our own audio (host clips, jingles, listener recordings): two <audio>
- * elements used alternately, so the next clip can load while the current one
- * plays.
+ * Our own audio (host clips, jingles, listener recordings, prayer music): two
+ * <audio> elements used alternately, so the next clip can load while the
+ * current one plays. Only one plays at a time.
  *
  * iOS lets a media element play without a gesture only after it has played
  * once inside one — hence `unlock()`, called from the "tap to join" handler,
@@ -67,13 +67,13 @@ export class HostAudio {
     return this.els[this.active]!;
   }
 
-  /** Play `url` from `offsetMs` in. Resolves false if the browser refused. */
-  async play(url: string, offsetMs: number): Promise<boolean> {
+  /** Play `url` from `offsetMs` in, rising from silence over `fadeInMs`. Resolves false if the browser refused. */
+  async play(url: string, offsetMs: number, fadeInMs = 0): Promise<boolean> {
     const next = (this.active + 1) % 2;
     const el = this.els[next]!;
     this.stop();
     this.active = next;
-    this.setGain(next, this.volume);
+    this.setGain(next, this.volume, fadeInMs);
     const started = Date.now();
     const start = async (src: string): Promise<boolean> => {
       if (!isSrc(el, src)) el.src = src;
@@ -118,12 +118,11 @@ export class HostAudio {
     }
   }
 
-  playing(): boolean {
-    return !this.el().paused;
-  }
-
-  positionMs(): number {
-    return this.el().currentTime * 1000;
+  /** Where in `url` playback is (ms) when it is the clip playing now, else null. */
+  playingAt(url: string): number | null {
+    const el = this.el();
+    if (el.paused || el.ended || !(isSrc(el, cdnUrl(url)) || isSrc(el, url))) return null;
+    return el.currentTime * 1000;
   }
 
   /** Correct drift of the playing clip against the shared clock. */
@@ -141,16 +140,29 @@ export class HostAudio {
     });
   }
 
-  private setGain(i: number, v: number): void {
+  private setGain(i: number, v: number, riseMs = 0): void {
     const g = this.gains[i];
-    if (g && this.ctx) g.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    if (!g || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    // A fade still running on this element (its last clip faded out) must not
+    // pull the new one down.
+    g.gain.cancelScheduledValues(t);
+    if (riseMs > 0) g.gain.setValueAtTime(0, t);
+    g.gain.setTargetAtTime(v, t, riseMs > 0 ? riseMs / 3000 : 0.05);
   }
 
   /** Soften the end of the current clip (a fade the element volume can't do on iOS). */
   fadeOut(ms = 400): void {
     const g = this.gains[this.active];
-    if (g && this.ctx) g.gain.setTargetAtTime(0, this.ctx.currentTime, ms / 3000);
-    else window.setTimeout(() => this.stop(), ms);
+    if (g && this.ctx) {
+      g.gain.cancelScheduledValues(this.ctx.currentTime);
+      g.gain.setTargetAtTime(0, this.ctx.currentTime, ms / 3000);
+      return;
+    }
+    // Without Web Audio there is no fade: stop this clip only — by then the
+    // next one may be playing on the other element.
+    const el = this.el();
+    window.setTimeout(() => el.pause(), ms);
   }
 }
 

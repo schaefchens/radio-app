@@ -28,8 +28,10 @@ describe('program file fixtures', () => {
     expect(slot).not.toBeNull();
     expect(slot!.items).toHaveLength(raw.items.length);
     expect(new Set(slot!.items.map((i) => i.type))).toEqual(
-      new Set(['song', 'host', 'jingle', 'silence', 'contrib', 'stage', 'gap']),
+      new Set(['song', 'host', 'jingle', 'silence', 'contrib', 'stage', 'gap', 'bed']),
     );
+    const bed = slot!.items.find((i) => i.type === 'bed');
+    expect(bed).toMatchObject({ audio: '/media/beds/5e0d7a.mp3', offset: 60000, label: { en: 'What can we pray for?', de: 'Wofür dürfen wir beten?' } });
     expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing' });
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
   });
@@ -67,6 +69,13 @@ describe('program file fixtures', () => {
     expect(parseLiveFile({ ...old, wall: [{ id: 'p1', at: 1 }, { id: 'p2', text: 'Amen', at: 2 }] })?.wall).toEqual([
       { id: 'p2', text: 'Amen', at: 2 },
     ]);
+  });
+
+  it('a piece of prayer music needs its file; without an offset it starts the file', () => {
+    const items = (extra: Record<string, unknown>[]) =>
+      parseSlotFile({ ...(load('slot.json') as object), items: extra.map((e, i) => ({ id: `b${i}`, type: 'bed', start: i * 1000, dur: 1000, p: 'prayer', ...e })) })?.items;
+    expect(items([{ label: { en: 'x', de: 'y' } }, { audio: '' }])).toEqual([]);
+    expect(items([{ audio: '/media/beds/a.mp3', offset: -5 }, { audio: '/media/beds/a.mp3' }])?.map((i) => i.type === 'bed' && i.offset)).toEqual([0, 0]);
   });
 
   it('rejects unknown versions and drops unknown item types', () => {

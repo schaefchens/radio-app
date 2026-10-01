@@ -24,7 +24,7 @@ export function StageVisual({ engine }: { engine: EngineState }) {
 
   return (
     <div className="absolute inset-0 z-0 select-none">
-      <Backdrop image={image} color={program?.color ?? '#2f7bff'} calm={engine.mode === 'silence'} />
+      <Backdrop image={image} color={program?.color ?? '#2f7bff'} calm={engine.mode === 'silence' || engine.mode === 'bed'} />
 
       {/* Before joining, the round play button has the stage to itself. */}
       <div className={clsx('absolute inset-0 flex flex-col items-center justify-center p-5 text-center', !engine.joined && 'invisible')}>
@@ -37,6 +37,12 @@ export function StageVisual({ engine }: { engine: EngineState }) {
             <p className="text-lg font-medium leading-snug text-ink drop-shadow sm:text-2xl">
               {item.caption[lang] ?? item.caption.en ?? ''}
             </p>
+          </div>
+        )}
+        {engine.mode === 'bed' && item?.type === 'bed' && (
+          <div className="flex max-w-xl flex-col items-center gap-3 animate-fly-in">
+            <p className="eyebrow">{t('nowPlaying.bed')}</p>
+            {item.label[lang] && <p className="text-balance text-2xl font-light tracking-wide text-ink drop-shadow sm:text-3xl">{item.label[lang]}</p>}
           </div>
         )}
         {engine.mode === 'silence' && (

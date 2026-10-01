@@ -56,6 +56,16 @@
       "place": "Brazil"
     },
     { "id": "i7kq2s", "type": "stage", "start": 1790190339400, "dur": 120000, "p": "worship", "label": { "en": "Stay with us", "de": "Bleib dran" } },
-    { "id": "i7kq2t", "type": "gap", "start": 1790190459400, "dur": 60000, "p": "worship" }
+    { "id": "i7kq2t", "type": "gap", "start": 1790190459400, "dur": 60000, "p": "worship" },
+    {
+      "id": "i7kq2u",
+      "type": "bed",
+      "start": 1790190519400,
+      "dur": 120000,
+      "p": "worship",
+      "audio": "/media/beds/5e0d7a.mp3",
+      "label": { "en": "What can we pray for?", "de": "Wofür dürfen wir beten?" },
+      "offset": 60000
+    }
   ]
 }

@@ -123,6 +123,9 @@ export function parseItem(v: unknown): TimelineItem | null {
       };
     case 'jingle':
       return isStr(v.audio) ? { ...base, type: 'jingle', audio: v.audio } : null;
+    case 'bed':
+      if (!isStr(v.audio) || v.audio === '') return null;
+      return { ...base, type: 'bed', audio: v.audio, label: i18n(v.label), offset: isNum(v.offset) ? Math.max(0, v.offset) : 0 };
     case 'silence':
       return { ...base, type: 'silence', label: i18n(v.label) };
     case 'contrib': {
