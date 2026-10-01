@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { api } from '@/lib/api';
 import { clockDuration } from '@/lib/format';
 import { useApi } from './useApi';
-import { useOverview } from './overview';
+import { NO_CHANNELS, useOverview } from './overview';
 import { modError, VOICES, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { MusicIcon } from '@/components/common/icons';
@@ -172,7 +172,7 @@ interface Attrs {
 
 function AttrsEditor({ value, onChange }: { value: Attrs; onChange: (v: Attrs) => void }) {
   const { t, i18n } = useTranslation();
-  const channels = useOverview((s) => s.data?.channels ?? []);
+  const channels = useOverview((s) => s.data?.channels ?? NO_CHANNELS);
   const toggle = <T,>(list: T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   return (
     <div className="grid gap-3 sm:grid-cols-2">

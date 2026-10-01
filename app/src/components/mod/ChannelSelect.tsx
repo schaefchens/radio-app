@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { useOverview, useModChannelId } from './overview';
+import { NO_CHANNELS, useOverview, useModChannelId } from './overview';
 
 export function ChannelSelect() {
   const { t, i18n } = useTranslation();
-  const channels = useOverview((s) => s.data?.channels ?? []);
+  const channels = useOverview((s) => s.data?.channels ?? NO_CHANNELS);
   const setChannel = useOverview((s) => s.setChannel);
   const id = useModChannelId();
   if (channels.length < 2) return null;

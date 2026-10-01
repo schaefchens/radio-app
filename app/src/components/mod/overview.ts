@@ -26,6 +26,14 @@ export const useOverview = create<OverviewState>((set) => ({
   setChannel: (channelId) => set({ channelId }),
 }));
 
+/**
+ * The channels while the overview is still loading. A selector must return the
+ * same value until the store changes: `s.data?.channels ?? []` made a new array
+ * on every call, and React re-rendered until it gave up (error #185) — a fresh
+ * load of /mod/programs or /mod/plans showed an empty page.
+ */
+export const NO_CHANNELS: Overview['channels'] = [];
+
 /** The channel the page works on: the chosen one, else the main one. */
 export function useModChannelId(): number | null {
   const data = useOverview((s) => s.data);
