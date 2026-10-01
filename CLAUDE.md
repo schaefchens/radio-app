@@ -208,7 +208,12 @@ here: phone ≤ 600, desktop ≥ 900) and load after `index.css`, after
 Tailwind's reset. The stage is `data-theme="dark"` in both themes. The
 scenery is not precached (workbox `globIgnores`, cached on first use). A
 first visit gets the welcome dialog (language, theme); reactions stay
-pressed per device (`arche.reactions`).
+pressed per device (`arche.reactions`). `?install=1` (QR codes, flyers) opens
+an install sheet once the welcome is closed (`lib/pwaInstall.ts`,
+bible-assistant's): Chrome's own dialog behind one tap, written steps
+elsewhere. The event can fire before the bundle runs, and the CSP allows no
+inline script, so `public/install-event.js` catches it — only for that link,
+so every other visitor keeps Chrome's own install banner.
 
 **Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
 imprint and the privacy policy describe what this code does — the data flows
@@ -343,7 +348,8 @@ purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergr
 prayer music's fades and continuing pieces, timeline, clock, i18n keys, passphrase,
 realtime client, CDN fallback, theme, the phone carousel's fit, the prayer wall's
 day, "Praying now" and the silent-prayer pick, the pulse's voice reactions; jsdom:
-the stage's prayer views, the prayer sheet's wall box). Shared:
+the stage's prayer views, the prayer sheet's wall box, the install sheet's
+single-use prompt). Shared:
 fixture parsing. Lint + typecheck gate all.
 
 End to end: `npm run e2e` starts the e2e stack (`scripts/e2e-stack.sh`: project
@@ -360,7 +366,7 @@ under a sheet), no sideways scroll at 360/390 px on every page, passphrase on a
 second device, song/prayer/recording through moderation, /mod gate, library,
 pull from air, a rejection explained and overruled in /mod, the welcome dialog
 (language and theme, once; `fakeYouTube()` pre-dismisses it for every other
-test), the theme following the device until Profile picks one, the pinned
+test), an install link after the welcome, the theme following the device until Profile picks one, the pinned
 phone player and the tiles unfolding, a prayer on the prayer wall (anonymous),
 no sideways scroll and the stage uncovered in both themes, chat between two
 listeners, the program read cross-origin from

@@ -38,7 +38,7 @@ SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 
   # PWA entry points are always revalidated, or a stale index.html boots asset
   # hashes that no longer exist.
-  <FilesMatch "^(index\.html|sw\.js|registerSW\.js|manifest\.webmanifest)$">
+  <FilesMatch "^(index\.html|sw\.js|registerSW\.js|install-event\.js|manifest\.webmanifest)$">
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 

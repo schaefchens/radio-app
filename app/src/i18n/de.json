@@ -263,6 +263,22 @@
   "updates": {
     "banner": "Eine neue Version von Arche Radio ist bereit – zum Aktualisieren tippen"
   },
+  "install": {
+    "title": "Arche Radio installieren",
+    "intro": "Leg Arche Radio auf deinen Startbildschirm – dann öffnet es sich wie jede andere App, im Vollbild, direkt im Programm.",
+    "action": "Installieren",
+    "notNow": "Jetzt nicht",
+    "done": {
+      "title": "Zum Startbildschirm hinzugefügt",
+      "body": "Arche Radio wird installiert. Du kannst diesen Tab schließen und die App vom Startbildschirm aus öffnen."
+    },
+    "steps": {
+      "ios": "Tippe in deinem Browser auf „Teilen“ (auf neueren iPhones unter ⋯) und wähle „Zum Home-Bildschirm“.",
+      "firefox": "Firefox für Android kann es installieren: Menü (⋮) öffnen und „Installieren“ wählen. Am Rechner öffne diese Seite stattdessen in Chrome oder Edge.",
+      "safari": "Wähle in Safari „Ablage ▸ Zum Dock hinzufügen“. In älteren Versionen öffne diese Seite stattdessen in Chrome oder Edge.",
+      "other": "Öffne das Menü deines Browsers und suche „App installieren“ oder „Zum Startbildschirm hinzufügen“."
+    }
+  },
   "errors": {
     "offline": "Du bist offline.",
     "rate_limited": "Zu viele Versuche – bitte warte kurz.",

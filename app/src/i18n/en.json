@@ -263,6 +263,22 @@
   "updates": {
     "banner": "A new version of Arche Radio is ready — tap to update"
   },
+  "install": {
+    "title": "Install Arche Radio",
+    "intro": "Put Arche Radio on your home screen and it opens like any other app — full screen, straight into the program.",
+    "action": "Install",
+    "notNow": "Not now",
+    "done": {
+      "title": "Added to your home screen",
+      "body": "Arche Radio is being installed. You can close this tab and open it from your home screen."
+    },
+    "steps": {
+      "ios": "Tap the Share button in your browser (on newer iPhones it is under ⋯), then choose “Add to Home Screen”.",
+      "firefox": "Firefox on Android can install it: open the menu (⋮) and choose “Install”. On a computer, open this page in Chrome or Edge instead.",
+      "safari": "In Safari, choose File ▸ “Add to Dock”. On older versions, open this page in Chrome or Edge instead.",
+      "other": "Open your browser’s menu and look for “Install app” or “Add to Home screen”."
+    }
+  },
   "errors": {
     "offline": "You're offline.",
     "rate_limited": "Too many attempts — please wait a little.",

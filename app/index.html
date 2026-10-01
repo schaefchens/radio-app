@@ -13,6 +13,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Arche Radio" />
     <title>Arche Radio</title>
+    <!-- Not deferred: it must listen before the browser decides the app is installable (lib/pwaInstall.ts). -->
+    <script src="/install-event.js"></script>
   </head>
   <body class="bg-base text-ink antialiased">
     <div id="root"></div>

@@ -4,6 +4,7 @@ import { UpdateBanner } from './UpdateBanner';
 import { MainNav } from './MainNav';
 import { MobileDock } from './MobileDock';
 import { WelcomeDialog } from './WelcomeDialog';
+import { InstallSheet } from './InstallSheet';
 import { BroadcastIcon } from './icons';
 import { StageRegion } from '@/components/stage/StageRegion';
 import { SubmitSheets, SubmitTiles } from '@/components/home/SubmitTiles';
@@ -63,6 +64,7 @@ export function AppShell() {
       {/* Mounted once, where the tiles are (a closed sheet stays in the DOM). */}
       {onHome && <SubmitSheets />}
       <WelcomeDialog />
+      <InstallSheet />
     </div>
   );
 }
