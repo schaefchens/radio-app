@@ -179,6 +179,29 @@ test('requests: intake closes 15 minutes before a program ends, last chance from
     check(in_array('hidden', array_column($app->store()->all('PRAGMA table_info(submissions)'), 'name'), true), 'an existing database gets the prayer wall column');
 });
 
+test('requests: a requested song never plays as a regular song before its request — it would air twice in a row', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    ticks($app, 10);
+    // The music selection takes the newest song whenever it may — the one a
+    // request has just added to the library (what happened on air).
+    $app->selector()->useRandom(fn(int $min, int $max): int => $max);
+    $first = $app->submissions()->submitSong(listener($app), TestKit::main($app), ['url' => 'https://youtu.be/ReqFirst001', 'name' => 'Rosi']);
+    runJobs($app);
+    ticks($app, 2);
+    $second = $app->submissions()->submitSong(listener($app), TestKit::main($app), ['url' => 'https://youtu.be/ReqSecond01', 'name' => 'Christoph']);
+    runJobs($app);
+    // The stub gives every video the same artist; real songs have their own
+    // (the same artist would keep it out of the selection for an hour anyway).
+    $app->store()->update('library_items', ['artist' => 'Paul Gerhardt'], 'id = ?', [(int) $app->submissions()->byPublicId($second['id'])['library_id']]);
+    ticks($app, 40);
+    foreach ([$first, $second] as $s) {
+        $row = $app->submissions()->byPublicId($s['id']);
+        $airings = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'song' && $i['library_id'] === (int) $row['library_id']));
+        eq(array_column($airings, 'submission_id'), [(int) $row['id']], "{$row['name']}'s song airs once, as the request");
+    }
+});
+
 test('requests: a requested song pulled from air takes its announcement along; the request is marked missed', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);

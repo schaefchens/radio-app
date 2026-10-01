@@ -47,7 +47,14 @@ final class Selector
     public function pick(array $channel, array $program, int $atMs, int $maxMs): ?array
     {
         $cid = (int) $channel['id'];
-        $candidates = $this->app->library()->candidates($cid, (int) $program['id'], $maxMs);
+        // A requested song is in the library from its approval on, while its
+        // request waits its turn: picked meanwhile, it aired twice in a row —
+        // the host announcing the request right after the song itself.
+        $requested = $this->app->submissions()->requestedSongIds($cid);
+        $candidates = array_values(array_filter(
+            $this->app->library()->candidates($cid, (int) $program['id'], $maxMs),
+            fn(array $c): bool => !isset($requested[$c['id']]),
+        ));
         if (!$candidates) return null;
         $timeline = $this->app->timeline();
         foreach (self::WINDOWS as [$repeat, $artistGap]) {

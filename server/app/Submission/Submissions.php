@@ -503,6 +503,26 @@ final class Submissions
         $this->app->store()->update('submissions', ['status' => 'approved', 'aired_at' => null, 'updated' => $this->app->clock->now()], "id = ? AND status = 'scheduled'", [$id]);
     }
 
+    /**
+     * Library ids of the songs requests are still waiting to play (approved,
+     * or in the plan and not yet on air). The music selection leaves them to
+     * their requests.
+     *
+     * @return array<int,true>
+     */
+    public function requestedSongIds(int $channelId): array
+    {
+        $out = [];
+        foreach ($this->app->store()->all(
+            "SELECT library_id FROM submissions WHERE channel_id = ? AND type = 'song' AND library_id IS NOT NULL
+             AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
+            [$channelId, $this->app->clock->nowMs()],
+        ) as $r) {
+            $out[(int) $r['library_id']] = true;
+        }
+        return $out;
+    }
+
     /** Airtime (ms) already promised to listeners in this program. */
     public function queuedAirtime(int $channelId, int $programId): int
     {
