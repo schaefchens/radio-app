@@ -329,10 +329,17 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 "A test is earned by a risk." Server: `npm run test:php` (enoch-style harness,
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
 generator's timing invariants, the PHP→fixture contract, identity, submissions
-(request blocks, late approvals, the queue sweep, intake times, the prayer wall), moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+(request blocks, late approvals, the queue sweep, intake times, the prayer wall,
+typed prayers aired or given back, praying along), the prayer hour walked hour
+by hour (`prayerhour.php`: the running order, the rolling reading, repeats,
+the empty hour, intake to C, midnight, outages, last-minute and repeated plan
+changes, nobody listening, bursts, a short hour, the fallback rule, opening
+prayers), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
-timeline, clock, i18n keys, passphrase, realtime client, CDN fallback, theme,
-the phone carousel's fit, the prayer wall's day). Shared:
+prayer music's fades and continuing pieces, timeline, clock, i18n keys, passphrase,
+realtime client, CDN fallback, theme, the phone carousel's fit, the prayer wall's
+day, "Praying now" and the silent-prayer pick, the pulse's voice reactions; jsdom:
+the stage's prayer views, the prayer sheet's wall box). Shared:
 fixture parsing. Lint + typecheck gate all.
 
 End to end: `npm run e2e` starts the e2e stack (`scripts/e2e-stack.sh`: project
@@ -353,8 +360,16 @@ test), the theme following the device until Profile picks one, the pinned
 phone player and the tiles unfolding, a prayer on the prayer wall (anonymous),
 no sideways scroll and the stage uncovered in both themes, chat between two
 listeners, the program read cross-origin from
-the stand-in CDN (CSP included) and from the site when the CDN is down.
-`npm run e2e:reset` starts over.
+the stand-in CDN (CSP included) and from the site when the CDN is down, a
+prayer hour on a channel of its own (prayer music on the stage, a request from
+the stage onto the wall without its sender, praying along, the sender's count,
+no sideways scroll). `npm run e2e:reset` starts over.
+
+The dev and e2e stacks mount `server/app` live and their cron loops tick every
+minute: a half-written change runs there at once (and migrates their
+databases). A database migrated by an unmerged branch keeps that branch's
+numbering — the next versions on main are skipped there, so new tables and
+columns get names the branch did not use.
 
 ## Conventions
 
@@ -370,7 +385,6 @@ A custom hostname for the CDN zone, ElevenLabs as the default voice, archive *re
 are kept 48 h; `days/*.json` keep what played), Capacitor apps, phone background
 playback (not possible with YouTube embeds). Pending on the host: the Phase 0.5
 probe (background run length → `TICK_BUDGET`, WAL, directives) and the device
-sync spike on a real iPhone/Android. Program formats with a running order (a
-prayer hour: call for requests, opening prayer, songs, the requests presented
-and shown as a prayer wall, listeners' prayers with calm gaps, a closing
-summary) are an idea for later.
+sync spike on a real iPhone/Android, and there the prayer music (it plays after
+the join tap, fades, goes on across pieces, comes back after the background).
+More program formats with a running order beyond the prayer hour.

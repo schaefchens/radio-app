@@ -53,6 +53,7 @@
   },
   "host": {
     "idle": "{{name}} will be back between the songs.",
+    "idlePrayer": "{{name}} will pray with us again soon.",
     "aiNote": "AI host",
     "heading": "From the host"
   },

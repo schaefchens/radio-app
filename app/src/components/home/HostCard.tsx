@@ -31,7 +31,8 @@ export function HostBody() {
   const channel = useSession((s) => s.channels?.channels.find((c) => c.id === engine.channel));
   const name = channel?.host.name ?? 'Hope';
   const speaking = engine.hostText !== null;
-  const text = engine.hostText ?? engine.lastHost?.text ?? t('host.idle', { name });
+  // A prayer hour has no songs to come back between.
+  const text = engine.hostText ?? engine.lastHost?.text ?? t(engine.program?.format === 'prayer' ? 'host.idlePrayer' : 'host.idle', { name });
   return (
     <div className="host-body">
       <div className="host-avatar" aria-hidden="true">

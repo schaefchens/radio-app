@@ -53,6 +53,7 @@
   },
   "host": {
     "idle": "{{name}} meldet sich zwischen den Liedern wieder.",
+    "idlePrayer": "{{name}} betet gleich wieder mit uns.",
     "aiNote": "KI-Moderation",
     "heading": "Stimme der Moderation"
   },

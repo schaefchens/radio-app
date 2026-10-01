@@ -26,8 +26,11 @@ local station over. A look inside:
 The stack runs with `AI_MODE=stub` (no paid calls). For the real host voice:
 `AI_MODE=live npm run stack` (an OpenAI key is enough: it writes, voices,
 transcribes and moderates; with `ANTHROPIC_KEY` set, Claude writes and
-moderates instead). Costs are capped by `AI_DAILY_BUDGET_USD`, and nothing is
-generated while nobody listens. One real host break without touching the
+moderates instead). Costs are capped by `AI_DAILY_BUDGET_USD`; while nobody
+listens, the host voices only what listeners sent (announced requests,
+recordings, prayer requests). Locally that means a prayer hour opens without
+its welcome unless someone listened about eight minutes before it (the e2e
+stack sets `HOST_MIN_LISTENERS=0`). One real host break without touching the
 program: see `server/bin/try-host.php`.
 
 First admin, exactly as in production: open http://localhost:5180/profile,
@@ -40,13 +43,16 @@ Then build programs, plans and the song library in /mod.
 npm run verify          # typecheck + lint + all JS tests + PHP tests
 npm test                # shared, app, realtime (Vitest)
 npm run test:php        # server tests in the PHP 8.5 container
+npm run test:php -- "prayer hour"   # only the tests whose name contains this
 npm run e2e             # Playwright against a separate e2e stack (:8090), see below
 ```
 
 `npm run e2e` builds the PWA and starts its own Docker project (`arche-e2e`,
 web :8090, realtime :8797) on `.data/e2e`, with stub AI, a fake YouTube and no
 real keys — the dev stack and its data are not touched. The first run on a
-fresh e2e station waits a minute or two until the program is on air.
+fresh e2e station waits a minute or two until the program is on air; the
+prayer hour spec opens a channel of its own and waits a few more minutes for
+its prayer music.
 `npm run e2e:down` stops it, `npm run e2e:reset` deletes its data. Needs the
 Playwright browser once: `npx playwright install chromium`.
 
