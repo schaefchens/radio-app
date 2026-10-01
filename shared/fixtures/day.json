@@ -16,7 +16,8 @@
       "description": { "en": "Calm worship until morning.", "de": "Ruhiger Lobpreis bis zum Morgen." },
       "color": "#5b4bd6",
       "stage": { "mode": "ambient", "image": null, "tagline": { "en": "", "de": "" } },
-      "allowed": ["song"]
+      "allowed": ["song"],
+      "format": "music"
     },
     "prayer": {
       "id": "prayer",
@@ -25,7 +26,8 @@
       "description": { "en": "Your prayer requests on air.", "de": "Eure Gebetsanliegen on air." },
       "color": "#1d5ff5",
       "stage": { "mode": "image", "image": "/media/stage/77aa.webp", "tagline": { "en": "", "de": "" } },
-      "allowed": ["prayer"]
+      "allowed": ["prayer"],
+      "format": "prayer"
     }
   },
   "played": [

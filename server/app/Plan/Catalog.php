@@ -32,6 +32,17 @@ final class Catalog
         // Approved-but-unaired queue beyond this much airtime closes intake.
         'max_queue_min' => 30,
         'replay_contrib' => false,
+        // 'prayer': the prayer hour's running order (Program\PrayerHour)
+        // instead of music with the host between songs.
+        'format' => 'music',
+        'prayer' => [
+            // The collection: prayer music (a `bed` from the library) for N
+            // minutes, or N songs, while listeners send their requests.
+            'collect' => ['with' => 'music', 'minutes' => 8, 'songs' => 2, 'bed_id' => 0],
+            // Quiet minutes in the prayer time before the host prays again.
+            'quiet_min' => 4,
+            'after_songs' => 0,
+        ],
     ];
 
     /** @var array<int,array<string,mixed>> */
@@ -104,6 +115,10 @@ final class Catalog
         if (array_key_exists('sort', $data)) $row['sort'] = (int) $data['sort'];
         foreach (['default_day_plan_id', 'fallback_program_id'] as $k) {
             if (array_key_exists($k, $data)) $row[$k] = $data[$k] === null ? null : (int) $data[$k];
+        }
+        // A prayer hour's running order needs an end; a fallback runs all day.
+        if (isset($row['fallback_program_id']) && ($this->program($row['fallback_program_id'])['settings']['format'] ?? '') === 'prayer') {
+            throw new ApiError(422, 'prayer_fallback');
         }
         $now = $this->app->clock->now();
         $store = $this->app->store();
@@ -185,6 +200,17 @@ final class Catalog
             $row['settings'] = json_encode(self::cleanSettings($data['settings']), JSON_THROW_ON_ERROR);
         }
         if (array_key_exists('active', $data)) $row['active'] = $data['active'] ? 1 : 0;
+        $prayer = isset($row['settings'])
+            ? json_decode($row['settings'], true)['format'] === 'prayer'
+            : $id !== null && ($this->program($id)['settings']['format'] ?? '') === 'prayer';
+        if ($prayer) {
+            // A prayer hour takes prayer requests only (typed or recorded) …
+            $row['allowed'] = json_encode(['prayer']);
+            // … and cannot fill a plan's gaps: its running order needs an end.
+            if ($id !== null && $this->app->store()->value('SELECT COUNT(*) FROM channels WHERE fallback_program_id = ?', [$id]) > 0) {
+                throw new ApiError(422, 'prayer_fallback');
+            }
+        }
 
         $now = $this->app->clock->now();
         $store = $this->app->store();
@@ -221,6 +247,8 @@ final class Catalog
         $s = array_replace_recursive(self::PROGRAM_DEFAULTS, $settings);
         $host = is_array($s['host']) ? $s['host'] : [];
         $silence = is_array($s['silence']) ? $s['silence'] : [];
+        $prayer = is_array($s['prayer']) ? $s['prayer'] : [];
+        $collect = is_array($prayer['collect'] ?? null) ? $prayer['collect'] : [];
         return [
             'host' => [
                 'enabled' => (bool) ($host['enabled'] ?? true),
@@ -238,6 +266,17 @@ final class Catalog
             'closed_min' => max(intdiv(\Arche\Program\Timing::DRAFT + \Arche\Program\Timing::MIN_SONG, 60_000) + 1, min(120, (int) $s['closed_min'])),
             'max_queue_min' => max(5, min(180, (int) $s['max_queue_min'])),
             'replay_contrib' => (bool) $s['replay_contrib'],
+            'format' => $s['format'] === 'prayer' ? 'prayer' : 'music',
+            'prayer' => [
+                'collect' => [
+                    'with' => ($collect['with'] ?? 'music') === 'songs' ? 'songs' : 'music',
+                    'minutes' => max(3, min(20, (int) ($collect['minutes'] ?? 8))),
+                    'songs' => max(1, min(5, (int) ($collect['songs'] ?? 2))),
+                    'bed_id' => max(0, (int) ($collect['bed_id'] ?? 0)),
+                ],
+                'quiet_min' => max(2, min(15, (int) ($prayer['quiet_min'] ?? 4))),
+                'after_songs' => max(0, min(5, (int) ($prayer['after_songs'] ?? 0))),
+            ],
         ];
     }
 
@@ -271,6 +310,7 @@ final class Catalog
                 'tagline' => ['en' => (string) $p['tagline_en'], 'de' => (string) $p['tagline_de']],
             ],
             'allowed' => $p['allowed'],
+            'format' => $p['settings']['format'] === 'prayer' ? 'prayer' : 'music',
         ];
         if ($withDescription) {
             $ref['description'] = ['en' => (string) $p['description_en'], 'de' => (string) $p['description_de']];

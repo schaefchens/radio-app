@@ -60,3 +60,24 @@ test('plan: a program running across midnight is one block', function () {
     $b = $app->resolver()->blockAt($ch, strtotime('2026-09-23T21:30:00Z') * 1000);
     check($b['end'] > strtotime('2026-09-23T22:00:00Z') * 1000, 'extends past local midnight');
 });
+
+test('plan: a program\'s run goes on across midnight both ways, where its block does not', function () {
+    $app = TestKit::app();
+    $cat = $app->catalog();
+    $ch = TestKit::main($app);
+    $cid = (int) $ch['id'];
+    $p = $cat->saveProgram(null, $cid, ['slug' => 'vigil', 'title_en' => 'Vigil', 'title_de' => 'Nachtwache'], 'test');
+    // 22:00–24:00 on the 23rd and 00:00–01:30 on the 24th, Berlin (20:00 and 23:30 UTC).
+    $today = $cat->saveDayPlan(null, $cid, 'Late', [['start_min' => 1320, 'end_min' => 1440, 'program_id' => $p['id']]], 'test');
+    $tomorrow = $cat->saveDayPlan(null, $cid, 'Early', [['start_min' => 0, 'end_min' => 90, 'program_id' => $p['id']]], 'test');
+    $cat->addSpecialDay($cid, ['name' => 'Late', 'kind' => 'date', 'month' => 9, 'day' => 23, 'day_plan_id' => $today], 'test');
+    $cat->addSpecialDay($cid, ['name' => 'Early', 'kind' => 'date', 'month' => 9, 'day' => 24, 'day_plan_id' => $tomorrow], 'test');
+    $start = strtotime('2026-09-23T20:00:00Z') * 1000;
+    $end = strtotime('2026-09-23T23:30:00Z') * 1000;
+    $r = $app->resolver();
+    foreach ([$start, $start + 60_000, $end - 100 * 60_000, $end - 60_000] as $t) {
+        eq($r->runAt($ch, $t), ['start' => $start, 'end' => $end, 'program_id' => (int) $p['id']], 'one run at ' . gmdate('H:i', intdiv($t, 1000)));
+    }
+    eq($r->blockAt($ch, $start + 60_000)['end'], strtotime('2026-09-23T22:00:00Z') * 1000, 'its block, two hours before midnight, still ends there');
+    eq($r->blockAt($ch, $end - 60_000)['start'], strtotime('2026-09-23T22:00:00Z') * 1000, 'and after midnight a block starts anew');
+});

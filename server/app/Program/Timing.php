@@ -46,6 +46,42 @@ final class Timing
     public const STAGE_ITEM = 300_000;
     public const FILLER_SILENCE_MAX = 60_000;
 
+    // --- the prayer hour (PrayerHour) ---------------------------------------------
+    /**
+     * In a prayer hour's prayer time the plan reaches only this far ahead, not
+     * DRAFT: a prayer moment takes the requests approved when it is drafted,
+     * so drafting it later brings newer ones on air sooner. It still leaves two
+     * ticks to write and voice it before the commit.
+     */
+    public const PRAYER_LEAD = 420_000;
+    /** Silence (and the quiet collection) is planned in pieces of at most this. */
+    public const SILENT_CHUNK = 60_000;
+    /** No piece of silence or music is planned shorter (except the last before the outro). */
+    public const MIN_CHUNK = 15_000;
+    /**
+     * Silence after every prayer moment before the next one: a breath to pray
+     * along, and about one moment a tick (a backlog goes in moments of three).
+     * Counted from the moment's end — its voice decides how long it is.
+     */
+    public const PRAYER_PAUSE = 30_000;
+    /** However short the hour, its prayer time lasts at least this. */
+    public const MIN_PRAYER = 600_000;
+    /** A song after the outro, as the outro time reserves it: an estimate, so that time follows from the plan alone. */
+    public const AFTER_SONG = 240_000;
+    public const OUTRO_ESTIMATE = 45_000;
+    public const OPENING_ESTIMATE = 35_000;
+    /** The opening prayer and the invitation belong to the first minutes of the hour. */
+    public const OPENING_WITHIN = 300_000;
+    public const INVITE_WITHIN = 480_000;
+    /** An outro that has not come this long after its time is not tried any more. */
+    public const OUTRO_LATE = 120_000;
+
+    /** How long a prayer moment for $requests requests is planned (the voice decides at commit). */
+    public static function momentEstimate(int $requests): int
+    {
+        return $requests > 0 ? 15_000 + 12_000 * $requests : 20_000;
+    }
+
     public static function floorMinute(int $ms): int
     {
         return intdiv($ms, self::MINUTE) * self::MINUTE;

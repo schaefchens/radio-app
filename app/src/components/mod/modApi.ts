@@ -38,6 +38,12 @@ export interface ProgramSettings {
   closed_min: number;
   max_queue_min: number;
   replay_contrib: boolean;
+  format: 'music' | 'prayer';
+  prayer: {
+    collect: { with: 'music' | 'songs'; minutes: number; songs: number; bed_id: number };
+    quiet_min: number;
+    after_songs: number;
+  };
 }
 
 export interface ModChannel {
@@ -146,6 +152,7 @@ const KNOWN: Record<string, string> = {
   already_in_library: 'mod.library.existing',
   video_unplayable: 'mod.review.blockers.video_unplayable',
   recording_deleted: 'mod.review.blockers.recording_deleted',
+  prayer_fallback: 'mod.programs.prayer.notFallback',
 };
 
 export function modError(e: unknown): string {

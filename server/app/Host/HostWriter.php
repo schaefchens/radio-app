@@ -4,6 +4,9 @@ declare(strict_types=1);
 namespace Arche\Host;
 
 use Arche\App;
+use Arche\Program\PrayerHour;
+use Arche\Program\SubmissionWindow;
+use Arche\Submission\Submissions;
 
 /**
  * Writes what the AI host says: one script per station language, from the
@@ -17,6 +20,8 @@ use Arche\App;
 final class HostWriter
 {
     private const MAX_CHARS = 700;
+    /** A prayer for three requests, or an opening prayer, runs longer — in German past 700. */
+    private const MAX_CHARS_PRAYER = 1100;
 
     public function __construct(private App $app) {}
 
@@ -94,7 +99,74 @@ final class HostWriter
                 array_slice($this->app->presence()->voices((string) ($channel['slug'] ?? 'main')), 0, 2),
             );
         }
+        if (PrayerHour::applies($program)) $this->prayerHour($ctx, $hb, $channel, $program, $item);
         return $ctx;
+    }
+
+    /**
+     * What a moment of the prayer hour needs besides the usual: which part of
+     * the running order it is, the requests (one on the prayer wall without
+     * its sender: the wall is anonymous, and the host saying the name while
+     * the app marks it "Praying now" would undo that — the model cannot say
+     * what it is not given), how long listeners have to send requests, and
+     * what the hour prayed for.
+     *
+     * @param array<string,mixed> $ctx
+     * @param array<string,mixed> $hb
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $program
+     * @param array<string,mixed>|null $item
+     */
+    private function prayerHour(array &$ctx, array $hb, array $channel, array $program, ?array $item): void
+    {
+        $ctx['format'] = 'prayer hour';
+        $c = $hb['context'];
+        if ($hb['kind'] === 'prayer') {
+            $ctx['phase'] = (string) ($c['phase'] ?? 'new');
+            if (!empty($c['first'])) $ctx['first'] = true;
+            $requests = [];
+            foreach (HostBreaks::prayerIds($hb) as $id) {
+                $p = $this->app->submissions()->get($id);
+                if ($p !== null) $requests[] = $this->request($p);
+            }
+            if (isset($c['again_id'])) {
+                $p = $this->app->submissions()->get((int) $c['again_id']);
+                // Taken off the wall since it was planned: a prayer for everyone instead.
+                if ($p !== null && Submissions::onWall($p)) $requests = [$this->request($p)];
+                else $ctx['phase'] = 'general';
+            }
+            unset($ctx['prayers']);
+            if ($requests) $ctx['prayers'] = $requests;
+        }
+        if ($hb['kind'] === 'invite') {
+            $collect = $program['settings']['prayer']['collect'];
+            $bed = $collect['with'] === 'music' && (int) $collect['bed_id'] > 0 ? $this->app->library()->get((int) $collect['bed_id']) : null;
+            $ctx['collect'] = match (true) {
+                $collect['with'] === 'songs' => ['songs' => (int) $collect['songs']],
+                $bed !== null && $bed['kind'] === 'bed' && $bed['active'] => ['quiet_music_minutes' => (int) $collect['minutes']],
+                default => ['quiet_minutes' => (int) $collect['minutes']],
+            };
+            $at = (int) ($item['est_start'] ?? $this->app->clock->nowMs());
+            $states = SubmissionWindow::states($this->app, $channel, $program, $this->app->resolver()->runAt($channel, $at), $at);
+            $ctx['intake'] = is_array($states) ? ($states['prayer'] ?? 'closed') : 'closed';
+        }
+        if ($hb['kind'] === 'outro' && $item !== null) {
+            $prayed = $this->app->prayerHour()->prayedFor((int) $hb['channel_id'], (int) $program['id'], (float) $item['seq']);
+            $ctx['prayed'] = count($prayed);
+        }
+    }
+
+    /**
+     * A request as the host may speak of it: on the wall without its sender.
+     *
+     * @param array<string,mixed> $p submission row
+     * @return array<string,mixed>
+     */
+    private function request(array $p): array
+    {
+        return Submissions::onWall($p)
+            ? ['on_wall' => true, 'text' => (string) $p['text']]
+            : ['on_wall' => false, 'name' => (string) $p['name'], 'place' => (string) $p['place'], 'text' => (string) $p['text']];
     }
 
     /**
@@ -132,11 +204,12 @@ final class HostWriter
         $fallback = Templates::texts((string) $hb['kind'], $context);
         if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason];
 
+        $max = in_array($hb['kind'], ['prayer', 'opening'], true) ? self::MAX_CHARS_PRAYER : self::MAX_CHARS;
         $texts = [];
         foreach ($langs as $l) {
             $t = trim((string) ($result->data[$l]['text'] ?? ''));
             $t = trim((string) preg_replace('/\s+/u', ' ', strip_tags($t)), " \"'“”„");
-            $texts[$l] = ($t === '' || mb_strlen($t) > self::MAX_CHARS) ? $fallback[$l] : $t;
+            $texts[$l] = ($t === '' || mb_strlen($t) > $max) ? $fallback[$l] : $t;
         }
         return ['texts' => $texts, 'source' => $model->provider()];
     }
@@ -155,13 +228,16 @@ final class HostWriter
         Voice and length:
         - Warm, joyful and sincere; never preachy, never salesy, never over the top.
         - Written for the ear: 1 to 3 short sentences, at most 45 words per language. A prayer
-          may use up to 90 words, a moment that also reacts to previous_request up to 70.
+          may use up to 90 words (a prayer hour's prayer for several requests up to 130), a moment
+          that also reacts to previous_request up to 70.
         - No emojis, hashtags, links, stage directions or quotation marks around the whole text.
 
         Facts and honesty:
         - You are an AI host. Never claim to be human or invent personal experiences.
         - Say nothing about a song or artist beyond the title and artist you are given.
         - Name a listener only by the first name and place given — nothing else about them.
+          Never name the sender of a request marked "on_wall": it is shown on the prayer wall
+          anonymously; speak of "a request on our prayer wall".
         - Quote or reference Scripture only when you are certain of it; paraphrase rather than
           misquote. Stay broadly Christian and ecumenical: no denominational disputes, no politics.
         - The English version is heard worldwide: do not mention the time of day, the season or
@@ -175,8 +251,31 @@ final class HostWriter
         - announce: a listener requested the next song — say whose request it is (first name and
           place, when given) and pass on their dedication warmly, when there is one.
         - contrib: introduce a listener's recording (story, testimony, greeting or prayer).
-        - prayer: pray briefly for the listed prayer requests, speaking to God, first names only.
+        - prayer: pray briefly for the listed prayer requests, speaking to God, by first name and
+          place when given.
         - outro: close the program; point to what comes next if given.
+
+        In a prayer hour ("format": "prayer hour") listeners send prayer requests and pray together.
+        Its moments:
+        - intro: welcome everyone to the prayer hour, a time to pray together.
+        - opening: the opening prayer, speaking to God, for this hour together.
+        - invite: invite listeners to send their prayer requests now with the "Share a prayer request"
+          button in the app; say for how long ("collect": minutes of quiet music or of quiet, or while
+          the next songs play) and that we will then pray for every request together. If "intake" is
+          "closing", say that time is short.
+        - prayer, by "phase": open — the time of prayer begins: invite everyone to pray together and
+          pray briefly for everyone listening and all they bring; never say that nothing has come in.
+          read — requests sent during the collection: present each listed request in a few words and
+          pray for it. new — a request has just come in: present it and pray for it. again — take up
+          this request from the prayer wall once more and invite listeners to pray along in silence.
+          general — pray briefly for the world, the sick, the lonely and everyone listening, and invite
+          them to pray along in silence or to send a request.
+        - contrib: introduce the listener's recorded prayer request and invite everyone to pray for
+          it in the silence afterwards.
+        - outro: thank everyone who prayed and sent requests (you may say how many requests we prayed
+          for, "prayed"), close with a short blessing and point to what comes next if given. The
+          German blessing may fit the given time of day ("einen gesegneten Abend"); the English one
+          stays time-neutral.
 
         previous_request, when given, is a listener's request or recording that aired shortly before
         this moment. Begin with one warm sentence that reacts to it — a thought on the song, or a

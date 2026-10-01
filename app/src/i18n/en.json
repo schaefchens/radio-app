@@ -460,7 +460,27 @@
       "replay": "Replay approved recordings",
       "active": "Active",
       "inUse": "This program is still used by a plan or as fallback.",
-      "deleteConfirm": "Delete this program?"
+      "deleteConfirm": "Delete this program?",
+      "format": "Format",
+      "formatMusic": "Music, with the host between songs",
+      "formatPrayer": "Prayer hour",
+      "prayer": {
+        "heading": "Prayer hour",
+        "order": "Welcome → opening prayer → invitation to send prayer requests → collection time → the host prays for the requests, one moment at a time, with silence in between → outro with a blessing. Requests sent in the last minutes before the host prays come a few minutes later.",
+        "onlyPrayer": "A prayer hour takes prayer requests only (typed or recorded).",
+        "intakeHint": "In a prayer hour, these minutes count to the outro.",
+        "collect": "While requests come in",
+        "collectMusic": "Prayer music",
+        "collectSongs": "Songs",
+        "music": "Background music",
+        "quiet": "None — quiet",
+        "noMusic": "Upload background music in Library first.",
+        "minutes": "For … minutes",
+        "songs": "Number of songs",
+        "quietMin": "Quiet minutes before the host prays again",
+        "afterSongs": "Songs after the outro",
+        "notFallback": "A prayer hour cannot be a channel's fallback program: its running order needs an end."
+      }
     },
     "plans": {
       "dayPlans": "Day plans",

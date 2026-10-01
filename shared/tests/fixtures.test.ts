@@ -34,6 +34,9 @@ describe('program file fixtures', () => {
     expect(bed).toMatchObject({ audio: '/media/beds/5e0d7a.mp3', offset: 60000, label: { en: 'What can we pray for?', de: 'Wofür dürfen wir beten?' } });
     expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing' });
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
+    expect(slot!.programs.worship?.format).toBe('music');
+    const host = slot!.items.find((i) => i.type === 'host');
+    expect(host?.type === 'host' && host.prayers).toEqual(['pk3v9q2m7x4tb']);
   });
 
   it('day, live, channels and evergreen parse', () => {
@@ -41,6 +44,7 @@ describe('program file fixtures', () => {
     expect(day?.blocks).toHaveLength(2);
     expect(day?.played).toHaveLength(2);
     expect(day?.programs.prayer?.description.de).not.toBe('');
+    expect(day?.programs.prayer?.format).toBe('prayer');
 
     const live = parseLiveFile(load('live.json'));
     expect(live?.voices).toHaveLength(2);
@@ -76,6 +80,15 @@ describe('program file fixtures', () => {
       parseSlotFile({ ...(load('slot.json') as object), items: extra.map((e, i) => ({ id: `b${i}`, type: 'bed', start: i * 1000, dur: 1000, p: 'prayer', ...e })) })?.items;
     expect(items([{ label: { en: 'x', de: 'y' } }, { audio: '' }])).toEqual([]);
     expect(items([{ audio: '/media/beds/a.mp3', offset: -5 }, { audio: '/media/beds/a.mp3' }])?.map((i) => i.type === 'bed' && i.offset)).toEqual([0, 0]);
+  });
+
+  it('an older generator\'s host item and program read as before; new host kinds are known, unknown ones a break', () => {
+    const raw = load('slot.json') as { items: Record<string, unknown>[]; programs: Record<string, Record<string, unknown>> };
+    const host = { ...raw.items[1]!, prayers: undefined };
+    const { format: _format, ...worship } = raw.programs.worship!;
+    const slot = parseSlotFile({ ...raw, programs: { worship }, items: [host, { ...host, id: 'k2', kind: 'invite' }, { ...host, id: 'k3', kind: 'hymn' }] });
+    expect(slot?.programs.worship?.format).toBe('music');
+    expect(slot?.items.map((i) => (i.type === 'host' ? [i.kind, i.prayers] : null))).toEqual([['break', []], ['invite', []], ['break', []]]);
   });
 
   it('rejects unknown versions and drops unknown item types', () => {

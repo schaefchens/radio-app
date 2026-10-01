@@ -261,6 +261,28 @@ final class Timeline
         });
     }
 
+    /**
+     * A request taken off the prayer wall: the planned moments that would take
+     * it up again from the wall go. The committed ones (the next five
+     * minutes) cannot; the plan fills the rest again.
+     *
+     * @return int drafts dropped
+     */
+    public function dropRepeatsOf(int $submissionId): int
+    {
+        $store = $this->app->store();
+        $n = 0;
+        foreach ($store->all(
+            "SELECT t.id, t.host_break_id FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id
+             WHERE t.state = 'draft' AND h.kind = 'prayer' AND json_extract(h.context, '$.again_id') = ?",
+            [$submissionId],
+        ) as $d) {
+            $this->app->hostBreaks()->cancel((int) $d['host_break_id']);
+            $n += $store->update('timeline_items', ['state' => 'dropped'], "id = ? AND state = 'draft'", [(int) $d['id']]);
+        }
+        return $n;
+    }
+
     /** @return list<array<string,mixed>> songs and contributions that started in [from, to) */
     public function played(int $channelId, int $from, int $to): array
     {

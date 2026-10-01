@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useApi } from './useApi';
 import { useModChannelId, useOverview } from './overview';
-import { modError, type ModProgram, type ProgramSettings } from './modApi';
+import { clockDuration } from '@/lib/format';
+import { modError, type LibraryItem, type ModProgram, type ProgramSettings } from './modApi';
 import { ChannelSelect } from './ChannelSelect';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 
@@ -17,6 +18,8 @@ const DEFAULT_SETTINGS: ProgramSettings = {
   closed_min: 15,
   max_queue_min: 30,
   replay_contrib: false,
+  format: 'music',
+  prayer: { collect: { with: 'music', minutes: 8, songs: 2, bed_id: 0 }, quiet_min: 4, after_songs: 0 },
 };
 
 type Draft = Omit<ModProgram, 'id' | 'channel_id' | 'active'> & { active: boolean };
@@ -114,6 +117,10 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]): void => setD((x) => ({ ...x, [k]: v }));
   const setS = (patch: Partial<ProgramSettings>): void => setD((x) => ({ ...x, settings: { ...x.settings, ...patch } }));
+  const prayer = d.settings.format === 'prayer';
+  const setP = (patch: Partial<ProgramSettings['prayer']>): void => setS({ prayer: { ...d.settings.prayer, ...patch } });
+  const setC = (patch: Partial<ProgramSettings['prayer']['collect']>): void => setP({ collect: { ...d.settings.prayer.collect, ...patch } });
+  const beds = useApi<{ items: LibraryItem[] }>(prayer ? '/mod/library?kind=bed&limit=100' : null);
   const num = (v: string): number => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
   const save = async (): Promise<void> => {
@@ -211,18 +218,29 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
         </div>
       </div>
 
+      <Field label={t('mod.programs.format')}>
+        <select className="field" value={d.settings.format} onChange={(e) => setS({ format: e.target.value as ProgramSettings['format'] })}>
+          <option value="music">{t('mod.programs.formatMusic')}</option>
+          <option value="prayer">{t('mod.programs.formatPrayer')}</option>
+        </select>
+      </Field>
+
       <div>
         <p className="label">{t('mod.programs.allowed')}</p>
-        <div className="flex flex-wrap gap-4">
-          {TYPES.map((type) => (
-            <Check
-              key={type}
-              label={type === 'song' ? t('submit.song.title') : type === 'prayer' ? t('submit.prayer.title') : t(`record.${type}`)}
-              checked={d.allowed.includes(type)}
-              onChange={(on) => set('allowed', on ? [...d.allowed, type] : d.allowed.filter((a) => a !== type))}
-            />
-          ))}
-        </div>
+        {prayer ? (
+          <p className="text-sm text-ink-muted">{t('mod.programs.prayer.onlyPrayer')}</p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {TYPES.map((type) => (
+              <Check
+                key={type}
+                label={type === 'song' ? t('submit.song.title') : type === 'prayer' ? t('submit.prayer.title') : t(`record.${type}`)}
+                checked={d.allowed.includes(type)}
+                onChange={(on) => set('allowed', on ? [...d.allowed, type] : d.allowed.filter((a) => a !== type))}
+              />
+            ))}
+          </div>
+        )}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t('mod.programs.themes')} hint={t('mod.library.tagsHint')}>
@@ -242,18 +260,23 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           <Check label={t('mod.programs.replay')} checked={d.settings.replay_contrib} onChange={(v) => setS({ replay_contrib: v })} />
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label={t('mod.programs.everySongs')}>
-            <input type="number" min={1} max={12} className="field" value={d.settings.host.every_songs} onChange={(e) => setS({ host: { ...d.settings.host, every_songs: num(e.target.value) } })} />
-          </Field>
-          <Field label={t('mod.programs.jingleEvery')}>
-            <input type="number" min={0} max={20} className="field" value={d.settings.jingle_every_songs} onChange={(e) => setS({ jingle_every_songs: num(e.target.value) })} />
-          </Field>
-          <Field label={t('mod.programs.silenceEvery')}>
-            <input type="number" min={0} max={240} className="field" value={d.settings.silence.every_min} onChange={(e) => setS({ silence: { ...d.settings.silence, every_min: num(e.target.value) } })} />
-          </Field>
-          <Field label={t('mod.programs.silenceDur')}>
-            <input type="number" min={10} max={300} className="field" value={d.settings.silence.dur_s} onChange={(e) => setS({ silence: { ...d.settings.silence, dur_s: num(e.target.value) } })} />
-          </Field>
+          {/* A prayer hour follows its running order instead of these. */}
+          {!prayer && (
+            <>
+              <Field label={t('mod.programs.everySongs')}>
+                <input type="number" min={1} max={12} className="field" value={d.settings.host.every_songs} onChange={(e) => setS({ host: { ...d.settings.host, every_songs: num(e.target.value) } })} />
+              </Field>
+              <Field label={t('mod.programs.jingleEvery')}>
+                <input type="number" min={0} max={20} className="field" value={d.settings.jingle_every_songs} onChange={(e) => setS({ jingle_every_songs: num(e.target.value) })} />
+              </Field>
+              <Field label={t('mod.programs.silenceEvery')}>
+                <input type="number" min={0} max={240} className="field" value={d.settings.silence.every_min} onChange={(e) => setS({ silence: { ...d.settings.silence, every_min: num(e.target.value) } })} />
+              </Field>
+              <Field label={t('mod.programs.silenceDur')}>
+                <input type="number" min={10} max={300} className="field" value={d.settings.silence.dur_s} onChange={(e) => setS({ silence: { ...d.settings.silence, dur_s: num(e.target.value) } })} />
+              </Field>
+            </>
+          )}
           <Field label={t('mod.programs.closingMin')}>
             <input type="number" min={0} max={120} className="field" value={d.settings.closing_min} onChange={(e) => setS({ closing_min: num(e.target.value) })} />
           </Field>
@@ -264,7 +287,52 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
             <input type="number" min={5} max={180} className="field" value={d.settings.max_queue_min} onChange={(e) => setS({ max_queue_min: num(e.target.value) })} />
           </Field>
         </div>
+        {prayer && <p className="text-xs text-ink-faint">{t('mod.programs.prayer.intakeHint')}</p>}
       </div>
+
+      {prayer && (
+        <div className="card-inset flex flex-col gap-3 p-3">
+          <p className="label">{t('mod.programs.prayer.heading')}</p>
+          <p className="text-sm text-ink-muted">{t('mod.programs.prayer.order')}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label={t('mod.programs.prayer.collect')}>
+              <select className="field" value={d.settings.prayer.collect.with} onChange={(e) => setC({ with: e.target.value as 'music' | 'songs' })}>
+                <option value="music">{t('mod.programs.prayer.collectMusic')}</option>
+                <option value="songs">{t('mod.programs.prayer.collectSongs')}</option>
+              </select>
+            </Field>
+            {d.settings.prayer.collect.with === 'music' ? (
+              <>
+                <Field label={t('mod.programs.prayer.music')} hint={beds.data?.items.length === 0 ? t('mod.programs.prayer.noMusic') : undefined}>
+                  <select className="field" value={d.settings.prayer.collect.bed_id} onChange={(e) => setC({ bed_id: num(e.target.value) })}>
+                    <option value={0}>{t('mod.programs.prayer.quiet')}</option>
+                    {(beds.data?.items ?? [])
+                      .filter((b) => Number(b.active) === 1 || b.id === d.settings.prayer.collect.bed_id)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.title} · {clockDuration(b.duration_ms)}
+                        </option>
+                      ))}
+                  </select>
+                </Field>
+                <Field label={t('mod.programs.prayer.minutes')}>
+                  <input type="number" min={3} max={20} className="field" value={d.settings.prayer.collect.minutes} onChange={(e) => setC({ minutes: num(e.target.value) })} />
+                </Field>
+              </>
+            ) : (
+              <Field label={t('mod.programs.prayer.songs')}>
+                <input type="number" min={1} max={5} className="field" value={d.settings.prayer.collect.songs} onChange={(e) => setC({ songs: num(e.target.value) })} />
+              </Field>
+            )}
+            <Field label={t('mod.programs.prayer.quietMin')}>
+              <input type="number" min={2} max={15} className="field" value={d.settings.prayer.quiet_min} onChange={(e) => setP({ quiet_min: num(e.target.value) })} />
+            </Field>
+            <Field label={t('mod.programs.prayer.afterSongs')}>
+              <input type="number" min={0} max={5} className="field" value={d.settings.prayer.after_songs} onChange={(e) => setP({ after_songs: num(e.target.value) })} />
+            </Field>
+          </div>
+        </div>
+      )}
 
       <Check label={t('mod.programs.active')} checked={d.active} onChange={(v) => set('active', v)} />
       <div className="flex flex-wrap items-center gap-2">

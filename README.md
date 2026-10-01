@@ -120,8 +120,9 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
 
 - **/mod → Status**: last tick, how far ahead each channel is committed, jobs,
   host-break outcomes, AI spend vs budget, realtime nodes, audit log.
-- **Costs**: `AI_DAILY_BUDGET_USD` (all AI), `HOST_MAX_BREAKS_PER_DAY`,
-  `HOST_MIN_LISTENERS`, `MODERATION_MAX_PER_DAY`. ElevenLabs is used only with
+- **Costs**: `AI_DAILY_BUDGET_USD` (all AI), `HOST_MAX_BREAKS_PER_DAY`
+  (300; a prayer hour adds 15–40 host moments), `HOST_MIN_LISTENERS`,
+  `MODERATION_MAX_PER_DAY`. ElevenLabs is used only with
   `TTS_PROVIDER=elevenlabs` and `ELEVENLABS_MAX_CHARS_PER_DAY` > 0.
 - **Backups**: a daily `VACUUM INTO` copy in `/_arche/var/backups` (seven kept).
 - **Pull from air**: /mod → Library → pull; clients skip it within a minute.
@@ -137,6 +138,15 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
 - **Prayer wall**: typed prayer requests whose senders ticked "show on the
   prayer wall" appear there once approved, without name or place (the newest
   30). /mod → Review → Prayer wall takes one down, or puts it back, at once.
+- **Prayer hour**: a program with the format "Prayer hour" (/mod → Programs)
+  runs welcome → opening prayer → invitation → collection → prayer time →
+  outro with a blessing, and takes prayer requests only. For the collection,
+  upload quiet music in /mod → Library → Background music (an MP3 of
+  20 s – 10 min, at most 8 MB: re-encode to about 128 kbps, e.g.
+  `ffmpeg -i in.mp3 -b:a 128k prayer.mp3`) and pick it in the program, or let
+  N songs play. A request approved now is prayed for about seven minutes
+  later; intake closes 15 minutes before the outro. A prayer hour cannot be a
+  channel's fallback program (its running order needs an end).
 - **Themes**: Kids Ark (light) and Storm Ark (dark), following the device
   until a listener picks one (welcome dialog, Profile). The design they
   implement is `concept-files/theme-preview.html`; the scenery lives in

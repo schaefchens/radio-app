@@ -88,10 +88,11 @@ export function parseProgramRef(v: unknown): ProgramRef | null {
     color: str(v.color) || '#2f7bff',
     stage: stage(v.stage),
     allowed: arr(v.allowed).filter(isSubmissionType),
+    format: v.format === 'prayer' ? 'prayer' : 'music',
   };
 }
 
-const HOST_KINDS: HostKind[] = ['intro', 'break', 'announce', 'outro', 'prayer', 'contrib'];
+const HOST_KINDS: HostKind[] = ['intro', 'break', 'announce', 'outro', 'prayer', 'contrib', 'opening', 'invite'];
 const CONTRIB_KINDS = ['story', 'testimony', 'greeting', 'prayer'] as const;
 
 export function parseItem(v: unknown): TimelineItem | null {
@@ -120,6 +121,7 @@ export function parseItem(v: unknown): TimelineItem | null {
         audio: langMap(v.audio),
         text: langMap(v.text),
         voices: compact(arr(v.voices), parseVoice),
+        prayers: arr(v.prayers).filter(isStr),
       };
     case 'jingle':
       return isStr(v.audio) ? { ...base, type: 'jingle', audio: v.audio } : null;

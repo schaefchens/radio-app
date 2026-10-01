@@ -13,7 +13,8 @@
       "subtitle": { "en": "Uplifting Hearts Worldwide", "de": "Herzen weltweit erheben" },
       "color": "#2f7bff",
       "stage": { "mode": "flyins", "image": "/media/stage/3f2a.webp", "tagline": { "en": "A Global Family in Worship", "de": "Eine weltweite Familie im Lobpreis" } },
-      "allowed": ["song", "prayer"]
+      "allowed": ["song", "prayer"],
+      "format": "music"
     }
   },
   "items": [
@@ -39,7 +40,8 @@
       "kind": "break",
       "audio": { "en": "/media/host/20260923/9c1e.en.mp3", "de": "/media/host/20260923/9c1e.de.mp3" },
       "text": { "en": "That was Good God…", "de": "Das war Good God…" },
-      "voices": [{ "id": "v81", "name": "Maria", "country": "DE", "text": "What a beautiful song!", "at": 1790189700000 }]
+      "voices": [{ "id": "v81", "name": "Maria", "country": "DE", "text": "What a beautiful song!", "at": 1790189700000 }],
+      "prayers": ["pk3v9q2m7x4tb"]
     },
     { "id": "i7kq2p", "type": "jingle", "start": 1790190199400, "dur": 6000, "p": "worship", "audio": "/media/jingles/a41b.mp3" },
     { "id": "i7kq2q", "type": "silence", "start": 1790190205400, "dur": 60000, "p": "worship", "label": { "en": "A moment of silence", "de": "Ein Moment der Stille" } },

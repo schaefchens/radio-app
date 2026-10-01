@@ -245,11 +245,14 @@ function ChannelEditor({ channel, onDone, onCancel }: { channel: ModChannel; onD
           <Field label={t('mod.channels.fallbackProgram')}>
             <select className="field" value={c.fallback_program_id ?? ''} onChange={(e) => set('fallback_program_id', e.target.value === '' ? null : Number(e.target.value))}>
               <option value="">{t('mod.common.none')}</option>
-              {(plans.data?.programs ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {i18n.language === 'de' ? p.title_de : p.title_en}
-                </option>
-              ))}
+              {/* A prayer hour's running order needs an end: never the fallback. */}
+              {(plans.data?.programs ?? [])
+                .filter((p) => p.settings.format !== 'prayer' || p.id === c.fallback_program_id)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {i18n.language === 'de' ? p.title_de : p.title_en}
+                  </option>
+                ))}
             </select>
           </Field>
         </div>

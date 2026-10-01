@@ -31,7 +31,7 @@ return [
     // Rough USD cap across all AI calls per UTC day. Host breaks and
     // moderation both stop (template / reject-later) when it is reached.
     'AI_DAILY_BUDGET_USD' => '5',
-    'HOST_MAX_BREAKS_PER_DAY' => '150',
+    'HOST_MAX_BREAKS_PER_DAY' => '300',
     // Below this many listeners a channel plays music only: no AI cost while
     // nobody is there (an idle dev deploy costs nothing).
     'HOST_MIN_LISTENERS' => '1',

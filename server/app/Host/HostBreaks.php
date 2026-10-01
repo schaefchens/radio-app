@@ -5,7 +5,9 @@ namespace Arche\Host;
 
 use Arche\App;
 use Arche\Audio\Mp3;
+use Arche\Program\PrayerHour;
 use Arche\Program\Timing;
+use Arche\Submission\Submissions;
 use Arche\Support\Ids;
 
 /**
@@ -50,8 +52,9 @@ final class HostBreaks
             'created' => $now,
             'updated' => $now,
         ]);
-        // Earliest airtime first; announcements before plain breaks at equal time.
-        $priority = in_array($kind, ['announce', 'contrib', 'prayer'], true) ? 10 : 20;
+        // Earliest airtime first; announcements, prayers and every moment the
+        // committer would rather delay than drop (a unit) before plain breaks.
+        $priority = in_array($kind, ['announce', 'contrib', 'prayer', 'opening', 'invite'], true) || ($item['unit'] ?? null) !== null ? 10 : 20;
         $this->app->jobs()->enqueue('host', $id, $priority, (int) $item['est_start']);
         return $id;
     }
@@ -69,11 +72,13 @@ final class HostBreaks
         return $row;
     }
 
-    public function cancel(int $id): void
+    /** @param string $why 'late': its time came before its voice (a plan change gives none) */
+    public function cancel(int $id, string $why = ''): void
     {
         $this->app->store()->query(
-            "UPDATE host_breaks SET state = 'cancelled', updated = ? WHERE id = ? AND state = 'pending'",
-            [$this->app->clock->now(), $id],
+            "UPDATE host_breaks SET state = 'cancelled', source = CASE WHEN ? = '' THEN source ELSE 'skipped:' || ? END, updated = ?
+             WHERE id = ? AND state = 'pending'",
+            [$why, $why, $this->app->clock->now(), $id],
         );
         $this->app->jobs()->cancel('host', $id);
     }
@@ -110,7 +115,30 @@ final class HostBreaks
             'audio' => $hb['audio'],
             'text' => array_intersect_key($hb['texts'], $hb['audio']),
             'voices' => $hb['kind'] === 'break' ? array_slice($this->app->presence()->voices($this->channelSlug($hb)), 0, 3) : [],
+            'prayers' => $this->wallRefs($hb),
         ];
+    }
+
+    /**
+     * In a prayer hour, the requests this moment prays for that are on the
+     * wall, by their wall id ('p' + public id): the app shows them as
+     * "Praying now". Only ids — what may be shown of them is live.json's
+     * business, where a moderator's takedown applies after publishing too.
+     *
+     * @param array<string,mixed> $hb
+     * @return list<string>
+     */
+    private function wallRefs(array $hb): array
+    {
+        if ($hb['kind'] !== 'prayer' || !PrayerHour::applies($hb['program_id'] !== null ? $this->app->catalog()->program((int) $hb['program_id']) : null)) return [];
+        $ids = self::prayerIds($hb);
+        if (isset($hb['context']['again_id'])) $ids[] = (int) $hb['context']['again_id'];
+        $refs = [];
+        foreach ($ids as $id) {
+            $sub = $this->app->submissions()->get($id);
+            if ($sub !== null && Submissions::onWall($sub)) $refs[] = 'p' . $sub['public_id'];
+        }
+        return $refs;
     }
 
     /**
@@ -174,15 +202,16 @@ final class HostBreaks
         $c = $this->app->config;
         if (!$this->available()) return 'unavailable';
         $slug = $this->channelSlug($hb);
-        $announced = in_array($hb['kind'], ['announce', 'contrib', 'prayer'], true);
-        // A listener who handed something in gets their announcement even when
-        // they are the only one listening; plain breaks need an audience.
-        if (!$announced && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
+        $owed = in_array($hb['kind'], ['announce', 'contrib'], true) || ($hb['kind'] === 'prayer' && self::prayerIds($hb) !== []);
+        // A listener who handed something in gets their announcement or
+        // prayer even when they are the only one listening; everything else —
+        // breaks, a prayer for everyone — needs an audience.
+        if (!$owed && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
         $today = (int) $this->app->store()->value(
             "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND state = 'ready' AND updated >= ?",
             [(int) $hb['channel_id'], $this->app->clock->now() - 86400],
         );
-        if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 150)) return 'daily_cap';
+        if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 300)) return 'daily_cap';
         if (!$this->app->usage()->withinBudget()) return 'budget';
         return null;
     }

@@ -28,6 +28,8 @@ export interface ProgramRef {
   /** Submission types this program accepts at all (the minute file says
    *  whether each is currently open). */
   allowed: SubmissionType[];
+  /** 'prayer': a prayer hour with its running order; 'music' otherwise. */
+  format: 'music' | 'prayer';
 }
 
 export interface Voice {
@@ -71,7 +73,8 @@ export interface SongItem extends ItemBase {
   fallback: string | null;
 }
 
-export type HostKind = 'intro' | 'break' | 'announce' | 'outro' | 'prayer' | 'contrib';
+/** opening and invite belong to a prayer hour: its opening prayer and the invitation to send prayer requests. */
+export type HostKind = 'intro' | 'break' | 'announce' | 'outro' | 'prayer' | 'contrib' | 'opening' | 'invite';
 
 export interface HostItem extends ItemBase {
   type: 'host';
@@ -80,6 +83,9 @@ export interface HostItem extends ItemBase {
   text: LangMap<string>;
   /** Community voices the host picked up; shown as fly-ins on the stage. */
   voices: Voice[];
+  /** In a prayer hour, the wall entries ('p' + id) this moment prays for — ids
+   *  only: live.json says what may be shown of them ("Praying now"). */
+  prayers: string[];
 }
 
 export interface JingleItem extends ItemBase {

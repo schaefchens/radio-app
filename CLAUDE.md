@@ -40,7 +40,8 @@ voiced (a tick or two; the cron runs every minute).
 1. **The radio never waits for AI or realtime.** The tick publishes under its
    own lock (`publish`) with no network calls, before any job work (`jobs`
    lock). A host break that is not voiced in time is dropped; a listener's
-   announced request is delayed (a filler song goes first), never split.
+   announced request is delayed (a filler song goes first), never split; a
+   prayer hour's moments wait behind silence or prayer music, never a song.
 2. **Published files are immutable.** UTC names, temp-file-and-rename writes,
    never a file for a past minute, never an overwrite. A moderator's "pull from
    air" goes through `live.json` (`blocked`), because minute files cannot change.
@@ -148,6 +149,31 @@ tick (never pre-ticked: Art. 9 needs a clear yes), anonymous (text and time,
 no name or place), the newest 30. In live.json, not the minute files, so a
 moderator's takedown (/mod → Review → Prayer wall, `submissions.hidden`)
 applies at once. Community voices are chat highlights only.
+
+The **prayer hour** (`Program\PrayerHour`; program setting `format: 'prayer'`,
+prayer requests only, never a channel's fallback) has its own running order:
+welcome → opening prayer → invitation → collection (prayer music in pieces that
+go on through the file, or N songs; requests appear on the wall only) → the
+prayer time → outro with a blessing at C → songs, if the program wants them.
+C = the run's end − `after_songs` × 4 min − 45 s, from the plan alone (an
+average song length would move the intake times already published). The run
+is `PlanResolver::runAt` (one run across midnight, where `blockAt` starts a new
+block); where the hour stands is read from its own items after the last item
+of another program (by seq), so an outage or a plan change mid-hour does not
+start it over, and a moment its gate refused (`failed`) or its time overtook
+(`skipped:late`) counts as tried. In the prayer time the plan reaches only
+`PRAYER_LEAD` (7 min) ahead — the step returns null and `Drafter::draft()`
+stops — so each moment takes what was approved since the last (three at most,
+`read` if sent during the collection, else `new`), with a pause of silence
+after it; quiet for `quiet_min` → one wall request again (`again`), an empty
+wall → `general`; otherwise 60 s pieces of "Silent prayer". The welcome,
+opening, invitation, outro and every moment with requests are units: late,
+they wait behind the hour's own filler (`PrayerHour::filler`: prayer music
+before the opening, silence later, in the waiting unit's program — never the
+previous program's song). A request on the wall reaches the model without
+name and place (it is prayed for anonymously); the moment's `prayers` lists
+the wall ids so the app can show "Praying now". Intake and `canStillAir`
+count to C.
 
 **Themes** (`app/src/lib/theme.ts`, `app/src/styles/`). The design is
 `concept-files/theme-preview.html`: Kids Ark (light) and Storm Ark (dark),

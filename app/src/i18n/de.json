@@ -460,7 +460,27 @@
       "replay": "Genehmigte Aufnahmen wiederholen",
       "active": "Aktiv",
       "inUse": "Diese Sendung wird noch in einem Plan oder als Ersatz verwendet.",
-      "deleteConfirm": "Diese Sendung löschen?"
+      "deleteConfirm": "Diese Sendung löschen?",
+      "format": "Format",
+      "formatMusic": "Musik, mit Moderation zwischen den Liedern",
+      "formatPrayer": "Gebetsstunde",
+      "prayer": {
+        "heading": "Gebetsstunde",
+        "order": "Begrüßung → Eröffnungsgebet → Einladung, Gebetsanliegen zu schicken → Sammelzeit → die Moderation betet für die Anliegen, ein Moment nach dem anderen, mit Stille dazwischen → Abschluss mit Segen. Anliegen aus den letzten Minuten vor dem Gebet kommen ein paar Minuten später dran.",
+        "onlyPrayer": "Eine Gebetsstunde nimmt nur Gebetsanliegen an (geschrieben oder aufgenommen).",
+        "intakeHint": "In einer Gebetsstunde zählen diese Minuten bis zum Abschluss.",
+        "collect": "Während die Anliegen eingehen",
+        "collectMusic": "Gebetsmusik",
+        "collectSongs": "Lieder",
+        "music": "Hintergrundmusik",
+        "quiet": "Keine – Stille",
+        "noMusic": "Lade zuerst Hintergrundmusik in der Bibliothek hoch.",
+        "minutes": "Für … Minuten",
+        "songs": "Anzahl der Lieder",
+        "quietMin": "Stille Minuten, bevor die Moderation wieder betet",
+        "afterSongs": "Lieder nach dem Abschluss",
+        "notFallback": "Eine Gebetsstunde kann nicht das Ersatzprogramm eines Kanals sein: Ihr Ablauf braucht ein Ende."
+      }
     },
     "plans": {
       "dayPlans": "Tagespläne",

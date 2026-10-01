@@ -7,6 +7,7 @@ use Arche\ApiError;
 use Arche\App;
 use Arche\Audio\Mp3;
 use Arche\Library\YouTube;
+use Arche\Program\PrayerHour;
 use Arche\Program\SubmissionWindow;
 use Arche\Program\Timing;
 use Arche\Support\Files;
@@ -444,7 +445,14 @@ final class Submissions
         if ($channel === null) return false;
         $end = (int) $sub['window_end'];
         $block = $this->app->resolver()->blockAt($channel, $end - 1);
-        if ($block['program_id'] === (int) $sub['program_id']) $end = max($end, $block['end']);
+        if ($block['program_id'] === (int) $sub['program_id']) {
+            $program = $this->app->catalog()->program((int) $sub['program_id']);
+            // A prayer hour prays until its outro, a moment at a time.
+            if (PrayerHour::applies($program)) {
+                return $this->app->prayerHour()->closingAt($channel, $program, $end - 1) - Timing::momentEstimate(1) >= $this->reach((int) $channel['id']);
+            }
+            $end = max($end, $block['end']);
+        }
         return $end - Timing::MIN_SONG >= $this->reach((int) $channel['id']);
     }
 
@@ -597,17 +605,26 @@ final class Submissions
         return array_map(fn($r) => ['id' => 'p' . $r['public_id'], 'text' => (string) $r['text'], 'at' => (int) $r['created'] * 1000], $rows);
     }
 
+    /** Whether a wall may show this submission: a typed prayer, its sender's yes, not taken down. @param array<string,mixed> $s */
+    public static function onWall(array $s): bool
+    {
+        return $s['type'] === 'prayer' && $s['mode'] === 'text' && (int) $s['consent_air'] === 1 && (int) ($s['hidden'] ?? 0) === 0;
+    }
+
     /**
      * A moderator takes a typed prayer off the wall (or puts it back). Only
      * the wall changes: its status, and so whether the host prays for it on
-     * air, stays as it was.
+     * air, stays as it was — except that a prayer hour no longer takes it up
+     * again "from the wall": repeats already planned for it go too.
      *
      * @return bool false when there is no typed prayer with this id
      */
     public function setHidden(string $publicId, bool $hidden): bool
     {
-        return $this->app->store()->update('submissions', ['hidden' => $hidden ? 1 : 0, 'updated' => $this->app->clock->now()],
+        $changed = $this->app->store()->update('submissions', ['hidden' => $hidden ? 1 : 0, 'updated' => $this->app->clock->now()],
             "public_id = ? AND type = 'prayer' AND mode = 'text'", [$publicId]) === 1;
+        if ($changed && $hidden) $this->app->timeline()->dropRepeatsOf((int) ($this->byPublicId($publicId)['id'] ?? 0));
+        return $changed;
     }
 
     /**

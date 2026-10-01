@@ -192,6 +192,20 @@ test('generator: after an outage the timeline re-anchors with a gap, past minute
     assertContiguous($after, 'contiguous after the gap');
 });
 
+test('generator: after a short outage the plan goes on from where the timeline restarts, not from before it', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12, 180_000);
+    $cid = (int) TestKit::main($app)['id'];
+    ticks($app, 10);
+    // Nine minutes: the drafts are not stale yet (ten), but their estimates lie in the past.
+    TestKit::clock($app)->advance(9 * 60_000);
+    $app->tick()->run('test');
+    $now = $app->clock->nowMs();
+    $tail = $app->timeline()->draftTail($cid) ?? throw new RuntimeException('no drafts');
+    check($tail['est_start'] + $tail['dur_ms'] <= $now + Timing::DRAFT + 180_000,
+        'planned about eight minutes ahead (one song at most beyond), not the outage over again');
+});
+
 test('generator: host breaks are voiced in both languages and committed with audio', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);

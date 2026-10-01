@@ -157,11 +157,46 @@ final class PlanResolver
         return ['start' => $tMs, 'end' => $tMs + 3_600_000, 'program_id' => $this->fallbackProgramId($channel)];
     }
 
-    /** @param array<string,mixed> $channel */
+    /**
+     * The program's whole run around $tMs: the block at $tMs, extended across
+     * local midnight both ways while the same program goes on. blockAt()
+     * starts a new block at midnight and extends one forward only within its
+     * last hour, so a prayer hour from 23:30 to 00:30 is one run only here.
+     *
+     * @param array<string,mixed> $channel
+     * @return array{start:int,end:int,program_id:int}
+     */
+    public function runAt(array $channel, int $tMs): array
+    {
+        $run = $this->blockAt($channel, $tMs);
+        for ($i = 0; $i < 3; $i++) {
+            $next = $this->blockAt($channel, $run['end']);
+            if ($next['program_id'] !== $run['program_id'] || $next['end'] <= $run['end']) break;
+            $run['end'] = $next['end'];
+        }
+        for ($i = 0; $i < 3; $i++) {
+            $prev = $this->blockAt($channel, $run['start'] - 1);
+            if ($prev['program_id'] !== $run['program_id'] || $prev['start'] >= $run['start']) break;
+            $run['start'] = $prev['start'];
+        }
+        return $run;
+    }
+
+    /**
+     * The program that fills the gaps of a plan. Never a prayer hour by
+     * default: its running order needs an end, and a fallback runs all day.
+     *
+     * @param array<string,mixed> $channel
+     */
     public function fallbackProgramId(array $channel): int
     {
         if (!empty($channel['fallback_program_id'])) return (int) $channel['fallback_program_id'];
-        $first = $this->app->store()->value('SELECT id FROM programs WHERE channel_id = ? ORDER BY id LIMIT 1', [(int) $channel['id']]);
+        $store = $this->app->store();
+        $first = $store->value(
+            "SELECT id FROM programs WHERE channel_id = ? AND (CASE WHEN json_valid(settings) THEN json_extract(settings, '$.format') END) IS NOT 'prayer'
+             ORDER BY id LIMIT 1",
+            [(int) $channel['id']],
+        ) ?? $store->value('SELECT id FROM programs WHERE channel_id = ? ORDER BY id LIMIT 1', [(int) $channel['id']]);
         if ($first === null) throw new \RuntimeException('Channel ' . $channel['slug'] . ' has no program');
         return (int) $first;
     }

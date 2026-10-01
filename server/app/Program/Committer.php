@@ -86,7 +86,7 @@ final class Committer
                 $result = $this->commitHost($channel, $item, $frontier, $now);
                 if ($result === null) continue;             // dropped
                 if ($result === -1) {                        // delayed unit: play a filler first
-                    $filler = $this->app->drafter()->filler($channel, $frontier, 240_000, $item['seq']);
+                    $filler = $this->app->drafter()->filler($channel, $frontier, 240_000, $item['seq'], $item);
                     $frontier = $this->commitItem($filler, $frontier, $filler['dur_ms'], $filler['payload']);
                 } else {
                     $frontier = $result;
@@ -120,8 +120,9 @@ final class Committer
             $failed = $hb === null || in_array($hb['state'], ['failed', 'cancelled'], true);
             if ($item['unit'] !== null && !$failed && $waited < Timing::UNIT_TIMEOUT) return -1;
             // A plain break that is late, or a unit that waited too long: the
-            // break goes, whatever it introduced still plays.
-            if ($hb !== null) $breaks->cancel((int) $hb['id']);
+            // break goes, whatever it introduced still plays. Marked late: a
+            // prayer hour counts it as tried (it must not draft it again).
+            if ($hb !== null) $breaks->cancel((int) $hb['id'], 'late');
             $this->dropItem($item);
             return null;
         }
@@ -131,7 +132,7 @@ final class Committer
         if ($announcedNext !== '') {
             $next = $this->app->timeline()->after((int) $channel['id'], $item['seq']);
             if ($next === null || $next['uid'] !== $announcedNext) {
-                $breaks->cancel((int) $hb['id']);
+                $breaks->cancel((int) $hb['id'], 'late');
                 $this->dropItem($item);
                 return null;
             }
