@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { fakeYouTube } from './support/youtube';
-import { BASE_URL, api, cron, ensureAdmin, itemAt, serverNow, type Admin, type Device } from './support/station';
+import { BASE_URL, api, cron, ensureAdmin, itemAt, liveFile, serverNow, type Admin, type Device } from './support/station';
 
 /**
  * The prayer hour end to end — on a channel of its own, so the shared `main`
@@ -151,7 +151,18 @@ test('a prayer hour: the stage invites requests over prayer music; one appears w
       { timeout: 120_000, intervals: [3000] },
     )
     .toMatch(/approved|scheduled|aired/);
-  await expect(stage.getByText(text)).toBeVisible({ timeout: 60_000 });
+  // The next tick publishes it in live.json — nudged here, the cron loop
+  // alone ticks only every minute — and the app reads that every 30 s.
+  await expect
+    .poll(
+      async () => {
+        await cron();
+        return (await liveFile(slug))?.wall.some((e) => e.text === text) ?? false;
+      },
+      { timeout: 90_000, intervals: [3000] },
+    )
+    .toBe(true);
+  await expect(stage.getByText(text)).toBeVisible({ timeout: 45_000 });
   await expect(stage.getByText('Ruth')).toHaveCount(0);
 
   // A second listener prays along on the wall card; the pulse carries it.
