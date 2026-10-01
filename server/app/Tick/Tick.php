@@ -184,6 +184,12 @@ final class Tick
             'submissions' => $this->app->submissions()->purgeBefore($now - $c->int('RETAIN_SUBMISSIONS_DAYS', 90) * 86400),
             'identities' => $this->app->identities()->purgeInactive(),
             'timeline' => $this->app->timeline()->purgeBefore(($now - $this->app->config->int('RETAIN_TIMELINE_DAYS', 30) * 86400) * 1000),
+            // After the timeline rows that point at them: a host break keeps
+            // the names, places and prayer texts its script was written from.
+            'host_breaks' => $store->query(
+                'DELETE FROM host_breaks WHERE updated < ? AND id NOT IN (SELECT host_break_id FROM timeline_items WHERE host_break_id IS NOT NULL)',
+                [$now - $c->int('RETAIN_TIMELINE_DAYS', 30) * 86400],
+            )->rowCount(),
             'jobs' => $this->app->jobs()->purgeBefore($now - 7 * 86400),
             'attempts' => $store->query('DELETE FROM attempts WHERE time < ?', [$now - 2 * 86400])->rowCount(),
             'presence' => $store->query('DELETE FROM presence WHERE seen < ?', [$now - 86400])->rowCount(),

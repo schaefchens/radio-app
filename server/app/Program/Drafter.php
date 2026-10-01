@@ -134,12 +134,15 @@ final class Drafter
             if ($taken !== null) return $taken;
         }
 
-        // 4. Text prayer requests: the host prays for them together.
+        // 4. Text prayer requests: the host prays for them together. One
+        //    transaction, as for a block: claimed without their break in the
+        //    plan, they would never air and never come back to the queue.
         if ($hostOn && in_array('prayer', $program['allowed'], true) && !$this->isHost($prev)) {
-            $prayers = $this->app->submissions()->takePrayers($channel, $program, 3);
-            if ($prayers) {
-                return $this->addHost($channel, $program, 'prayer', $cursor, $base, ['prayers' => $prayers]);
-            }
+            $taken = $this->app->store()->tx(function () use ($channel, $program, $cursor, $base): ?array {
+                $prayers = $this->app->submissions()->takePrayers($channel, $program, 3);
+                return $prayers ? $this->addHost($channel, $program, 'prayer', $cursor, $base, ['prayer_ids' => $prayers]) : null;
+            });
+            if ($taken !== null) return $taken;
         }
 
         // 5. A moment of silence, when the program asks for them.

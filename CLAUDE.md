@@ -125,6 +125,13 @@ and anything else is `missed`: a recording that will never air is not
 published, or removed when the tick sweeps the queue. Intake closes 15 minutes
 before a program ends ("last chance" from 25).
 
+Typed prayer requests are not a block: the host prays for up to three in one
+`prayer` break, which carries their ids as `prayer_ids` (never `prayers`: the
+script phase stores the writer's context, whose `prayers` are the texts, over
+the drafted one). Committed, the break marks them with its start; dropped or
+discarded, it gives them back to the queue. Each counts 20 s in the queue that
+closes intake (`Timing::PRAYER_EACH`).
+
 The **prayer wall** (`Submissions::wall`, `live.json.wall`) shows typed prayer
 requests that are approved, scheduled or aired — only with the sender's own
 tick (never pre-ticked: Art. 9 needs a clear yes), anonymous (text and time,

@@ -144,7 +144,8 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
 - **Retention** (the privacy policy states these — change both together):
   minute files and host audio 48 h, day files 60 days, submissions 90 days
   (`RETAIN_SUBMISSIONS_DAYS`; recordings allowed for replays stay in the
-  library), chat voices 7 days, chat reports 30 days, presence 1 day,
+  library), the timeline and the host's scripts 30 days (they can quote a
+  prayer request), chat voices 7 days, chat reports 30 days, presence 1 day,
   rate-limit entries 2 days, unused anonymous devices 60 days, backups 7 days.
 - **Station page** (`/about`, also `/impressum`, `/datenschutz`; the header
   logo opens it): what ARCHE is, the imprint and the privacy policy, in

@@ -479,17 +479,26 @@ final class Submissions
         return $n;
     }
 
-    /** @return list<int> up to $n approved text prayers, now scheduled */
+    /**
+     * Up to $n approved typed prayers for this program, longest-waiting first,
+     * claimed for one prayer break — each exactly once, like schedule(). The
+     * break carries their ids: committed, it marks them with its start
+     * (markScheduled); dropped or discarded, it gives them back (requeue).
+     *
+     * @return list<int>
+     */
     public function takePrayers(array $channel, array $program, int $n): array
     {
         $store = $this->app->store();
         $rows = $store->all(
             "SELECT id FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved' AND type = 'prayer' AND mode = 'text'
-             ORDER BY created LIMIT ?",
+             ORDER BY created, id LIMIT ?",
             [(int) $channel['id'], (int) $program['id'], $n],
         );
-        $ids = array_map(fn($r) => (int) $r['id'], $rows);
-        foreach ($ids as $id) $store->update('submissions', ['status' => 'scheduled', 'updated' => $this->app->clock->now()], 'id = ?', [$id]);
+        $ids = [];
+        foreach ($rows as $r) {
+            if ($this->schedule((int) $r['id'])) $ids[] = (int) $r['id'];
+        }
         return $ids;
     }
 
@@ -537,7 +546,13 @@ final class Submissions
              AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
             [$channelId, $programId, $this->app->clock->nowMs()],
         );
-        return $songs + $audio;
+        // Typed prayers take airtime too: a flood of them must close intake.
+        $prayers = (int) $store->value(
+            "SELECT COUNT(*) FROM submissions WHERE channel_id = ? AND program_id = ? AND type = 'prayer' AND mode = 'text'
+             AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
+            [$channelId, $programId, $this->app->clock->nowMs()],
+        );
+        return $songs + $audio + $prayers * Timing::PRAYER_EACH;
     }
 
     public function markAired(): int

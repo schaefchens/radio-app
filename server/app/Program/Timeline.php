@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Program;
 
 use Arche\App;
+use Arche\Host\HostBreaks;
 use Arche\Support\Ids;
 
 /**
@@ -214,7 +215,12 @@ final class Timeline
         $store = $this->app->store();
         return $store->tx(function () use ($store, $channelId) {
             $breaks = $store->all("SELECT host_break_id FROM timeline_items WHERE channel_id = ? AND state = 'draft' AND host_break_id IS NOT NULL", [$channelId]);
-            foreach ($breaks as $b) $this->app->hostBreaks()->cancel((int) $b['host_break_id']);
+            foreach ($breaks as $b) {
+                $this->app->hostBreaks()->cancel((int) $b['host_break_id']);
+                // A prayer break's requests wait again, voiced or not.
+                $hb = $this->app->hostBreaks()->get((int) $b['host_break_id']);
+                foreach ($hb !== null ? HostBreaks::prayerIds($hb) : [] as $id) $this->app->submissions()->requeue($id);
+            }
             // Submissions return to the queue so they are drafted again.
             $store->query(
                 "UPDATE submissions SET status = 'approved' WHERE status = 'scheduled' AND id IN

@@ -41,6 +41,8 @@ final class Timing
     public const BLOCK_MAX = 3;
     /** Regular songs between two blocks of requests, at least. */
     public const BLOCK_GAP_SONGS = 2;
+    /** Airtime a waiting typed prayer request is promised: three share a minute-long prayer. */
+    public const PRAYER_EACH = 20_000;
     public const STAGE_ITEM = 300_000;
     public const FILLER_SILENCE_MAX = 60_000;
 

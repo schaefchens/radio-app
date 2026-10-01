@@ -24,6 +24,8 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
     onClose();
     if (submit.done) {
       setText('');
+      // The sheet stays mounted: the next request must ask again.
+      setShare(false);
       submit.reset();
     }
   };

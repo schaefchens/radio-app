@@ -2,6 +2,8 @@
 declare(strict_types=1);
 
 use Arche\Ai\StubText;
+use Arche\Host\HostBreaks;
+use Arche\Program\SubmissionWindow;
 
 function listener(Arche\App $app): array
 {
@@ -158,6 +160,127 @@ test('submissions: text prayers are prayed for by the host and shown on the pray
     }
     $prayer = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && ($i['payload']['kind'] ?? '') === 'prayer'));
     check(count($prayer) >= 1, 'a prayer break aired');
+    $id = (int) $app->submissions()->byPublicId($sub['id'])['id'];
+    $context = hostContext($app, $prayer[0]);
+    eq($context['prayer_ids'] ?? null, [$id], 'the break still knows whom it prayed for after its script was written');
+    eq(array_column($context['prayers'] ?? [], 'name'), ['Maria'], 'and the script was written for her');
+    $row = $app->submissions()->byPublicId($sub['id']);
+    eq([$row['status'], (int) $row['aired_at']], ['aired', $prayer[0]['start_ms']], 'marked aired, at the start of the prayer');
+    eq($app->submissions()->publicView($row)['airedAt'], $prayer[0]['start_ms'], 'and the sender sees when');
+});
+
+/**
+ * Drafts minute by minute until a prayer break takes the request, before any
+ * job runs for it. @return int the host break's id
+ */
+function prayerBreakFor(Arche\App $app, int $submissionId): int
+{
+    for ($i = 0; $i < 30; $i++) {
+        TestKit::clock($app)->advance(60_000);
+        $app->drafter()->draft(TestKit::main($app));
+        foreach ($app->store()->all("SELECT id, context FROM host_breaks WHERE kind = 'prayer' AND state = 'pending'") as $h) {
+            if (in_array($submissionId, json_decode((string) $h['context'], true)['prayer_ids'] ?? [], true)) return (int) $h['id'];
+        }
+        $app->tick()->run('test');
+    }
+    throw new RuntimeException('no prayer break took the request');
+}
+
+test('submissions: a prayer break that is not voiced in time gives its request to a later one', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $app->tick()->run('test');
+    $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for my brother in hospital.', 'name' => 'Ana', 'place' => 'Porto']);
+    runJobs($app);
+    $id = (int) $app->submissions()->byPublicId($sub['id'])['id'];
+    $stuck = prayerBreakFor($app, $id);
+    eq($app->submissions()->get($id)['status'], 'scheduled', 'taken into the plan');
+    // Its voice never comes: the job is stuck.
+    $app->store()->query("UPDATE jobs SET status = 'done' WHERE type = 'host' AND ref_id = ?", [$stuck]);
+    ticks($app, 30);
+    eq($app->store()->value('SELECT state FROM timeline_items WHERE host_break_id = ?', [$stuck]), 'dropped', 'the late break went, the music went on');
+    $prayed = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && in_array($id, hostContext($app, $i)['prayer_ids'] ?? [], true)));
+    eq(count($prayed), 1, 'a later break prayed for the request, once');
+    eq([$app->submissions()->get($id)['status'], (int) $app->submissions()->get($id)['aired_at']], ['aired', $prayed[0]['start_ms']], 'and it aired then');
+});
+
+test('submissions: a plan change gives the requests of drafted prayer breaks back', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $app->tick()->run('test');
+    $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for peace in our town.', 'name' => 'Lea', 'place' => 'Kiel']);
+    runJobs($app);
+    $id = (int) $app->submissions()->byPublicId($sub['id'])['id'];
+    $hb = prayerBreakFor($app, $id);
+    $app->timeline()->discardDrafts((int) TestKit::main($app)['id']);
+    eq($app->hostBreaks()->get($hb)['state'], 'cancelled', 'its break is cancelled');
+    eq($app->submissions()->get($id)['status'], 'approved', 'the request waits again');
+    ticks($app, 20);
+    eq($app->submissions()->get($id)['status'], 'aired', 'and a new break prays for it');
+});
+
+test('submissions: waiting typed prayers count towards a full queue', function () {
+    $app = TestKit::app();
+    $ch = TestKit::main($app);
+    $pid = (int) $ch['fallback_program_id'];
+    $app->catalog()->saveProgram($pid, (int) $ch['id'], ['settings' => ['max_queue_min' => 5]], 'test');
+    $program = $app->catalog()->program($pid) ?? [];
+    $block = $app->resolver()->blockAt($ch, TestKit::T0);
+    $state = fn() => SubmissionWindow::states($app, $ch, $program, $block, TestKit::T0)['prayer'] ?? null;
+    eq($state(), 'open', 'open with nothing waiting');
+    for ($i = 0; $i < 12; $i++) prayerRow($app, $ch);
+    eq($state(), 'closing', 'twelve waiting fill most of five minutes');
+    for ($i = 0; $i < 3; $i++) prayerRow($app, $ch);
+    eq($state(), 'closed', 'fifteen fill them');
+});
+
+test('submissions: the prayers the old code left "scheduled" are repaired once', function () {
+    $app = TestKit::app();
+    $ch = TestKit::main($app);
+    $cid = (int) $ch['id'];
+    $store = $app->store();
+    $stuck = fn(string $text) => (int) $app->submissions()->byPublicId(prayerRow($app, $ch, ['status' => 'scheduled', 'text' => $text]))['id'];
+    $aired = $stuck('Pray for my mother.');
+    $missed = $stuck('Pray for my father.');
+    $planned = $stuck('Pray for my sister.');
+    $legacy = $stuck('Pray for my brother.');
+    $now = $app->clock->nowMs();
+    $item = function (string $state, int $start, array $context) use ($app, $cid) {
+        $hb = $app->store()->insert('host_breaks', ['channel_id' => $cid, 'kind' => 'prayer', 'state' => $state === 'committed' ? 'ready' : 'pending',
+            'context' => json_encode($context), 'created' => 1, 'updated' => 1]);
+        $app->timeline()->addDraft($cid, ['type' => 'host', 'dur_ms' => 25_000, 'est_start' => $start, 'block_start' => 0, 'block_end' => $start + 3_600_000,
+            'host_break_id' => $hb, 'payload' => ['kind' => 'prayer']]);
+        $row = $app->store()->one('SELECT id FROM timeline_items WHERE host_break_id = ?', [$hb]);
+        if ($state === 'committed') $app->timeline()->commit((int) $row['id'], $start, 25_000);
+        return $hb;
+    };
+    // Written with the old code: the script replaced the ids with the texts.
+    $item('committed', $now - 3_600_000, ['prayers' => [['name' => 'Ruth', 'place' => 'Lagos', 'text' => 'Pray for my mother.']]]);
+    $draft = $item('draft', $now + 400_000, ['prayers' => [['name' => 'Ruth', 'place' => 'Lagos', 'text' => 'Pray for my sister.']]]);
+    $item('draft', $now + 300_000, ['prayers' => [$legacy]]);
+    $store->set('schema', 3);
+    Arche\Schema::migrate($store, $now, 4);
+
+    eq([$app->submissions()->get($aired)['status'], (int) $app->submissions()->get($aired)['aired_at']], ['scheduled', $now - 3_600_000], 'the one that aired gets its time (and turns "aired" with the next tick)');
+    eq($app->submissions()->get($missed)['status'], 'approved', 'the one whose break never aired waits again');
+    eq($app->hostBreaks()->get($draft)['context']['prayer_ids'] ?? null, [$planned], 'a break still in the plan gets its ids back');
+    eq($app->submissions()->get($legacy)['status'], 'scheduled', 'a break not yet written keeps its ids where they were');
+    eq(HostBreaks::prayerIds($app->hostBreaks()->get($draft)), [$planned], 'and both are read as the break\'s requests');
+    $app->submissions()->markAired();
+    eq($app->submissions()->get($aired)['status'], 'aired', 'aired');
+});
+
+test('submissions: the host\'s scripts go with the timeline after 30 days', function () {
+    $app = TestKit::app();
+    $cid = (int) TestKit::main($app)['id'];
+    $old = $app->clock->now() - 31 * 86400;
+    $gone = $app->store()->insert('host_breaks', ['channel_id' => $cid, 'kind' => 'prayer', 'state' => 'ready', 'context' => '{"prayers":[{"name":"Ruth"}]}', 'created' => $old, 'updated' => $old]);
+    $kept = $app->store()->insert('host_breaks', ['channel_id' => $cid, 'kind' => 'break', 'state' => 'ready', 'created' => $old, 'updated' => $old]);
+    $app->timeline()->addDraft($cid, ['type' => 'host', 'dur_ms' => 25_000, 'est_start' => $app->clock->nowMs(), 'block_start' => 0, 'block_end' => 0, 'host_break_id' => $kept]);
+    $recent = $app->store()->insert('host_breaks', ['channel_id' => $cid, 'kind' => 'break', 'state' => 'ready', 'created' => $app->clock->now(), 'updated' => $app->clock->now()]);
+    $app->tick()->run('test');
+    eq([$app->hostBreaks()->get($gone), $app->hostBreaks()->get($kept) !== null, $app->hostBreaks()->get($recent) !== null], [null, true, true],
+        'an old script nothing points at is deleted; one the timeline still uses, and a recent one, stay');
 });
 
 test('submissions: intake follows the program: types it does not allow are refused', function () {

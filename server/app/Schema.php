@@ -10,11 +10,13 @@ namespace Arche;
  */
 final class Schema
 {
-    public static function migrate(Store $store, int $nowMs): void
+    /** @param ?int $upTo stop after this version (a test replays one migration on an older database) */
+    public static function migrate(Store $store, int $nowMs, ?int $upTo = null): void
     {
         $store->db->exec('CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
         $current = (int) ($store->get('schema') ?? 0);
         $versions = self::versions();
+        if ($upTo !== null) $versions = array_slice($versions, 0, $upTo);
         if ($current >= count($versions)) return;
 
         $store->tx(function () use ($store, $versions, $nowMs) {
@@ -345,6 +347,33 @@ final class Schema
             <<<'SQL'
             ALTER TABLE submissions ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
             CREATE INDEX submissions_wall ON submissions(channel_id, created) WHERE type = 'prayer' AND mode = 'text' AND consent_air = 1;
+            SQL,
+            // 4 — typed prayers the host took stayed "scheduled" for good: their
+            // break lost its ids to the script it was written with (it keeps
+            // the texts under `prayers`). Matched by text: a break still in the
+            // plan gets its ids back; one that aired gives its start; the rest
+            // never aired and return to the queue, where the sweep marks those
+            // too late for their program as missed.
+            <<<'SQL'
+            UPDATE host_breaks SET context = json_set(context, '$.prayer_ids', json((
+                SELECT json_group_array(s.id) FROM json_each(host_breaks.context, '$.prayers') p
+                JOIN submissions s ON s.channel_id = host_breaks.channel_id AND s.type = 'prayer' AND s.mode = 'text'
+                  AND s.status = 'scheduled' AND s.aired_at IS NULL AND s.text = json_extract(p.value, '$.text')
+                WHERE p.type = 'object')))
+            WHERE kind = 'prayer' AND json_type(context, '$.prayer_ids') IS NULL AND json_type(context, '$.prayers[0]') = 'object'
+              AND id IN (SELECT host_break_id FROM timeline_items WHERE state = 'draft' AND host_break_id IS NOT NULL);
+            UPDATE submissions SET aired_at = (
+                SELECT MIN(t.start_ms) FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id, json_each(h.context, '$.prayers') p
+                WHERE t.state = 'committed' AND t.channel_id = submissions.channel_id AND h.kind = 'prayer'
+                  AND p.type = 'object' AND json_extract(p.value, '$.text') = submissions.text)
+            WHERE type = 'prayer' AND mode = 'text' AND status = 'scheduled' AND aired_at IS NULL;
+            UPDATE submissions SET status = 'approved' WHERE type = 'prayer' AND mode = 'text' AND status = 'scheduled' AND aired_at IS NULL
+              AND id NOT IN (
+                SELECT j.value FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id, json_each(h.context, '$.prayer_ids') j
+                WHERE t.state = 'draft'
+                UNION
+                SELECT j.value FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id, json_each(h.context, '$.prayers') j
+                WHERE t.state = 'draft' AND j.type = 'integer');
             SQL,
         ];
     }

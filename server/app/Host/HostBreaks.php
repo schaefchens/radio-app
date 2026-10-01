@@ -78,6 +78,22 @@ final class HostBreaks
         $this->app->jobs()->cancel('host', $id);
     }
 
+    /**
+     * The typed prayer requests a prayer break was drafted for. They have a
+     * key of their own: the script phase stores the writer's context over the
+     * drafted one, and there `prayers` are the texts, not the ids. A break
+     * drafted before the key existed keeps its ids under `prayers` until its
+     * script is written.
+     *
+     * @param array<string,mixed> $hb decoded host break
+     * @return list<int>
+     */
+    public static function prayerIds(array $hb): array
+    {
+        $ids = $hb['context']['prayer_ids'] ?? $hb['context']['prayers'] ?? [];
+        return array_values(array_filter((array) $ids, 'is_int'));
+    }
+
     /** @param array<string,mixed> $hb */
     public function airDuration(array $hb): int
     {
