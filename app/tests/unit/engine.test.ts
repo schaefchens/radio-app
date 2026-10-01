@@ -110,6 +110,54 @@ describe('RadioEngine', () => {
     s.engine.stop();
   });
 
+  /** An engine at a real minute, recording which files it asks for; `slowSlot` holds the minute files back. */
+  function recording(opts: { slowSlot?: boolean } = {}) {
+    const T = 1_789_999_980_000; // a minute boundary
+    const clock = { now: T + 50_000 };
+    const asked: string[] = [];
+    const slot = (channel: string): SlotFile => ({ ...slotFile, channel, items: items.map((it) => ({ ...it, id: `${channel}-${it.id}`, start: it.start + T })) });
+    const held: (() => void)[] = [];
+    const player = fakePlayer();
+    const engine = new RadioEngine({
+      now: () => clock.now,
+      player,
+      audio: fakeAudio(() => clock.now),
+      fetchSlot: (ch) => {
+        asked.push(`slot ${ch}`);
+        return opts.slowSlot ? new Promise((resolve) => held.push(() => resolve(slot(ch)))) : Promise.resolve(slot(ch));
+      },
+      fetchSlotWalkingBack: async (ch) => (asked.push(`back ${ch}`), slot(ch)),
+      fetchLive: async (ch) => (asked.push(`live ${ch}`), live),
+      fetchEvergreen: async () => null,
+      canAutoplay: () => true,
+      onChange: () => {},
+      onPlaybackError: () => {},
+    });
+    return { engine, player, asked, clock, release: () => held.splice(0).forEach((go) => go()) };
+  }
+
+  it('a tap on "join" before the first start asks for nothing, and the start still gets its program', async () => {
+    const r = recording();
+    r.engine.join(); // the page is up before the boot has tuned in
+    await r.engine.start('main');
+    expect(r.asked).toEqual(['back main', 'live main']);
+    expect(r.player.calls).toContain('load AAAAAAAAAAA 50.4');
+    r.engine.stop();
+  });
+
+  it('switching channel while a minute file of the old one is on its way still fetches the new one', async () => {
+    const r = recording({ slowSlot: true });
+    await r.engine.start('a');
+    r.clock.now += 60_000;
+    r.engine.tick(); // channel a's next minute file, still on its way…
+    const switching = r.engine.start('b');
+    r.release(); // …arrives after the switch, and is not b's
+    await switching;
+    expect(r.asked.filter((a) => !a.startsWith('live'))).toEqual(['back a', 'slot a', 'back b']);
+    expect(r.engine.snapshot.item?.id).toBe('b-s1');
+    r.engine.stop();
+  });
+
   it('stopping silences everything and it stays stopped until the listener joins again', async () => {
     const s = setup();
     await s.engine.start('main');

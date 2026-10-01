@@ -170,7 +170,7 @@ export class RadioEngine {
   private adSince = 0;
   private loadStartedAt = 0;
   private fadingOut: string | null = null;
-  private fetching = false;
+  private fetching: { gen: number; done: Promise<void> } | null = null;
   private generation = 0;
 
   private readonly deps: EngineDeps;
@@ -296,10 +296,20 @@ export class RadioEngine {
   // --- data -------------------------------------------------------------------------
 
   private async fetchNow(walkBack: boolean): Promise<void> {
-    if (this.fetching) return;
-    this.fetching = true;
+    // One fetch at a time per channel. One still on its way for the channel
+    // before — a switch, or a tap on "join" before the first start — is
+    // waited for, not taken for this one: that left the new channel's
+    // timeline empty and the listener on the fallback loop for a minute.
+    while (this.fetching) {
+      if (this.fetching.gen === this.generation) return;
+      await this.fetching.done;
+    }
     const gen = this.generation;
     const channel = this.state.channel;
+    // Before the first start there is no channel: `program//slots/…` is ten 404s.
+    if (!channel) return;
+    let finish = (): void => {};
+    this.fetching = { gen, done: new Promise<void>((resolve) => (finish = resolve)) };
     try {
       const now = this.deps.now();
       const slot = walkBack
@@ -311,11 +321,13 @@ export class RadioEngine {
         this.lastMinuteFetched = floorMinute(now);
       }
     } finally {
-      this.fetching = false;
+      this.fetching = null;
+      finish();
     }
   }
 
   private async fetchLiveNow(): Promise<void> {
+    if (!this.state.channel) return;
     this.lastLive = this.deps.now();
     const gen = this.generation;
     const live = await this.deps.fetchLive(this.state.channel);
