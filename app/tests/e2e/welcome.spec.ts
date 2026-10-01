@@ -17,7 +17,7 @@ test('a new listener is welcomed once and picks language and theme', async ({ pa
   // Applied at once: the dialog itself is German now.
   await expect(page.getByRole('dialog', { name: 'Willkommen bei Arche Radio!' })).toBeVisible();
   const welcome = page.getByRole('dialog', { name: 'Willkommen bei Arche Radio!' });
-  await welcome.getByLabel('Sturmarche').check();
+  await welcome.getByLabel('Sturm', { exact: true }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await welcome.getByRole('button', { name: "Los geht's" }).click();
   // The closed submission sheets are dialogs too: look for this one by name.
@@ -37,7 +37,7 @@ test('the theme follows the device until Profile picks one', async ({ browser })
   await fakeYouTube(page);
   await page.goto('/profile');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await page.getByLabel('Kids Ark').check();
+  await page.getByLabel('Kids', { exact: true }).check();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');

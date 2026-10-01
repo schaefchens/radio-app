@@ -70,6 +70,27 @@ test('joining plays the song on air at the live position', async ({ page }) => {
   const expected = (at - item.start) / 1000 + 0.4;
   expect(Math.abs((load.startSeconds ?? 0) - expected)).toBeLessThan(1.5);
   await expect(page.getByText(item.title).first()).toBeVisible();
+
+  // One player for every page: moving between Live and the others hands it
+  // from one stage to the next without pausing (it once paused and sought
+  // back in on every switch).
+  await playing(page);
+  const before = (await ytCalls(page)).length;
+  await page.getByRole('link', { name: 'Schedule' }).click();
+  await expect(page.getByRole('heading', { name: 'Schedule' })).toBeVisible();
+  await page.waitForTimeout(1500);
+  await page.getByRole('link', { name: 'Live' }).click();
+  await page.waitForTimeout(1500);
+  expect((await ytCalls(page)).slice(before).filter((c) => c.fn === 'pause' || c.fn === 'load' || c.fn === 'stop')).toEqual([]);
+  expect((await ytNow(page))?.state).toBe(YT_PLAYING);
+
+  // Pause: back to the start's state, and it stays there — no item starts it again.
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(page.getByRole('button', { name: JOIN })).toBeVisible();
+  await expect.poll(async () => (await ytNow(page))?.state).not.toBe(YT_PLAYING);
+  const calls = (await ytCalls(page)).length;
+  await page.waitForTimeout(3000);
+  expect((await ytCalls(page)).slice(calls).filter((c) => c.fn === 'load' || c.fn === 'play')).toEqual([]);
 });
 
 test('two listeners who joined at different times hear the same second', async ({ browser }) => {

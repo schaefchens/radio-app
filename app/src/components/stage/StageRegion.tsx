@@ -24,9 +24,12 @@ export function StageRegion({ compact = false, flush = false }: { compact?: bool
 
   // Page changes unmount one stage and mount another in the same commit; only
   // clear the slot if it is still ours, or the new page's stage would vanish.
+  // The new slot says at once whether it can be seen: waiting for its
+  // IntersectionObserver left a frame without a visible stage, and the song
+  // paused and restarted on every switch between Live and the other pages.
   const ref = useCallback(
     (node: HTMLDivElement | null) => {
-      if (node) setSlot(node);
+      if (node) setSlot(node, visibleShare(node.getBoundingClientRect()) >= 0.5);
       else if (useStage.getState().slot === el.current) setSlot(null);
       el.current = node;
     },
@@ -94,4 +97,12 @@ export function StageRegion({ compact = false, flush = false }: { compact?: bool
       )}
     </div>
   );
+}
+
+/** How much of a box lies inside the viewport (0–1), as IntersectionObserver measures it. */
+function visibleShare(r: DOMRect): number {
+  if (r.width <= 0 || r.height <= 0) return 0;
+  const w = Math.min(r.right, window.innerWidth) - Math.max(r.left, 0);
+  const h = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+  return w > 0 && h > 0 ? (w * h) / (r.width * r.height) : 0;
 }

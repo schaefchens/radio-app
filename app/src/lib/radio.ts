@@ -19,8 +19,11 @@ import { stageAvailable, useStage } from '@/store/stage';
  * lifetime: a single YouTube player, a single pair of audio elements.
  */
 
-// Whether the player may be seen right now (see setStageVisible).
+// Whether the player may be seen right now, what the stage store last said,
+// and whether a decision is waiting for the current commit (see setStageVisible).
 let stageVisible = false;
+let stageWanted = false;
+let stageSettling = false;
 const player = new YouTubePlayer({
   onState: (s) => engine.onPlayerState(s),
   onError: (code) => engine.onPlayerError(code),
@@ -153,6 +156,11 @@ export function resumeRadio(): void {
   engine.resume();
 }
 
+/** Stop: nothing plays until the listener taps play again, as after a reload. */
+export function leaveRadio(): void {
+  engine.leave();
+}
+
 /**
  * YouTube's rules: the player plays only where it can be seen, uncovered. When
  * the stage goes away (moderation page, a sheet over it, scrolled out) a
@@ -160,13 +168,22 @@ export function resumeRadio(): void {
  * the live position. Our own audio (host, jingles) is not affected.
  */
 export function setStageVisible(visible: boolean): void {
-  if (visible === stageVisible) return;
-  stageVisible = visible;
-  if (!visible) {
-    if (engine.snapshot.mode === 'song' || engine.snapshot.mode === 'evergreen') player.pause();
-  } else if (engine.snapshot.joined) {
-    engine.reenter();
-  }
+  stageWanted = visible;
+  if (stageSettling) return;
+  stageSettling = true;
+  // A page change hands the stage from one slot to the next within one
+  // commit (old one gone, new one there): decide once that has settled, so
+  // the song plays on instead of pausing and seeking back in.
+  queueMicrotask(() => {
+    stageSettling = false;
+    if (stageWanted === stageVisible) return;
+    stageVisible = stageWanted;
+    if (!stageVisible) {
+      if (engine.snapshot.mode === 'song' || engine.snapshot.mode === 'evergreen') player.pause();
+    } else if (engine.snapshot.joined) {
+      engine.reenter();
+    }
+  });
 }
 
 useStage.subscribe((s) => setStageVisible(stageAvailable(s)));

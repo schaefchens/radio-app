@@ -16,7 +16,7 @@ export const THEMES = ['light', 'dark'] as const;
 export type ThemeId = (typeof THEMES)[number];
 
 export interface Theme {
-  /** i18n key of the theme's name ("Kids Ark", "Storm Ark"). */
+  /** i18n key of the theme's short name ("Kids", "Storm"; Kids Ark and Storm Ark in full). */
   label: string;
   art: { top: string; bottom: string; bottomMobile: string };
   /** The browser bar: the page's base color. */

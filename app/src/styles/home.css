@@ -252,6 +252,31 @@
 .track-progress time {
   flex-shrink: 0;
 }
+/* Play / pause at the start of the song bar: just the icon, in the accent. */
+.play-pause {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-left: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: rgb(var(--accent));
+}
+.play-pause:hover {
+  background: rgb(var(--soft) / var(--soft-a));
+}
+.play-pause:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+.play-pause svg {
+  width: 18px;
+  height: 18px;
+}
 .song-progress {
   position: relative;
   flex: 1;
@@ -534,6 +559,30 @@
   margin: 0;
   padding: 12px;
 }
+/* The whole wall in its sheet: each request in the wall's gold. */
+.prayer-wall-list .prayer-entry {
+  --ink: 91 59 18;
+  --ink-muted: 132 96 46;
+  --accent: 164 91 0;
+  --line: 222 179 95;
+  --surface: 255 250 238;
+  --base: 255 244 220;
+  --soft: 255 237 195;
+  color: rgb(var(--ink));
+  background: #fff4dc;
+  border: 1px solid #deb35f;
+}
+:root[data-theme='dark'] .prayer-wall-list .prayer-entry {
+  --ink: 255 242 214;
+  --ink-muted: 223 196 156;
+  --accent: 255 203 115;
+  --line: 168 120 44;
+  --surface: 64 48 22;
+  --base: 51 38 17;
+  --soft: 73 54 27;
+  background: #332611;
+  border-color: #a8782c;
+}
 
 /* --- the host --------------------------------------------------------------- */
 
@@ -619,9 +668,13 @@
 /* --- desktop: the prayer wall under the player -------------------------------- */
 
 .desktop-prayer-wall {
+  /* Gold throughout, the hairlines of its buttons and entries too. */
   --ink: 91 59 18;
   --ink-muted: 132 96 46;
   --accent: 164 91 0;
+  --line: 222 179 95;
+  --surface: 255 250 238;
+  --base: 255 244 220;
   --soft: 255 237 195;
   --heading: 233 201 123;
   display: none;
@@ -633,6 +686,9 @@
   --ink: 255 242 214;
   --ink-muted: 223 196 156;
   --accent: 255 203 115;
+  --line: 168 120 44;
+  --surface: 64 48 22;
+  --base: 51 38 17;
   --soft: 73 54 27;
   --heading: 33 24 14;
   background: #332611;
@@ -677,6 +733,9 @@
   --ink: 91 59 18;
   --ink-muted: 132 96 46;
   --accent: 164 91 0;
+  --line: 222 179 95;
+  --surface: 255 250 238;
+  --base: 255 244 220;
   --soft: 255 237 195;
   color: rgb(var(--ink));
   background: #fff4dc;
@@ -686,6 +745,9 @@
   --ink: 255 242 214;
   --ink-muted: 223 196 156;
   --accent: 255 203 115;
+  --line: 168 120 44;
+  --surface: 64 48 22;
+  --base: 51 38 17;
   --soft: 73 54 27;
   background: #332611;
   border-color: #a8782c;
@@ -934,12 +996,6 @@
     border-bottom: 1px solid rgb(var(--line));
     background: rgb(var(--heading) / var(--heading-a));
   }
-  .desktop-prayer-wall .section-heading {
-    border-bottom-color: #deb35f;
-  }
-  :root[data-theme='dark'] .desktop-prayer-wall .section-heading {
-    border-bottom-color: #a8782c;
-  }
   .host-card .section-heading svg,
   .community .section-heading svg,
   .desktop-prayer-wall .section-heading svg {
@@ -1083,6 +1139,14 @@
   }
   .listeners strong {
     font-size: 14px;
+  }
+  .play-pause {
+    width: 24px;
+    height: 24px;
+  }
+  .play-pause svg {
+    width: 16px;
+    height: 16px;
   }
   .play-button {
     width: 62px;

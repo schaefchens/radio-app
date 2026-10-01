@@ -11,7 +11,8 @@ interface StageState {
   inView: boolean;
   /** Open bottom sheets / dialogs that would cover the player. */
   overlays: number;
-  setSlot: (el: HTMLElement | null) => void;
+  /** `inView`: measured as the slot mounts, so a page change hands over without a gap. */
+  setSlot: (el: HTMLElement | null, inView?: boolean) => void;
   setInView: (v: boolean) => void;
   pushOverlay: () => void;
   popOverlay: () => void;
@@ -21,7 +22,7 @@ export const useStage = create<StageState>((set) => ({
   slot: null,
   inView: false,
   overlays: 0,
-  setSlot: (slot) => set((s) => (s.slot === slot ? s : { slot, inView: slot ? s.inView : false })),
+  setSlot: (slot, inView) => set((s) => (s.slot === slot ? s : { slot, inView: slot ? (inView ?? s.inView) : false })),
   setInView: (inView) => set({ inView }),
   pushOverlay: () => set((s) => ({ overlays: s.overlays + 1 })),
   popOverlay: () => set((s) => ({ overlays: Math.max(0, s.overlays - 1) })),

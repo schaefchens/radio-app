@@ -76,11 +76,14 @@ export function ChatPage() {
         )}
         {status === 'connected' && (
           <>
-            <div className="max-h-[60vh] flex-1 overflow-y-auto pr-1">
+            <div className="flex-1">
               <MessageList />
             </div>
-            {errorKey && <p className="text-xs text-heart">{t(errorKey)}</p>}
-            <Composer />
+            {/* Pinned to the bottom of the screen, as in any chat app (shell.css). */}
+            <div className="chat-composer">
+              {errorKey && <p className="mb-2 text-xs text-heart">{t(errorKey)}</p>}
+              <Composer />
+            </div>
           </>
         )}
       </div>

@@ -20,12 +20,13 @@ export function ThemePicker({ withAuto = true }: { withAuto?: boolean }) {
   return (
     <fieldset className="min-w-0">
       <legend className="label">{t('theme.label')}</legend>
+      {/* Each option as wide as its name: equal thirds cut "Automatisch" on a phone. */}
       <div className="flex gap-1.5">
         {options.map((o) => (
           <label
             key={o.id ?? 'auto'}
             className={clsx(
-              'flex min-h-[42px] flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 text-center text-sm',
+              'flex min-h-[42px] min-w-0 flex-auto cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2 text-center text-sm',
               theme === o.id ? 'border-accent bg-accent/10 font-semibold text-ink' : 'border-line bg-soft text-ink-muted hover:text-ink',
             )}
             title={o.id === null ? t('theme.autoHint') : undefined}

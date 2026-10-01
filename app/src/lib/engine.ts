@@ -204,6 +204,19 @@ export class RadioEngine {
     this.tick();
   }
 
+  /**
+   * The listener stops the radio: back to where a fresh page starts — the
+   * program still follows on screen, nothing plays until they join again.
+   */
+  leave(): void {
+    if (!this.state.joined) return;
+    this.deps.player.stop();
+    this.deps.audio.stop();
+    this.state = { ...this.state, joined: false, playerVisible: false, needsTap: false };
+    this.key = null; // re-enter the current item, now without sound
+    this.tick();
+  }
+
   /** A tap on "tap to resume" (a gesture): try to start the player. */
   resume(): void {
     if (!this.deps.audio.unlocked) this.deps.audio.unlock();

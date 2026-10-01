@@ -115,6 +115,12 @@ export const PlayIcon = (p: IconProps) => (
     <path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" />
   </Icon>
 );
+export const PauseIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="6.5" y="5" width="3.6" height="14" rx="1.2" fill="currentColor" stroke="none" />
+    <rect x="13.9" y="5" width="3.6" height="14" rx="1.2" fill="currentColor" stroke="none" />
+  </Icon>
+);
 export const VolumeIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4Z" />

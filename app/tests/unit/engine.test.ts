@@ -98,6 +98,29 @@ describe('RadioEngine', () => {
     s.engine.stop();
   });
 
+  it('stopping silences everything and it stays stopped until the listener joins again', async () => {
+    const s = setup();
+    await s.engine.start('main');
+    s.engine.join();
+    s.engine.leave();
+    expect(s.engine.snapshot.joined).toBe(false);
+    expect(s.engine.snapshot.playerVisible).toBe(false);
+    expect(s.player.calls.at(-1)).toBe('stop');
+    // The program moves on, but neither the host nor the next song starts.
+    const played = s.audio.calls.filter((c) => c.startsWith('play')).length;
+    const loaded = s.player.calls.filter((c) => c.startsWith('load')).length;
+    s.setNow(205_000);
+    s.engine.tick();
+    s.setNow(230_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('song');
+    expect(s.audio.calls.filter((c) => c.startsWith('play')).length).toBe(played);
+    expect(s.player.calls.filter((c) => c.startsWith('load')).length).toBe(loaded);
+    s.engine.join();
+    expect(s.player.calls.at(-1)).toBe('load BBBBBBBBBBB 10.4');
+    s.engine.stop();
+  });
+
   it('corrects drift once, then respects the cooldown; waits out an ad', async () => {
     const s = setup();
     await s.engine.start('main');

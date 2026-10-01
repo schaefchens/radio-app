@@ -197,6 +197,24 @@
   box-shadow: var(--player-shadow);
 }
 
+/* Chat: the box to write in stays at the bottom of the screen, the
+   conversation scrolls with the page above it. */
+.chat-composer {
+  position: sticky;
+  bottom: 12px;
+  z-index: 2;
+  margin: 0 -6px -6px;
+  padding: 8px;
+  border: 1px solid rgb(var(--line));
+  border-radius: 14px;
+  background: rgb(var(--surface));
+  box-shadow: 0 -6px 18px rgb(0 0 0 / 0.08);
+}
+/* Scrolling to the newest message leaves it above the box, not behind it. */
+.chat-end {
+  scroll-margin-bottom: 96px;
+}
+
 /* --- the scene below the page, with the four tiles ------------------------ */
 
 .lower-scene {
@@ -385,7 +403,13 @@
   .desktop-nav .nav-item[aria-current='page'] {
     box-shadow: 0 3px 0 rgb(var(--accent));
   }
+  :root:not([data-theme='dark']) .desktop-nav {
+    right: 18%;
+    bottom: 36px;
+  }
   :root[data-theme='dark'] .desktop-nav {
+    right: 28%;
+    bottom: 32px;
     width: clamp(420px, 45vw, 640px);
   }
   .desktop-nav.has-moderation {
@@ -655,6 +679,22 @@
     background: rgb(var(--accent));
     transform: translateX(-50%);
     pointer-events: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .chat-composer {
+    bottom: calc(var(--dock-nav, 64px) + 8px);
+  }
+  .chat-end {
+    scroll-margin-bottom: calc(var(--dock-nav, 64px) + 96px);
+  }
+  /* Typing: the keyboard is up, the menu steps aside and the box sits on it. */
+  .page:has(.chat-composer :focus) .mobile-dock {
+    display: none;
+  }
+  .page:has(.chat-composer :focus) .chat-composer {
+    bottom: calc(8px + env(safe-area-inset-bottom));
   }
 }
 

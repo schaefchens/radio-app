@@ -672,8 +672,8 @@
     "label": "Design",
     "auto": "Automatic",
     "autoHint": "Follows your device",
-    "light": "Kids Ark",
-    "dark": "Storm Ark"
+    "light": "Kids",
+    "dark": "Storm"
   },
   "brand": {
     "name": "Arche Radio",
@@ -681,7 +681,9 @@
   },
   "player": {
     "label": "Radio player",
-    "playHint": "Tap play to load YouTube."
+    "playHint": "Tap play to load YouTube.",
+    "stop": "Pause",
+    "play": "Play live"
   },
   "wall": {
     "title": "Prayer wall",

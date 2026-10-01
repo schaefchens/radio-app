@@ -13,10 +13,18 @@ export function MessageList() {
   const messages = useChat((s) => s.messages);
   const end = useRef<HTMLDivElement>(null);
 
-  // Follow the conversation: scroll to the newest message when one arrives.
+  // Follow the conversation to the newest message — unless the listener has
+  // scrolled up to read: then a new message must not pull the page away.
+  const first = useRef(true);
+  const me = useChat((s) => s.me);
+  const last = messages.at(-1);
   useEffect(() => {
-    end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  }, [messages.length]);
+    const root = document.documentElement;
+    const near = root.scrollHeight - window.scrollY - window.innerHeight < 260;
+    const mine = !!last && me !== null && last.sub === me.sub;
+    if (first.current || near || mine) end.current?.scrollIntoView({ block: 'end', behavior: first.current ? 'auto' : 'smooth' });
+    first.current = false;
+  }, [messages.length, last, me]);
 
   if (messages.length === 0) return <p className="px-2 py-8 text-center text-sm text-ink-muted">{t('chat.empty')}</p>;
   return (
@@ -24,7 +32,7 @@ export function MessageList() {
       {messages.map((m) => (
         <MessageRow key={m.id} msg={m} />
       ))}
-      <div ref={end} />
+      <div ref={end} className="chat-end" />
     </ol>
   );
 }

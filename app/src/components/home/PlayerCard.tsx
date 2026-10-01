@@ -3,14 +3,15 @@ import { useTranslation } from 'react-i18next';
 import type { ChannelInfo, Lang } from '@arche/shared';
 import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
-import { react, switchChannel } from '@/lib/radio';
+import { useSettings } from '@/store/settings';
+import { joinRadio, leaveRadio, react, switchChannel } from '@/lib/radio';
 import { clockDuration } from '@/lib/format';
 import { useServerNow } from './useServerNow';
 import { Reactions } from './Reactions';
 import { StageRegion } from '@/components/stage/StageRegion';
 import { CdnImg } from '@/components/common/CdnImg';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
-import { ChevronIcon, LevelsIcon, MicIcon, MusicIcon, NavLiveIcon, UsersIcon } from '@/components/common/icons';
+import { ChevronIcon, LevelsIcon, MicIcon, MusicIcon, NavLiveIcon, PauseIcon, PlayIcon, UsersIcon } from '@/components/common/icons';
 
 // A stable empty list: a selector that returns a fresh [] on every call makes
 // the store subscription see a change each render and React bails out.
@@ -164,6 +165,7 @@ function TrackRow() {
       {dur > 0 && (
         // Live radio has one position for everyone: shown, not seekable.
         <div className="track-progress" role="group" aria-label={t('nowPlaying.position', { elapsed: clockDuration(pos), duration: clockDuration(dur) })}>
+          <PlayPause />
           <time aria-hidden="true">{clockDuration(pos)}</time>
           <div className="song-progress" aria-hidden="true">
             <span style={{ width: `${(pos / dur) * 100}%` }} />
@@ -173,5 +175,34 @@ function TrackRow() {
       )}
       {songId && <Reactions key={songId} markId={`item:${songId}`} variant="song" onSend={(kind) => react(songId, kind)} />}
     </div>
+  );
+}
+
+/**
+ * Pause stops the radio as a reload would (nothing plays until play); play
+ * joins at the live position — it is live radio, there is no "where I was".
+ */
+function PlayPause() {
+  const { t } = useTranslation();
+  const joined = useRadio((s) => s.engine.joined);
+  const setConsent = useSettings((s) => s.setConsent);
+  return joined ? (
+    <button type="button" className="play-pause" aria-label={t('player.stop')} title={t('player.stop')} onClick={leaveRadio}>
+      <PauseIcon />
+    </button>
+  ) : (
+    <button
+      type="button"
+      className="play-pause"
+      aria-label={t('player.play')}
+      title={t('player.play')}
+      onClick={() => {
+        // The same tap as the stage's play button, whose note says what it loads.
+        setConsent(true);
+        joinRadio();
+      }}
+    >
+      <PlayIcon />
+    </button>
   );
 }

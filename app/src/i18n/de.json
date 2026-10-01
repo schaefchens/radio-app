@@ -672,8 +672,8 @@
     "label": "Design",
     "auto": "Automatisch",
     "autoHint": "Folgt deinem Gerät",
-    "light": "Kinderarche",
-    "dark": "Sturmarche"
+    "light": "Kinder",
+    "dark": "Sturm"
   },
   "brand": {
     "name": "Arche Radio",
@@ -681,7 +681,9 @@
   },
   "player": {
     "label": "Radio-Player",
-    "playHint": "Mit Tippen auf Play wird YouTube geladen."
+    "playHint": "Mit Tippen auf Play wird YouTube geladen.",
+    "stop": "Pause",
+    "play": "Live abspielen"
   },
   "wall": {
     "title": "Gebetswand",
