@@ -1,9 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { Lang, Voice } from '@arche/shared';
+import type { Lang, Voice, WallEntry } from '@arche/shared';
 import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
+import { useSheets } from '@/store/sheets';
+import { NO_MARK, useReactions } from '@/store/reactions';
 import { countryName } from '@/lib/format';
+import { reactVoice } from '@/lib/radio';
+import { silentEntry } from '@/lib/prayerWall';
+import { useServerNow } from '@/components/home/useServerNow';
 import { CdnImg } from '@/components/common/CdnImg';
 import { RadioIcon } from '@/components/common/icons';
 
@@ -11,8 +16,15 @@ import { RadioIcon } from '@/components/common/icons';
  * Our own stage, under the player: the program's visual, the host speaking,
  * a listener's recording, the moment of silence, community fly-ins. Captions
  * and fly-ins live here only — never over the YouTube player.
+ *
+ * In a prayer hour the wall comes onto the stage while no song plays (the
+ * player is parked off screen then, so the stage may carry buttons): the
+ * newest request and "Share a prayer request" during the collection, one
+ * request at a time to pray along with in silent prayer, and the requests
+ * the host is praying for. The compact stage of other pages has no sheets
+ * to open, so no share button.
  */
-export function StageVisual({ engine }: { engine: EngineState }) {
+export function StageVisual({ engine, compact = false }: { engine: EngineState; compact?: boolean }) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
   const channel = useSession((s) => s.channels?.channels.find((c) => c.id === engine.channel));
@@ -21,6 +33,8 @@ export function StageVisual({ engine }: { engine: EngineState }) {
   const image = program?.stage.image ?? null;
   const tagline = program?.stage.tagline[lang] ?? '';
   const hostName = channel?.host.name ?? 'Hope';
+  const prayerHour = program?.format === 'prayer';
+  const praying = prayerHour && engine.mode === 'host' ? engine.wall.filter((e) => engine.praying.includes(e.id)) : [];
 
   return (
     <div className="absolute inset-0 z-0 select-none">
@@ -28,7 +42,8 @@ export function StageVisual({ engine }: { engine: EngineState }) {
 
       {/* Before joining, the round play button has the stage to itself. */}
       <div className={clsx('absolute inset-0 flex flex-col items-center justify-center p-5 text-center', !engine.joined && 'invisible')}>
-        {engine.mode === 'host' && (
+        {engine.mode === 'host' && praying.length > 0 && <PrayingNow entries={praying} label={t('stage.prayingNow', { name: hostName })} />}
+        {engine.mode === 'host' && praying.length === 0 && (
           <HostMoment name={hostName} avatar={channel?.host.avatar ?? null} text={engine.hostText} label={t('stage.hostSpeaking', { name: hostName })} />
         )}
         {engine.mode === 'contrib' && item?.type === 'contrib' && (
@@ -40,12 +55,16 @@ export function StageVisual({ engine }: { engine: EngineState }) {
           </div>
         )}
         {engine.mode === 'bed' && item?.type === 'bed' && (
-          <div className="flex max-w-xl flex-col items-center gap-3 animate-fly-in">
+          <div className="stage-prayer animate-fly-in">
             <p className="eyebrow">{t('nowPlaying.bed')}</p>
-            {item.label[lang] && <p className="text-balance text-2xl font-light tracking-wide text-ink drop-shadow sm:text-3xl">{item.label[lang]}</p>}
+            {item.label[lang] && <p className="stage-prayer-title">{item.label[lang]}</p>}
+            {prayerHour && <Collecting wall={engine.wall} share={!compact} />}
           </div>
         )}
-        {engine.mode === 'silence' && (
+        {engine.mode === 'silence' && prayerHour && (
+          <SilentPrayer label={item?.type === 'silence' ? item.label[lang] : t('stage.silence')} wall={engine.wall} share={!compact} />
+        )}
+        {engine.mode === 'silence' && !prayerHour && (
           <div className="animate-fly-in">
             <div className="mx-auto mb-4 h-16 w-16 rounded-full border border-ink/30">
               <div className="h-full w-full animate-ring rounded-full border border-ink/40" />
@@ -79,6 +98,84 @@ export function StageVisual({ engine }: { engine: EngineState }) {
         <FlyIns voices={item.voices.length ? item.voices : engine.voices.slice(0, 3)} locale={lang} />
       )}
     </div>
+  );
+}
+
+/** The collection: the newest request flies in as it arrives (keyed by its id). */
+function Collecting({ wall, share }: { wall: WallEntry[]; share: boolean }) {
+  const entry = wall[0];
+  return (
+    <>
+      {share && <ShareButton />}
+      {entry && (
+        <div key={entry.id} className="stage-wall-entry animate-fly-in">
+          <p className="stage-wall-text">{entry.text}</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * Silent prayer: one request at a time, picked by the server clock so that
+ * everyone prays for the same one; 🙏 prays along with it. The 60 s pieces
+ * of silence render as one view: nothing here is keyed by the item.
+ */
+function SilentPrayer({ label, wall, share }: { label: string; wall: WallEntry[]; share: boolean }) {
+  const now = useServerNow(1000);
+  const entry = silentEntry(wall, now);
+  return (
+    <div className="stage-prayer animate-fly-in">
+      <div className="stage-prayer-ring mx-auto h-12 w-12 rounded-full border border-ink/30">
+        <div className="h-full w-full animate-ring rounded-full border border-ink/40" />
+      </div>
+      <p className="stage-prayer-title">{label}</p>
+      {entry ? (
+        <div key={entry.id} className="stage-wall-entry animate-fly-in">
+          <p className="stage-wall-text">{entry.text}</p>
+          <PrayAlong id={entry.id} />
+        </div>
+      ) : (
+        share && <ShareButton />
+      )}
+    </div>
+  );
+}
+
+/** The requests the host is praying for right now, instead of the long prayer text a phone's stage cannot hold. */
+function PrayingNow({ entries, label }: { entries: WallEntry[]; label: string }) {
+  return (
+    <div className="stage-prayer animate-fly-in">
+      <p className="eyebrow">{label}</p>
+      {entries.slice(0, 2).map((e) => (
+        <div key={e.id} className="stage-wall-entry">
+          <p className="stage-wall-text">{e.text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ShareButton() {
+  const { t } = useTranslation();
+  const show = useSheets((s) => s.show);
+  return (
+    <button type="button" className="stage-prayer-share" onClick={() => show('prayer')}>
+      {t('stage.sharePrayer')}
+    </button>
+  );
+}
+
+/** 🙏 "I prayed": the same mark as on the wall card, so it stays pressed everywhere; counted once per device. */
+function PrayAlong({ id }: { id: string }) {
+  const { t } = useTranslation();
+  const markId = `voice:${id}`;
+  const pressed = useReactions((s) => (s.marks[markId] ?? NO_MARK).pray);
+  const toggle = useReactions((s) => s.toggle);
+  return (
+    <button type="button" className="stage-pray" aria-pressed={pressed} onClick={() => toggle(markId, 'pray') && reactVoice(id, 'pray')}>
+      <span aria-hidden="true">🙏</span> {t('reactions.prayed')}
+    </button>
   );
 }
 

@@ -67,9 +67,14 @@ final class PublicApi
 
         $voices = [];
         foreach (array_slice((array) $req->input('voices', []), 0, 20) as $v) {
-            if (is_array($v) && isset($v['voice'], $v['kind']) && isset(Trends::WEIGHTS[(string) $v['kind']])) {
-                $voices[(string) $v['voice']][(string) $v['kind']] = 1;
+            if (!is_array($v) || !isset($v['voice'], $v['kind']) || !isset(Trends::WEIGHTS[(string) $v['kind']])) continue;
+            $voice = (string) $v['voice'];
+            // 🙏 on a prayer wall request ('p' + its id): praying along, counted once per device.
+            if (str_starts_with($voice, 'p') && $v['kind'] === 'pray') {
+                $app->submissions()->prayAlong(substr($voice, 1), $this->c->deviceId());
+                continue;
             }
+            $voices[$voice][(string) $v['kind']] = 1;
         }
         $app->trends()->applyVoiceReactions($voices);
 

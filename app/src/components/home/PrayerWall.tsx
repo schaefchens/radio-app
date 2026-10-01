@@ -6,6 +6,7 @@ import { useSheets } from '@/store/sheets';
 import { reactVoice } from '@/lib/radio';
 import { dayKey } from '@/lib/format';
 import { useServerNow } from './useServerNow';
+import { usePrayingWall } from './usePrayingWall';
 import { useRotation } from './useRotation';
 import { Reactions } from './Reactions';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
@@ -13,13 +14,14 @@ import { PrayIcon } from '@/components/common/icons';
 
 /**
  * The prayer wall on desktop, under the player: one prayer request at a
- * time, the next one every few seconds (the phone shows it in the carousel).
- * Requests come from live.json: typed, approved, and shown only with the
- * sender's yes; anonymous, the text and the day.
+ * time, the next one every few seconds (the phone shows it in the carousel);
+ * while the host prays for one of them, that one, "Praying now". Requests
+ * come from live.json: typed, approved, and shown only with the sender's yes;
+ * anonymous, the text and the day.
  */
 export function DesktopPrayerWall({ onMore }: { onMore: () => void }) {
   const { t } = useTranslation();
-  const wall = useRadio((s) => s.engine.wall);
+  const { wall, praying, now } = usePrayingWall();
   const body = useRef<HTMLDivElement>(null);
   const [picking, setPicking] = useState(false);
   const [nudge, setNudge] = useState(0);
@@ -27,14 +29,14 @@ export function DesktopPrayerWall({ onMore }: { onMore: () => void }) {
     setPicking(open);
     setNudge((n) => n + 1);
   }, []);
-  const index = useRotation(body, wall.length, picking, nudge);
-  const entry = wall[index];
+  const index = useRotation(body, wall.length, picking || now, nudge);
+  const entry = now ? wall[0] : wall[index];
   return (
     <section className="card desktop-prayer-wall" aria-label={t('wall.title')}>
       <WallHeading onMore={onMore} />
       {entry ? (
         <div ref={body} key={entry.id} className="desktop-prayer-body is-entering">
-          <PrayerEntry entry={entry} onActivity={onActivity} />
+          <PrayerEntry entry={entry} praying={praying.includes(entry.id)} onActivity={onActivity} />
         </div>
       ) : (
         <WallEmpty />
@@ -59,7 +61,7 @@ export function WallHeading({ onMore }: { onMore: () => void }) {
   );
 }
 
-export function PrayerEntry({ entry, onActivity }: { entry: WallEntry; onActivity?: (pickerOpen: boolean) => void }) {
+export function PrayerEntry({ entry, praying = false, onActivity }: { entry: WallEntry; praying?: boolean; onActivity?: (pickerOpen: boolean) => void }) {
   const { i18n, t } = useTranslation();
   const now = useServerNow(60_000);
   const key = dayKey(entry.at, now);
@@ -68,6 +70,7 @@ export function PrayerEntry({ entry, onActivity }: { entry: WallEntry; onActivit
     <div className="quote feed-message prayer-entry">
       <div className="message-copy">
         <time dateTime={new Date(entry.at).toISOString()}>{day}</time>
+        {praying && <span className="praying-badge">{t('wall.prayingNow')}</span>}
         <p>{entry.text}</p>
       </div>
       <Reactions markId={`voice:${entry.id}`} variant="prayer" onSend={(kind) => reactVoice(entry.id, kind)} onActivity={onActivity} />
@@ -92,13 +95,13 @@ export function WallEmpty() {
 /** "More →": the whole wall, newest first. */
 export function PrayerWallSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const wall = useRadio((s) => s.engine.wall);
+  const { wall, praying } = usePrayingWall();
   return (
     <BottomSheet open={open} onClose={onClose} title={t('wall.title')}>
       <BottomSheetBody>
         <div className="prayer-wall-list">
           <p className="text-sm text-ink-muted">{t('wall.intro')}</p>
-          {wall.length === 0 ? <WallEmpty /> : wall.map((e) => <PrayerEntry key={e.id} entry={e} />)}
+          {wall.length === 0 ? <WallEmpty /> : wall.map((e) => <PrayerEntry key={e.id} entry={e} praying={praying.includes(e.id)} />)}
         </div>
       </BottomSheetBody>
     </BottomSheet>

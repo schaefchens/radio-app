@@ -153,6 +153,10 @@ final class HostWriter
         if ($hb['kind'] === 'outro' && $item !== null) {
             $prayed = $this->app->prayerHour()->prayedFor((int) $hb['channel_id'], (int) $program['id'], (float) $item['seq']);
             $ctx['prayed'] = count($prayed);
+            if ($prayed) {
+                $marks = implode(',', array_fill(0, count($prayed), '?'));
+                $ctx['prayed_along'] = (int) $this->app->store()->value("SELECT COALESCE(SUM(prayed_count), 0) FROM submissions WHERE id IN ($marks)", $prayed);
+            }
         }
     }
 
@@ -273,7 +277,8 @@ final class HostWriter
         - contrib: introduce the listener's recorded prayer request and invite everyone to pray for
           it in the silence afterwards.
         - outro: thank everyone who prayed and sent requests (you may say how many requests we prayed
-          for, "prayed"), close with a short blessing and point to what comes next if given. The
+          for, "prayed", and how often listeners prayed along with them in the app, "prayed_along"),
+          close with a short blessing and point to what comes next if given. The
           German blessing may fit the given time of day ("einen gesegneten Abend"); the English one
           stays time-neutral.
 

@@ -131,3 +131,67 @@ test('reactions: the new kinds count on songs and voices, unknown kinds still do
     check(abs($score - 2.4) < 1e-9, "weighted 0.8 each (got $score)");
     eq((int) $app->store()->value("SELECT reactions FROM highlights WHERE uid = 'h1'"), 1, 'a voice counts the new kind, not the unknown one');
 });
+
+test('wall: while a prayer hour is on air it shows that hour\'s requests, then the usual wall again', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $main = TestKit::main($app);
+    $older = prayerRow($app, $main, ['created' => $app->clock->now() - 3600]);
+    $p = prayerHour($app, 735);
+    $ids = fn() => array_column($app->submissions()->wall('main'), 'id');
+    eq($ids(), ['p' . $older], 'before the hour: the usual wall');
+    ticks($app, 17);
+    eq($ids(), [], 'the hour begins with an empty wall of its own');
+    $mine = prayFor($app, 'Hour');
+    $app->runner()->runUntilBudget();
+    $notShown = prayFor($app, 'Private', false);
+    $app->runner()->runUntilBudget();
+    unset($notShown);
+    eq($ids(), ['p' . $mine], 'then its own requests, shown with their senders\' yes');
+    // Already prayed for (approved ones the hour cannot reach any more would be missed at its end).
+    for ($i = 0; $i < 40; $i++) prayerRow($app, $main, ['program_id' => (int) $p['id'], 'status' => 'aired', 'created' => $app->clock->now() - 1 - $i]);
+    eq(count($app->submissions()->wall('main')), 41, 'more than the usual 30: the hour\'s requests, up to 60');
+    ticks($app, 60);
+    eq(count($ids()), 30, 'after the hour the newest 30 of all programs');
+    eq($ids()[0], 'p' . $mine, 'with the hour\'s on top');
+    check(!in_array('p' . $older, $ids(), true), 'pushing the older ones out');
+});
+
+test('praying along: 🙏 on a wall request counts once per device, only for a request a wall may show; who prayed is forgotten, the number stays', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $app->tick()->run('test');
+    $main = TestKit::main($app);
+    $shown = $app->submissions()->submitPrayer(listener($app), $main, ['text' => 'Please pray for my son.', 'name' => 'Ruth', 'place' => 'Lagos', 'consent_air' => '1'])['id'];
+    runJobs($app);
+    $private = prayerRow($app, $main, ['consent_air' => 0]);
+    $hidden = prayerRow($app, $main, ['hidden' => 1]);
+    $pulse = fn(array $h, string $voice, string $kind) => call($app, 'POST', '/api/pulse', ['channel' => 'main', 'voices' => [['voice' => $voice, 'kind' => $kind]]], $h);
+    $a = authHeaders();
+    $b = authHeaders();
+    foreach ([$a, $a, $b] as $h) $pulse($h, 'p' . $shown, 'pray');
+    $pulse(authHeaders(), 'p' . $shown, 'love');
+    $pulse($a, 'p' . $private, 'pray');
+    $pulse($a, 'p' . $hidden, 'pray');
+    $count = fn(string $public) => (int) $app->submissions()->byPublicId($public)['prayed_count'];
+    eq([$count($shown), $count($private), $count($hidden)], [2, 0, 0], 'two devices prayed along (one of them twice: once), a heart does not count, nor a request no wall shows');
+    eq($app->submissions()->publicView($app->submissions()->byPublicId($shown))['prayedWith'], 2, 'the sender sees it in their list');
+    [$st, $d] = modGet($app, '/api/mod/review', ['status' => 'wall'], modHeaders($app));
+    eq([$st, array_column($d['items'], 'prayedWith', 'id')[$shown] ?? null], [200, 2], 'and the moderators too');
+    $rows = array_column($app->store()->all('SELECT who FROM prayed_along'), 'who');
+    $presence = array_column($app->store()->all('SELECT device FROM presence'), 'device');
+    check(count($rows) === 2 && array_intersect($rows, $presence) === [], 'the rows cannot be joined to presence');
+
+    eq($app->submissions()->forgetPrayedAlong(), 0, 'kept while the wall shows the request');
+    $app->submissions()->setHidden($shown, true);
+    eq($app->submissions()->forgetPrayedAlong(), 2, 'off the wall, who prayed along is forgotten');
+    eq($count($shown), 2, 'the number stays');
+});
+
+test('praying along: one address counts at most PRAY_ALONG_PER_IP_HOUR an hour', function () {
+    $app = TestKit::app(['PRAY_ALONG_PER_IP_HOUR' => '3']);
+    $main = TestKit::main($app);
+    $public = prayerRow($app, $main, ['status' => 'aired']);
+    for ($i = 0; $i < 5; $i++) call($app, 'POST', '/api/pulse', ['channel' => 'main', 'voices' => [['voice' => 'p' . $public, 'kind' => 'pray']]], authHeaders());
+    eq((int) $app->submissions()->byPublicId($public)['prayed_count'], 3, 'five made-up devices on one address count three times');
+});

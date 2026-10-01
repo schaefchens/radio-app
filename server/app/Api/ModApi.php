@@ -381,6 +381,7 @@ final class ModApi
                 'status' => $s['status'], 'reason' => $s['reason'], 'updated' => (int) $s['updated'] * 1000,
                 'blocker' => $s['status'] === 'rejected' ? $subs->overruleBlocker($s) : null,
                 'hidden' => (bool) $s['hidden'], 'consentAir' => (bool) $s['consent_air'],
+                'prayedWith' => (int) $s['prayed_count'],
             ];
         }
         return ['items' => $out];

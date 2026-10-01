@@ -133,6 +133,9 @@ function TrackRow() {
   } else if (item) {
     title = item.type === 'silence' || item.type === 'stage' ? item.label[lang] : t('nowPlaying.jingle');
     ({ start, dur } = item);
+    // Silent prayer is planned in 60 s pieces: a bar starting over every
+    // minute would read as many short items.
+    if (item.type === 'silence' && engine.program?.format === 'prayer') dur = 0;
   }
   const request = item?.type === 'song' ? item.request : null;
   const pos = dur > 0 ? Math.min(dur, Math.max(0, now - start)) : 0;

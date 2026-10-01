@@ -166,8 +166,18 @@ const de = (host: string): StationTexts => ({
         'wir diese Angaben dafür verarbeiten (Art. 9 Abs. 2 lit. a DSGVO).\n' +
         'Auf Sendung nennen wir nur Vorname und Ort. Ein geschriebenes Gebetsanliegen erscheint nach der Freigabe ' +
         'zusätzlich an der Gebetswand der App, wenn Sie das eigens ankreuzen (das Kästchen ist nicht vorausgewählt): ' +
-        'ohne Namen und Ort, nur der Text und der Tag. Es bleibt dort, bis wir es nach 90 Tagen löschen oder eine ' +
-        'Moderatorin bzw. ein Moderator es abnimmt. Aufnahmen werden erst nach der Freigabe ' +
+        'ohne Namen und Ort, nur der Text und der Tag. Die Wand zeigt die neuesten Anliegen (während einer ' +
+        'Gebetsstunde die dieser Stunde); Ihres bleibt dort, bis neuere es verdrängen, eine Moderatorin bzw. ein ' +
+        'Moderator es abnimmt oder wir es nach 90 Tagen löschen. In einer Gebetsstunde beten wir auf Sendung für ein ' +
+        'Anliegen, das an der Wand steht, ohne Ihren Namen, und die App zeigt es dabei als das, wofür wir gerade beten.\n' +
+        'Tippen Sie bei einem Anliegen an der Wand auf 🙏 („Ich habe mitgebetet“), sendet die App das mit ihrer ' +
+        'nächsten Meldung. Damit jedes Gerät nur einmal zählt, speichern wir einen Wert, der aus Ihrer Gerätekennung ' +
+        'und dem Anliegen mit einem geheimen Schlüssel gebildet ist und sich weder mit Ihren anderen Angaben noch mit ' +
+        'Ihren übrigen Gebeten verbinden lässt; mit dem Antippen willigen Sie ausdrücklich ein, dass wir ihn dafür ' +
+        'verarbeiten (Art. 9 Abs. 2 lit. a DSGVO). Wir löschen ihn, sobald das Anliegen nicht mehr an der Wand ' +
+        'steht; nur die Zahl bleibt beim Anliegen und wird mit ihm gelöscht. Die Zahl sieht nur, wer das Anliegen ' +
+        'geschickt hat; am Ende einer Gebetsstunde kann der Host sagen, wie oft insgesamt mitgebetet wurde.\n' +
+        'Aufnahmen werden erst nach der Freigabe ' +
         'veröffentlicht und nur wiederholt, wenn Sie dem zugestimmt haben. Ein gewünschter Song kann in unsere ' +
         'Musikauswahl aufgenommen werden – ohne Ihren Namen und ohne Ihre Widmung.\n' +
         'Abgelehnte Aufnahmen löschen wir sofort, alle übrigen Einsendungen nach 90 Tagen. Aufnahmen, die Sie zur ' +
@@ -340,7 +350,16 @@ const en = (host: string): StationTexts => ({
         'processing them for this purpose (Art. 9(2)(a) GDPR).\n' +
         'On air we mention only your first name and place. A typed prayer request also appears on the app’s prayer ' +
         'wall after approval if you tick that box (it is not ticked in advance): without your name and place, just ' +
-        'the text and the day. It stays there until we delete it after 90 days or a moderator takes it down. ' +
+        'the text and the day. The wall shows the newest requests (during a prayer hour, that hour\'s); yours stays ' +
+        'there until newer ones push it out, a moderator takes it down or we delete it after 90 days. In a prayer ' +
+        'hour we pray on air for a request that is on the wall without your name, and the app shows it as the one ' +
+        'we are praying for.\n' +
+        'When you tap 🙏 (“I prayed”) on a request on the wall, the app sends it with its next report. So that each ' +
+        'device counts once, we store a value derived from your device id and the request with a secret key, which ' +
+        'cannot be linked to your other data or to your other prayers; by tapping you explicitly consent to our ' +
+        'processing it for this (Art. 9(2)(a) GDPR). We delete it as soon as the request is no longer on the wall; ' +
+        'only the number stays with the request and is deleted with it. Only the person who sent the request sees ' +
+        'the number; at the end of a prayer hour the host may say how often listeners prayed along.\n' +
         'Recordings are published only after approval and replayed only with your ' +
         'consent. A requested song may join our music selection — without your name and without your dedication.\n' +
         'We delete rejected recordings immediately and all other submissions after 90 days. Recordings you allowed ' +

@@ -60,6 +60,16 @@ final class Identities
     }
 
     /**
+     * Who prayed along with one request: a key of its own per device and
+     * request, so the rows match neither presence nor the same device's
+     * other prayers.
+     */
+    public function prayKey(string $deviceId, int $submissionId): string
+    {
+        return substr($this->mac('pray', $deviceId . ':' . $submissionId), 0, 32);
+    }
+
+    /**
      * The canonical identity for a device, or null for an unknown device when
      * $create is false. A known device with the wrong secret is refused.
      *

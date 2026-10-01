@@ -169,6 +169,8 @@ final class Tick
         // Host clips can name a listener: purged at the edge too, not just here.
         $removed += Files::prune($this->app->publicPath('media/host'), $now - $c->int('RETAIN_HOST_AUDIO_HOURS', 48) * 3600, max(0, 500 - $removed),
             fn(string $path) => $this->app->cdn()->forget('/media/host/' . basename($path)));
+        // Who prayed along with a request no wall shows any more (only the number stays).
+        $removed += $this->app->submissions()->forgetPrayedAlong();
         return $removed;
     }
 

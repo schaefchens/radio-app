@@ -8,6 +8,7 @@ import { VoiceMessage, VoicesHeading } from './CommunityVoices';
 import { useVoices } from './useVoices';
 import { HostBody } from './HostCard';
 import { PrayerEntry, WallEmpty, WallHeading } from './PrayerWall';
+import { usePrayingWall } from './usePrayingWall';
 import { ChevronIcon, MicIcon } from '@/components/common/icons';
 
 const PANELS = ['voices', 'moderator', 'prayers'] as const;
@@ -35,7 +36,7 @@ export function MobileCarousel({ onMoreWall }: { onMoreWall: () => void }) {
   const prayersBody = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ id: number; x: number; y: number } | null>(null);
   const voices = useVoices();
-  const wall = useRadio((s) => s.engine.wall);
+  const { wall, praying, now: prayingNow } = usePrayingWall();
   const speaking = useRadio((s) => s.engine.hostText !== null);
   const panel = PANELS[index]!;
 
@@ -44,7 +45,8 @@ export function MobileCarousel({ onMoreWall }: { onMoreWall: () => void }) {
     setNudge((n) => n + 1);
   }, []);
   const voiceOffset = useRotation(voicesBody, voices.length, panel !== 'voices' || picking || voices.length <= visible, nudge);
-  const prayerOffset = useRotation(prayersBody, wall.length, panel !== 'prayers' || picking || wall.length <= visible, nudge);
+  // While the host prays for a request on the wall, it stays first ("Praying now").
+  const prayerOffset = useRotation(prayersBody, wall.length, panel !== 'prayers' || picking || prayingNow || wall.length <= visible, nudge);
 
   const select = (i: number) => {
     setIndex((i + PANELS.length) % PANELS.length);
@@ -163,8 +165,8 @@ export function MobileCarousel({ onMoreWall }: { onMoreWall: () => void }) {
                   <WallHeading onMore={onMoreWall} />
                   <div ref={prayersBody} key={prayerOffset} className={clsx('carousel-body', wall.length > visible && 'is-entering')}>
                     {wall.length === 0 && <WallEmpty />}
-                    {window_(wall, prayerOffset).map((e) => (
-                      <PrayerEntry key={e.id} entry={e} onActivity={onActivity} />
+                    {window_(wall, prayingNow ? 0 : prayerOffset).map((e) => (
+                      <PrayerEntry key={e.id} entry={e} praying={praying.includes(e.id)} onActivity={onActivity} />
                     ))}
                   </div>
                 </>

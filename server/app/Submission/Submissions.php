@@ -592,17 +592,86 @@ final class Submissions
      * The id is the one community voices used for prayers ('p' + public id),
      * so the app's reactions on a wall entry keep their shape.
      *
+     * While a prayer hour is on air, its wall: the requests sent to it, up to
+     * 60 — what the host reads and takes up again. Then the newest 30 of all
+     * programs again, with the hour's on top.
+     *
      * @return list<array{id:string,text:string,at:int}>
      */
     public function wall(string $channel, int $limit = 30): array
     {
+        $hour = $this->hourOnAir($channel);
         $rows = $this->app->store()->all(
             "SELECT s.public_id, s.text, s.created FROM submissions s JOIN channels c ON c.id = s.channel_id
              WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.hidden = 0
-             AND s.status IN ('approved', 'scheduled', 'aired') ORDER BY s.created DESC, s.id DESC LIMIT ?",
-            [$channel, $limit],
+             AND s.status IN ('approved', 'scheduled', 'aired')" . ($hour !== null ? ' AND s.program_id = ? AND s.created >= ?' : '') . "
+             ORDER BY s.created DESC, s.id DESC LIMIT ?",
+            $hour !== null ? [$channel, $hour['program_id'], intdiv($hour['start'], 1000), 60] : [$channel, $limit],
         );
         return array_map(fn($r) => ['id' => 'p' . $r['public_id'], 'text' => (string) $r['text'], 'at' => (int) $r['created'] * 1000], $rows);
+    }
+
+    /** The prayer hour on air on this channel now, as its run. @return array{start:int,end:int,program_id:int}|null */
+    private function hourOnAir(string $slug): ?array
+    {
+        $channel = $this->app->catalog()->channelBySlug($slug);
+        if ($channel === null) return null;
+        try {
+            $run = $this->app->resolver()->runAt($channel, $this->app->clock->nowMs());
+        } catch (\RuntimeException) {
+            return null; // a channel without programs: no hour, the usual wall
+        }
+        return PrayerHour::applies($this->app->catalog()->program($run['program_id'])) ? $run : null;
+    }
+
+    /**
+     * 🙏 on a request on the wall: praying along. Each device counts once per
+     * request (`who` is a key of its own per device and request); only a
+     * request a wall may show can be prayed with, and a cap per address keeps
+     * a script of made-up devices from inflating the number.
+     *
+     * @return bool whether it counted now
+     */
+    public function prayAlong(string $publicId, string $deviceId): bool
+    {
+        $sub = $this->byPublicId($publicId);
+        if ($sub === null || !self::onWall($sub) || !in_array($sub['status'], ['approved', 'scheduled', 'aired'], true)) return false;
+        $store = $this->app->store();
+        $who = $this->app->identities()->prayKey($deviceId, (int) $sub['id']);
+        if ($store->value('SELECT 1 FROM prayed_along WHERE submission_id = ? AND who = ?', [(int) $sub['id'], $who]) !== null) return false;
+        $rl = $this->app->rateLimit();
+        if (!$rl->hit('pray:' . $rl->ipKey(), $this->app->config->int('PRAY_ALONG_PER_IP_HOUR', 600), 3600)) return false;
+        return $store->tx(function () use ($store, $sub, $who): bool {
+            if ($store->query('INSERT OR IGNORE INTO prayed_along(submission_id, who) VALUES(?, ?)', [(int) $sub['id'], $who])->rowCount() !== 1) return false;
+            $store->query('UPDATE submissions SET prayed_count = prayed_count + 1 WHERE id = ?', [(int) $sub['id']]);
+            return true;
+        });
+    }
+
+    /**
+     * Who prayed along with which request matters only while a wall can show
+     * it (to count each device once): then it goes, and only the number stays
+     * with the request. The privacy policy says so.
+     */
+    public function forgetPrayedAlong(): int
+    {
+        $keep = [];
+        foreach ($this->app->catalog()->channels() as $c) {
+            $slug = (string) $c['slug'];
+            // The wall shown now (a prayer hour's), and the one shown after it.
+            foreach ($this->wall($slug) as $e) $keep[] = substr($e['id'], 1);
+            foreach ($this->app->store()->all(
+                "SELECT s.public_id FROM submissions s JOIN channels c ON c.id = s.channel_id
+                 WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.hidden = 0
+                 AND s.status IN ('approved', 'scheduled', 'aired') ORDER BY s.created DESC, s.id DESC LIMIT 30",
+                [$slug],
+            ) as $r) $keep[] = (string) $r['public_id'];
+        }
+        $store = $this->app->store();
+        if (!$keep) return $store->query('DELETE FROM prayed_along')->rowCount();
+        $keep = array_values(array_unique($keep));
+        $marks = implode(',', array_fill(0, count($keep), '?'));
+        return $store->query("DELETE FROM prayed_along WHERE submission_id NOT IN (SELECT id FROM submissions WHERE public_id IN ($marks))", $keep)->rowCount();
     }
 
     /** Whether a wall may show this submission: a typed prayer, its sender's yes, not taken down. @param array<string,mixed> $s */
@@ -657,6 +726,8 @@ final class Submissions
             'airsAt' => $status === 'scheduled' && $s['aired_at'] !== null ? (int) $s['aired_at'] : null,
             'airedAt' => $status === 'aired' ? (int) $s['aired_at'] : null,
             'created' => (int) $s['created'] * 1000,
+            // How many prayed along with it on the wall: shown to its sender only.
+            'prayedWith' => (int) ($s['prayed_count'] ?? 0),
         ];
     }
 }

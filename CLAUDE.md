@@ -146,9 +146,19 @@ closes intake (`Timing::PRAYER_EACH`).
 The **prayer wall** (`Submissions::wall`, `live.json.wall`) shows typed prayer
 requests that are approved, scheduled or aired — only with the sender's own
 tick (never pre-ticked: Art. 9 needs a clear yes), anonymous (text and time,
-no name or place), the newest 30. In live.json, not the minute files, so a
-moderator's takedown (/mod → Review → Prayer wall, `submissions.hidden`)
-applies at once. Community voices are chat highlights only.
+no name or place), the newest 30 — while a prayer hour is on air, that hour's
+requests (up to 60). In live.json, not the minute files, so a moderator's
+takedown (/mod → Review → Prayer wall, `submissions.hidden`) applies at once;
+it also drops the repeats a prayer hour planned for it. Community voices are
+chat highlights only. 🙏 on a wall request (a `voices` reaction `p…`/`pray` in
+the pulse, never a request of its own) is praying along
+(`Submissions::prayAlong`): once per device and request — `prayed_along.who`
+is an HMAC of both, so it joins neither presence nor the device's other
+prayers — and capped per address (`PRAY_ALONG_PER_IP_HOUR`). The rows go as
+soon as no wall can show the request; the number (`submissions.prayed_count`)
+stays, shown to the sender only (Profile) and as the hour's total in the
+outro. The pulse keys voice reactions by voice *and* kind (a ❤️ after a 🙏
+used to replace it).
 
 The **prayer hour** (`Program\PrayerHour`; program setting `format: 'prayer'`,
 prayer requests only, never a channel's fallback) has its own running order:

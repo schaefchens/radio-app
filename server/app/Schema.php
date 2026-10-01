@@ -413,6 +413,18 @@ final class Schema
             CREATE UNIQUE INDEX library_yt ON library_items(yt_id) WHERE yt_id IS NOT NULL;
             CREATE INDEX library_kind_active ON library_items(kind, active);
             SQL,
+            // 6 — praying along with a request on the prayer wall: each device
+            // counts once per request. Who prayed for which request is kept
+            // only while a wall can show it (Submissions::forgetPrayedAlong);
+            // the number stays with the request.
+            <<<'SQL'
+            ALTER TABLE submissions ADD COLUMN prayed_count INTEGER NOT NULL DEFAULT 0;
+            CREATE TABLE prayed_along (
+              submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+              who TEXT NOT NULL,
+              PRIMARY KEY (submission_id, who)
+            ) WITHOUT ROWID;
+            SQL,
         ];
     }
 }

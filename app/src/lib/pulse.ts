@@ -12,11 +12,13 @@ import { accept } from './clock';
 
 interface Pending {
   reactions: Map<string, number>; // `${item}|${kind}` → n
-  voices: Map<string, ReactionKind>;
+  // `${voice}|${kind}`: a 🙏 and a ❤️ on the same voice or wall request in one
+  // round both go — keyed by the voice alone, the second replaced the first.
+  voices: Set<string>;
   errors: Map<string, number>;
 }
 
-const pending: Pending = { reactions: new Map(), voices: new Map(), errors: new Map() };
+const pending: Pending = { reactions: new Map(), voices: new Set(), errors: new Map() };
 let timer: ReturnType<typeof setTimeout> | null = null;
 let intervalSec = 120;
 let channel = '';
@@ -27,7 +29,7 @@ export function reactToItem(item: string, kind: ReactionKind): void {
 }
 
 export function reactToVoice(voice: string, kind: ReactionKind): void {
-  pending.voices.set(voice, kind);
+  pending.voices.add(`${voice}|${kind}`);
 }
 
 export function reportPlaybackError(item: string, code: number): void {
@@ -40,7 +42,10 @@ async function send(): Promise<void> {
     const [item, kind] = k.split('|');
     return { item, kind, n };
   });
-  const voices = [...pending.voices].map(([voice, kind]) => ({ voice, kind }));
+  const voices = [...pending.voices].map((k) => {
+    const [voice, kind] = k.split('|');
+    return { voice, kind };
+  });
   const errors = [...pending.errors].map(([item, code]) => ({ item, code }));
   pending.reactions.clear();
   pending.voices.clear();

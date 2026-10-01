@@ -172,7 +172,8 @@ test('requests: intake closes 15 minutes before a program ends, last chance from
     $app->store()->db->exec('DROP INDEX submissions_wall; ALTER TABLE submissions DROP COLUMN hidden;');
     $app->store()->set('schema', 1);
     $version = $app->catalog()->version();
-    Arche\Schema::migrate($app->store(), $app->clock->nowMs());
+    // Up to the wall's version 3: the later ones add more than this test removes.
+    Arche\Schema::migrate($app->store(), $app->clock->nowMs(), 3);
     $s = json_decode((string) $app->store()->value('SELECT settings FROM programs WHERE id = ?', [$pid]), true);
     eq([$s['closing_min'], $s['closed_min'], $s['max_queue_min']], [25, 15, 45], 'the old defaults become the new ones; the rest stays');
     eq($app->catalog()->version(), $version + 1, 'and the drafts made the old way are planned again');

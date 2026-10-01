@@ -69,7 +69,7 @@ export function StageRegion({ compact = false, flush = false }: { compact?: bool
         className={clsx('player-stage relative aspect-video w-full overflow-hidden', !flush && 'rounded-2xl border border-line/30 shadow-card')}
         style={{ minHeight: 200 }}
       >
-        <StageVisual engine={engine} />
+        <StageVisual engine={engine} compact={compact} />
         {!engine.joined && (
           <div className="join-overlay">
             <button type="button" onClick={join} className="play-button" aria-label={t('join.button')} title={t('join.button')}>

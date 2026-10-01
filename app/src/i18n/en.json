@@ -29,7 +29,9 @@
     "silence": "A moment of silence",
     "evergreen": "Our favourites while the program reconnects",
     "hostSpeaking": "{{name}} is speaking",
-    "unavailable": "This song can't be played here — stay with us"
+    "unavailable": "This song can't be played here — stay with us",
+    "prayingNow": "{{name}} is praying",
+    "sharePrayer": "Share a prayer request"
   },
   "live": {
     "badge": "LIVE",
@@ -154,7 +156,9 @@
       "not_suitable": "It isn't suitable for the program.",
       "not_accepted": "It wasn't accepted this time."
     },
-    "empty": "Nothing handed in yet."
+    "empty": "Nothing handed in yet.",
+    "prayedWith_one": "🙏 {{count}} prayed with you",
+    "prayedWith_other": "🙏 {{count}} prayed with you"
   },
   "today": {
     "title": "Today's Program",
@@ -718,7 +722,8 @@
     "share": "Share yours",
     "today": "Today",
     "yesterday": "Yesterday",
-    "intro": "Prayer requests from listeners who agreed to share them. Pray along."
+    "intro": "Prayer requests from listeners who agreed to share them. Pray along.",
+    "prayingNow": "Praying now"
   },
   "emoji": {
     "hallelujah": "Hallelujah",

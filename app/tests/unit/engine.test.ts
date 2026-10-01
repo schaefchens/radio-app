@@ -288,3 +288,22 @@ describe('prayer music', () => {
     s.engine.stop();
   });
 });
+
+describe('the prayer hour', () => {
+  it('knows which wall requests the host is praying for while the moment airs', async () => {
+    const moment: TimelineItem = {
+      id: 'h9', type: 'host', start: 40_000, dur: 20_000, p: 'prayer', kind: 'prayer',
+      audio: { en: '/media/host/p.mp3' }, text: { en: 'Lord, we pray…' }, voices: [], prayers: ['pk3v9q2m7x4tb'],
+    };
+    const quiet: TimelineItem = { id: 'q9', type: 'silence', start: 60_000, dur: 60_000, p: 'prayer', label: { en: 'Silent prayer', de: 'Stilles Gebet' } };
+    const s = setup({ slot: { ...slotFile, items: [moment, quiet] } });
+    await s.engine.start('main');
+    expect(s.engine.snapshot.praying).toEqual(['pk3v9q2m7x4tb']);
+    s.setNow(61_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('silence');
+    // The same empty list every time: a new [] per state would loop a zustand selector.
+    expect(s.engine.snapshot.praying).toBe(initialState().praying);
+    s.engine.stop();
+  });
+});

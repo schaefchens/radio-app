@@ -29,7 +29,9 @@
     "silence": "Ein Moment der Stille",
     "evergreen": "Unsere Lieblingslieder, bis das Programm wieder da ist",
     "hostSpeaking": "{{name}} spricht",
-    "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran"
+    "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran",
+    "prayingNow": "{{name}} betet",
+    "sharePrayer": "Gebetsanliegen teilen"
   },
   "live": {
     "badge": "LIVE",
@@ -154,7 +156,9 @@
       "not_suitable": "Es ist für die Sendung nicht geeignet.",
       "not_accepted": "Es wurde diesmal nicht angenommen."
     },
-    "empty": "Noch nichts eingereicht."
+    "empty": "Noch nichts eingereicht.",
+    "prayedWith_one": "🙏 {{count}} hat mit dir gebetet",
+    "prayedWith_other": "🙏 {{count}} haben mit dir gebetet"
   },
   "today": {
     "title": "Heutiges Programm",
@@ -718,7 +722,8 @@
     "share": "Teile deins",
     "today": "Heute",
     "yesterday": "Gestern",
-    "intro": "Gebetsanliegen von Hörerinnen und Hörern, die sie teilen wollten. Betet mit."
+    "intro": "Gebetsanliegen von Hörerinnen und Hörern, die sie teilen wollten. Betet mit.",
+    "prayingNow": "Wir beten gerade dafür"
   },
   "emoji": {
     "hallelujah": "Halleluja",

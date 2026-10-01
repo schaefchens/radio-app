@@ -65,6 +65,9 @@ return [
     // Per shared address (a church Wi-Fi, a carrier's CGNAT): per-identity
     // limits, MODERATION_MAX_PER_DAY and the AI budget bound the cost anyway.
     'SUBMISSIONS_PER_IP_HOUR' => '60',
+    // 🙏 on prayer wall requests from one address an hour that count (one per
+    // device and request anyway): a church group on one Wi-Fi prays a lot.
+    'PRAY_ALONG_PER_IP_HOUR' => '600',
     'IDENTITIES_PER_IP_DAY' => '300',
     // The e2e stack points this at a fake (app/tests/e2e/fake-youtube.mjs).
     'YOUTUBE_API_BASE' => 'https://www.googleapis.com/youtube/v3',

@@ -62,6 +62,8 @@ export interface EngineState {
   voices: Voice[];
   /** The prayer wall from live.json: anonymous typed prayer requests, newest first. */
   wall: WallEntry[];
+  /** The wall entries the host is praying for right now (a prayer hour's moment). */
+  praying: string[];
   hasData: boolean;
 }
 
@@ -126,6 +128,7 @@ const CONTINUE_MS = 2000;
 /** One empty wall for every reset: a fresh [] per state would give a zustand
  *  selector a new reference each time and loop React. */
 const NO_WALL: WallEntry[] = [];
+const NO_IDS: string[] = [];
 
 export function initialState(channel = ''): EngineState {
   return {
@@ -145,6 +148,7 @@ export function initialState(channel = ''): EngineState {
     listeners: 0,
     voices: [],
     wall: NO_WALL,
+    praying: NO_IDS,
     hasData: false,
   };
 }
@@ -373,7 +377,8 @@ export class RadioEngine {
         mode = item.type === 'silence' ? 'silence' : 'stage';
       }
     }
-    this.state = { ...this.state, ...base, item, evergreen: null, mode, playerVisible, needsTap };
+    const praying = item.type === 'host' && item.prayers.length > 0 ? item.prayers : NO_IDS;
+    this.state = { ...this.state, ...base, item, evergreen: null, mode, playerVisible, needsTap, praying };
     this.refreshHostText();
     this.preloadNext(item);
     this.emit();
@@ -442,7 +447,7 @@ export class RadioEngine {
         this.key = 'offline';
         this.deps.player.stop();
         this.deps.audio.stop();
-        this.state = { ...this.state, item: gap, evergreen: null, mode: 'offline', playerVisible: false, needsTap: false, hasData: this.timeline.coveredUntil() > 0 };
+        this.state = { ...this.state, item: gap, evergreen: null, mode: 'offline', playerVisible: false, needsTap: false, praying: NO_IDS, hasData: this.timeline.coveredUntil() > 0 };
         this.emit();
       }
       return;
@@ -458,6 +463,7 @@ export class RadioEngine {
     this.state = {
       ...this.state,
       item: gap,
+      praying: NO_IDS,
       mode: 'evergreen',
       evergreen: { yt: pos.track.yt, title: pos.track.title, artist: pos.track.artist, thumb: pos.track.thumb, start: pos.start, dur: pos.track.dur },
       playerVisible: this.state.joined,

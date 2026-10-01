@@ -124,6 +124,82 @@
   background: #071525;
 }
 
+/* The prayer hour on the stage (StageVisual) — only while no song plays, so
+   nothing here is ever in front of the YouTube player. The wall's gold on the
+   dark stage. */
+.stage-prayer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 34rem;
+}
+.stage-prayer-title {
+  margin: 0;
+  color: rgb(var(--ink));
+  font-size: clamp(18px, 3.2vw, 28px);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+  text-shadow: 0 1px 6px #0006;
+}
+.stage-wall-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #a8782c;
+  border-radius: 14px;
+  background: rgb(51 38 17 / var(--surface-a));
+  color: #fff2d6;
+}
+.stage-wall-text {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+.stage-prayer-share,
+.stage-pray {
+  border: 1px solid #ffcb7399;
+  border-radius: 999px;
+  background: #ffcb7322;
+  color: #ffcb73;
+  font-weight: 600;
+}
+.stage-prayer-share {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+.stage-pray {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+.stage-prayer-share:hover,
+.stage-pray:hover {
+  background: #ffcb7338;
+}
+.stage-pray[aria-pressed='true'] {
+  border-color: #dda12b;
+  background: #dda12b33;
+  color: #f0b94a;
+}
+.stage-prayer-share:focus-visible,
+.stage-pray:focus-visible {
+  outline: 3px solid #249dff;
+  outline-offset: 3px;
+}
+
 /* The join overlay: the round play button over the stage, before YouTube loads. */
 .join-overlay {
   position: absolute;
@@ -541,6 +617,18 @@
 .feed-emoji-picker button[aria-pressed='true'] {
   border-color: rgb(var(--accent));
   background: rgb(var(--surface) / var(--surface-a));
+}
+/* The request the host is praying for right now (a prayer hour's moment). */
+.praying-badge {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(var(--accent) / 0.16);
+  color: rgb(var(--accent));
+  font-size: 11px;
+  font-weight: 700;
 }
 .feed-empty {
   margin: 12px 0 0;
@@ -1071,6 +1159,29 @@
 }
 
 /* --- phone ------------------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  /* The phone's stage is about 200 px high: the request, the title and 🙏, no ring. */
+  .stage-prayer {
+    gap: 6px;
+  }
+  .stage-prayer-title {
+    font-size: 17px;
+  }
+  .stage-prayer-ring,
+  .stage-prayer .stage-wall-entry + .stage-wall-entry {
+    display: none;
+  }
+  .stage-wall-entry {
+    gap: 6px;
+    padding: 8px 12px;
+  }
+  .stage-wall-text {
+    font-size: 13px;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+}
 
 @media (max-width: 600px) {
   /* No enclosing box: the player stays pinned all the way down the page. */
