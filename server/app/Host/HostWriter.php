@@ -150,6 +150,15 @@ final class HostWriter
             $states = SubmissionWindow::states($this->app, $channel, $program, $this->app->resolver()->runAt($channel, $at), $at);
             $ctx['intake'] = is_array($states) ? ($states['prayer'] ?? 'closed') : 'closed';
         }
+        // Who prays the opening prayer, when a moderator prepared it: the welcome names them.
+        if ($hb['kind'] === 'intro' && $item !== null && ($next = $this->app->timeline()->after((int) $hb['channel_id'], $item['seq'])) !== null) {
+            $by = match (true) {
+                $next['type'] === 'contrib' && !empty($next['payload']['opening']) => (string) ($next['payload']['name'] ?? ''),
+                $next['type'] === 'host' && $next['host_break_id'] !== null => (string) ($this->app->hostBreaks()->get($next['host_break_id'])['context']['by'] ?? ''),
+                default => '',
+            };
+            if (trim($by) !== '') $ctx['opening_by'] = trim($by);
+        }
         if ($hb['kind'] === 'outro' && $item !== null) {
             $prayed = $this->app->prayerHour()->prayedFor((int) $hb['channel_id'], (int) $program['id'], (float) $item['seq']);
             $ctx['prayed'] = count($prayed);
@@ -181,6 +190,16 @@ final class HostWriter
     public function write(array $hb, array $context): array
     {
         $langs = $this->app->config->stationLangs();
+        // A moderator's own prayer is read word for word, in the languages it
+        // was written in (a listener of the other language hears that one).
+        if (!empty($hb['context']['fixed'])) {
+            $texts = [];
+            foreach ($langs as $l) {
+                $t = trim((string) ($hb['context']['fixed'][$l] ?? ''));
+                if ($t !== '') $texts[$l] = $t;
+            }
+            if ($texts) return ['texts' => $texts, 'source' => 'moderator'];
+        }
         $channel = $this->app->catalog()->channel((int) $hb['channel_id']) ?? [];
         $props = [];
         foreach ($langs as $l) {
@@ -261,7 +280,8 @@ final class HostWriter
 
         In a prayer hour ("format": "prayer hour") listeners send prayer requests and pray together.
         Its moments:
-        - intro: welcome everyone to the prayer hour, a time to pray together.
+        - intro: welcome everyone to the prayer hour, a time to pray together; with "opening_by", say
+          that this person prays the opening prayer for us (by name only).
         - opening: the opening prayer, speaking to God, for this hour together.
         - invite: invite listeners to send their prayer requests now with the "Share a prayer request"
           button in the app; say for how long ("collect": minutes of quiet music or of quiet, or while

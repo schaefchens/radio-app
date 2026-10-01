@@ -151,6 +151,10 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
   without the sender's name and marked "Praying now". 🙏 on the wall counts
   once per device (at most `PRAY_ALONG_PER_IP_HOUR`, 600, from one address an
   hour); only the sender sees the number, and the outro may say the total.
+  Under the program's settings a moderator prepares opening prayers — typed
+  (read word for word in the host voice, only in the languages filled in),
+  an MP3 or a recording in the browser, up to 3 minutes; each airing takes the
+  oldest one waiting, otherwise the AI host prays.
 - **Themes**: Kids Ark (light) and Storm Ark (dark), following the device
   until a listener picks one (welcome dialog, Profile). The design they
   implement is `concept-files/theme-preview.html`; the scenery lives in
@@ -160,7 +164,8 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
   (`RETAIN_SUBMISSIONS_DAYS`; recordings allowed for replays stay in the
   library), the timeline and the host's scripts 30 days (they can quote a
   prayer request), who prayed along with a request until it is off the wall
-  (the number stays with it), chat voices 7 days, chat reports 30 days, presence 1 day,
+  (the number stays with it), prepared opening prayers 90 days after they
+  aired, chat voices 7 days, chat reports 30 days, presence 1 day,
   rate-limit entries 2 days, unused anonymous devices 60 days, backups 7 days.
 - **Station page** (`/about`, also `/impressum`, `/datenschutz`; the header
   logo opens it): what ARCHE is, the imprint and the privacy policy, in

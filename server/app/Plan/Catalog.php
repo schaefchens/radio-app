@@ -237,6 +237,8 @@ final class Catalog
         $inUse = (int) $store->value('SELECT COUNT(*) FROM day_plan_blocks WHERE program_id = ?', [$id])
             + (int) $store->value('SELECT COUNT(*) FROM channels WHERE fallback_program_id = ?', [$id]);
         if ($inUse > 0) throw new ApiError(409, 'program_in_use');
+        // Its prepared opening prayers go along, recordings included.
+        $this->app->openingPrayers()->purge(0, $id);
         $store->query('DELETE FROM programs WHERE id = ?', [$id]);
         $this->bump($actor, 'program deleted ' . $id);
     }

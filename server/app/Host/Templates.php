@@ -72,7 +72,10 @@ final class Templates
         $wall = count(array_filter($requests, fn($r) => !empty($r['on_wall']))) > 0;
         $list = fn(array $n, string $and) => count($n) > 1 ? implode(', ', array_slice($n, 0, -1)) . " $and " . end($n) : ($n[0] ?? '');
         return match ($kind) {
-            'intro' => [
+            'intro' => ($by = trim((string) ($c['opening_by'] ?? ''))) !== '' ? [
+                'en' => "Welcome to {$program['en']} on ARCHE. $by opens our time of prayer.",
+                'de' => "Willkommen bei {$program['de']} auf ARCHE. $by eröffnet unsere Gebetszeit.",
+            ] : [
                 'en' => "Welcome to {$program['en']} on ARCHE. Let us pray together in this hour.",
                 'de' => "Willkommen bei {$program['de']} auf ARCHE. Lasst uns in dieser Stunde miteinander beten.",
             ],

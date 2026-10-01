@@ -183,7 +183,12 @@ before the opening, silence later, in the waiting unit's program — never the
 previous program's song). A request on the wall reaches the model without
 name and place (it is prayed for anonymously); the moment's `prayers` lists
 the wall ids so the app can show "Praying now". Intake and `canStillAir`
-count to C.
+count to C. A moderator can prepare opening prayers (`Program\OpeningPrayers`,
+/mod → Programs; not a Catalog write, so no drafts are thrown away): each
+airing takes the oldest waiting — a recording airs as a `contrib` item, a text
+as host `opening` with `context.fixed`, which the script phase voices word for
+word without the model, in the languages filled in — and is marked aired at
+commit; the welcome names who prays (`opening_by`).
 
 **Themes** (`app/src/lib/theme.ts`, `app/src/styles/`). The design is
 `concept-files/theme-preview.html`: Kids Ark (light) and Storm Ark (dark),

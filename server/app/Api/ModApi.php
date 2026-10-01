@@ -265,6 +265,38 @@ final class ModApi
         return ['program' => $this->c->app->catalog()->saveProgram((int) $program['id'], (int) $program['channel_id'], ['image' => $url], $this->actor())];
     }
 
+    /** @param array<string,string> $a */
+    public function openingPrayers(array $a): array
+    {
+        $this->mod();
+        return ['prayers' => $this->c->app->openingPrayers()->list($this->id($a))];
+    }
+
+    /**
+     * A prepared opening prayer: a recording (multipart `audio` + `name`) or a
+     * text (JSON `name`, `text_en`, `text_de`).
+     *
+     * @param array<string,string> $a
+     */
+    public function openingPrayerAdd(array $a): array
+    {
+        $this->mod();
+        $prayers = $this->c->app->openingPrayers();
+        $program = $this->id($a);
+        $file = $this->c->req->file('audio');
+        if ($file !== null) return ['prayer' => $prayers->addAudio($program, (string) ($this->c->req->post['name'] ?? ''), $file, $this->actor())];
+        $in = $this->c->req->json();
+        return ['prayer' => $prayers->addText($program, (string) ($in['name'] ?? ''), (string) ($in['text_en'] ?? ''), (string) ($in['text_de'] ?? ''), $this->actor())];
+    }
+
+    /** @param array<string,string> $a */
+    public function openingPrayerDelete(array $a): array
+    {
+        $this->mod();
+        $this->c->app->openingPrayers()->delete($this->id($a), $this->actor());
+        return ['ok' => true];
+    }
+
     // --- plans ------------------------------------------------------------------------------------
 
     /** @param array<string,string> $a */

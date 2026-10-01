@@ -484,6 +484,24 @@
         "quietMin": "Stille Minuten, bevor die Moderation wieder betet",
         "afterSongs": "Lieder nach dem Abschluss",
         "notFallback": "Eine Gebetsstunde kann nicht das Ersatzprogramm eines Kanals sein: Ihr Ablauf braucht ein Ende."
+      },
+      "opening": {
+        "heading": "Eröffnungsgebete",
+        "hint": "Jede Ausstrahlung nimmt das älteste wartende; ohne eines betet die KI-Moderation. Ein geschriebenes Gebet liest die Moderationsstimme Wort für Wort, nur in den Sprachen, die du ausfüllst; eine Aufnahme läuft, wie sie ist (höchstens 3 Minuten). Die Eröffnung wird etwa 8 Minuten vor der Stunde geplant: Was später dazukommt, ist für die nächste Ausstrahlung.",
+        "none": "Keines vorbereitet – die KI-Moderation betet.",
+        "waiting": "Wartet",
+        "aired": "Gebetet am {{date}}",
+        "name": "Wer betet (die Begrüßung nennt den Namen)",
+        "textEn": "Gebet (Englisch)",
+        "textDe": "Gebet (Deutsch)",
+        "addText": "Geschriebenes Gebet hinzufügen",
+        "upload": "MP3 hochladen",
+        "record": "Aufnehmen",
+        "stop": "Stopp ({{s}} s)",
+        "addRecording": "Aufnahme hinzufügen",
+        "added": "Hinzugefügt.",
+        "deleted": "Gelöscht.",
+        "saveFirst": "Speichere die Sendung zuerst, um Eröffnungsgebete vorzubereiten."
       }
     },
     "plans": {

@@ -59,6 +59,9 @@ final class Routes
         $r->add('PATCH', '/mod/programs/{id}', $m('programUpdate'));
         $r->add('DELETE', '/mod/programs/{id}', $m('programDelete'));
         $r->add('POST', '/mod/programs/{id}/image', $m('programImage'));
+        $r->add('GET', '/mod/programs/{id}/opening-prayers', $m('openingPrayers'));
+        $r->add('POST', '/mod/programs/{id}/opening-prayers', $m('openingPrayerAdd'));
+        $r->add('DELETE', '/mod/opening-prayers/{id}', $m('openingPrayerDelete'));
         $r->add('GET', '/mod/channels/{id}/plans', $m('plans'));
         $r->add('GET', '/mod/channels/{id}/preview', $m('planPreview'));
         $r->add('POST', '/mod/channels/{id}/day-plans', $m('dayPlanCreate'));

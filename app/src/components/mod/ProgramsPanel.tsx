@@ -6,6 +6,7 @@ import { useModChannelId, useOverview } from './overview';
 import { clockDuration } from '@/lib/format';
 import { modError, type LibraryItem, type ModProgram, type ProgramSettings } from './modApi';
 import { ChannelSelect } from './ChannelSelect';
+import { OpeningPrayers } from './OpeningPrayers';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 
 const TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer'] as const;
@@ -331,6 +332,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
               <input type="number" min={0} max={5} className="field" value={d.settings.prayer.after_songs} onChange={(e) => setP({ after_songs: num(e.target.value) })} />
             </Field>
           </div>
+          {program ? <OpeningPrayers programId={program.id} /> : <p className="text-xs text-ink-faint">{t('mod.programs.opening.saveFirst')}</p>}
         </div>
       )}
 

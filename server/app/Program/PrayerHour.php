@@ -169,15 +169,36 @@ final class PrayerHour
     }
 
     /**
-     * The opening prayer, by the AI host.
+     * The opening prayer: the oldest one a moderator prepared (a recording
+     * plays as it is, even without the host; a text is read word for word in
+     * the host voice), else the AI host's own.
      *
      * @param array<string,mixed> $base
      * @return array{0:int,1:int}|null
      */
     private function opening(array $channel, array $program, array $base, int $cursor, bool $hostOn): ?array
     {
+        $prepared = $this->app->openingPrayers()->next((int) $program['id']);
+        if ($prepared !== null && $prepared['mode'] === 'audio') {
+            $dur = (int) $prepared['audio_ms'] + 400;
+            $this->app->timeline()->addDraft((int) $channel['id'], $base + [
+                'type' => 'contrib', 'dur_ms' => $dur, 'est_start' => $cursor,
+                'payload' => [
+                    'kind' => 'prayer', 'audio' => (string) $prepared['audio'], 'caption' => ['en' => 'Opening prayer', 'de' => 'Eröffnungsgebet'],
+                    'name' => (string) $prepared['name'], 'place' => '', 'opening' => true, 'prepared_id' => (int) $prepared['id'],
+                ],
+            ]);
+            return [1, $cursor + $dur];
+        }
         if (!$hostOn) return null;
-        return $this->app->drafter()->addHost($channel, $program, 'opening', $cursor, $base, [], self::unit(), Timing::OPENING_ESTIMATE);
+        if ($prepared === null) {
+            return $this->app->drafter()->addHost($channel, $program, 'opening', $cursor, $base, [], self::unit(), Timing::OPENING_ESTIMATE);
+        }
+        $fixed = array_filter(['en' => trim((string) $prepared['text_en']), 'de' => trim((string) $prepared['text_de'])], fn($t) => $t !== '');
+        // Planned by the text's length (about 14 characters a second), not a moment's estimate.
+        $estimate = max(Timing::OPENING_ESTIMATE, intdiv(max(array_map('mb_strlen', $fixed)) * 1000, 14));
+        return $this->app->drafter()->addHost($channel, $program, 'opening', $cursor, $base,
+            ['fixed' => $fixed, 'by' => (string) $prepared['name'], 'prepared_id' => (int) $prepared['id']], self::unit(), $estimate);
     }
 
     /**

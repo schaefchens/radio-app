@@ -451,3 +451,82 @@ test('prayer hour: the host\'s words — the reading names whom it may, the bles
     eq($read['payload']['text']['en'], trim($long), 'a 900-character prayer is spoken as written');
 });
 
+
+test('prayer hour: a moderator\'s prepared opening prayer is prayed instead of the AI\'s, word for word, and the welcome names them', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $p = prayerHour($app, 735);
+    $prepared = $app->openingPrayers();
+    $version = $app->catalog()->version();
+    $mine = $prepared->addText((int) $p['id'], 'Pastor Maria', 'Lord, open our hearts in this hour. Amen.', 'Herr, öffne unsere Herzen in dieser Stunde. Amen.', 'test');
+    $later = $prepared->addText((int) $p['id'], 'Brother Tom', '', 'Herr, sei bei uns. Amen.', 'test');
+    eq($app->catalog()->version(), $version, 'preparing one does not change the plan (no drafts are thrown away)');
+    check(refuses(fn() => $prepared->addText((int) $p['id'], 'Nobody', ' ', '', 'test'), 'missing_text'), 'a text in at least one language');
+    ticks($app, 25);
+    $run = runOf($app, (int) $p['id']);
+    $opening = array_values(array_filter($run, fn($r) => $r['label'] === 'opening'));
+    eq(count($opening), 1, 'one opening prayer');
+    $hb = $app->hostBreaks()->get((int) $opening[0]['item']['host_break_id']) ?? [];
+    eq([$hb['source'], $hb['texts']['en'], $hb['texts']['de']], ['moderator', 'Lord, open our hearts in this hour. Amen.', 'Herr, öffne unsere Herzen in dieser Stunde. Amen.'],
+        'the oldest one, read word for word');
+    $text = $app->text();
+    check($text instanceof Arche\Ai\StubText && !in_array('host_opening', array_column($text->calls, 'kind'), true), 'and no AI wrote it');
+    eq($run[0]['label'] === 'intro' ? ($run[0]['context']['opening_by'] ?? null) : null, 'Pastor Maria', 'the welcome names who prays the opening prayer');
+    $status = array_column($prepared->list((int) $p['id']), 'status', 'id');
+    eq([$status[$mine['id']], $status[$later['id']]], ['aired', 'waiting'], 'used once; the next one waits for the next airing');
+    check(refuses(fn() => $prepared->delete($mine['id'], 'test'), 'not_found'), 'what was prayed stays in the list');
+    $prepared->delete($later['id'], 'test');
+    eq(count($prepared->list((int) $p['id'])), 1, 'one still waiting can be deleted');
+});
+
+test('prayer hour: a typed opening prayer is voiced only in the languages filled in', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $p = prayerHour($app, 735);
+    $app->openingPrayers()->addText((int) $p['id'], 'Anna', '', 'Herr, sei bei uns in dieser Stunde. Amen.', 'test');
+    ticks($app, 25);
+    $opening = array_values(array_filter(runOf($app, (int) $p['id']), fn($r) => $r['label'] === 'opening'))[0]['item'];
+    eq([array_keys($opening['payload']['audio']), array_keys($opening['payload']['text'])], [['de'], ['de']], 'only German: an English listener hears that one');
+});
+
+test('prayer hour: a moderator\'s recorded opening prayer plays as it is; thrown away by a plan change before it aired, it waits for the next plan', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $p = prayerHour($app, 735);
+    $prepared = $app->openingPrayers();
+    $rec = $prepared->addAudio((int) $p['id'], 'Brother Tom', silentMp3(30), 'test');
+    check(refuses(fn() => $prepared->addAudio((int) $p['id'], 'Too long', silentMp3(200), 'test'), 'invalid_audio'), 'three minutes at most');
+    ticks($app, 8);
+    eq($prepared->list((int) $p['id'])[0]['status'], 'waiting', 'planned, not yet aired');
+    $app->catalog()->saveProgram((int) $p['id'], (int) TestKit::main($app)['id'], ['subtitle_en' => 'Changed'], 'test');
+    ticks($app, 20);
+    $run = runOf($app, (int) $p['id']);
+    eq(array_slice(labelsOf($run), 0, 4), ['intro', 'contrib', 'invite', 'bed'], 'the recording in the opening prayer\'s place, then the order goes on');
+    $openings = array_values(array_filter($run, fn($r) => $r['label'] === 'contrib'));
+    eq(count($openings), 1, 'played once');
+    $contrib = $openings[0]['item'];
+    eq([$contrib['payload']['name'], $contrib['payload']['caption']['de'], $contrib['payload']['audio']], ['Brother Tom', 'Eröffnungsgebet', $rec['audio']], 'with the moderator\'s name, as the opening prayer');
+    eq($prepared->list((int) $p['id'])[0]['status'], 'aired', 'marked aired');
+    eq($run[0]['context']['opening_by'] ?? null, 'Brother Tom', 'the welcome names him');
+
+    $path = (string) $app->media()->path((string) $rec['audio']);
+    $app->store()->query('UPDATE opening_prayers SET aired_at = ?', [$app->clock->nowMs() - 91 * 86_400_000]);
+    eq($prepared->purge($app->clock->nowMs() - 90 * 86_400_000), 1, 'after 90 days it goes');
+    check(!is_file($path) && $prepared->list((int) $p['id']) === [], 'with its recording');
+});
+
+test('prayer hour: moderators prepare opening prayers in /mod, listeners cannot', function () {
+    $app = TestKit::app();
+    $p = prayerHour($app, 735, 60, [], 0);
+    $path = "/api/mod/programs/{$p['id']}/opening-prayers";
+    eq(call($app, 'POST', $path, ['name' => 'X', 'text_en' => 'Amen.'], authHeaders())[0], 403, 'not for listeners');
+    $h = modHeaders($app);
+    [$st, $d] = call($app, 'POST', $path, ['name' => 'Pastor Maria', 'text_en' => 'Lord, be with us. Amen.'], $h);
+    eq([$st, $d['prayer']['mode'] ?? null, $d['prayer']['status'] ?? null], [200, 'text', 'waiting'], 'a typed one');
+    $req = new Arche\Http\Request('POST', $path, [], $h, '', ['name' => 'Brother Tom'], ['audio' => ['tmp_name' => silentMp3(20), 'error' => UPLOAD_ERR_OK]]);
+    $res = (new Arche\Http\Kernel($app))->handle($req);
+    eq([$res->status, $res->data['prayer']['mode'] ?? null], [200, 'audio'], 'a recording');
+    [$st, $d] = modGet($app, $path, [], $h);
+    eq([$st, array_column($d['prayers'], 'name')], [200, ['Pastor Maria', 'Brother Tom']], 'listed, the oldest first');
+    eq(call($app, 'DELETE', '/api/mod/opening-prayers/' . $d['prayers'][0]['id'], [], $h)[0], 200, 'deleted while it waits');
+});

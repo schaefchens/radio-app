@@ -28,6 +28,7 @@ use Arche\Presence\Presence;
 use Arche\Presence\Trends;
 use Arche\Program\Committer;
 use Arche\Program\Drafter;
+use Arche\Program\OpeningPrayers;
 use Arche\Program\PrayerHour;
 use Arche\Program\Publisher;
 use Arche\Program\Selector;
@@ -169,6 +170,11 @@ final class App
     public function prayerHour(): PrayerHour
     {
         return $this->service('prayerHour', PrayerHour::class, fn() => new PrayerHour($this));
+    }
+
+    public function openingPrayers(): OpeningPrayers
+    {
+        return $this->service('openingPrayers', OpeningPrayers::class, fn() => new OpeningPrayers($this));
     }
 
     public function committer(): Committer

@@ -184,6 +184,7 @@ final class Tick
         return [
             // First, so the identities they belonged to can go next.
             'submissions' => $this->app->submissions()->purgeBefore($now - $c->int('RETAIN_SUBMISSIONS_DAYS', 90) * 86400),
+            'opening_prayers' => $this->app->openingPrayers()->purge(($now - $c->int('RETAIN_SUBMISSIONS_DAYS', 90) * 86400) * 1000),
             'identities' => $this->app->identities()->purgeInactive(),
             'timeline' => $this->app->timeline()->purgeBefore(($now - $this->app->config->int('RETAIN_TIMELINE_DAYS', 30) * 86400) * 1000),
             // After the timeline rows that point at them: a host break keeps

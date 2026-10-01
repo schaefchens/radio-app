@@ -425,6 +425,26 @@ final class Schema
               PRIMARY KEY (submission_id, who)
             ) WITHOUT ROWID;
             SQL,
+            // 7 — opening prayers a moderator prepared for a prayer hour: a
+            // recording, or a text the host voice reads word for word. Each
+            // airing takes the oldest one waiting.
+            <<<'SQL'
+            CREATE TABLE opening_prayers (
+              id INTEGER PRIMARY KEY,
+              program_id INTEGER NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+              mode TEXT NOT NULL CHECK (mode IN ('text', 'audio')),
+              name TEXT NOT NULL DEFAULT '',
+              text_en TEXT NOT NULL DEFAULT '',
+              text_de TEXT NOT NULL DEFAULT '',
+              audio TEXT,
+              audio_ms INTEGER NOT NULL DEFAULT 0,
+              status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'aired')),
+              aired_at INTEGER,
+              created_by TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL
+            );
+            CREATE INDEX opening_prayers_waiting ON opening_prayers(program_id, status, id);
+            SQL,
         ];
     }
 }
