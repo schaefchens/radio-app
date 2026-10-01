@@ -16,9 +16,52 @@ body,
   height: 100%;
 }
 
+html,
+body {
+  /* No rubber band past the page's ends. Safari honours this on the root
+     only: on body alone the installed iPhone app still dragged the whole
+     page — dock, pinned player and all — and a pull at the top reloaded it,
+     which stops the radio. */
+  overscroll-behavior: none;
+}
+
+html {
+  /* No double-tap zoom (pinch zoom stays, but not in the installed app). */
+  touch-action: manipulation;
+}
+
 body {
   background: rgb(var(--base)) var(--texture) center top / 650px auto repeat;
-  overscroll-behavior-y: none;
+}
+
+/* iOS zooms into a field whose text is smaller than 16 px when it gets
+   focus, and the installed app has no bar to zoom back out with: the page
+   stayed zoomed and slid around under the finger. (-webkit-touch-callout
+   exists on iOS and iPadOS only.) */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* The installed app behaves like an app: a long press on a button, a link
+   or a picture is a press, not a menu to copy or save it. */
+@media (display-mode: standalone) {
+  /* No pinch zoom where touch-action has it (Android); iOS: lockZoomWhenInstalled. */
+  html {
+    touch-action: pan-x pan-y;
+  }
+  button,
+  a,
+  img,
+  [role='button'],
+  [role='tab'] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 @layer components {

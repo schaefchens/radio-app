@@ -259,6 +259,8 @@ export function BottomSheet({ open, onClose, title, onBack, children }: Props) {
 /** The usual padded, scrolling sheet body. Sheets whose child scrolls itself
  *  (or that switch between several body views) skip this and lay out their own. */
 export function BottomSheetBody({ children }: { children: React.ReactNode }) {
-  return <div className="flex-1 overflow-y-auto px-5 pb-8 pb-safe">{children}</div>;
+  // overscroll-contain: at the end of its content a swipe stays in the sheet
+  // instead of dragging the page behind the scrim.
+  return <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-8 pb-safe">{children}</div>;
 }
 
