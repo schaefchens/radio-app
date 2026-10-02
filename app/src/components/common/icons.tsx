@@ -99,6 +99,13 @@ export const MicIcon = (p: IconProps) => (
     <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8" />
   </Icon>
 );
+/** An open Bible: a preaching. */
+export const BookIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 6.5C10.3 5 7.9 4.4 4 4.5v13c3.9-.1 6.3.5 8 2 1.7-1.5 4.1-2.1 8-2v-13c-3.9-.1-6.3.5-8 2Z" />
+    <path d="M12 6.5v13M7 9.5h2M15 9.5h2M16 7.5v4" />
+  </Icon>
+);
 export const RoomIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M7.5 17.5 4 20v-4.3A7.5 7.5 0 1 1 7.5 17.5Z" />

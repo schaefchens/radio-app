@@ -11,7 +11,7 @@ import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
-import { Done, NamePlace, PrivacyNote } from './SongRequestSheet';
+import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
 import { MicIcon } from '@/components/common/icons';
 
 type Kind = 'story' | 'testimony' | 'greeting' | 'prayer';

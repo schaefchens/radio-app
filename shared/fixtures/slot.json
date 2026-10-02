@@ -15,6 +15,15 @@
       "stage": { "mode": "flyins", "image": "/media/stage/3f2a.webp", "tagline": { "en": "A Global Family in Worship", "de": "Eine weltweite Familie im Lobpreis" } },
       "allowed": ["song", "prayer"],
       "format": "music"
+    },
+    "sermon": {
+      "id": "sermon",
+      "title": { "en": "Sunday Sermon", "de": "Sonntagspredigt" },
+      "subtitle": { "en": "A preaching, and songs to go with it", "de": "Eine Predigt und Lieder dazu" },
+      "color": "#b8862b",
+      "stage": { "mode": "ambient", "image": null, "tagline": { "en": "", "de": "" } },
+      "allowed": ["preaching"],
+      "format": "preaching"
     }
   },
   "items": [
@@ -24,6 +33,7 @@
       "start": 1790189880000,
       "dur": 298000,
       "p": "worship",
+      "kind": "song",
       "yt": "dQw4w9WgXcQ",
       "title": "Good God",
       "artist": "Chris Tomlin",
@@ -68,6 +78,20 @@
       "audio": "/media/beds/5e0d7a.mp3",
       "label": { "en": "What can we pray for?", "de": "Wofür dürfen wir beten?" },
       "offset": 60000
+    },
+    {
+      "id": "i7kq2v",
+      "type": "song",
+      "start": 1790190639400,
+      "dur": 2460000,
+      "p": "sermon",
+      "kind": "preaching",
+      "yt": "aBcDeFgHiJk",
+      "title": "The Prodigal Son",
+      "artist": "Pastor Ruth Adeyemi",
+      "thumb": "/media/thumbs/aBcDeFgHiJk.jpg",
+      "request": { "name": "Samuel", "place": "Accra" },
+      "fallback": null
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { DayProgram, Lang } from '@arche/shared';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
+import { submissionLabel } from '@/i18n';
 
 export function ProgramSheet({ program, onClose }: { program: DayProgram | null; onClose: () => void }) {
   const { t, i18n } = useTranslation();
@@ -21,7 +22,7 @@ export function ProgramSheet({ program, onClose }: { program: DayProgram | null;
                 <ul className="flex flex-wrap gap-2">
                   {program.allowed.map((a) => (
                     <li key={a} className="rounded-full border border-line/40 bg-soft/60 px-3 py-1 text-xs">
-                      {a === 'song' ? t('submit.song.title') : a === 'prayer' ? t('submit.prayer.title') : t(`record.${a}`)}
+                      {submissionLabel(a)}
                     </li>
                   ))}
                 </ul>

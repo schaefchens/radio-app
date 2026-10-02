@@ -28,9 +28,12 @@ export interface ProgramRef {
   /** Submission types this program accepts at all (the minute file says
    *  whether each is currently open). */
   allowed: SubmissionType[];
-  /** 'prayer': a prayer hour with its running order; 'music' otherwise. */
-  format: 'music' | 'prayer';
+  /** 'prayer': a prayer hour with its running order; 'preaching': preachings
+   *  with songs between them; 'music' otherwise. */
+  format: ProgramFormat;
 }
+
+export type ProgramFormat = 'music' | 'prayer' | 'preaching';
 
 export interface Voice {
   id: string;
@@ -62,19 +65,25 @@ interface ItemBase {
 
 export interface SongItem extends ItemBase {
   type: 'song';
+  /** 'preaching': a sermon from YouTube in a preaching program. It plays
+   *  exactly like a song — an app that does not know the kind plays it as
+   *  one — and is named a preaching on screen. */
+  kind: 'song' | 'preaching';
   yt: string;
   title: string;
   artist: string;
   thumb: string | null;
-  /** Set for a listener request that was announced on air. */
+  /** Set for a listener request (or a suggested preaching) that was announced on air. */
   request: { name: string; place: string } | null;
   /** Audio to play instead when the video will not play here (region block,
    *  removed video). null = keep the stage up until the item ends. */
   fallback: string | null;
 }
 
-/** opening and invite belong to a prayer hour: its opening prayer and the invitation to send prayer requests. */
-export type HostKind = 'intro' | 'break' | 'announce' | 'outro' | 'prayer' | 'contrib' | 'opening' | 'invite';
+/** opening and invite belong to a prayer hour: its opening prayer and the
+ *  invitation to send prayer requests; preaching introduces the preaching
+ *  that follows in a preaching program. */
+export type HostKind = 'intro' | 'break' | 'announce' | 'outro' | 'prayer' | 'contrib' | 'opening' | 'invite' | 'preaching';
 
 export interface HostItem extends ItemBase {
   type: 'host';

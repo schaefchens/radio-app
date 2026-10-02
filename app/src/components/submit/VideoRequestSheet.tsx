@@ -19,9 +19,18 @@ interface Preview {
   error: string | null;
 }
 
-export function SongRequestSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** What a listener hands in as a YouTube link. */
+export type VideoKind = 'song' | 'preaching';
+
+/**
+ * A song request, or a preaching suggested for a preaching program: the same
+ * form — a YouTube link, a word for the host, name and place — with its own
+ * texts and endpoint.
+ */
+export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; open: boolean; onClose: () => void }) {
   const uid = useId();
   const { t } = useTranslation();
+  const form = kind === 'song' ? 'songForm' : 'preachingForm';
   const identity = useSession((s) => s.identity);
   const consent = useSettings((s) => s.consent);
   const lang = useSettings((s) => s.lang);
@@ -58,7 +67,7 @@ export function SongRequestSheet({ open, onClose }: { open: boolean; onClose: ()
     };
   }, [id, consent, t]);
 
-  const submit = useSubmit(() => api('/submissions/song', { body: { channel, url, message, name, place, lang } }));
+  const submit = useSubmit(() => api(`/submissions/${kind}`, { body: { channel, url, message, name, place, lang } }));
   const close = (): void => {
     onClose();
     if (submit.done) {
@@ -69,7 +78,7 @@ export function SongRequestSheet({ open, onClose }: { open: boolean; onClose: ()
   };
 
   return (
-    <BottomSheet open={open} onClose={close} title={t('submit.song.title')}>
+    <BottomSheet open={open} onClose={close} title={t(`submit.${kind}.title`)}>
       <BottomSheetBody>
         {submit.done ? (
           <Done onClose={close} />
@@ -82,9 +91,9 @@ export function SongRequestSheet({ open, onClose }: { open: boolean; onClose: ()
             }}
           >
             <div>
-              <label className="label" htmlFor={`${uid}-url`}>{t('songForm.url')}</label>
+              <label className="label" htmlFor={`${uid}-url`}>{t(`${form}.url`)}</label>
               <input id={`${uid}-url`} className="field" inputMode="url" autoComplete="off" placeholder="https://youtu.be/…" value={url} onChange={(e) => setUrl(e.target.value)} />
-              <p className="mt-1 text-xs text-ink-faint">{url && !id ? t('songForm.invalid') : t('songForm.urlHint')}</p>
+              <p className="mt-1 text-xs text-ink-faint">{url && !id ? t('songForm.invalid') : t(`${form}.urlHint`)}</p>
             </div>
             {preview && (
               <div className="card-inset flex items-center gap-3 p-2">
@@ -97,9 +106,9 @@ export function SongRequestSheet({ open, onClose }: { open: boolean; onClose: ()
             )}
             {previewError && <p className="text-sm text-heart">{previewError}</p>}
             <div>
-              <label className="label" htmlFor={`${uid}-msg`}>{t('songForm.message')}</label>
+              <label className="label" htmlFor={`${uid}-msg`}>{t(`${form}.message`)}</label>
               <textarea id={`${uid}-msg`} className="field min-h-[80px]" maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} />
-              <p className="mt-1 text-xs text-ink-faint">{t('songForm.messageHint')}</p>
+              <p className="mt-1 text-xs text-ink-faint">{t(`${form}.messageHint`)}</p>
             </div>
             <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}

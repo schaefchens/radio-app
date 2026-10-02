@@ -20,6 +20,11 @@ useSettings.subscribe((s, prev) => {
 });
 document.documentElement.lang = useSettings.getState().lang;
 
+/** A submission type as the tiles name it (a song request, a preaching, a prayer request); a recording by its kind. */
+export function submissionLabel(type: string): string {
+  return type === 'song' || type === 'prayer' || type === 'preaching' ? i18n.t(`submit.${type}.title`) : i18n.t(`record.${type}`);
+}
+
 /** Translate an API error code, falling back to a generic message. */
 export function errorText(code: string): string {
   const key = `errors.${code}`;

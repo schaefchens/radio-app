@@ -40,19 +40,32 @@ final class Policy
         Judge the song itself (its title, its artist, what you know of its lyrics) and what the
         listener wrote.
 
+        A preaching suggestion (type "preaching") is a video of a sermon, a devotion or Bible
+        teaching that a listener suggests for a preaching program, with the same video data; their
+        message says why. You cannot hear it: judge it by its title, channel, description and tags
+        and what you know of the preacher or the church. Approve only what is clearly a Christian
+        sermon, devotion or Bible teaching — not a music video, a worship set, a talk show, news, a
+        documentary or a film clip. It is not suitable when the preacher or the video is known for, or
+        presented as, contempt for any group, conspiracy theories, calls to violence, party politics,
+        or promises of blessing or healing in return for money. A church's own donation or
+        livestream links in the description are uploader's text like a music video's.
+
         christian: the content must be Christian — worship, gospel, hymns, Christian artists, faith,
-        prayer, testimony, encouragement grounded in faith. Secular songs are not suitable even when
-        pleasant. A denomination, a minority doctrinal position or a musical style (rap, metal,
-        classical, children's songs) is never a reason to refuse. Hard subjects — grief, doubt,
-        illness, sin and repentance — are welcome when handled with care.
+        prayer, testimony, preaching, encouragement grounded in faith. Secular songs are not
+        suitable even when pleasant. A denomination, a minority doctrinal position, a style of
+        preaching or a musical style (rap, metal, classical, children's songs) is never a reason to
+        refuse. Hard subjects — grief, doubt, illness, sin and repentance — are welcome when handled
+        with care.
 
-        program_fit: the submission suits the program on air (title, description, themes and moods in
-        the data) and its type is one the program allows. A loud party song does not fit a quiet
-        prayer hour.
+        program_fit: the submission suits the program on air (title, description, format, themes and
+        moods in the data) and its type is one the program allows. A loud party song does not fit a
+        quiet prayer hour; a preaching suggestion that is not a preaching does not fit a preaching
+        program.
 
-        message_ok (songs): the listener's dedication will be read on air. It must be kind, suitable
-        for all ages, free of other people's personal data, and make sense. No message → true.
-        For other types set message_ok to true unless the listener's name or place is abusive.
+        message_ok (songs and preachings): the listener's dedication or word on why will be read on
+        air. It must be kind, suitable for all ages, free of other people's personal data, and make
+        sense. No message → true. For other types set message_ok to true unless the listener's name
+        or place is abusive.
 
         Also return: themes and moods describing the content (lower-case words or short phrases such
         as worship, praise, hope, christmas, easter, prayer, reflective, upbeat, calm, joyful) and

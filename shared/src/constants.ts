@@ -27,9 +27,10 @@ export const COMMIT_HORIZON_MS = SLOT_WINDOW_MS + PUBLISH_LEAD_MS;
  *  song started before its window), so this reaches past SLOT_WINDOW_MS. */
 export const SLOT_WALKBACK_MINUTES = 10;
 
-/** What a listener can hand in. `prayer` covers both a typed and a recorded
- *  prayer request; the other three are always recordings. */
-export const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer'] as const;
+/** What a listener can hand in. `song` and `preaching` (a sermon suggested for
+ *  a preaching program) are YouTube links; `prayer` covers both a typed and a
+ *  recorded prayer request; the other three are always recordings. */
+export const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching'] as const;
 export type SubmissionType = (typeof SUBMISSION_TYPES)[number];
 
 export const SUBMISSION_STATES = ['open', 'closing', 'closed'] as const;

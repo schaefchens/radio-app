@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type Sheet = 'song' | 'record' | 'prayer';
+export type Sheet = 'song' | 'preaching' | 'record' | 'prayer';
 export type RecordKind = 'story' | 'prayer';
 
 interface SheetsState {

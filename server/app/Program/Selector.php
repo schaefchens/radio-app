@@ -6,7 +6,8 @@ namespace Arche\Program;
 use Arche\App;
 
 /**
- * Gap-fill: which library song plays next when no request is waiting.
+ * Gap-fill: which library song plays next when no request is waiting (and,
+ * in a preaching program, which preaching).
  *
  * Weighted toward the program's themes and moods and toward what listeners
  * have been reacting to (trend score), with enough randomness that the same
@@ -24,6 +25,11 @@ final class Selector
         [1_200_000, 0],
         [0, 0],
     ];
+    /**
+     * A preaching's repeat window in ms, strictest first. Never again within
+     * six hours: a preaching heard twice in one program is worse than songs.
+     */
+    private const PREACHING_REPEAT = [7 * 86_400_000, 86_400_000, 6 * 3_600_000];
 
     /** @var \Closure(int,int):int */
     private \Closure $rand;
@@ -47,14 +53,7 @@ final class Selector
     public function pick(array $channel, array $program, int $atMs, int $maxMs): ?array
     {
         $cid = (int) $channel['id'];
-        // A requested song is in the library from its approval on, while its
-        // request waits its turn: picked meanwhile, it aired twice in a row —
-        // the host announcing the request right after the song itself.
-        $requested = $this->app->submissions()->requestedSongIds($cid);
-        $candidates = array_values(array_filter(
-            $this->app->library()->candidates($cid, (int) $program['id'], $maxMs),
-            fn(array $c): bool => !isset($requested[$c['id']]),
-        ));
+        $candidates = $this->unrequested($cid, $this->app->library()->candidates($cid, (int) $program['id'], $maxMs));
         if (!$candidates) return null;
         $timeline = $this->app->timeline();
         foreach (self::WINDOWS as [$repeat, $artistGap]) {
@@ -68,6 +67,46 @@ final class Selector
             if ($pool) return $this->weighted($pool, $program);
         }
         return null;
+    }
+
+    /**
+     * A preaching from the library for a preaching program, at most $maxMs
+     * long, or null (songs fill instead). Every preaching takes its turn: of
+     * those outside the repeat window (strictest first), the third longest
+     * unheard, weighted like songs (themes, moods, trend).
+     *
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $program decoded program
+     * @return array<string,mixed>|null library item
+     */
+    public function preaching(array $channel, array $program, int $atMs, int $maxMs): ?array
+    {
+        $cid = (int) $channel['id'];
+        $candidates = $this->unrequested($cid, $this->app->library()->candidates($cid, (int) $program['id'], $maxMs, 'preaching'));
+        if (!$candidates) return null;
+        foreach (self::PREACHING_REPEAT as $window) {
+            $recent = $window > 0 ? $this->app->timeline()->recentLibraryIds($cid, $atMs - $window) : [];
+            $pool = array_values(array_filter($candidates, fn(array $c): bool => !isset($recent[$c['id']])));
+            if (!$pool) continue;
+            usort($pool, fn(array $a, array $b): int => [(int) $a['last_played'], $a['id']] <=> [(int) $b['last_played'], $b['id']]);
+            return $this->weighted(array_slice($pool, 0, max(1, intdiv(count($pool) + 2, 3))), $program);
+        }
+        return null;
+    }
+
+    /**
+     * Without what requests are waiting to play: a requested song (or a
+     * suggested preaching) is in the library from its approval on, while its
+     * request waits its turn — picked meanwhile, it aired twice in a row, the
+     * host announcing the request right after the song itself.
+     *
+     * @param list<array<string,mixed>> $candidates
+     * @return list<array<string,mixed>>
+     */
+    private function unrequested(int $channelId, array $candidates): array
+    {
+        $requested = $this->app->submissions()->requestedLibraryIds($channelId);
+        return array_values(array_filter($candidates, fn(array $c): bool => !isset($requested[$c['id']])));
     }
 
     /** @param list<array<string,mixed>> $pool @param array<string,mixed> $program @return array<string,mixed> */

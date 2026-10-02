@@ -1,18 +1,16 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import type { SubmissionState, SubmissionType } from '@arche/shared';
 import { useRadio } from '@/store/radio';
-import { useSession } from '@/store/session';
 import { useSheets } from '@/store/sheets';
-import { SongRequestSheet } from '@/components/submit/SongRequestSheet';
+import { VideoRequestSheet } from '@/components/submit/VideoRequestSheet';
 import { PrayerSheet } from '@/components/submit/PrayerSheet';
 import { RecordSheet } from '@/components/submit/RecordSheet';
-import { ChatIcon, MicIcon, MusicIcon, PrayIcon } from '@/components/common/icons';
+import { BookIcon, MicIcon, MusicIcon, PrayIcon } from '@/components/common/icons';
 
-type Tile = 'song' | 'story' | 'prayer' | 'room';
+type Tile = 'song' | 'story' | 'prayer' | 'preaching';
 
-/** The three submission sheets, mounted once, on Home (AppShell). */
+/** The four submission sheets, mounted once, on Home (AppShell). */
 export function SubmitSheets() {
   const open = useSheets((s) => s.open);
   const recordKind = useSheets((s) => s.recordKind);
@@ -20,7 +18,8 @@ export function SubmitSheets() {
   const close = useSheets((s) => s.close);
   return (
     <>
-      <SongRequestSheet open={open === 'song'} onClose={close} />
+      <VideoRequestSheet kind="song" open={open === 'song'} onClose={close} />
+      <VideoRequestSheet kind="preaching" open={open === 'preaching'} onClose={close} />
       <PrayerSheet open={open === 'prayer'} onClose={close} onRecord={() => show('record', 'prayer')} />
       <RecordSheet open={open === 'record'} onClose={close} initialKind={recordKind} />
     </>
@@ -29,14 +28,13 @@ export function SubmitSheets() {
 
 /**
  * The four tiles of the design; each follows what the program on air
- * accepts. `beforeOpen` lets the phone dock turn a first tap on a folded
+ * accepts (the fourth, a preaching, only a preaching program — the chat is
+ * in the menu). `beforeOpen` lets the phone dock turn a first tap on a folded
  * tile into "unfold" (it returns true when it took the tap).
  */
 export function SubmitTiles({ beforeOpen }: { beforeOpen?: () => boolean }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const submissions = useRadio((s) => s.engine.submissions);
-  const realtime = useSession((s) => s.config?.realtime ?? true);
   const show = useSheets((s) => s.show);
 
   const stateOf = (types: SubmissionType[]): SubmissionState | 'off' => {
@@ -49,7 +47,7 @@ export function SubmitTiles({ beforeOpen }: { beforeOpen?: () => boolean }) {
     { id: 'song', state: stateOf(['song']), icon: <MusicIcon />, tone: 'purple', open: () => show('song') },
     { id: 'story', state: stateOf(['story', 'testimony', 'greeting']), icon: <MicIcon />, tone: 'green', open: () => show('record', 'story') },
     { id: 'prayer', state: stateOf(['prayer']), icon: <PrayIcon />, tone: 'blue', open: () => show('prayer') },
-    { id: 'room', state: realtime ? 'open' : 'off', icon: <ChatIcon />, tone: 'gold', open: () => navigate('/chat') },
+    { id: 'preaching', state: stateOf(['preaching']), icon: <BookIcon />, tone: 'gold', open: () => show('preaching') },
   ];
 
   return (

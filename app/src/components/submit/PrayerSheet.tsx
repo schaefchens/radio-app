@@ -6,7 +6,7 @@ import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
-import { Done, NamePlace, PrivacyNote } from './SongRequestSheet';
+import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
 
 export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClose: () => void; onRecord: () => void }) {
   const { t } = useTranslation();

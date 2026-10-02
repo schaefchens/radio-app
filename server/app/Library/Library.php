@@ -9,10 +9,11 @@ use Arche\Audio\Mp3;
 use Arche\Plan\Catalog;
 
 /**
- * The content pool the generator fills airtime from: curated songs (added by
- * moderators in /mod), graduated submissions (approved requests enter here
- * automatically) and jingles. Only tags carry over from a submission — a
- * dedication belongs to one airing, never to the song.
+ * The content pool the generator fills airtime from: curated songs and
+ * preachings (added by moderators in /mod), graduated submissions (approved
+ * requests and preaching suggestions enter here automatically) and jingles.
+ * Only tags carry over from a submission — a dedication belongs to one
+ * airing, never to the song.
  */
 final class Library
 {
@@ -20,6 +21,8 @@ final class Library
     /** Background music: long enough to carry a moment, short enough for the 8 MB upload at ~128 kbps. */
     public const BED_MIN_MS = 20_000;
     public const BED_MAX_MS = 600_000;
+    /** What a moderator adds from YouTube, and how long it may be (ms). */
+    private const VIDEO_KINDS = ['song' => [30_000, 30 * 60_000], 'preaching' => [60_000, 3 * 3_600_000]];
 
     public function __construct(private App $app) {}
 
@@ -87,8 +90,8 @@ final class Library
     }
 
     /**
-     * Look a video up for the "add song" form: YouTube metadata plus whether
-     * it is already in the pool.
+     * Look a video up for the "add to library" form: YouTube metadata plus
+     * whether it is already in the pool.
      *
      * @return array<string,mixed>
      */
@@ -117,23 +120,26 @@ final class Library
     }
 
     /**
-     * Add a curated song. The server re-checks YouTube itself; nothing from the
-     * form is trusted beyond title/artist/tags.
+     * Add a curated song or preaching (for a preaching, `artist` is the
+     * preacher). The server re-checks YouTube itself; nothing from the form
+     * is trusted beyond title/artist/tags.
      *
+     * @param string $kind 'song' | 'preaching'
      * @param array<string,mixed> $attrs
      * @return array<string,mixed>
      */
-    public function addSong(string $input, array $attrs, string $actor): array
+    public function addVideo(string $kind, string $input, array $attrs, string $actor): array
     {
+        [$min, $max] = self::VIDEO_KINDS[$kind] ?? throw new ApiError(422, 'bad_kind');
         $info = $this->lookup($input);
         if ($info['existing'] !== null) throw new ApiError(409, 'already_in_library', ['id' => $info['existing']]);
         if (!$info['embeddable'] || !$info['public'] || $info['live'] || $info['age_restricted']) {
             throw new ApiError(422, 'video_not_embeddable');
         }
-        if ($info['duration_ms'] < 30_000 || $info['duration_ms'] > 30 * 60_000) throw new ApiError(422, 'video_duration');
+        if ($info['duration_ms'] < $min || $info['duration_ms'] > $max) throw new ApiError(422, 'video_duration');
         $now = $this->app->clock->now();
         $id = $this->app->store()->insert('library_items', [
-            'kind' => 'song',
+            'kind' => $kind,
             'yt_id' => $info['id'],
             'title' => mb_substr(trim((string) ($attrs['title'] ?? $info['title'])) ?: $info['title'], 0, 120),
             'artist' => mb_substr(trim((string) ($attrs['artist'] ?? $info['artist'])), 0, 120),
@@ -149,7 +155,7 @@ final class Library
             'created' => $now,
             'updated' => $now,
         ]);
-        $this->app->store()->audit($actor, 'Library add', $info['id'] . ' ' . $info['title']);
+        $this->app->store()->audit($actor, $kind === 'preaching' ? 'Library add preaching' : 'Library add', $info['id'] . ' ' . $info['title']);
         return $this->get($id) ?? throw new \LogicException('insert vanished');
     }
 
@@ -258,15 +264,16 @@ final class Library
     }
 
     /**
-     * Songs the Selector may consider for a program.
+     * Songs (or preachings) the Selector may consider for a program.
      *
+     * @param string $kind 'song' | 'preaching'
      * @return list<array<string,mixed>>
      */
-    public function candidates(int $channelId, int $programId, int $maxMs): array
+    public function candidates(int $channelId, int $programId, int $maxMs, string $kind = 'song'): array
     {
         $rows = $this->app->store()->all(
-            "SELECT * FROM library_items WHERE kind = 'song' AND active = 1 AND duration_ms <= ?",
-            [$maxMs],
+            'SELECT * FROM library_items WHERE kind = ? AND active = 1 AND duration_ms <= ?',
+            [$kind, $maxMs],
         );
         $out = [];
         foreach ($rows as $r) {

@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import type { Lang } from '@arche/shared';
 import { api } from '@/lib/api';
 import { localDate, localTime } from '@/lib/format';
+import { submissionLabel } from '@/i18n';
 
 interface SubmissionView {
   id: string;
@@ -54,8 +55,8 @@ export function MySubmissions() {
     };
   }, []);
 
-  const typeLabel = (s: SubmissionView): string =>
-    s.type === 'song' ? t('submit.song.title') : s.type === 'prayer' && s.mode === 'text' ? t('submit.prayer.title') : t(`record.${s.type}`);
+  // A recorded prayer is "A prayer", as the recording sheet calls it.
+  const typeLabel = (s: SubmissionView): string => (s.type === 'prayer' && s.mode === 'audio' ? t('record.prayer') : submissionLabel(s.type));
 
   if (items === null) return <p className="text-sm text-ink-muted">{t('common.loading')}</p>;
   if (items.length === 0) return <p className="text-sm text-ink-muted">{t('status.empty')}</p>;

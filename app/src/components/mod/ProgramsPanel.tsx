@@ -8,8 +8,10 @@ import { modError, type LibraryItem, type ModProgram, type ProgramSettings } fro
 import { ChannelSelect } from './ChannelSelect';
 import { OpeningPrayers } from './OpeningPrayers';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
+import { submissionLabel } from '@/i18n';
 
-const TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer'] as const;
+/** Preachings only in a preaching program: the server drops the type anywhere else. */
+const TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching'] as const;
 
 const DEFAULT_SETTINGS: ProgramSettings = {
   host: { enabled: true, every_songs: 3, intro: true, outro: true },
@@ -21,6 +23,7 @@ const DEFAULT_SETTINGS: ProgramSettings = {
   replay_contrib: false,
   format: 'music',
   prayer: { collect: { with: 'music', minutes: 8, songs: 2, bed_id: 0 }, quiet_min: 4, after_songs: 0 },
+  preaching: { songs_between: 2 },
 };
 
 type Draft = Omit<ModProgram, 'id' | 'channel_id' | 'active'> & { active: boolean };
@@ -42,7 +45,8 @@ function draftOf(p: ModProgram | null): Draft {
     allowed: p?.allowed ?? ['song'],
     themes: p?.themes ?? [],
     moods: p?.moods ?? [],
-    settings: p?.settings ?? DEFAULT_SETTINGS,
+    // A server older than a setting (during a deploy) answers without it.
+    settings: { ...DEFAULT_SETTINGS, ...p?.settings },
     active: p ? Number(p.active) === 1 : true,
   };
 }
@@ -119,6 +123,14 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
   const set = <K extends keyof Draft>(k: K, v: Draft[K]): void => setD((x) => ({ ...x, [k]: v }));
   const setS = (patch: Partial<ProgramSettings>): void => setD((x) => ({ ...x, settings: { ...x.settings, ...patch } }));
   const prayer = d.settings.format === 'prayer';
+  const preaching = d.settings.format === 'preaching';
+  // A preaching program takes preachings from the start; any other drops them.
+  const setFormat = (format: ProgramSettings['format']): void =>
+    setD((x) => ({
+      ...x,
+      allowed: format === 'preaching' ? [...x.allowed.filter((a) => a !== 'preaching'), 'preaching'] : x.allowed.filter((a) => a !== 'preaching'),
+      settings: { ...x.settings, format },
+    }));
   const setP = (patch: Partial<ProgramSettings['prayer']>): void => setS({ prayer: { ...d.settings.prayer, ...patch } });
   const setC = (patch: Partial<ProgramSettings['prayer']['collect']>): void => setP({ collect: { ...d.settings.prayer.collect, ...patch } });
   const beds = useApi<{ items: LibraryItem[] }>(prayer ? '/mod/library?kind=bed&limit=100' : null);
@@ -220,8 +232,9 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
       </div>
 
       <Field label={t('mod.programs.format')}>
-        <select className="field" value={d.settings.format} onChange={(e) => setS({ format: e.target.value as ProgramSettings['format'] })}>
+        <select className="field" value={d.settings.format} onChange={(e) => setFormat(e.target.value as ProgramSettings['format'])}>
           <option value="music">{t('mod.programs.formatMusic')}</option>
+          <option value="preaching">{t('mod.programs.formatPreaching')}</option>
           <option value="prayer">{t('mod.programs.formatPrayer')}</option>
         </select>
       </Field>
@@ -232,10 +245,10 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           <p className="text-sm text-ink-muted">{t('mod.programs.prayer.onlyPrayer')}</p>
         ) : (
           <div className="flex flex-wrap gap-4">
-            {TYPES.map((type) => (
+            {TYPES.filter((type) => type !== 'preaching' || preaching).map((type) => (
               <Check
                 key={type}
-                label={type === 'song' ? t('submit.song.title') : type === 'prayer' ? t('submit.prayer.title') : t(`record.${type}`)}
+                label={submissionLabel(type)}
                 checked={d.allowed.includes(type)}
                 onChange={(on) => set('allowed', on ? [...d.allowed, type] : d.allowed.filter((a) => a !== type))}
               />
@@ -290,6 +303,19 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
         </div>
         {prayer && <p className="text-xs text-ink-faint">{t('mod.programs.prayer.intakeHint')}</p>}
       </div>
+
+      {preaching && (
+        <div className="card-inset flex flex-col gap-3 p-3">
+          <p className="label">{t('mod.programs.preaching.heading')}</p>
+          <p className="text-sm text-ink-muted">{t('mod.programs.preaching.order')}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label={t('mod.programs.preaching.songsBetween')}>
+              <input type="number" min={0} max={10} className="field" value={d.settings.preaching.songs_between} onChange={(e) => setS({ preaching: { songs_between: num(e.target.value) } })} />
+            </Field>
+          </div>
+          <p className="text-xs text-ink-faint">{t('mod.programs.preaching.intakeHint')}</p>
+        </div>
+      )}
 
       {prayer && (
         <div className="card-inset flex flex-col gap-3 p-3">

@@ -7,7 +7,7 @@ code implements.
 ARCHE is a Christian community radio: one program that every listener hears at
 the same moment, built from embedded YouTube songs, an AI host that speaks in
 English and German between them, and what listeners hand in (song requests,
-recorded stories, prayers). The whole design follows one rule from the concept:
+preachings, recorded stories, prayers). The whole design follows one rule from the concept:
 **the radio must keep playing, even when everything else fails.**
 
 ## The one idea
@@ -84,7 +84,8 @@ default Europe/Berlin) into UTC blocks, DST-correct (23/25 h days), gaps filled
 by the channel's fallback program. The generator may only do what the program on
 air allows: its submission types, themes/moods, host density, silence, jingles.
 
-**Library** (`Library\*`). Moderators add songs by URL; the YouTube Data API
+**Library** (`Library\*`). Moderators add songs and preachings (kind
+`preaching`) by URL; the YouTube Data API
 supplies duration/embeddability/region (oEmbed has no duration, and the client
 is not trusted). Approved requests graduate automatically (tags only — never the
 dedication). Playback errors disable an item only for codes 100/101/150 from ≥ 3
@@ -193,6 +194,28 @@ airing takes the oldest waiting — a recording airs as a `contrib` item, a text
 as host `opening` with `context.fixed`, which the script phase voices word for
 word without the model, in the languages filled in — and is marked aired at
 commit; the welcome names who prays (`opening_by`).
+
+A **preaching program** (program setting `format: 'preaching'`,
+`Drafter::addPreaching`) airs preachings — sermons on YouTube, library kind
+`preaching` — with `preaching.songs_between` songs between them: the
+host introduces each — the program's intro or a break right before it does
+(both are pinned to what follows), else a `preaching` moment of its own — a
+host `break` follows it, and the next starts only if it fits into the time
+left (`SOFT_OVERRUN` included); otherwise songs fill the rest. A listener's
+suggestion (submission type `preaching`: a YouTube link like a song request,
+5–90 min by `PREACHING_MIN/MAX_SECONDS`, judged as `moderate_preaching`) goes
+first, announced like a request (a unit); else `Selector::preaching` takes the
+longest unheard of those not aired within a week, then a day — never within
+six hours (songs are better than a preaching twice in one program). Only a
+preaching program takes the type: `Catalog::saveProgram` drops it from any
+other, and the 4th tile ("Suggest a preaching", where the chat tile was —
+the chat is in the menu) shows "not part of this program" elsewhere. On air a
+preaching is a `song` item with `kind: 'preaching'`, so an app that does not
+know the kind plays it as the video it is. A waiting suggestion fills the
+queue with its whole length; one too long for the time left goes to the
+library when its program ends (`library`). Because one item can run most of
+an hour, the engine re-reads the tiles' states with every minute file, not
+only when an item starts.
 
 **Themes** (`app/src/lib/theme.ts`, `app/src/styles/`). The design is
 `concept-files/theme-preview.html`: Kids Ark (light) and Storm Ark (dark),
@@ -356,9 +379,12 @@ typed prayers aired or given back, praying along), the prayer hour walked hour
 by hour (`prayerhour.php`: the running order, the rolling reading, repeats,
 the empty hour, intake to C, midnight, outages, last-minute and repeated plan
 changes, nobody listening, bursts, a short hour, the fallback rule, opening
-prayers), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+prayers), preaching programs (`preaching.php`: the running order, a
+suggestion first and never twice, what no longer fits, intake and the queue,
+the length limits, the library by link, the migration), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
-pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces, timeline, clock, i18n keys, passphrase,
+pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
+the tiles following the minute files through a long preaching, timeline, clock, i18n keys, passphrase,
 realtime client, CDN fallback, theme, the phone carousel's fit, the prayer wall's
 day, "Praying now" and the silent-prayer pick, the pulse's voice reactions; jsdom:
 the stage's prayer views, the prayer sheet's wall box, the install sheet's
@@ -386,7 +412,10 @@ listeners, the program read cross-origin from
 the stand-in CDN (CSP included) and from the site when the CDN is down, a
 prayer hour on a channel of its own (prayer music on the stage, a request from
 the stage onto the wall without its sender, praying along, the sender's count,
-no sideways scroll). `npm run e2e:reset` starts over.
+no sideways scroll), a preaching program on a channel of its own (the
+library's preaching on air as its video, named a preaching; the fourth tile's
+suggestion through the check; the tile closed on a music program).
+`npm run e2e:reset` starts over.
 
 The dev and e2e stacks mount `server/app` live and their cron loops tick every
 minute: a half-written change runs there at once (and migrates their

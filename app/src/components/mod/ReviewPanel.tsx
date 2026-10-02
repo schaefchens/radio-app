@@ -109,7 +109,8 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
     }
   };
   const when = (ms: number): string => `${localDate(ms, lang)} ${localTime(ms, lang)}`;
-  const withMessage = item.type === 'song' && item.message.trim() !== '';
+  // A song's dedication, a preaching's word on why: the host reads them, so they can be left out.
+  const withMessage = (item.type === 'song' || item.type === 'preaching') && item.message.trim() !== '';
   const approveButtons = (label: string): React.ReactNode => (
     <>
       <button type="button" className="btn-primary" disabled={busy} onClick={() => void decide('approve')}>

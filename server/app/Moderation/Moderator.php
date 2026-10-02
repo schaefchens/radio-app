@@ -6,13 +6,14 @@ namespace Arche\Moderation;
 use Arche\App;
 use Arche\Config;
 use Arche\Library\YouTube;
+use Arche\Submission\Submissions;
 
 /**
  * Automatic moderation, as a job with one outside call per phase:
  *
- *   song     start → youtube (Data API checks) → judge (Claude)
- *   audio    start → transcribe (OpenAI) → judge
- *   prayer   start → judge
+ *   song, preaching  start → youtube (Data API checks) → judge (Claude)
+ *   audio            start → transcribe (OpenAI) → judge
+ *   prayer           start → judge
  *
  * Two stages in one verdict: the baseline (safety, legality, Christian
  * relevance) and the per-program fit (the program's type, themes and moods).
@@ -34,7 +35,7 @@ final class Moderator
 
         if ($phase === 'start') {
             return match (true) {
-                $sub['type'] === 'song' => 'youtube',
+                in_array($sub['type'], Submissions::VIDEO_TYPES, true) => 'youtube',
                 $sub['mode'] === 'audio' => 'transcribe',
                 default => 'judge',
             };
@@ -69,7 +70,7 @@ final class Moderator
         }
         // The Data API is no AI: with a key it is asked even in stub mode (the
         // e2e stack points it at a fake); only without one does a stub answer.
-        $v = $yt->configured() ? $yt->video((string) $sub['yt_id']) : $this->stubVideo((string) $sub['yt_id']);
+        $v = $yt->configured() ? $yt->video((string) $sub['yt_id']) : $this->stubVideo((string) $sub['yt_id'], (string) $sub['type']);
         // Our side or Google's being unreachable is retried by the job lease;
         // anything YouTube actually says about the video is final.
         if (!$v['ok'] && in_array($v['error'], ['unreachable', 'api_error'], true)) throw new \RuntimeException('YouTube ' . $v['error']);
@@ -84,7 +85,7 @@ final class Moderator
             ];
             $this->app->store()->update('submissions', ['meta' => json_encode($meta, JSON_UNESCAPED_UNICODE)], 'id = ?', [$sub['id']]);
         }
-        $problems = self::videoProblems($v, $this->app->config);
+        $problems = self::videoProblems($v, $this->app->config, (string) $sub['type']);
         if ($problems) {
             $markets = $this->app->config->list('SUBMISSION_MARKETS');
             $subs->reject((int) $sub['id'], 'not_suitable', [
@@ -98,14 +99,15 @@ final class Moderator
     }
 
     /**
-     * Why a video cannot be a request, one code per failed check. too_long and
-     * too_short are the station's rules (a moderator may overrule them); the
-     * rest mean the embed would not play.
+     * Why a video cannot be a request (or, $type 'preaching', a preaching
+     * suggestion), one code per failed check. too_long and too_short are the
+     * station's rules (a moderator may overrule them); the rest mean the
+     * embed would not play.
      *
      * @param array<string,mixed> $v YouTube::video()
      * @return list<string>
      */
-    public static function videoProblems(array $v, Config $c): array
+    public static function videoProblems(array $v, Config $c, string $type = 'song'): array
     {
         if (!$v['ok']) return [(string) ($v['error'] ?: 'not_found')];
         $out = [];
@@ -113,8 +115,11 @@ final class Moderator
         if (!$v['public']) $out[] = 'not_public';
         if ($v['live']) $out[] = 'live';
         if ($v['age_restricted']) $out[] = 'age_restricted';
-        if ($v['duration_ms'] < $c->int('SONG_MIN_SECONDS', 60) * 1000) $out[] = 'too_short';
-        if ($v['duration_ms'] > $c->int('SONG_MAX_SECONDS', 720) * 1000) $out[] = 'too_long';
+        [$min, $max] = $type === 'preaching'
+            ? [$c->int('PREACHING_MIN_SECONDS', 300), $c->int('PREACHING_MAX_SECONDS', 5400)]
+            : [$c->int('SONG_MIN_SECONDS', 60), $c->int('SONG_MAX_SECONDS', 720)];
+        if ($v['duration_ms'] < $min * 1000) $out[] = 'too_short';
+        if ($v['duration_ms'] > $max * 1000) $out[] = 'too_long';
         if (!YouTube::playableIn($v, $c->list('SUBMISSION_MARKETS'))) $out[] = 'region';
         return $out;
     }
@@ -126,13 +131,14 @@ final class Moderator
         $id = (int) $sub['id'];
         $c = $this->app->config;
         $moderationCalls = 0;
-        foreach (['moderate_song', 'moderate_audio', 'moderate_prayer'] as $k) $moderationCalls += $this->app->usage()->callsToday('text:' . $k);
+        foreach (['moderate_song', 'moderate_preaching', 'moderate_audio', 'moderate_prayer'] as $k) $moderationCalls += $this->app->usage()->callsToday('text:' . $k);
         if ($moderationCalls >= $c->int('MODERATION_MAX_PER_DAY', 300)) {
             $subs->reject($id, 'not_accepted', ['error' => 'daily_cap'], 'moderator');
             return;
         }
         $program = $this->app->catalog()->program((int) $sub['program_id']);
-        $kind = $sub['type'] === 'song' ? 'moderate_song' : ($sub['mode'] === 'audio' ? 'moderate_audio' : 'moderate_prayer');
+        $video = in_array($sub['type'], Submissions::VIDEO_TYPES, true);
+        $kind = $video ? 'moderate_' . $sub['type'] : ($sub['mode'] === 'audio' ? 'moderate_audio' : 'moderate_prayer');
         $meta = json_decode((string) $sub['meta'], true) ?: [];
 
         $data = [
@@ -140,13 +146,14 @@ final class Moderator
             'program' => $program ? [
                 'title' => $program['title_en'],
                 'description' => $program['description_en'],
+                'format' => $program['settings']['format'],
                 'themes' => $program['themes'],
                 'moods' => $program['moods'],
                 'allowed_types' => $program['allowed'],
             ] : null,
             'listener' => ['name' => $sub['name'], 'place' => $sub['place']],
         ];
-        if ($sub['type'] === 'song') {
+        if ($video) {
             $data['video'] = $meta['youtube'] ?? [];
             if (isset($data['video']['description'])) $data['video']['description'] = self::uploaderText((string) $data['video']['description']);
             $data['message'] = (string) $sub['message'];
@@ -184,7 +191,7 @@ final class Moderator
         $safe = ($v['safe'] ?? false) === true;
         $christian = ($v['christian'] ?? false) === true;
         $fit = ($v['program_fit'] ?? false) === true;
-        $messageOk = ($v['message_ok'] ?? false) === true || ($sub['type'] === 'song' && trim((string) $sub['message']) === '');
+        $messageOk = ($v['message_ok'] ?? false) === true || ($video && trim((string) $sub['message']) === '');
         $verdict = (string) ($v['verdict'] ?? 'uncertain');
         $allowed = $program !== null && in_array($sub['type'], $program['allowed'], true);
         // Decided here, not by the model: kept with the verdict for the moderators.
@@ -258,10 +265,12 @@ final class Moderator
     }
 
     /** @return array<string,mixed> */
-    private function stubVideo(string $id): array
+    private function stubVideo(string $id, string $type): array
     {
-        return ['ok' => true, 'error' => '', 'id' => $id, 'title' => 'Stub Artist - Stub Song (Official Video)', 'channel' => 'Stub Artist',
-            'description' => '', 'tags' => ['worship'], 'duration_ms' => 240_000, 'embeddable' => true, 'public' => true,
+        $preaching = $type === 'preaching';
+        return ['ok' => true, 'error' => '', 'id' => $id,
+            'title' => $preaching ? 'Stub Preacher - Stub Sermon' : 'Stub Artist - Stub Song (Official Video)', 'channel' => $preaching ? 'Stub Church' : 'Stub Artist',
+            'description' => '', 'tags' => [$preaching ? 'sermon' : 'worship'], 'duration_ms' => $preaching ? 1_800_000 : 240_000, 'embeddable' => true, 'public' => true,
             'live' => false, 'age_restricted' => false, 'blocked' => [], 'allowed' => null];
     }
 }

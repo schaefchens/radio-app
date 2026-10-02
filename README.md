@@ -162,6 +162,17 @@ Live since 2026-09-24: zone `arche-radio` (id 6679436) at
   (read word for word in the host voice, only in the languages filled in),
   an MP3 or a recording in the browser, up to 3 minutes; each airing takes the
   oldest one waiting, otherwise the AI host prays.
+- **Preaching program**: add sermons in /mod → Library → "Add a song or a
+  preaching" (kind Preaching, 1 minute – 3 hours), create a program with the
+  format "Preaching" (/mod → Programs) and put it into a plan. It runs intro →
+  a preaching → N songs (default 2) → the next preaching if one still fits →
+  … → outro; no preaching twice within six hours. While it is on air,
+  listeners suggest one with the fourth tile ("Suggest a preaching", 5–90
+  minutes: `PREACHING_MIN_SECONDS`, `PREACHING_MAX_SECONDS`); approved, it airs
+  at the next preaching, announced by name, and joins the library. A waiting
+  suggestion fills the queue with its whole length, so for a long program
+  raise "Close when the queue holds … minutes". Only a preaching program
+  takes suggestions; elsewhere the tile says "Not part of this program".
 - **Themes**: Kids Ark (light) and Storm Ark (dark), following the device
   until a listener picks one (welcome dialog, Profile). The design they
   implement is `concept-files/theme-preview.html`; the scenery lives in

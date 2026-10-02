@@ -16,8 +16,9 @@ use Arche\App;
  */
 final class Catalog
 {
-    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer'];
+    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching'];
     public const STAGE_MODES = ['image', 'ambient', 'flyins'];
+    public const FORMATS = ['music', 'prayer', 'preaching'];
 
     /** @var array<string,mixed> */
     public const PROGRAM_DEFAULTS = [
@@ -32,8 +33,9 @@ final class Catalog
         // Approved-but-unaired queue beyond this much airtime closes intake.
         'max_queue_min' => 30,
         'replay_contrib' => false,
-        // 'prayer': the prayer hour's running order (Program\PrayerHour)
-        // instead of music with the host between songs.
+        // 'prayer': the prayer hour's running order (Program\PrayerHour);
+        // 'preaching': preachings with songs between them (Drafter) — instead
+        // of music with the host between songs.
         'format' => 'music',
         'prayer' => [
             // The collection: prayer music (a `bed` from the library) for N
@@ -42,6 +44,10 @@ final class Catalog
             // Quiet minutes in the prayer time before the host prays again.
             'quiet_min' => 4,
             'after_songs' => 0,
+        ],
+        'preaching' => [
+            // Regular songs after a preaching before the next one may start.
+            'songs_between' => 2,
         ],
     ];
 
@@ -200,16 +206,21 @@ final class Catalog
             $row['settings'] = json_encode(self::cleanSettings($data['settings']), JSON_THROW_ON_ERROR);
         }
         if (array_key_exists('active', $data)) $row['active'] = $data['active'] ? 1 : 0;
-        $prayer = isset($row['settings'])
-            ? json_decode($row['settings'], true)['format'] === 'prayer'
-            : $id !== null && ($this->program($id)['settings']['format'] ?? '') === 'prayer';
-        if ($prayer) {
+        $format = isset($row['settings'])
+            ? (string) json_decode($row['settings'], true)['format']
+            : (string) ($id !== null ? ($this->program($id)['settings']['format'] ?? 'music') : 'music');
+        if ($format === 'prayer') {
             // A prayer hour takes prayer requests only (typed or recorded) …
             $row['allowed'] = json_encode(['prayer']);
             // … and cannot fill a plan's gaps: its running order needs an end.
             if ($id !== null && $this->app->store()->value('SELECT COUNT(*) FROM channels WHERE fallback_program_id = ?', [$id]) > 0) {
                 throw new ApiError(422, 'prayer_fallback');
             }
+        } elseif ($format !== 'preaching') {
+            // Only a preaching program plays preachings: a suggestion sent to
+            // any other would wait for a moment that never comes.
+            $allowed = isset($row['allowed']) ? (array) json_decode($row['allowed'], true) : ($id !== null ? ($this->program($id)['allowed'] ?? []) : []);
+            if (in_array('preaching', $allowed, true)) $row['allowed'] = json_encode(array_values(array_diff($allowed, ['preaching'])));
         }
 
         $now = $this->app->clock->now();
@@ -251,6 +262,7 @@ final class Catalog
         $silence = is_array($s['silence']) ? $s['silence'] : [];
         $prayer = is_array($s['prayer']) ? $s['prayer'] : [];
         $collect = is_array($prayer['collect'] ?? null) ? $prayer['collect'] : [];
+        $preaching = is_array($s['preaching']) ? $s['preaching'] : [];
         return [
             'host' => [
                 'enabled' => (bool) ($host['enabled'] ?? true),
@@ -268,7 +280,7 @@ final class Catalog
             'closed_min' => max(intdiv(\Arche\Program\Timing::DRAFT + \Arche\Program\Timing::MIN_SONG, 60_000) + 1, min(120, (int) $s['closed_min'])),
             'max_queue_min' => max(5, min(180, (int) $s['max_queue_min'])),
             'replay_contrib' => (bool) $s['replay_contrib'],
-            'format' => $s['format'] === 'prayer' ? 'prayer' : 'music',
+            'format' => in_array($s['format'], self::FORMATS, true) ? $s['format'] : 'music',
             'prayer' => [
                 'collect' => [
                     'with' => ($collect['with'] ?? 'music') === 'songs' ? 'songs' : 'music',
@@ -278,6 +290,9 @@ final class Catalog
                 ],
                 'quiet_min' => max(2, min(15, (int) ($prayer['quiet_min'] ?? 4))),
                 'after_songs' => max(0, min(5, (int) ($prayer['after_songs'] ?? 0))),
+            ],
+            'preaching' => [
+                'songs_between' => max(0, min(10, (int) ($preaching['songs_between'] ?? 2))),
             ],
         ];
     }
@@ -312,7 +327,7 @@ final class Catalog
                 'tagline' => ['en' => (string) $p['tagline_en'], 'de' => (string) $p['tagline_de']],
             ],
             'allowed' => $p['allowed'],
-            'format' => $p['settings']['format'] === 'prayer' ? 'prayer' : 'music',
+            'format' => in_array($p['settings']['format'], self::FORMATS, true) ? $p['settings']['format'] : 'music',
         ];
         if ($withDescription) {
             $ref['description'] = ['en' => (string) $p['description_en'], 'de' => (string) $p['description_de']];

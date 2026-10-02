@@ -33,6 +33,9 @@ export const VIDEOS = [
   song('e2eReqOk001', 'Hillside Choir - Carried (Lyric Video)', 'Hillside Choir', 'PT3M30S'),
   song('e2eReqLong1', 'E2E Worship - Ten Thousand Reasons Medley', 'E2E Worship', 'PT15M00S'),
   song('e2eNoEmbed1', 'Chorus of Nations - Unembeddable', 'Chorus of Nations', 'PT3M00S', { embeddable: false }),
+  // Preachings: one the preaching spec curates, one a listener suggests.
+  song('e2ePreach01', 'Pastor Ruth Adeyemi - The Prodigal Son', 'Grace Chapel', 'PT12M00S'),
+  song('e2ePreach02', 'Pastor Samuel Okoro - Hope in the Storm', 'Hope Church', 'PT9M30S'),
 ];
 
 export const LIBRARY_IDS = VIDEOS.filter((v) => v.id.startsWith('e2eSong')).map((v) => v.id);

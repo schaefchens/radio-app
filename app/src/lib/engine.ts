@@ -187,6 +187,8 @@ export class RadioEngine {
   private fadingOut: string | null = null;
   private fetching: { gen: number; done: Promise<void> } | null = null;
   private generation = 0;
+  /** The minute file the program's context (the tiles, what comes next) was read from. */
+  private contextT = -1;
 
   private readonly deps: EngineDeps;
 
@@ -485,6 +487,13 @@ export class RadioEngine {
   }
 
   private maintain(item: TimelineItem, now: number): void {
+    // A preaching runs most of an hour: the tiles (intake closes before its
+    // program ends) and what comes next follow each minute file, not only
+    // the start of the next item.
+    if ((this.timeline.slotAt(now)?.t ?? -1) !== this.contextT) {
+      this.state = { ...this.state, ...this.contextFor(item, now) };
+      this.emit();
+    }
     if (item.type === 'song') {
       if (this.state.joined && this.state.mode === 'song') this.checkDrift(false);
       if (this.state.joined && !this.state.needsTap && this.loadStartedAt && now - this.loadStartedAt > TAP_HINT_AFTER_MS) {
@@ -626,6 +635,7 @@ export class RadioEngine {
 
   private contextFor(item: TimelineItem, now: number): Pick<EngineState, 'program' | 'next' | 'submissions' | 'upNext' | 'hasData'> {
     const slot = this.timeline.slotAt(now);
+    this.contextT = slot?.t ?? -1;
     const program = this.timeline.program(item.p) ?? this.timeline.program(slot?.current);
     const nextProgram = slot?.next ? this.timeline.program(slot.next.p) : null;
     return {

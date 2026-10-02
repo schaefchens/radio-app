@@ -5,6 +5,7 @@ namespace Arche\Program;
 
 use Arche\App;
 use Arche\Plan\Catalog;
+use Arche\Submission\Submissions;
 
 /**
  * Plans the next ~8 minutes of a channel as drafts (Timing::DRAFT). Drafting
@@ -14,7 +15,8 @@ use Arche\Plan\Catalog;
  *
  * Within a program block, one step appends the next thing the program needs,
  * in this order of precedence:
- *   intro (program changed) → end-of-block outro/padding → the listeners'
+ *   intro (program changed) → end-of-block outro/padding → (a preaching
+ *   program: its next preaching, when one is due and fits) → the listeners'
  *   requests and contributions waiting (one block) → a prayer break → a
  *   moment of silence → a host break every N songs → a jingle every M songs →
  *   a song.
@@ -140,6 +142,20 @@ final class Drafter
             return $this->pad($channel, $cursor, max(1000, $remaining), $base, $nextProgram);
         }
 
+        // 2b. A preaching program: a preaching when one is due — first thing,
+        //     then after a few songs each time — a listener's suggestion
+        //     before the program's own selection. When none fits into the
+        //     time left, songs fill it.
+        if ($settings['format'] === 'preaching') {
+            // Without songs to put between them, one preaching follows the next.
+            $between = $this->app->library()->count('song') > 0 ? (int) $settings['preaching']['songs_between'] : 0;
+            if (self::preachingDue($recent, (int) $program['id'], $between)) {
+                $roomMs = $blockEnds ? $remaining + Timing::SOFT_OVERRUN : PHP_INT_MAX;
+                $taken = $this->addPreaching($channel, $program, $cursor, $base, $hostOn, $blockEnds, $roomMs, $prev);
+                if ($taken !== null) return $taken;
+            }
+        }
+
         // 3. Listener requests and contributions waiting for this program: as
         //    soon as they are approved, and together when several wait — but
         //    with regular songs between two blocks, so the program keeps its
@@ -263,7 +279,13 @@ final class Drafter
         return [1, $cursor + $estimate];
     }
 
-    /** @param array<string,mixed> $song @return array<string,mixed> */
+    /**
+     * A song from the library on air — or a preaching, which plays exactly
+     * like one (a YouTube video); `kind` tells the app and the host which.
+     *
+     * @param array<string,mixed> $song library item
+     * @return array<string,mixed>
+     */
     private function songItem(array $song, ?array $request = null): array
     {
         $jingle = $this->app->selector()->jingle(60_000);
@@ -272,6 +294,7 @@ final class Drafter
             'dur_ms' => $song['duration_ms'],
             'library_id' => $song['id'],
             'payload' => [
+                'kind' => ($song['kind'] ?? 'song') === 'preaching' ? 'preaching' : 'song',
                 'yt' => $song['yt_id'],
                 'title' => $song['title'],
                 'artist' => $song['artist'],
@@ -348,6 +371,63 @@ final class Drafter
     }
 
     /**
+     * A preaching program's next preaching, if one fits into $roomMs: the
+     * longest-waiting listener's suggestion, announced by the host like a
+     * request (a unit), or else one from the library, which the host
+     * introduces — unless its intro or a break comes right before: pinned to
+     * what follows, those introduce it. Then a word from the host after it,
+     * as after a block of requests.
+     *
+     * @param array<string,mixed> $base
+     * @param bool $blockEnds another program follows this block
+     * @param array<string,mixed>|null $prev the item before (newest of the sequence)
+     * @return array{0:int,1:int}|null null when none waits or fits
+     */
+    private function addPreaching(array $channel, array $program, int $cursor, array $base, bool $hostOn, bool $blockEnds, int $roomMs, ?array $prev): ?array
+    {
+        // One transaction: a suggestion marked scheduled without its items in
+        // the plan would never air, and never come back to the queue.
+        return $this->app->store()->tx(function () use ($channel, $program, $cursor, $base, $hostOn, $blockEnds, $roomMs, $prev): ?array {
+            $subs = $this->app->submissions();
+            $added = 0;
+            $unit = null;
+            foreach ($subs->waitingPreachings($channel, $program, Timing::BLOCK_MAX) as $sub) {
+                $candidate = $this->unitOf($sub);
+                if ($candidate === null) {
+                    $subs->markMissed((int) $sub['id']);
+                    continue;
+                }
+                // Too long for the time left: it waits; at the program's end it stays in the library.
+                if ($candidate['dur_ms'] + ($hostOn ? Timing::HOST_ESTIMATE : 0) > $roomMs || !$subs->schedule((int) $sub['id'])) continue;
+                $unit = $candidate;
+                break;
+            }
+            if ($unit !== null) {
+                [$added, $cursor] = $this->addUnit($channel, $program, $unit, $cursor, $base, $hostOn);
+            } else {
+                // Any other moment of the host (a prayer, another program's
+                // outro) does not name what follows: the preaching needs its own.
+                $introduce = $hostOn && !$this->isHost($prev, 'intro') && !$this->isHost($prev, 'break');
+                $preaching = $this->app->selector()->preaching($channel, $program, $cursor, $roomMs - ($introduce ? Timing::HOST_ESTIMATE : 0));
+                if ($preaching === null) return null;
+                if ($introduce) {
+                    [, $cursor] = $this->addHost($channel, $program, 'preaching', $cursor, $base);
+                    $added++;
+                }
+                [, $cursor] = $this->addSong($channel, $preaching, $cursor, $base);
+                $added++;
+            }
+            // The word after it — unless the program closes right after: its
+            // outro follows and reacts instead.
+            if ($hostOn && !($blockEnds && $base['block_end'] - $cursor < Timing::MIN_SONG)) {
+                [, $cursor] = $this->addHost($channel, $program, 'break', $cursor, $base);
+                $added++;
+            }
+            return [$added, $cursor];
+        });
+    }
+
+    /**
      * A recording waiting for this program (in a prayer hour: a recorded
      * prayer request) as a unit — the host's introduction and the recording —
      * if it fits into $roomMs. Null when none waits or fits.
@@ -376,14 +456,14 @@ final class Drafter
 
     /**
      * What a submission airs as, or null when it cannot air any more (its
-     * song was removed from the library or switched off).
+     * song or preaching was removed from the library or switched off).
      *
      * @param array<string,mixed> $sub
      * @return array{sub:array<string,mixed>,song:array<string,mixed>|null,dur_ms:int,tags:list<string>}|null
      */
     private function unitOf(array $sub): ?array
     {
-        if ($sub['type'] === 'song') {
+        if (in_array($sub['type'], Submissions::VIDEO_TYPES, true)) {
             $song = $sub['library_id'] !== null ? $this->app->library()->get((int) $sub['library_id']) : null;
             if ($song === null || !$song['active']) return null;
             return ['sub' => $sub, 'song' => $song, 'dur_ms' => (int) $song['duration_ms'], 'tags' => Catalog::tags([...$song['themes'], ...$song['moods']])];
@@ -420,9 +500,9 @@ final class Drafter
     /**
      * A listener's submission as a unit: the host's announcement (while the
      * host is on, every request is announced — by name and place, with the
-     * dedication when there is one) and the song or recording it introduces.
-     * The committer keeps the two together — delayed if the announcement is
-     * late, never split.
+     * dedication when there is one) and the song, preaching or recording it
+     * introduces. The committer keeps the two together — delayed if the
+     * announcement is late, never split.
      *
      * @param array{sub:array<string,mixed>,song:array<string,mixed>|null,dur_ms:int} $unit
      * @param array<string,mixed> $base
@@ -435,7 +515,7 @@ final class Drafter
         $cid = (int) $channel['id'];
         $added = 0;
         if ($hostOn) {
-            $kind = $sub['type'] === 'song' ? 'announce' : 'contrib';
+            $kind = in_array($sub['type'], Submissions::VIDEO_TYPES, true) ? 'announce' : 'contrib';
             [, $cursor] = $this->addHost($channel, $program, $kind, $cursor, $base, ['submission_id' => (int) $sub['id']], $uid);
             $added++;
         }
@@ -489,6 +569,30 @@ final class Drafter
     {
         if ($item === null || $item['type'] !== 'host') return false;
         return $kind === null || ($item['payload']['kind'] ?? '') === $kind;
+    }
+
+    /** A preaching on air plays as a song item of the kind `preaching`. @param array<string,mixed>|null $item */
+    public static function isPreaching(?array $item): bool
+    {
+        return $item !== null && $item['type'] === 'song' && ($item['payload']['kind'] ?? 'song') === 'preaching';
+    }
+
+    /**
+     * A preaching program's next preaching is due: none yet since the program
+     * began (an item of another program comes first), or $between songs since
+     * the last one.
+     *
+     * @param list<array<string,mixed>> $recent newest first
+     */
+    private static function preachingDue(array $recent, int $programId, int $between): bool
+    {
+        $songs = 0;
+        foreach ($recent as $item) {
+            if ($item['program_id'] !== $programId) return true;
+            if (self::isPreaching($item)) return $songs >= $between;
+            if ($item['type'] === 'song') $songs++;
+        }
+        return true;
     }
 
     /**

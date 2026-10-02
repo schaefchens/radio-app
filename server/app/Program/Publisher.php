@@ -111,7 +111,10 @@ final class Publisher
         ];
         $p = $it['payload'];
         return match ($it['type']) {
+            // A preaching is a song item of its own kind: an app that does not
+            // know the kind plays it as the video it is.
             'song' => $base + [
+                'kind' => ($p['kind'] ?? 'song') === 'preaching' ? 'preaching' : 'song',
                 'yt' => (string) ($p['yt'] ?? ''),
                 'title' => (string) ($p['title'] ?? ''),
                 'artist' => (string) ($p['artist'] ?? ''),

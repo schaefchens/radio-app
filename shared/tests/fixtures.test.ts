@@ -35,6 +35,11 @@ describe('program file fixtures', () => {
     expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing' });
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
     expect(slot!.programs.worship?.format).toBe('music');
+    expect(slot!.programs.sermon?.format).toBe('preaching');
+    expect(slot!.items.filter((i) => i.type === 'song').map((i) => i.type === 'song' && [i.kind, i.request?.name])).toEqual([
+      ['song', 'Jenny'],
+      ['preaching', 'Samuel'],
+    ]);
     const host = slot!.items.find((i) => i.type === 'host');
     expect(host?.type === 'host' && host.prayers).toEqual(['pk3v9q2m7x4tb']);
   });
@@ -89,6 +94,18 @@ describe('program file fixtures', () => {
     const slot = parseSlotFile({ ...raw, programs: { worship }, items: [host, { ...host, id: 'k2', kind: 'invite' }, { ...host, id: 'k3', kind: 'hymn' }] });
     expect(slot?.programs.worship?.format).toBe('music');
     expect(slot?.items.map((i) => (i.type === 'host' ? [i.kind, i.prayers] : null))).toEqual([['break', []], ['invite', []], ['break', []]]);
+  });
+
+  it('a song item without a kind is a song; a format or kind it does not know reads as music and a song', () => {
+    const raw = load('slot.json') as { items: Record<string, unknown>[]; programs: Record<string, Record<string, unknown>> };
+    const { kind: _kind, ...song } = raw.items[0]!;
+    const slot = parseSlotFile({
+      ...raw,
+      programs: { worship: { ...raw.programs.worship!, format: 'concert' } },
+      items: [song, { ...song, id: 'k2', kind: 'audiobook' }, { ...song, id: 'k3', kind: 'preaching' }],
+    });
+    expect(slot?.programs.worship?.format).toBe('music');
+    expect(slot?.items.map((i) => i.type === 'song' && i.kind)).toEqual(['song', 'song', 'preaching']);
   });
 
   it('rejects unknown versions and drops unknown item types', () => {

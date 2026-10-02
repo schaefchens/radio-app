@@ -88,11 +88,11 @@ export function parseProgramRef(v: unknown): ProgramRef | null {
     color: str(v.color) || '#2f7bff',
     stage: stage(v.stage),
     allowed: arr(v.allowed).filter(isSubmissionType),
-    format: v.format === 'prayer' ? 'prayer' : 'music',
+    format: v.format === 'prayer' || v.format === 'preaching' ? v.format : 'music',
   };
 }
 
-const HOST_KINDS: HostKind[] = ['intro', 'break', 'announce', 'outro', 'prayer', 'contrib', 'opening', 'invite'];
+const HOST_KINDS: HostKind[] = ['intro', 'break', 'announce', 'outro', 'prayer', 'contrib', 'opening', 'invite', 'preaching'];
 const CONTRIB_KINDS = ['story', 'testimony', 'greeting', 'prayer'] as const;
 
 export function parseItem(v: unknown): TimelineItem | null {
@@ -105,6 +105,8 @@ export function parseItem(v: unknown): TimelineItem | null {
       return {
         ...base,
         type: 'song',
+        // An older generator's song item has no kind: a song.
+        kind: v.kind === 'preaching' ? 'preaching' : 'song',
         yt: v.yt,
         title: str(v.title),
         artist: str(v.artist),

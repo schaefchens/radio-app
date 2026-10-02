@@ -11,7 +11,7 @@ import { Reactions } from './Reactions';
 import { StageRegion } from '@/components/stage/StageRegion';
 import { CdnImg } from '@/components/common/CdnImg';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
-import { ChevronIcon, LevelsIcon, MicIcon, MusicIcon, NavLiveIcon, PauseIcon, PlayIcon, UsersIcon } from '@/components/common/icons';
+import { BookIcon, ChevronIcon, LevelsIcon, MicIcon, MusicIcon, NavLiveIcon, PauseIcon, PlayIcon, UsersIcon } from '@/components/common/icons';
 
 // A stable empty list: a selector that returns a fresh [] on every call makes
 // the store subscription see a change each render and React bails out.
@@ -109,9 +109,10 @@ function TrackRow() {
   let start = 0;
   let dur = 0;
   let icon = <NavLiveIcon />;
+  const preaching = item?.type === 'song' && item.kind === 'preaching';
   if (item?.type === 'song') {
     ({ title, artist: subtitle, thumb, yt, start, dur } = item);
-    icon = <MusicIcon />;
+    icon = preaching ? <BookIcon /> : <MusicIcon />;
   } else if (engine.evergreen) {
     ({ title, artist: subtitle, thumb, yt, start, dur } = engine.evergreen);
     icon = <MusicIcon />;
@@ -149,7 +150,7 @@ function TrackRow() {
         {/* The fallback loop says so: this is not the live program. */}
         <span className="eyebrow">
           <LevelsIcon />
-          <span>{engine.mode === 'evergreen' ? t('stage.evergreen') : t('nowPlaying.eyebrow')}</span>
+          <span>{engine.mode === 'evergreen' ? t('stage.evergreen') : preaching ? t('nowPlaying.preaching') : t('nowPlaying.eyebrow')}</span>
         </span>
         <strong>
           {yt ? (
@@ -165,7 +166,13 @@ function TrackRow() {
           {request && (
             <span className="track-request">
               {' · '}
-              {request.place ? t('nowPlaying.requestedByFrom', { name: request.name, place: request.place }) : t('nowPlaying.requestedBy', { name: request.name })}
+              {preaching
+                ? request.place
+                  ? t('nowPlaying.suggestedByFrom', { name: request.name, place: request.place })
+                  : t('nowPlaying.suggestedBy', { name: request.name })
+                : request.place
+                  ? t('nowPlaying.requestedByFrom', { name: request.name, place: request.place })
+                  : t('nowPlaying.requestedBy', { name: request.name })}
             </span>
           )}
         </small>

@@ -7,9 +7,11 @@ import { useApi } from './useApi';
 import { NO_CHANNELS, useOverview } from './overview';
 import { modError, VOICES, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
-import { MusicIcon } from '@/components/common/icons';
+import { BookIcon, MusicIcon } from '@/components/common/icons';
 
-type Kind = '' | 'song' | 'jingle' | 'contrib' | 'bed';
+type Kind = '' | 'song' | 'preaching' | 'jingle' | 'contrib' | 'bed';
+/** What a moderator adds by its YouTube link. */
+type VideoKind = 'song' | 'preaching';
 
 export function LibraryPanel() {
   const { t } = useTranslation();
@@ -29,7 +31,7 @@ export function LibraryPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      {youtube ? <AddSong onAdded={() => done(t('mod.library.addedOk'))} /> : <Notice tone="error">{t('mod.library.noYoutube')}</Notice>}
+      {youtube ? <AddVideo onAdded={() => done(t('mod.library.addedOk'))} /> : <Notice tone="error">{t('mod.library.noYoutube')}</Notice>}
 
       <Section
         title={t('mod.nav.library')}
@@ -45,6 +47,7 @@ export function LibraryPanel() {
             <select className="field w-auto py-1.5" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
               <option value="">{t('mod.library.kind.all')}</option>
               <option value="song">{t('mod.library.kind.song')}</option>
+              <option value="preaching">{t('mod.library.kind.preaching')}</option>
               <option value="jingle">{t('mod.library.kind.jingle')}</option>
               <option value="contrib">{t('mod.library.kind.contrib')}</option>
               <option value="bed">{t('mod.library.kind.bed')}</option>
@@ -76,8 +79,10 @@ export function LibraryPanel() {
   );
 }
 
-function AddSong({ onAdded }: { onAdded: () => void }) {
+/** A song, or a preaching for the preaching programs, by its YouTube link. */
+function AddVideo({ onAdded }: { onAdded: () => void }) {
   const { t } = useTranslation();
+  const [kind, setKind] = useState<VideoKind>('song');
   const [url, setUrl] = useState('');
   const [video, setVideo] = useState<VideoLookup | null>(null);
   const [title, setTitle] = useState('');
@@ -106,7 +111,7 @@ function AddSong({ onAdded }: { onAdded: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await api('/mod/library', { body: { url, title, artist, ...attrs } });
+      await api('/mod/library', { body: { kind, url, title, artist, ...attrs } });
       setUrl('');
       setVideo(null);
       setAttrs({ themes: [], moods: [], languages: [], program_ids: [] });
@@ -120,7 +125,7 @@ function AddSong({ onAdded }: { onAdded: () => void }) {
 
   const usable = video !== null && video.existing === null && video.embeddable && video.public && !video.live && !video.age_restricted;
   return (
-    <Section title={t('mod.library.addSong')}>
+    <Section title={t('mod.library.addVideo')}>
       <form
         className="flex flex-wrap gap-2"
         onSubmit={(e) => {
@@ -128,6 +133,10 @@ function AddSong({ onAdded }: { onAdded: () => void }) {
           void lookup();
         }}
       >
+        <select className="field w-auto" value={kind} onChange={(e) => setKind(e.target.value as VideoKind)} aria-label={t('mod.library.addKind')}>
+          <option value="song">{t('mod.library.addKindSong')}</option>
+          <option value="preaching">{t('mod.library.addKindPreaching')}</option>
+        </select>
         <input className="field min-w-0 flex-1" inputMode="url" placeholder="https://youtu.be/…" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t('mod.library.url')} />
         <button type="submit" className="btn-ghost" disabled={busy || url.trim() === ''}>
           {t('mod.library.lookup')}
@@ -149,10 +158,11 @@ function AddSong({ onAdded }: { onAdded: () => void }) {
             <Field label={t('mod.library.titleField')}>
               <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
             </Field>
-            <Field label={t('mod.library.artist')}>
+            <Field label={kind === 'preaching' ? t('mod.library.preacher') : t('mod.library.artist')}>
               <input className="field" value={artist} onChange={(e) => setArtist(e.target.value)} />
             </Field>
           </div>
+          {kind === 'preaching' && <p className="text-xs text-ink-faint">{t('mod.library.preachingHint')}</p>}
           <AttrsEditor value={attrs} onChange={setAttrs} />
           <button type="button" className="btn-primary self-start" disabled={!usable || busy} onClick={() => void add()}>
             {t('mod.library.add')}
@@ -248,7 +258,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
     <li className={clsx('card-inset flex flex-col gap-3 p-3', !active && 'opacity-60')}>
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-soft text-ink-muted">
-          {item.thumb ? <img src={item.thumb} alt="" className="h-full w-full object-cover" /> : <MusicIcon />}
+          {item.thumb ? <img src={item.thumb} alt="" className="h-full w-full object-cover" /> : item.kind === 'preaching' ? <BookIcon /> : <MusicIcon />}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{item.title}</p>
@@ -262,6 +272,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
             <Pill tone={active ? 'good' : 'default'}>{active ? t('mod.common.active') : t('mod.common.inactive')}</Pill>
             <Pill>{t(`mod.library.kind.${item.kind}`)}</Pill>
             {item.kind === 'song' && <Pill>{item.source === 'submission' ? t('mod.library.source.submission') : t('mod.library.source.curated')}</Pill>}
+            {item.kind === 'preaching' && <Pill>{item.source === 'submission' ? t('mod.library.source.suggestion') : t('mod.library.source.curated')}</Pill>}
             <Pill>
               {t('mod.library.plays')} {item.plays}
             </Pill>
@@ -293,7 +304,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
             <Field label={t('mod.library.titleField')}>
               <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
             </Field>
-            <Field label={t('mod.library.artist')}>
+            <Field label={item.kind === 'preaching' ? t('mod.library.preacher') : t('mod.library.artist')}>
               <input className="field" value={artist} onChange={(e) => setArtist(e.target.value)} />
             </Field>
           </div>

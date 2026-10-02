@@ -161,6 +161,12 @@ final class PublicApi
         return ['submission' => $this->c->app->submissions()->submitSong($i, $this->c->channel(), $this->c->req->json())];
     }
 
+    public function submitPreaching(): array
+    {
+        $i = $this->c->requireIdentity();
+        return ['submission' => $this->c->app->submissions()->submitPreaching($i, $this->c->channel(), $this->c->req->json())];
+    }
+
     public function submitAudio(): array
     {
         $i = $this->c->requireIdentity();

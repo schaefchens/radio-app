@@ -59,6 +59,9 @@ return [
     // --- submissions -----------------------------------------------------------
     'SONG_MIN_SECONDS' => '60',
     'SONG_MAX_SECONDS' => '720',
+    // A listener's preaching suggestion: a sermon or a devotion on YouTube.
+    'PREACHING_MIN_SECONDS' => '300',
+    'PREACHING_MAX_SECONDS' => '5400',
     'AUDIO_MAX_SECONDS' => '90',
     'GREETING_MAX_SECONDS' => '60',
     'SUBMISSION_MARKETS' => 'DE,US,GB',

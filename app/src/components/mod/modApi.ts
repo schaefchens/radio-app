@@ -1,3 +1,4 @@
+import type { ProgramFormat } from '@arche/shared';
 import { api, ApiError } from '@/lib/api';
 import { errorText } from '@/i18n';
 import i18n from '@/i18n';
@@ -38,12 +39,13 @@ export interface ProgramSettings {
   closed_min: number;
   max_queue_min: number;
   replay_contrib: boolean;
-  format: 'music' | 'prayer';
+  format: ProgramFormat;
   prayer: {
     collect: { with: 'music' | 'songs'; minutes: number; songs: number; bed_id: number };
     quiet_min: number;
     after_songs: number;
   };
+  preaching: { songs_between: number };
 }
 
 export interface ModChannel {
@@ -68,7 +70,7 @@ export interface ModChannel {
 export interface Overview {
   me: { id: string; role: string };
   channels: (ModChannel & { programs: ModProgram[] })[];
-  library: { songs: number; jingles: number };
+  library: { songs: number; preachings: number; jingles: number };
   review: number;
   reports: number;
   highlights: number;
@@ -77,7 +79,7 @@ export interface Overview {
 
 export interface LibraryItem {
   id: number;
-  kind: 'song' | 'jingle' | 'contrib' | 'bed';
+  kind: 'song' | 'preaching' | 'jingle' | 'contrib' | 'bed';
   yt_id: string | null;
   audio: string | null;
   title: string;
@@ -150,6 +152,7 @@ const KNOWN: Record<string, string> = {
   youtube_not_configured: 'mod.library.noYoutube',
   video_not_embeddable: 'mod.library.notEmbeddable',
   already_in_library: 'mod.library.existing',
+  video_duration: 'mod.library.badDuration',
   video_unplayable: 'mod.review.blockers.video_unplayable',
   recording_deleted: 'mod.review.blockers.recording_deleted',
   prayer_fallback: 'mod.programs.prayer.notFallback',

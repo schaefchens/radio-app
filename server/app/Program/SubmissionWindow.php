@@ -44,8 +44,9 @@ final class SubmissionWindow
 
     /**
      * Every submission is judged by the text model (Claude or OpenAI); song
-     * requests also need the YouTube check, recordings OpenAI's transcription.
-     * Without them a submission could only fail closed, so it is not offered.
+     * requests and preaching suggestions also need the YouTube check,
+     * recordings OpenAI's transcription. Without them a submission could only
+     * fail closed, so it is not offered.
      */
     public static function featureOn(App $app, string $type): bool
     {
@@ -53,7 +54,7 @@ final class SubmissionWindow
         if ($c->stubAi()) return true;
         if ($c->textProvider() === '') return false;
         return match ($type) {
-            'song' => $app->youtube()->configured(),
+            'song', 'preaching' => $app->youtube()->configured(),
             'prayer' => true,
             default => $c->openaiKey() !== '',
         };

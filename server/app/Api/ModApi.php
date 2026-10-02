@@ -56,7 +56,7 @@ final class ModApi
         return [
             'me' => Identities::publicView($this->me),
             'channels' => $channels,
-            'library' => ['songs' => $app->library()->count('song'), 'jingles' => $app->library()->count('jingle')],
+            'library' => ['songs' => $app->library()->count('song'), 'preachings' => $app->library()->count('preaching'), 'jingles' => $app->library()->count('jingle')],
             'review' => (int) $app->store()->value("SELECT COUNT(*) FROM submissions WHERE status = 'review'"),
             'reports' => (int) $app->store()->value("SELECT COUNT(*) FROM chat_reports WHERE status = 'open'"),
             'highlights' => (int) $app->store()->value("SELECT COUNT(*) FROM highlights WHERE status = 'candidate'"),
@@ -126,11 +126,13 @@ final class ModApi
         return ['video' => $this->c->app->library()->lookup((string) $this->c->req->input('url', ''))];
     }
 
+    /** A song, or with `kind: preaching` a preaching, by its YouTube link. */
     public function libraryAdd(): array
     {
         $this->mod();
         $in = $this->c->req->json();
-        return ['item' => $this->c->app->library()->addSong((string) ($in['url'] ?? ''), $in, $this->actor())];
+        $kind = ($in['kind'] ?? 'song') === 'preaching' ? 'preaching' : 'song';
+        return ['item' => $this->c->app->library()->addVideo($kind, (string) ($in['url'] ?? ''), $in, $this->actor())];
     }
 
     /** @param array<string,string> $a */

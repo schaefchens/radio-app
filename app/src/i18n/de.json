@@ -42,8 +42,11 @@
   },
   "nowPlaying": {
     "eyebrow": "Läuft gerade",
+    "preaching": "Predigt",
     "requestedBy": "Gewünscht von {{name}}",
     "requestedByFrom": "Gewünscht von {{name}} aus {{place}}",
+    "suggestedBy": "Empfohlen von {{name}}",
+    "suggestedByFrom": "Empfohlen von {{name}} aus {{place}}",
     "host": "On air: {{name}}",
     "jingle": "Arche Radio",
     "contrib": "{{name}} erzählt",
@@ -94,9 +97,9 @@
       "title": "Gebetsanliegen teilen",
       "subtitle": "Wir beten mit dir."
     },
-    "room": {
-      "title": "Raum betreten",
-      "subtitle": "Komm in den Live-Chat."
+    "preaching": {
+      "title": "Predigt vorschlagen",
+      "subtitle": "Welche Predigt hat dich bewegt?"
     },
     "closing": "Letzte Chance",
     "closed": "Für diese Sendung geschlossen",
@@ -120,6 +123,12 @@
     "checking": "Video wird geprüft…",
     "notEmbeddable": "Dieses Video kann nicht in anderen Apps abgespielt werden.",
     "invalid": "Das sieht nicht nach einem YouTube-Link aus."
+  },
+  "preachingForm": {
+    "url": "YouTube-Link",
+    "urlHint": "Füge einen Link zu einer christlichen Predigt oder Andacht auf YouTube ein (5 bis 90 Minuten).",
+    "message": "Warum empfiehlst du sie? (optional)",
+    "messageHint": "Die Moderation liest es vielleicht vor."
   },
   "prayerForm": {
     "text": "Dein Gebetsanliegen",
@@ -396,20 +405,27 @@
       "kind": {
         "all": "Alle",
         "song": "Lieder",
+        "preaching": "Predigten",
         "jingle": "Jingles",
         "contrib": "Aufnahmen",
         "bed": "Hintergrundmusik"
       },
-      "addSong": "Lied hinzufügen",
+      "addVideo": "Lied oder Predigt hinzufügen",
+      "addKind": "Art",
+      "addKindSong": "Lied",
+      "addKindPreaching": "Predigt",
       "url": "YouTube-Link",
       "lookup": "Nachschlagen",
       "existing": "Schon in der Bibliothek",
+      "badDuration": "Das Video ist für diese Art zu kurz oder zu lang: Lieder 30 Sekunden bis 30 Minuten, Predigten 1 Minute bis 3 Stunden.",
       "notEmbeddable": "Nicht einbettbar – kann in der App nicht laufen.",
       "notPlayable": "In einer der Hauptregionen gesperrt.",
       "duration": "Dauer",
       "add": "Zur Bibliothek hinzufügen",
       "titleField": "Titel",
       "artist": "Interpret",
+      "preacher": "Predigt von",
+      "preachingHint": "Predigten laufen nur in Predigtsendungen (Sendungen → Format), mit Liedern dazwischen.",
       "themes": "Themen",
       "moods": "Stimmungen",
       "tagsHint": "Mit Komma getrennt, z. B. worship, hope",
@@ -431,9 +447,10 @@
       "voice": "Stimme",
       "source": {
         "curated": "kuratiert",
-        "submission": "Hörerwunsch"
+        "submission": "Hörerwunsch",
+        "suggestion": "Hörervorschlag"
       },
-      "noYoutube": "YOUTUBE_API_KEY ist auf dem Server nicht gesetzt – es können keine Lieder hinzugefügt werden.",
+      "noYoutube": "YOUTUBE_API_KEY ist auf dem Server nicht gesetzt – es können keine Lieder und Predigten hinzugefügt werden.",
       "lookupFirst": "Füge einen YouTube-Link ein und schlag ihn zuerst nach.",
       "addedOk": "Zur Bibliothek hinzugefügt.",
       "none": "Keine passenden Einträge.",
@@ -484,6 +501,7 @@
       "deleteConfirm": "Diese Sendung löschen?",
       "format": "Format",
       "formatMusic": "Musik, mit Moderation zwischen den Liedern",
+      "formatPreaching": "Predigt, mit Liedern zwischen den Predigten",
       "formatPrayer": "Gebetsstunde",
       "prayer": {
         "heading": "Gebetsstunde",
@@ -501,6 +519,12 @@
         "quietMin": "Stille Minuten, bevor die Moderation wieder betet",
         "afterSongs": "Lieder nach dem Abschluss",
         "notFallback": "Eine Gebetsstunde kann nicht das Ersatzprogramm eines Kanals sein: Ihr Ablauf braucht ein Ende."
+      },
+      "preaching": {
+        "heading": "Predigtsendung",
+        "order": "Begrüßung → eine Predigt → Lieder → die nächste Predigt, wenn sie noch in die Sendung passt → … → Abschluss. Vorschläge von Hörerinnen und Hörern kommen zuerst, dann die Predigten aus der Bibliothek, eine nach der anderen; keine läuft zweimal innerhalb von sechs Stunden. Passt keine Predigt mehr, laufen bis zum Ende Lieder.",
+        "songsBetween": "Lieder zwischen zwei Predigten",
+        "intakeHint": "Eine vorgeschlagene Predigt füllt die Warteschlange mit ihrer ganzen Länge: Für eine lange Sendung „Schließen, wenn die Warteschlange … Minuten hat“ erhöhen. Passt sie vor dem Ende nicht mehr, bleibt sie in der Bibliothek für eine spätere Predigtsendung."
       },
       "opening": {
         "heading": "Eröffnungsgebete",
@@ -602,7 +626,8 @@
         "story": "Geschichte",
         "testimony": "Zeugnis",
         "greeting": "Gruß",
-        "prayer": "Gebetsanliegen"
+        "prayer": "Gebetsanliegen",
+        "preaching": "Predigtvorschlag"
       },
       "statuses": {
         "received": "Eingegangen",
@@ -611,7 +636,7 @@
         "approved": "Freigegeben",
         "scheduled": "Eingeplant",
         "aired": "Gesendet",
-        "library": "In der Musikauswahl",
+        "library": "In der Bibliothek",
         "missed": "Sendung verpasst",
         "rejected": "Abgelehnt"
       },
@@ -654,8 +679,8 @@
       "overruled": "Ablehnung von der Moderation überstimmt",
       "listenerSaw": "angezeigt wurde: {{reason}}",
       "overrule": "Trotzdem freigeben",
-      "withoutMessage": "Ohne Widmung freigeben",
-      "overruleHint": "Ein Song kommt in die Musikauswahl; solange seine Sendung noch läuft, geht die Einsendung auch auf Sendung.",
+      "withoutMessage": "Ohne Nachricht freigeben",
+      "overruleHint": "Ein Lied oder eine Predigt kommt in die Bibliothek; solange die Sendung noch läuft, geht die Einsendung auch auf Sendung.",
       "blockers": {
         "recording_deleted": "Abgelehnte Aufnahmen werden sofort gelöscht (Datenschutzerklärung) und können nicht mehr freigegeben werden.",
         "video_unplayable": "YouTube spielt dieses Video im eingebetteten Player nicht ab; es kann nicht gesendet werden.",

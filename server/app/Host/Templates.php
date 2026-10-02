@@ -18,11 +18,23 @@ final class Templates
         $name = $req['name'] ?? ($c['contribution']['name'] ?? '');
         $place = $req['place'] ?? ($c['contribution']['place'] ?? '');
         $who = trim($name . ($place !== '' ? ' (' . $place . ')' : ''));
-        $nextTitle = is_array($next) ? trim(($next['title'] ?? '') . (($next['artist'] ?? '') !== '' ? ' – ' . $next['artist'] : '')) : '';
+        // A preaching names its preacher where a song names its artist.
+        $by = is_array($next) ? (string) ($next['artist'] ?? $next['preacher'] ?? '') : '';
+        $nextTitle = is_array($next) ? trim(($next['title'] ?? '') . ($by !== '' ? ' – ' . $by : '')) : '';
         $after = $c['after'] ?? null;
         if (($c['format'] ?? '') === 'prayer hour') {
             $texts = self::prayerHour($kind, $c, $program, $after);
             if ($texts !== null) return $texts;
+        }
+        if ($kind === 'preaching' || ($kind === 'announce' && ($req['type'] ?? '') === 'preaching')) {
+            return self::preaching($who, is_array($next) ? (string) ($next['title'] ?? '') : '', $by);
+        }
+        // An intro or a break is pinned to the preaching after it: it introduces it.
+        if (in_array($kind, ['intro', 'break'], true) && is_array($next) && ($next['kind'] ?? '') === 'preaching') {
+            $p = self::preaching('', (string) ($next['title'] ?? ''), $by);
+            return $kind === 'intro'
+                ? ['en' => "Welcome to {$program['en']} on ARCHE. " . $p['en'], 'de' => "Willkommen bei {$program['de']} auf ARCHE. " . $p['de']]
+                : ['en' => "You're listening to ARCHE. " . $p['en'], 'de' => 'Ihr hört ARCHE. ' . $p['de']];
         }
 
         return match ($kind) {
@@ -51,6 +63,28 @@ final class Templates
                 'de' => $nextTitle !== '' ? "Ihr hört ARCHE. Als Nächstes: $nextTitle." : 'Ihr hört ARCHE. Bleibt dran.',
             ],
         };
+    }
+
+    /**
+     * A preaching introduced: the program's own, or a listener's suggestion
+     * ($who is set then).
+     *
+     * @return array<string,string>
+     */
+    private static function preaching(string $who, string $title, string $preacher): array
+    {
+        $en = $title !== '' ? "“{$title}”" . ($preacher !== '' ? " by $preacher" : '') : '';
+        $de = $title !== '' ? "„{$title}“" . ($preacher !== '' ? " von $preacher" : '') : '';
+        if ($who !== '') {
+            return [
+                'en' => "$who suggested this preaching for us" . ($en !== '' ? ": $en." : '.') . ' Let us listen together.',
+                'de' => "$who hat uns diese Predigt empfohlen" . ($de !== '' ? ": $de." : '.') . ' Hören wir gemeinsam zu.',
+            ];
+        }
+        return [
+            'en' => $en !== '' ? "Now let us listen to a preaching: $en." : 'Now let us listen to a preaching.',
+            'de' => $de !== '' ? "Jetzt hören wir eine Predigt: $de." : 'Jetzt hören wir eine Predigt.',
+        ];
     }
 
     /**

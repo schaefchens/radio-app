@@ -54,9 +54,9 @@ function fakeAudio(now: () => number): AudioLike & { calls: string[]; outside: '
 }
 
 const items: TimelineItem[] = [
-  { id: 's1', type: 'song', start: 0, dur: 200_000, p: 'live', yt: 'AAAAAAAAAAA', title: 'One', artist: 'X', thumb: null, request: null, fallback: '/media/jingles/j.mp3' },
+  { id: 's1', type: 'song', kind: 'song', start: 0, dur: 200_000, p: 'live', yt: 'AAAAAAAAAAA', title: 'One', artist: 'X', thumb: null, request: null, fallback: '/media/jingles/j.mp3' },
   { id: 'h1', type: 'host', start: 200_000, dur: 20_000, p: 'live', kind: 'break', audio: { en: '/media/host/en.mp3', de: '/media/host/de.mp3' }, text: { en: 'Hello', de: 'Hallo' }, voices: [], prayers: [] },
-  { id: 's2', type: 'song', start: 220_000, dur: 300_000, p: 'live', yt: 'BBBBBBBBBBB', title: 'Two', artist: 'Y', thumb: null, request: null, fallback: null },
+  { id: 's2', type: 'song', kind: 'song', start: 220_000, dur: 300_000, p: 'live', yt: 'BBBBBBBBBBB', title: 'Two', artist: 'Y', thumb: null, request: null, fallback: null },
 ];
 const slotFile: SlotFile = { v: 1, channel: 'main', t: 0, gen: 0, current: 'live', next: null, submissions: { song: 'open' }, programs: {}, items };
 const live: LiveFile = {
@@ -495,5 +495,48 @@ describe('the prayer hour', () => {
     // The same empty list every time: a new [] per state would loop a zustand selector.
     expect(s.engine.snapshot.praying).toBe(initialState().praying);
     s.engine.stop();
+  });
+});
+
+describe('a preaching', () => {
+  it('plays as the video it is, and the tiles follow each minute file while it runs', async () => {
+    const T = 1_789_999_980_000; // a minute boundary
+    let now = T + 10_000;
+    const sermon: TimelineItem = {
+      id: 'p1', type: 'song', kind: 'preaching', start: T, dur: 40 * 60_000, p: 'sermon', yt: 'CCCCCCCCCCC',
+      title: 'The Prodigal Son', artist: 'Pastor Ruth', thumb: null, request: { name: 'Samuel', place: 'Accra' }, fallback: null,
+    };
+    // Twenty minutes in, the program's intake closes: only the minute files say so.
+    const minute = (t: number): SlotFile => ({
+      ...slotFile, t: t - (t % 60_000), current: 'sermon', items: [sermon], submissions: { preaching: t >= T + 20 * 60_000 ? 'closed' : 'open' },
+    });
+    const player = fakePlayer();
+    const engine = new RadioEngine({
+      now: () => now,
+      player,
+      audio: fakeAudio(() => now),
+      fetchSlot: async (_ch, t) => minute(t),
+      fetchSlotWalkingBack: async (_ch, t) => minute(t),
+      fetchLive: async () => live,
+      fetchEvergreen: async () => null,
+      canAutoplay: () => true,
+      onChange: () => {},
+      onPlaybackError: () => {},
+    });
+    await engine.start('main');
+    engine.join();
+    expect(engine.snapshot.mode).toBe('song');
+    expect(player.calls).toContain('load CCCCCCCCCCC 10.4');
+    expect(engine.snapshot.submissions).toEqual({ preaching: 'open' });
+
+    now = T + 20 * 60_000 + 5000;
+    engine.tick(); // asks for this minute's file…
+    await vi.waitFor(() => {
+      engine.tick(); // …and reads it, still in the same preaching
+      expect(engine.snapshot.submissions).toEqual({ preaching: 'closed' });
+    });
+    expect(engine.snapshot.item?.id).toBe('p1');
+    expect(player.calls.filter((c) => c.startsWith('load'))).toHaveLength(1);
+    engine.stop();
   });
 });
