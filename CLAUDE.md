@@ -337,6 +337,14 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   container queries only because it sits in a demo frame).
 - **The phone scenery at the bottom is Home's only**: behind the other pages'
   text, which has no cards, it took the words away.
+- **A pause the engine did not make is the listener's Pause.** A click on the
+  video (desktop YouTube pauses on a click even without controls), the lock
+  screen, headphones or a call pause the players behind the engine; left
+  "playing", the radio started again by itself at the next re-entry (a sheet
+  closed, the stage back in view) or segment. The engine now leaves on such a
+  pause, stops anything that plays while the listener is out, and maps the
+  media keys to join/leave. YouTube's `seekTo` starts a stopped video: no
+  drift seek for a listener who is out.
 
 ## Testing
 
@@ -350,7 +358,7 @@ the empty hour, intake to C, midnight, outages, last-minute and repeated plan
 changes, nobody listening, bursts, a short hour, the fallback rule, opening
 prayers), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
-prayer music's fades and continuing pieces, timeline, clock, i18n keys, passphrase,
+pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces, timeline, clock, i18n keys, passphrase,
 realtime client, CDN fallback, theme, the phone carousel's fit, the prayer wall's
 day, "Praying now" and the silent-prayer pick, the pulse's voice reactions; jsdom:
 the stage's prayer views, the prayer sheet's wall box, the install sheet's

@@ -73,6 +73,7 @@ export interface PlayerLike {
   load(id: string, startSeconds: number): void;
   cue(id: string, startSeconds: number): void;
   play(): void;
+  pause(): void;
   stop(): void;
   seek(seconds: number): void;
   time(): number;
@@ -82,6 +83,8 @@ export interface PlayerLike {
 export interface AudioLike {
   unlocked: boolean;
   unlock(): void;
+  /** Wake our audio engine again (inside a tap): a phone may have put it to sleep since. */
+  wake(): void;
   /** `fadeInMs` > 0 rises from silence instead of starting at full volume. */
   play(url: string, offsetMs: number, fadeInMs?: number): Promise<boolean>;
   preload(url: string): void;
@@ -90,6 +93,10 @@ export interface AudioLike {
   fadeOut(ms: number): void;
   /** Where in `url` playback is (ms) when it is the clip playing now, else null. */
   playingAt(url: string): number | null;
+  /** Any of our clips is playing. */
+  playing(): boolean;
+  /** The clip we started was paused, and not by us (the lock screen, headphones, a call). */
+  pausedFromOutside(): boolean;
 }
 
 type OwnAudioItem = Extract<TimelineItem, { type: 'host' | 'jingle' | 'contrib' | 'bed' }>;
@@ -111,6 +118,8 @@ export interface EngineDeps {
   fetchEvergreen: (url: string) => Promise<EvergreenFile | null>;
   /** Whether at least half of the player is on screen (YouTube autoplay rule). */
   canAutoplay: () => boolean;
+  /** The page is on screen (not a background tab, not the lock screen). Default: always. */
+  pageVisible?: () => boolean;
   onChange: (state: EngineState) => void;
   onPlaybackError: (itemId: string, code: number) => void;
 }
@@ -125,6 +134,8 @@ const LIVE_EVERY_MS = 30_000;
 export const BED_FADE_MS = 1500;
 /** Our audio already playing this close to where an item needs it is that item going on. */
 const CONTINUE_MS = 2000;
+/** A pause YouTube reports this soon after one of our own commands is that command's. */
+const OWN_COMMAND_MS = 1500;
 /** One empty wall for every reset: a fresh [] per state would give a zustand
  *  selector a new reference each time and loop React. */
 const NO_WALL: WallEntry[] = [];
@@ -169,6 +180,10 @@ export class RadioEngine {
   private seeks: number[] = [];
   private adSince = 0;
   private loadStartedAt = 0;
+  /** The video in the player has played since we gave it: a pause before that is a load's, not a listener's. */
+  private videoPlayed = false;
+  /** When we last told the player to load, cue, seek, pause or stop. */
+  private commandAt = 0;
   private fadingOut: string | null = null;
   private fetching: { gen: number; done: Promise<void> } | null = null;
   private generation = 0;
@@ -220,7 +235,7 @@ export class RadioEngine {
 
   /** The "tap to join" gesture: unlock audio, then play whatever is on air. */
   join(): void {
-    if (!this.deps.audio.unlocked) this.deps.audio.unlock();
+    this.wakeAudio();
     this.state = { ...this.state, joined: true };
     this.key = null; // re-enter the current item, now with sound
     this.tick();
@@ -232,7 +247,7 @@ export class RadioEngine {
    */
   leave(): void {
     if (!this.state.joined) return;
-    this.deps.player.stop();
+    this.stopVideo();
     this.deps.audio.stop();
     this.state = { ...this.state, joined: false, playerVisible: false, needsTap: false };
     this.key = null; // re-enter the current item, now without sound
@@ -241,7 +256,8 @@ export class RadioEngine {
 
   /** A tap on "tap to resume" (a gesture): try to start the player. */
   resume(): void {
-    if (!this.deps.audio.unlocked) this.deps.audio.unlock();
+    this.wakeAudio();
+    this.command();
     this.deps.player.play();
     this.key = null;
     this.tick();
@@ -255,22 +271,69 @@ export class RadioEngine {
 
   /** Back from the background: clocks and players drifted; start over. */
   resync(): void {
+    this.deps.audio.wake();
     this.key = null;
     void this.fetchNow(true);
     this.tick();
   }
 
+  /**
+   * The stage went away (a sheet over it, scrolled off, a page without it):
+   * the video may not play unseen. The pause that follows is ours, not the
+   * listener's.
+   */
+  stageHidden(): void {
+    if (this.state.mode !== 'song' && this.state.mode !== 'evergreen') return;
+    this.command();
+    this.deps.player.pause();
+  }
+
   // --- player callbacks ------------------------------------------------------------
 
   onPlayerState(s: number): void {
-    if (s === YTState.PLAYING && this.state.needsTap) {
-      this.state = { ...this.state, needsTap: false };
-      this.emit();
+    const video = this.state.mode === 'song' || this.state.mode === 'evergreen';
+    if (s === YTState.PLAYING) {
+      // Nothing plays while the listener is out or no song is on air. A
+      // report still on its way when they pressed pause, or a resume from
+      // outside (the lock screen, headphones, a key), played on behind the
+      // stage — and the drift check then sought it to the live position,
+      // which for YouTube starts a stopped video.
+      if (!this.state.joined || !video) {
+        this.stopVideo();
+        return;
+      }
+      if (!this.deps.canAutoplay()) {
+        this.stageHidden();
+        return;
+      }
+      this.videoPlayed = true;
+      if (this.state.needsTap) {
+        this.state = { ...this.state, needsTap: false };
+        this.emit();
+      }
+      this.checkDrift(true);
+      return;
     }
-    if (s === YTState.PLAYING) this.checkDrift(true);
-    if (s === YTState.ENDED && (this.state.mode === 'song' || this.state.mode === 'evergreen')) {
+    if (
+      s === YTState.PAUSED &&
+      video &&
+      this.state.joined &&
+      this.videoPlayed &&
+      this.deps.now() - this.commandAt > OWN_COMMAND_MS &&
+      this.deps.canAutoplay() &&
+      this.pageVisible()
+    ) {
+      // Paused from outside the app — a click on the video (on a desktop
+      // YouTube pauses on a click even without its controls), the lock
+      // screen, headphones, a key. That is the listener pausing, as with the
+      // song bar's Pause: left "playing" in the engine's eyes, the radio
+      // started again by itself at the next re-entry or segment.
+      this.leave();
+      return;
+    }
+    if (s === YTState.ENDED && video) {
       // The video ended before its slot did: stage until the next item.
-      this.deps.player.stop();
+      this.stopVideo();
       this.state = { ...this.state, playerVisible: false, mode: 'stage' };
       this.emit();
     }
@@ -280,17 +343,39 @@ export class RadioEngine {
     const item = this.state.item;
     if (item?.type === 'song') {
       this.deps.onPlaybackError(item.id, code);
-      this.deps.player.stop();
+      this.stopVideo();
       this.state = { ...this.state, playerVisible: false, mode: 'stage' };
       if (item.fallback && this.state.joined) {
         void this.deps.audio.play(item.fallback, 0);
       }
       this.emit();
     } else if (this.state.mode === 'evergreen') {
-      this.deps.player.stop();
+      this.stopVideo();
       this.state = { ...this.state, playerVisible: false, mode: 'stage' };
       this.emit();
     }
+  }
+
+  /** Inside a tap: unlock our audio the first time; later wake it, as a phone may have put it to sleep (a call, the lock screen) and the host then spoke without a sound. */
+  private wakeAudio(): void {
+    const { audio } = this.deps;
+    if (!audio.unlocked) audio.unlock();
+    else audio.wake();
+  }
+
+  /** Our own command to the player: a pause or stop that follows is ours, not the listener's. */
+  private command(): void {
+    this.commandAt = this.deps.now();
+    this.videoPlayed = false;
+  }
+
+  private stopVideo(): void {
+    this.command();
+    this.deps.player.stop();
+  }
+
+  private pageVisible(): boolean {
+    return this.deps.pageVisible?.() ?? true;
   }
 
   // --- data -------------------------------------------------------------------------
@@ -352,6 +437,9 @@ export class RadioEngine {
       void this.fetchNow(thin);
     }
     if (now - this.lastLive > LIVE_EVERY_MS) void this.fetchLiveNow();
+    // Nothing of ours plays while the listener is out: a clip resumed from
+    // outside (the lock screen, headphones, a key) is stopped again.
+    if (!this.state.joined && this.deps.audio.playing()) this.deps.audio.stop();
 
     const item = this.timeline.at(now, this.blocked);
     if (item && item.type !== 'gap') {
@@ -364,7 +452,7 @@ export class RadioEngine {
 
   private enter(item: TimelineItem, now: number): void {
     this.key = item.id;
-    const { player, audio } = this.deps;
+    const { audio } = this.deps;
     const joined = this.state.joined;
     const offset = now - item.start;
     const base = this.contextFor(item, now);
@@ -378,7 +466,7 @@ export class RadioEngine {
       playerVisible = joined;
       if (joined) needsTap = this.startVideo(item.yt, offset / 1000);
     } else {
-      player.stop();
+      this.stopVideo();
       if (ownAudio(item)) {
         mode = item.type;
         const url = this.audioUrl(item);
@@ -408,6 +496,12 @@ export class RadioEngine {
         this.loadStartedAt = 0;
       }
     } else if (this.state.joined && ownAudio(item)) {
+      if (this.pageVisible() && this.deps.audio.pausedFromOutside()) {
+        // Paused from outside (the lock screen, headphones, a call): the
+        // listener pausing, as with the song bar's Pause.
+        this.leave();
+        return;
+      }
       if (item.type === 'bed' && item.start + item.dur - now <= BED_FADE_MS) {
         // The music stops mid-track when its piece ends: fade it out first —
         // unless the next piece goes on with the same file.
@@ -457,7 +551,7 @@ export class RadioEngine {
     if (!pos) {
       if (this.key !== 'offline') {
         this.key = 'offline';
-        this.deps.player.stop();
+        this.stopVideo();
         this.deps.audio.stop();
         this.state = { ...this.state, item: gap, evergreen: null, mode: 'offline', playerVisible: false, needsTap: false, praying: NO_IDS, hasData: this.timeline.coveredUntil() > 0 };
         this.emit();
@@ -488,6 +582,7 @@ export class RadioEngine {
   private startVideo(yt: string, startSeconds: number): boolean {
     const { player } = this.deps;
     if (!player.mounted) return true;
+    this.command();
     this.adSince = 0;
     // No cooldown for a fresh video: `startSeconds` snaps to a keyframe, so the
     // first PLAYING gets one correction right away.
@@ -503,6 +598,8 @@ export class RadioEngine {
   }
 
   private checkDrift(force: boolean, startOverride?: number): void {
+    // A seek starts a stopped YouTube video: never one for a listener who is out.
+    if (!this.state.joined) return;
     const now = this.deps.now();
     if (!force && now - this.lastDrift < 5000) return;
     this.lastDrift = now;
@@ -523,6 +620,7 @@ export class RadioEngine {
     if (now - this.lastSeek < SEEK_COOLDOWN_MS || this.seeks.length >= MAX_SEEKS_PER_MINUTE) return;
     this.lastSeek = now;
     this.seeks.push(now);
+    this.commandAt = now;
     player.seek(expected + 0.3);
   }
 

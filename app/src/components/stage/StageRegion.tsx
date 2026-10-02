@@ -43,7 +43,10 @@ export function StageRegion({ compact = false, flush = false }: { compact?: bool
       return;
     }
     const io = new IntersectionObserver(
-      ([e]) => {
+      (entries) => {
+        // The newest entry: one call can carry several crossings, and the
+        // first of them could leave the stage "out of view" while it was back.
+        const e = entries[entries.length - 1];
         if (useStage.getState().slot === node) setInView((e?.intersectionRatio ?? 0) >= 0.5);
       },
       { threshold: [0, 0.5, 1] },

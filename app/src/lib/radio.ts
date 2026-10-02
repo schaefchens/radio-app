@@ -39,8 +39,10 @@ export const engine = new RadioEngine({
   fetchLive,
   fetchEvergreen,
   canAutoplay: () => stageVisible,
+  pageVisible: () => document.visibilityState !== 'hidden',
   onChange: (s) => {
     useRadio.getState().setEngine(s);
+    showPlaybackState(s.joined);
   },
   onPlaybackError: (item, code) => reportPlaybackError(item, code),
 });
@@ -65,6 +67,7 @@ export async function bootRadio(): Promise<void> {
   engine.setLang(settings.lang);
   audio.setVolume(settings.volume);
   setKeepAwake(settings.keepAwake);
+  bindMediaKeys();
 
   // Clock first: everything that follows is a function of server time.
   const t0 = Date.now();
@@ -162,6 +165,36 @@ export function leaveRadio(): void {
 }
 
 /**
+ * The lock screen, headphones and media keys do what the song bar does:
+ * pause leaves, play joins live. Without handlers they paused and resumed
+ * the players themselves, behind the engine's back.
+ */
+function bindMediaKeys(): void {
+  const session = navigator.mediaSession as MediaSession | undefined;
+  if (!session) return;
+  const on = (action: MediaSessionAction, handler: () => void): void => {
+    try {
+      session.setActionHandler(action, handler);
+    } catch {
+      /* an action this browser does not know */
+    }
+  };
+  on('play', joinRadio);
+  on('pause', leaveRadio);
+  on('stop', leaveRadio);
+}
+
+let shownJoined: boolean | null = null;
+
+/** What the lock screen's button shows: play while the listener is out, pause while in. */
+function showPlaybackState(joined: boolean): void {
+  const session = navigator.mediaSession as MediaSession | undefined;
+  if (!session || joined === shownJoined) return;
+  shownJoined = joined;
+  session.playbackState = joined ? 'playing' : 'paused';
+}
+
+/**
  * YouTube's rules: the player plays only where it can be seen, uncovered. When
  * the stage goes away (moderation page, a sheet over it, scrolled out) a
  * playing video is paused; when it comes back the engine re-enters the item at
@@ -178,11 +211,8 @@ export function setStageVisible(visible: boolean): void {
     stageSettling = false;
     if (stageWanted === stageVisible) return;
     stageVisible = stageWanted;
-    if (!stageVisible) {
-      if (engine.snapshot.mode === 'song' || engine.snapshot.mode === 'evergreen') player.pause();
-    } else if (engine.snapshot.joined) {
-      engine.reenter();
-    }
+    if (!stageVisible) engine.stageHidden();
+    else if (engine.snapshot.joined) engine.reenter();
   });
 }
 

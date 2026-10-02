@@ -13,6 +13,7 @@ function fakePlayer(): PlayerLike & { calls: string[]; t: number; st: number } {
     load(id, s) { this.calls.push(`load ${id} ${s.toFixed(1)}`); this.currentId = id; },
     cue(id, s) { this.calls.push(`cue ${id} ${s.toFixed(1)}`); },
     play() { this.calls.push('play'); },
+    pause() { this.calls.push('pause'); },
     stop() { this.calls.push('stop'); this.currentId = null; },
     seek(s) { this.calls.push(`seek ${s.toFixed(1)}`); },
     time() { return this.t; },
@@ -20,27 +21,35 @@ function fakePlayer(): PlayerLike & { calls: string[]; t: number; st: number } {
   };
 }
 
-/** Our audio, playing on the test's clock: it knows where its file is. */
-function fakeAudio(now: () => number): AudioLike & { calls: string[] } {
+/**
+ * Our audio, playing on the test's clock: it knows where its file is.
+ * `outside` is what the lock screen, headphones or a call do to the element.
+ */
+function fakeAudio(now: () => number): AudioLike & { calls: string[]; outside: 'paused' | 'resumed' | null } {
   let url: string | null = null;
   let base = 0;
   let since = 0;
   return {
     unlocked: false,
     calls: [],
+    outside: null,
     unlock() { this.unlocked = true; },
+    wake() { this.calls.push('wake'); },
     async play(u, off, fade = 0) {
       this.calls.push(`play ${u} ${Math.round(off)}${fade ? ` fade ${fade}` : ''}`);
       url = u;
       base = off;
       since = now();
+      this.outside = null;
       return true;
     },
     preload(u) { this.calls.push(`preload ${u}`); },
-    stop() { this.calls.push('stop'); url = null; },
+    stop() { this.calls.push('stop'); url = null; this.outside = null; },
     resync(ms) { this.calls.push(`resync ${Math.round(ms)}`); },
     fadeOut(ms) { this.calls.push(`fadeOut ${ms}`); },
-    playingAt(u) { return u === url ? base + now() - since : null; },
+    playingAt(u) { return u === url && this.outside !== 'paused' ? base + now() - since : null; },
+    playing() { return (url !== null && this.outside !== 'paused') || this.outside === 'resumed'; },
+    pausedFromOutside() { return url !== null && this.outside === 'paused'; },
   };
 }
 
@@ -63,6 +72,8 @@ const live: LiveFile = {
 
 function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?: EvergreenFile } = {}) {
   let now = 50_000;
+  let stage = opts.canAutoplay ?? true;
+  let page = true;
   const player = fakePlayer();
   const audio = fakeAudio(() => now);
   const states: EngineState[] = [];
@@ -75,11 +86,22 @@ function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?
     fetchSlotWalkingBack: async () => (opts.slot === undefined ? slotFile : opts.slot),
     fetchLive: async () => live,
     fetchEvergreen: async () => opts.evergreen ?? null,
-    canAutoplay: () => opts.canAutoplay ?? true,
+    canAutoplay: () => stage,
+    pageVisible: () => page,
     onChange: (s) => states.push(s),
     onPlaybackError: (id, code) => errors.push([id, code]),
   });
-  return { engine, player, audio, states, errors, setNow: (t: number) => (now = t), get now() { return now; } };
+  return {
+    engine,
+    player,
+    audio,
+    states,
+    errors,
+    setNow: (t: number) => (now = t),
+    get now() { return now; },
+    setStage: (v: boolean) => (stage = v),
+    setPage: (v: boolean) => (page = v),
+  };
 }
 
 describe('RadioEngine', () => {
@@ -178,6 +200,126 @@ describe('RadioEngine', () => {
     expect(s.player.calls.filter((c) => c.startsWith('load')).length).toBe(loaded);
     s.engine.join();
     expect(s.player.calls.at(-1)).toBe('load BBBBBBBBBBB 10.4');
+    s.engine.stop();
+  });
+
+  it('a pause from outside — a tap on the video, the lock screen — is the listener pausing: nothing starts again by itself', async () => {
+    const s = setup();
+    await s.engine.start('main');
+    s.engine.join();
+    s.engine.onPlayerState(YTState.PLAYING);
+    s.setNow(60_000);
+    s.engine.onPlayerState(YTState.PAUSED);
+    expect(s.engine.snapshot.joined).toBe(false);
+    expect(s.player.calls.at(-1)).toBe('stop');
+    // A sheet closes over the stage, the host and the next song come: silence.
+    const loads = () => s.player.calls.filter((c) => c.startsWith('load')).length;
+    const loaded = loads();
+    s.engine.reenter();
+    s.setNow(205_000);
+    s.engine.tick();
+    s.setNow(230_000);
+    s.engine.tick();
+    expect(loads()).toBe(loaded);
+    expect(s.audio.calls.filter((c) => c.startsWith('play'))).toEqual([]);
+    s.engine.stop();
+  });
+
+  it('pauses that are not the listener’s keep the radio on: the next song loading, the stage going away, the page hidden', async () => {
+    const s = setup();
+    await s.engine.start('main');
+    s.engine.join();
+    s.engine.onPlayerState(YTState.PLAYING);
+    // YouTube pauses the video it had as it takes the next one.
+    s.setNow(220_100);
+    s.engine.tick();
+    expect(s.engine.snapshot.item?.id).toBe('s2');
+    s.engine.onPlayerState(YTState.PAUSED);
+    expect(s.engine.snapshot.joined).toBe(true);
+    // A sheet over the stage: we pause the video ourselves.
+    s.engine.onPlayerState(YTState.PLAYING);
+    s.setNow(230_000);
+    s.setStage(false);
+    s.engine.stageHidden();
+    expect(s.player.calls.at(-1)).toBe('pause');
+    s.setNow(233_000);
+    s.engine.onPlayerState(YTState.PAUSED);
+    expect(s.engine.snapshot.joined).toBe(true);
+    // The phone in the background: YouTube pauses itself, and plays on when the page is back.
+    s.setStage(true);
+    s.engine.reenter();
+    s.engine.onPlayerState(YTState.PLAYING);
+    s.setNow(240_000);
+    s.setPage(false);
+    s.engine.onPlayerState(YTState.PAUSED);
+    expect(s.engine.snapshot.joined).toBe(true);
+    s.engine.stop();
+  });
+
+  it('YouTube playing while the listener is out, or while our own audio is on air, is stopped — never sought', async () => {
+    const s = setup();
+    const stops = () => s.player.calls.filter((c) => c === 'stop').length;
+    await s.engine.start('main');
+    s.engine.join();
+    s.engine.leave();
+    // A report from before the pause, or the lock screen's play on the video:
+    // the drift check sought it to live, and a seek starts a stopped video.
+    s.player.st = YTState.PLAYING;
+    s.player.t = 10;
+    let before = stops();
+    s.engine.onPlayerState(YTState.PLAYING);
+    expect(stops()).toBe(before + 1);
+    expect(s.player.calls.some((c) => c.startsWith('seek'))).toBe(false);
+    s.engine.join();
+    s.setNow(205_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('host');
+    before = stops();
+    s.engine.onPlayerState(YTState.PLAYING);
+    expect(stops()).toBe(before + 1);
+    s.engine.stop();
+  });
+
+  it('our audio paused from outside is the listener pausing; resumed from outside while they are out, it stops again', async () => {
+    const s = setup();
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(205_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('host');
+    // In the background a phone may pause it: back on screen, it plays on.
+    s.setPage(false);
+    s.audio.outside = 'paused';
+    s.setNow(206_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.joined).toBe(true);
+    s.setPage(true);
+    s.engine.resync();
+    s.engine.tick();
+    expect(s.engine.snapshot.joined).toBe(true);
+    // On screen, the lock screen's or the headphones' pause.
+    s.audio.outside = 'paused';
+    s.setNow(207_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.joined).toBe(false);
+    // Their play on the element itself, past the app: stopped again.
+    s.audio.outside = 'resumed';
+    s.setNow(208_000);
+    s.engine.tick();
+    expect(s.audio.calls.at(-1)).toBe('stop');
+    expect(s.engine.snapshot.joined).toBe(false);
+    s.engine.stop();
+  });
+
+  it('every later tap wakes our audio engine: a phone may have put it to sleep', async () => {
+    const s = setup();
+    await s.engine.start('main');
+    s.engine.join(); // the first tap unlocks it
+    expect(s.audio.calls).not.toContain('wake');
+    s.engine.leave();
+    s.engine.join();
+    s.engine.resume();
+    expect(s.audio.calls.filter((c) => c === 'wake')).toHaveLength(2);
     s.engine.stop();
   });
 

@@ -24,6 +24,9 @@ export class HostAudio {
   private ctx: AudioContext | null = null;
   private gains: (GainNode | null)[] = [null, null];
   private volume = 1;
+  /** Per element, the play() of ours it is on (0: none, or we paused it since). */
+  private started = [0, 0];
+  private plays = 0;
   unlocked = false;
 
   constructor() {
@@ -63,6 +66,11 @@ export class HostAudio {
     this.unlocked = true;
   }
 
+  /** Inside a later tap: wake our audio engine if the system put it to sleep (a call, the lock screen). */
+  wake(): void {
+    if (this.ctx && this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
+  }
+
   private el(): HTMLAudioElement {
     return this.els[this.active]!;
   }
@@ -73,6 +81,12 @@ export class HostAudio {
     const el = this.els[next]!;
     this.stop();
     this.active = next;
+    const token = ++this.plays;
+    this.started[next] = token;
+    const refused = (): false => {
+      if (this.started[next] === token) this.started[next] = 0;
+      return false;
+    };
     this.setGain(next, this.volume, fadeInMs);
     const started = Date.now();
     const start = async (src: string): Promise<boolean> => {
@@ -95,12 +109,12 @@ export class HostAudio {
     } catch (e) {
       // NotSupportedError: the file did not load (CORS, network, the edge
       // down). NotAllowedError is the autoplay policy — the site cannot help.
-      if (src === url || !(e instanceof DOMException) || e.name !== 'NotSupportedError') return false;
+      if (src === url || !(e instanceof DOMException) || e.name !== 'NotSupportedError') return refused();
       cdnFailed();
       try {
         return await start(url);
       } catch {
-        return false;
+        return refused();
       }
     }
   }
@@ -113,6 +127,7 @@ export class HostAudio {
   }
 
   stop(): void {
+    this.started = [0, 0];
     for (const el of this.els) {
       if (!el.paused) el.pause();
     }
@@ -123,6 +138,20 @@ export class HostAudio {
     const el = this.el();
     if (el.paused || el.ended || !(isSrc(el, cdnUrl(url)) || isSrc(el, url))) return null;
     return el.currentTime * 1000;
+  }
+
+  /** Any of our clips is playing. */
+  playing(): boolean {
+    return this.els.some((el) => !el.paused && !el.ended);
+  }
+
+  /**
+   * The clip we started is paused, and not by us: the lock screen, headphones
+   * or a call paused the element itself. (One that ended or failed is not.)
+   */
+  pausedFromOutside(): boolean {
+    const el = this.el();
+    return this.started[this.active] !== 0 && el.paused && !el.ended && !el.error;
   }
 
   /** Correct drift of the playing clip against the shared clock. */
@@ -161,8 +190,14 @@ export class HostAudio {
     }
     // Without Web Audio there is no fade: stop this clip only — by then the
     // next one may be playing on the other element.
+    const i = this.active;
     const el = this.el();
-    window.setTimeout(() => el.pause(), ms);
+    const token = this.started[i];
+    window.setTimeout(() => {
+      if (this.started[i] !== token) return; // a newer clip is on this element now
+      this.started[i] = 0;
+      el.pause();
+    }, ms);
   }
 }
 
