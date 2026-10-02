@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { useRadio } from '@/store/radio';
-import { useRotation } from './useRotation';
+import { useRotation, WALL_ROTATE_MS } from './useRotation';
 import { fitMessages } from './carouselFit';
 import { VoiceMessage, VoicesHeading } from './CommunityVoices';
 import { useVoices } from './useVoices';
@@ -46,7 +46,7 @@ export function MobileCarousel({ onMoreWall }: { onMoreWall: () => void }) {
   }, []);
   const voiceOffset = useRotation(voicesBody, voices.length, panel !== 'voices' || picking || voices.length <= visible, nudge);
   // While the host prays for a request on the wall, it stays first ("Praying now").
-  const prayerOffset = useRotation(prayersBody, wall.length, panel !== 'prayers' || picking || prayingNow || wall.length <= visible, nudge);
+  const prayerOffset = useRotation(prayersBody, wall.length, panel !== 'prayers' || picking || prayingNow || wall.length <= visible, nudge, WALL_ROTATE_MS);
 
   const select = (i: number) => {
     setIndex((i + PANELS.length) % PANELS.length);

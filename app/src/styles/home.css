@@ -986,6 +986,88 @@
   .desktop-prayer-wall {
     padding: 8px 12px 12px;
   }
+  /* One request at a time, so no box of its own: set in the card like a
+     verse, the day above it, the reactions under it. */
+  .desktop-prayer-wall .prayer-entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 150px;
+    margin: 0;
+    padding: 16px 12px 4px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    text-align: center;
+  }
+  .desktop-prayer-wall .prayer-entry .message-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .desktop-prayer-wall .prayer-entry time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: rgb(var(--ink-muted));
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .desktop-prayer-wall .prayer-entry time::before,
+  .desktop-prayer-wall .prayer-entry time::after {
+    content: '';
+    width: 18px;
+    height: 1px;
+    background: rgb(var(--accent) / 0.6);
+  }
+  .desktop-prayer-wall .prayer-entry .praying-badge {
+    margin: 0;
+  }
+  .desktop-prayer-wall .prayer-entry p {
+    max-width: 30em;
+    margin: 0;
+    padding: 0;
+    color: rgb(var(--ink));
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: clamp(15px, 1.2vw, 18px);
+    line-height: 1.5;
+    text-wrap: pretty;
+    /* „…“ in German, “…” in English: quotes follow <html lang>. */
+    quotes: auto;
+  }
+  .desktop-prayer-wall .prayer-entry p::before,
+  .desktop-prayer-wall .prayer-entry p::after {
+    color: rgb(var(--accent));
+    font-style: normal;
+  }
+  .desktop-prayer-wall .prayer-entry p::before {
+    content: open-quote;
+    margin-right: 0.08em;
+  }
+  .desktop-prayer-wall .prayer-entry p::after {
+    content: close-quote;
+    margin-left: 0.04em;
+  }
+  .desktop-prayer-wall .prayer-entry .feed-reactions {
+    position: static;
+    justify-content: center;
+    margin: 0;
+  }
+  /* Above the centred reactions; the card ends below them. */
+  .desktop-prayer-wall .prayer-entry .feed-emoji-picker {
+    top: auto;
+    right: auto;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 /* --- desktop ------------------------------------------------------------------ */
@@ -1107,14 +1189,12 @@
     border: 1px solid rgb(var(--line));
     border-radius: 14px;
   }
-  .community .feed-message,
-  .desktop-prayer-wall .feed-message {
+  .community .feed-message {
     min-height: 110px;
     padding: 9px;
     border-radius: 0;
   }
-  .community .feed-message .message-copy,
-  .desktop-prayer-wall .feed-message .message-copy {
+  .community .feed-message .message-copy {
     grid-template-columns: max-content max-content minmax(0, 1fr);
     column-gap: 7px;
   }
@@ -1123,28 +1203,17 @@
     justify-self: start;
     margin-left: 0;
   }
-  .desktop-prayer-wall .feed-message time {
-    grid-column: 1;
-    justify-self: start;
-    margin-left: 0;
-  }
-  .community .feed-message p,
-  .desktop-prayer-wall .feed-message p {
+  .community .feed-message p {
     margin-top: 11px;
     padding-right: 92px;
   }
-  .desktop-prayer-wall .feed-message p {
-    margin-top: 14px;
-  }
-  .community .feed-reactions,
-  .desktop-prayer-wall .feed-reactions {
+  .community .feed-reactions {
     position: absolute;
     top: 9px;
     right: 9px;
     margin: 0;
   }
-  .community .feed-emoji-picker,
-  .desktop-prayer-wall .feed-emoji-picker {
+  .community .feed-emoji-picker {
     top: 40px;
     bottom: auto;
   }

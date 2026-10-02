@@ -7,18 +7,18 @@ import { reactVoice } from '@/lib/radio';
 import { dayKey } from '@/lib/format';
 import { useServerNow } from './useServerNow';
 import { usePrayingWall } from './usePrayingWall';
-import { useRotation } from './useRotation';
+import { useRotation, WALL_ROTATE_MS } from './useRotation';
 import { Reactions } from './Reactions';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { PrayIcon } from '@/components/common/icons';
 
 /**
  * The prayer wall on desktop, under the community voices (on a tablet under
- * the player): one prayer request at a time, the next one every few seconds
- * (the phone shows it in the carousel); while the host prays for one of
- * them, that one, "Praying now". Requests
- * come from live.json: typed, approved, and shown only with the sender's yes;
- * anonymous, the text and the day.
+ * the player): one prayer request at a time, set like a verse, the next one
+ * every 15 s (the phone shows it in the carousel); while the host prays for
+ * one of them, that one, "Praying now". Requests come from live.json: typed,
+ * approved, and shown only with the sender's yes; anonymous, the text and
+ * the day.
  */
 export function DesktopPrayerWall({ onMore }: { onMore: () => void }) {
   const { t } = useTranslation();
@@ -30,7 +30,7 @@ export function DesktopPrayerWall({ onMore }: { onMore: () => void }) {
     setPicking(open);
     setNudge((n) => n + 1);
   }, []);
-  const index = useRotation(body, wall.length, picking || now, nudge);
+  const index = useRotation(body, wall.length, picking || now, nudge, WALL_ROTATE_MS);
   const entry = now ? wall[0] : wall[index];
   return (
     <section className="card desktop-prayer-wall" aria-label={t('wall.title')}>
