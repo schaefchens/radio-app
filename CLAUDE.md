@@ -301,6 +301,11 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   drafts that repeat a song from the last hour are re-planned (plans without
   repeats are kept, their host breaks may be voiced already). The committed
   minutes stay.
+- **A failed SFTP read is not an empty server.** A dropped session once
+  listed nothing, the deploy took that for a bare server and uploaded all
+  ~2,900 files: ticks paused for five minutes, two minute files were never
+  written. `deploy.sh` retries the manifest and the listing once and stops
+  before touching the server when they still fail.
 - **Throttle on the last tick, not the last request** (`CronEndpoint::due`):
   counting every request let calls a few seconds apart hold the tick off
   indefinitely.

@@ -106,15 +106,25 @@ sftp_batch() {
 # lines are attributed to their directory. `ls -l` omits dotfiles — which is
 # what we want: .htaccess and friends are always re-uploaded, never pruned.
 # A directory that does not exist yet just lists nothing (`-` prefix).
+#
+# Returns sftp's exit code: a session that never logged in or dropped halfway
+# lists nothing too, and a caller that took that for an empty server would
+# upload everything again. The reason goes to stderr.
 remote_sizes() {
-  local batch out d
+  local batch out err d rc=0
   batch=$(mktemp)
   out=$(mktemp)
+  err=$(mktemp)
   for d in "$@"; do
     printf -- '-ls -l %s\n' "$(sq "$(rpath "$d")")" >> "$batch"
   done
-  run_sftp "$batch" > "$out" 2>/dev/null || true
+  run_sftp "$batch" > "$out" 2>"$err" || rc=$?
   rm -f "$batch"
+  if [ "$rc" -ne 0 ]; then
+    # Without the expected noise of directories that do not exist yet.
+    grep -v -E 'not found|No such file' "$err" | tail -n 3 >&2 || true
+  fi
+  rm -f "$err"
   # ProFTPD / OpenSSH long format: perms links owner group size mon day time name
   awk -v prefix="$SFTP_REMOTE_PREFIX" '
     /^sftp> / {
@@ -136,9 +146,11 @@ remote_sizes() {
     }
   ' "$out"
   rm -f "$out"
+  return "$rc"
 }
 
-# remote_get REMOTE LOCAL — download; quietly nonzero when REMOTE is missing.
+# remote_get REMOTE LOCAL — download; quietly nonzero when REMOTE is missing
+# — and when the session failed: remote_exists tells the two apart.
 remote_get() {
   local remote="$1" local_path="$2" batch rc=0
   batch=$(mktemp)

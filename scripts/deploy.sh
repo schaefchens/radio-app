@@ -371,6 +371,60 @@ inventory_dirs() {
 
 # --- planning ------------------------------------------------------------------
 
+# The two reads the plan rests on get one retry, and a real deploy stops when
+# they still fail. A dropped SFTP session once read as "nothing on the server"
+# (2026-10-01): every file went up again, the ticks paused for five minutes
+# and two minute files were never written. Stopping here costs nothing — the
+# server has not been touched yet.
+unreadable() { # WHAT
+  if [ "$DRY_RUN" -eq 1 ]; then
+    warn "could not read $1 from the server — the plan below assumes it is empty"
+    return 0
+  fi
+  die "could not read $1 from the server (tried twice); nothing was changed there — run the deploy again"
+}
+
+read_remote_manifest() {
+  local attempt st
+  for attempt in 1 2; do
+    if remote_get "/$MANIFEST_NAME" "$WORK/remote.man"; then
+      LC_ALL=C sort "$WORK/remote.man" -o "$WORK/remote.man"
+      ok "manifest found ($(wc -l < "$WORK/remote.man" | tr -d ' ') entries)"
+      return 0
+    fi
+    # A failed get looks the same whether the file is missing or the session is.
+    st=0; remote_exists "/$MANIFEST_NAME" || st=$?
+    if [ "$st" -eq 1 ]; then
+      : > "$WORK/remote.man"
+      ok "no manifest on the server — treating this as a first deploy"
+      return 0
+    fi
+    [ "$attempt" -eq 2 ] || warn "reading $MANIFEST_NAME failed — trying again"
+  done
+  : > "$WORK/remote.man"
+  unreadable "$MANIFEST_NAME"
+}
+
+read_remote_sizes() {
+  local attempt rc why
+  for attempt in 1 2; do
+    rc=0
+    # shellcheck disable=SC2046
+    remote_sizes $(cat "$WORK/dirs") > "$WORK/remote.sizes" || rc=$?
+    # Once anything was deployed the root holds index.html: an empty listing
+    # next to a manifest is a listing that did not happen.
+    if [ "$rc" -eq 0 ] && { [ -s "$WORK/remote.sizes" ] || [ ! -s "$WORK/remote.man" ]; }; then
+      LC_ALL=C sort "$WORK/remote.sizes" -o "$WORK/remote.sizes"
+      ok "$(wc -l < "$WORK/remote.sizes" | tr -d ' ') file(s) currently on the server (outside runtime paths)"
+      return 0
+    fi
+    if [ "$rc" -eq 0 ]; then why="no files listed"; else why="sftp exit $rc"; fi
+    [ "$attempt" -eq 2 ] || warn "listing the server failed ($why) — trying again"
+  done
+  : > "$WORK/remote.sizes"
+  unreadable "the file list"
+}
+
 REMOTE_OK=1
 REMOTE_ENV_STATE="unknown"   # present | missing | unknown
 
@@ -391,17 +445,9 @@ plan() {
   : > "$WORK/remote.sizes"
   if [ "$REMOTE_OK" -eq 1 ]; then
     info "Reading remote state"
-    if remote_get "/$MANIFEST_NAME" "$WORK/remote.man"; then
-      LC_ALL=C sort "$WORK/remote.man" -o "$WORK/remote.man"
-      ok "manifest found ($(wc -l < "$WORK/remote.man" | tr -d ' ') entries)"
-    else
-      : > "$WORK/remote.man"
-      ok "no manifest on the server — treating this as a first deploy"
-    fi
+    read_remote_manifest
     inventory_dirs > "$WORK/dirs"
-    # shellcheck disable=SC2046
-    remote_sizes $(cat "$WORK/dirs") | LC_ALL=C sort > "$WORK/remote.sizes"
-    ok "$(wc -l < "$WORK/remote.sizes" | tr -d ' ') file(s) currently on the server (outside runtime paths)"
+    read_remote_sizes
 
     local st=0
     remote_exists /_arche/.env || st=$?
