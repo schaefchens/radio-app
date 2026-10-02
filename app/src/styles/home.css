@@ -753,7 +753,7 @@
   }
 }
 
-/* --- desktop: the prayer wall under the player -------------------------------- */
+/* --- desktop and tablet: the prayer wall -------------------------------------- */
 
 .desktop-prayer-wall {
   /* Gold throughout, the hairlines of its buttons and entries too. */
@@ -984,7 +984,6 @@
     display: block;
   }
   .desktop-prayer-wall {
-    margin-top: 14px;
     padding: 8px 12px 12px;
   }
 }
@@ -994,10 +993,11 @@
 @media (min-width: 900px) {
   .content {
     grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr);
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     grid-template-areas:
       'player host'
-      'player community';
+      'player community'
+      'player wall';
     align-items: start;
     width: calc(100% - 20px);
     max-width: 1480px;
@@ -1014,6 +1014,9 @@
     grid-area: community;
     margin: 0;
     padding: 8px 12px 12px;
+  }
+  .desktop-prayer-wall {
+    grid-area: wall;
   }
   .content .card {
     border-radius: 18px;

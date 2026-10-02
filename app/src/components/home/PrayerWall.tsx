@@ -13,9 +13,10 @@ import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { PrayIcon } from '@/components/common/icons';
 
 /**
- * The prayer wall on desktop, under the player: one prayer request at a
- * time, the next one every few seconds (the phone shows it in the carousel);
- * while the host prays for one of them, that one, "Praying now". Requests
+ * The prayer wall on desktop, under the community voices (on a tablet under
+ * the player): one prayer request at a time, the next one every few seconds
+ * (the phone shows it in the carousel); while the host prays for one of
+ * them, that one, "Praying now". Requests
  * come from live.json: typed, approved, and shown only with the sender's yes;
  * anonymous, the text and the day.
  */

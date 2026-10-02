@@ -14,10 +14,11 @@ function subscribePhone(onChange: () => void): () => void {
 }
 
 /**
- * The design's live page (theme-preview.html). Desktop: the player with the
- * prayer wall under it, the host and the community voices beside it. Tablet:
- * the same in one column. Phone: the player pinned under the scenery, and one
- * carousel for voices, host and prayer wall. The four tiles are the shell's.
+ * The design's live page (theme-preview.html). Desktop: the player, beside it
+ * the host, the community voices and the prayer wall. Tablet: one column, the
+ * prayer wall under the player. Phone: the player pinned under the scenery,
+ * and one carousel for voices, host and prayer wall. The four tiles are the
+ * shell's.
  *
  * Only one layout is mounted, so the feeds rotate (and react) once.
  */
@@ -29,12 +30,13 @@ export function HomePage() {
     <>
       <div className="player-dock">
         <PlayerCard />
-        {!phone && <DesktopPrayerWall onMore={openWall} />}
       </div>
       {phone ? (
         <MobileCarousel onMoreWall={openWall} />
       ) : (
         <>
+          {/* Before the host, so the tablet's one column keeps it under the player. */}
+          <DesktopPrayerWall onMore={openWall} />
           <HostCard />
           <CommunityVoices />
         </>
