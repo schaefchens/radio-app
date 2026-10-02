@@ -767,7 +767,11 @@
   },
   "brand": {
     "name": "Arche Radio",
-    "subtitle": "Das Brüder-Radio in Christus"
+    "subtitle": "Das Brüder-Radio in Christus",
+    "verse": {
+      "text": "Wenn du durchs Wasser gehst, will ich bei dir sein.",
+      "ref": "Jesaja 43,2"
+    }
   },
   "player": {
     "label": "Radio-Player",

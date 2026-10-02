@@ -767,7 +767,11 @@
   },
   "brand": {
     "name": "Arche Radio",
-    "subtitle": "Das Brüder-Radio in Christus"
+    "subtitle": "Das Brüder-Radio in Christus",
+    "verse": {
+      "text": "When you pass through the waters, I will be with you.",
+      "ref": "Isaiah 43:2"
+    }
   },
   "player": {
     "label": "Radio player",

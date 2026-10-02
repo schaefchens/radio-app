@@ -36,6 +36,7 @@ export function AppShell() {
       <UpdateBanner />
       <header className="hero">
         <img className="hero-art" src={art.top} width={2172} height={724} alt="" />
+        <Verse />
         <Brand />
         <MainNav className="desktop-nav" />
       </header>
@@ -66,6 +67,17 @@ export function AppShell() {
       <WelcomeDialog />
       <InstallSheet />
     </div>
+  );
+}
+
+/** A verse in the sky the scenery leaves free (desktop only). */
+function Verse() {
+  const { t } = useTranslation();
+  return (
+    <figure className="hero-verse">
+      <blockquote>{t('brand.verse.text')}</blockquote>
+      <figcaption>{t('brand.verse.ref')}</figcaption>
+    </figure>
   );
 }
 
