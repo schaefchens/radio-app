@@ -223,5 +223,6 @@ echo "REALTIME_SLOTS=$SLOT_JSON"
 echo "REALTIME_FIREWALL_ID=${FW_ID:-}"
 echo "REALTIME_LOCATION=$LOCATION"
 echo "REALTIME_SERVER_TYPE=$SERVER_TYPE"
+echo "# REALTIME_SSH_KEY=<id or name of an SSH key in this project> — without one, Hetzner mails a root password for every node"
 [ "$DRY_RUN" -eq 1 ] && { echo; info "Dry run complete — ids of resources not yet created are null/empty"; }
 exit 0

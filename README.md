@@ -84,7 +84,9 @@ npm run realtime:snapshot                    # builds arche-realtime for the nod
 Add the printed DNS records (`rt1.radio.schaefchens.de`), put the printed
 `REALTIME_*` lines plus `REALTIME_DRIVER=hcloud` and `REALTIME_ACME_EMAIL` in
 `.env`, then `npm run deploy -- --env`. Rebuild the snapshot after changing
-`realtime/` or `infra/realtime/`.
+`realtime/` or `infra/realtime/`. `REALTIME_SSH_KEY` (the id or name of an SSH
+key in the Hetzner project) goes on every node: without one, Hetzner mails a
+root password for each node it creates.
 
 Live since 2026-09-24: slot `rt1` in fsn1, nodes on **cpx12** (x86) with
 **cpx22** as the fallback when Hetzner refuses the first type — Arm (`cax*`)

@@ -96,4 +96,7 @@ return [
     'REALTIME_MAX_LIFETIME_HOURS' => '12',
     'REALTIME_NODE_CAPACITY' => '800',
     'REALTIME_ACME_EMAIL' => '',
+    // An SSH key of the Hetzner project (id or name) for the nodes: without
+    // one Hetzner mails a root password for every node created.
+    'REALTIME_SSH_KEY' => '',
 ];

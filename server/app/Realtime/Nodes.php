@@ -152,6 +152,12 @@ final class Nodes
             // the fallback type keeps the rooms open. Each needs a snapshot of
             // its own architecture.
             $types = array_values(array_unique(array_filter([$c->get('REALTIME_SERVER_TYPE'), $c->get('REALTIME_FALLBACK_TYPE')])));
+            // Without an SSH key Hetzner sets a root password and mails it to
+            // the account owner: one mail for every node a room starts. The
+            // nodes need no login (the firewall keeps port 22 closed); the
+            // key only stops the mail. An id or a name, as the API takes both.
+            $sshKey = $c->get('REALTIME_SSH_KEY');
+            $sshKeys = $sshKey === '' ? [] : [ctype_digit($sshKey) ? (int) $sshKey : $sshKey];
             $failure = null;
             foreach ($types as $type) {
                 $snapshot = $cloud->newestSnapshot('app=arche,role=realtime-node', $type);
@@ -171,6 +177,7 @@ final class Nodes
                         'volumes' => [$slot['volume']],
                         'automount' => false,
                         'firewalls' => $c->has('REALTIME_FIREWALL_ID') ? [['firewall' => $c->int('REALTIME_FIREWALL_ID')]] : [],
+                        'ssh_keys' => $sshKeys,
                         'user_data' => $this->cloudInit($slot, $image),
                         'labels' => ['app' => 'arche', 'role' => 'realtime-node', 'slot' => $slot['slot']],
                     ]);

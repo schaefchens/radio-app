@@ -124,6 +124,23 @@ test('realtime: a sold-out server type falls back to the other one, never to ano
     check(str_contains((string) $app2->nodes()->row('rt1')['error'], 'unsupported location'), 'the refusal is recorded');
 });
 
+test('realtime: a node gets the configured SSH key, so Hetzner mails no root password', function () {
+    $slots = json_encode([['slot' => 'rt1', 'host' => 'rt1.radio.example', 'ipv4' => 11, 'ipv6' => 12, 'volume' => 13]]);
+    $sent = function (string $key) use ($slots): array {
+        $app = TestKit::app(keys() + ['REALTIME_DRIVER' => 'hcloud', 'REALTIME_SLOTS' => $slots, 'REALTIME_FIREWALL_ID' => '99',
+            'SITE_BASE_URL' => 'https://radio.example', 'REALTIME_ACME_EMAIL' => 'ops@example.org', 'REALTIME_SSH_KEY' => $key]);
+        $cloud = new FakeCloud($app);
+        $app->set('cloud', $cloud);
+        [$d, $s] = device();
+        $app->wake()->handle($app->identities()->resolve($d, $s, true), 'main');
+        $create = array_values(array_filter($cloud->calls, fn($c) => $c[0] === 'POST'));
+        return $create[0][2]['ssh_keys'] ?? ['missing'];
+    };
+    eq($sent('100740697'), [100740697], 'an id goes as a number');
+    eq($sent('ops@example.org'), ['ops@example.org'], 'a name as it is');
+    eq($sent(''), [], 'none configured: none sent');
+});
+
 test('realtime: hcloud wake creates one node, ready at its first report, reaped when idle', function () {
     $slots = json_encode([['slot' => 'rt1', 'host' => 'rt1.radio.example', 'ipv4' => 11, 'ipv6' => 12, 'volume' => 13]]);
     $app = TestKit::app(keys() + ['REALTIME_DRIVER' => 'hcloud', 'REALTIME_SLOTS' => $slots, 'REALTIME_FIREWALL_ID' => '99',
