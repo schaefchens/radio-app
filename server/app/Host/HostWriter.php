@@ -323,6 +323,18 @@ final class HostWriter
         $text = trim((string) ($sub['text'] ?? ''));
         if ($sub === null || $text === '' || (int) $sub['hidden'] !== 0) return [];
         $n = (int) ($hb['context']['n'] ?? 0);
+        // Open Doors' daily request: as published for German listeners, its
+        // translation for English ones (the German until there is one).
+        $meta = json_decode((string) ($sub['meta'] ?? ''), true) ?: [];
+        if (($meta['source'] ?? '') === 'opendoors') {
+            $texts = [];
+            foreach ($this->app->config->stationLangs() as $l) {
+                $body = $l === 'de' ? $text : (trim((string) ($meta['text_en'] ?? '')) ?: $text);
+                $where = $l === 'de' ? trim((string) $sub['place']) : (trim((string) ($meta['country_en'] ?? '')) ?: trim((string) $sub['place']));
+                $texts[$l] = Templates::leadIn($where !== '' ? 'opendoors' : 'opendoors_anywhere', $l, $n, '', $where) . ' ' . $body;
+            }
+            return $texts;
+        }
         $lang = $this->readingLang($sub);
         $who = Templates::who((string) $sub['name'], (string) $sub['place'], $lang);
         $case = match (true) {

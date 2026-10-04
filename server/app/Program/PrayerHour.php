@@ -13,8 +13,9 @@ use Arche\Support\Ids;
  *
  *   welcome → a moderator's opening prayer, if one is prepared → the
  *   collection (N songs, then prayer music, while listeners send requests)
- *   → the presentation (the requests sent so far, each read out word for
- *   word, appearing on the wall as it is read) → the prayer time, announced
+ *   → the presentation (Open Doors' request of the day, then the requests
+ *   sent so far, each read out word for word, appearing on the wall as it is
+ *   read) → the prayer time, announced
  *   by the host (listeners' prayers: a written one read out word for word, a
  *   spoken one played as it is; requests sent since are read too; silence
  *   in between, and after a few quiet minutes a word of encouragement) →
@@ -174,6 +175,10 @@ final class PrayerHour
         //    Without the host's voice nothing can be read: straight on.
         if (!$st['prayertime'] && $hostOn) {
             if (!$st['present']) {
+                // Open Doors' request of the day, first of all.
+                if (!empty($s['prayer']['opendoors']) && ($daily = $this->app->openDoors()->current()) !== null) {
+                    $this->app->submissions()->addStationRequest($channel, $program, $run, $daily);
+                }
                 if ($this->app->submissions()->waitingRequests((int) $channel['id'], (int) $program['id'], $now, $st['tries'], self::MAX_TRIES) > 0) {
                     return $drafter->addHost($channel, $program, 'present', $cursor, $base, ['until' => $now], self::unit());
                 }

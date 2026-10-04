@@ -31,6 +31,7 @@ use Arche\Presence\Trends;
 use Arche\Program\Committer;
 use Arche\Program\Drafter;
 use Arche\Program\OpeningPrayers;
+use Arche\Program\OpenDoors;
 use Arche\Program\PrayerHour;
 use Arche\Program\Publisher;
 use Arche\Program\Selector;
@@ -177,6 +178,11 @@ final class App
     public function openingPrayers(): OpeningPrayers
     {
         return $this->service('openingPrayers', OpeningPrayers::class, fn() => new OpeningPrayers($this));
+    }
+
+    public function openDoors(): OpenDoors
+    {
+        return $this->service('openDoors', OpenDoors::class, fn() => new OpenDoors($this));
     }
 
     public function committer(): Committer

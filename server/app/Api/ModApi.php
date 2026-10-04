@@ -511,7 +511,7 @@ final class ModApi
         // account (canonical_id): listed once, with how many devices use it.
         $rows = $this->c->app->store()->all(
             "SELECT i.*, (SELECT COUNT(*) FROM identities a WHERE a.canonical_id = i.id) AS aliases
-             FROM identities i WHERE i.canonical_id IS NULL AND (? = '' OR i.public_id = ? OR i.display_name LIKE ?)
+             FROM identities i WHERE i.canonical_id IS NULL AND i.role != 'station' AND (? = '' OR i.public_id = ? OR i.display_name LIKE ?)
              ORDER BY i.role != 'listener' DESC, i.last_seen DESC LIMIT 100",
             [$q, $q, '%' . $q . '%'],
         );

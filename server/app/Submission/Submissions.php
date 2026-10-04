@@ -615,6 +615,47 @@ final class Submissions
     }
 
     /**
+     * Open Doors' daily request, added to a prayer hour's run once: a typed
+     * request of the station's own — approved without a check, it is Open
+     * Doors' text — dated to the run's start, so it is read out first. On
+     * the wall like the listeners' (with its source), gone after 90 days
+     * like them.
+     *
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $program
+     * @param array{start:int,end:int,program_id:int} $run
+     * @param array<string,mixed> $item OpenDoors::current()
+     */
+    public function addStationRequest(array $channel, array $program, array $run, array $item): void
+    {
+        $store = $this->app->store();
+        $station = $this->app->identities()->station();
+        $created = intdiv($run['start'], 1000);
+        $args = [(int) $station['id'], (int) $channel['id'], (int) $program['id'], $created];
+        if ($store->value('SELECT 1 FROM submissions WHERE identity_id = ? AND channel_id = ? AND program_id = ? AND created >= ?', $args) !== null) return;
+        $store->insert('submissions', [
+            'public_id' => Ids::short(12),
+            'identity_id' => (int) $station['id'],
+            'channel_id' => (int) $channel['id'],
+            'program_id' => (int) $program['id'],
+            'type' => 'prayer',
+            'mode' => 'text',
+            'status' => 'approved',
+            'name' => 'Open Doors',
+            'place' => (string) ($item['country_de'] ?? ''),
+            'text' => (string) $item['de'],
+            'lang' => 'de',
+            'consent_air' => 1,
+            'window_end' => $run['end'],
+            'meta' => json_encode(['source' => 'opendoors', 'guid' => (string) ($item['guid'] ?? ''), 'text_en' => (string) ($item['en'] ?? ''),
+                'country_en' => (string) ($item['country_en'] ?? '')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'verdict' => json_encode(['languages' => ['de'], 'note' => "Open Doors' daily prayer request, added by the station."]),
+            'created' => $created,
+            'updated' => $this->app->clock->now(),
+        ]);
+    }
+
+    /**
      * How many typed requests for this program wait to be read out: approved,
      * sent by $until, not taken off the wall, not tried MAX_TRIES times. The
      * prayer hour presents them, when there are any.

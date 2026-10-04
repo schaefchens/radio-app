@@ -31,6 +31,8 @@ final class TestKit
             'TICK_BUDGET' => '60',
             'HOST_MIN_LISTENERS' => '0',
             'YOUTUBE_API_KEY' => '',
+            // No outside calls in tests; opendoors.php turns it on against a fake.
+            'OPENDOORS_FEED_URL' => 'off',
             'REALTIME_DRIVER' => 'static',
             'THUMBS' => '0',
         ], $env), dirname(__DIR__), $dir . '/public', $dir . '/data');

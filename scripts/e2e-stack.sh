@@ -44,7 +44,11 @@ while [ $# -gt 0 ]; do
 done
 
 write_env() {
-  [ -f "$ENV_FILE" ] && return 0
+  if [ -f "$ENV_FILE" ]; then
+    # Settings added since the file was first written.
+    grep -q '^OPENDOORS_FEED_URL=' "$ENV_FILE" || echo 'OPENDOORS_FEED_URL=off' >> "$ENV_FILE"
+    return 0
+  fi
   mkdir -p "$DIR"
   ( umask 077; cat > "$ENV_FILE" ) <<'EOF'
 # Written by scripts/e2e-stack.sh for the e2e stack only. Never a real key:
@@ -62,6 +66,8 @@ ELEVENLABS_MAX_CHARS_PER_DAY=0
 # Every test browser comes from the same Docker address.
 SUBMISSIONS_PER_IP_HOUR=100000
 IDENTITIES_PER_IP_DAY=100000
+# No outside calls: Open Doors' daily prayer request stays off.
+OPENDOORS_FEED_URL=off
 EOF
   bash scripts/init-secrets.sh --env-file "$ENV_FILE" >/dev/null
   ok "wrote $ENV_FILE"

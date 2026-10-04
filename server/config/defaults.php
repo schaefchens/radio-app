@@ -64,6 +64,8 @@ return [
     'PREACHING_MAX_SECONDS' => '5400',
     'AUDIO_MAX_SECONDS' => '90',
     'GREETING_MAX_SECONDS' => '60',
+    // A listener's spoken prayer in a prayer hour's prayer time.
+    'PRAYER_MAX_SECONDS' => '60',
     'SUBMISSION_MARKETS' => 'DE,US,GB',
     // Per shared address (a church Wi-Fi, a carrier's CGNAT): per-identity
     // limits, MODERATION_MAX_PER_DAY and the AI budget bound the cost anyway.
@@ -79,6 +81,9 @@ return [
     'IDENTITIES_PER_IP_DAY' => '300',
     // The e2e stack points this at a fake (app/tests/e2e/fake-youtube.mjs).
     'YOUTUBE_API_BASE' => 'https://www.googleapis.com/youtube/v3',
+    // Open Doors Deutschland's daily prayer request, read first in every prayer
+    // hour (a program setting can leave it out). `off` turns it off everywhere.
+    'OPENDOORS_FEED_URL' => 'https://www.opendoors.de/rss/gebet',
 
     // --- CDN (scripts/cdn/setup-bunny.sh) ---------------------------------------
     // Base URL the app loads /program and /media from; '' = the origin.

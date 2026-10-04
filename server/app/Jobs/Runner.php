@@ -38,6 +38,7 @@ final class Runner
                 'host' => $this->app->hostBreaks()->runPhase($job),
                 'moderate' => $this->app->moderator()->runPhase($job),
                 'highlights' => $this->app->moderator()->runHighlights($job),
+                'opendoors' => $this->app->openDoors()->runPhase($job),
                 default => null,
             };
             $jobs->advance($job, $next);

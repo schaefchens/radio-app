@@ -228,6 +228,23 @@ final class Identities
         return $this->get((int) $identity['id']) ?? $identity;
     }
 
+    /**
+     * The station's own identity. What the station adds to a prayer hour by
+     * itself (Open Doors' daily request) is a submission row, and every row
+     * needs one. No device, no passphrase: nobody can act as it, and /mod
+     * lists it nowhere.
+     *
+     * @return array<string,mixed>
+     */
+    public function station(): array
+    {
+        $row = $this->app->store()->one("SELECT * FROM identities WHERE role = 'station' ORDER BY id LIMIT 1");
+        if ($row !== null) return $row;
+        $now = $this->app->clock->now();
+        $id = $this->app->store()->insert('identities', ['public_id' => 'station', 'display_name' => 'ARCHE', 'role' => 'station', 'created' => $now, 'last_seen' => $now]);
+        return $this->app->store()->one('SELECT * FROM identities WHERE id = ?', [$id]) ?? throw new \LogicException('the station identity vanished');
+    }
+
     public function setRole(string $publicId, string $role, string $actor): array
     {
         if (!in_array($role, ['listener', 'moderator', 'admin'], true)) throw new ApiError(422, 'bad_role');
