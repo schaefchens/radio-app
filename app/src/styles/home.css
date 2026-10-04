@@ -214,6 +214,27 @@
   justify-content: center;
   gap: 8px;
 }
+/* "More from …" after an item of a library group (StageVisual), during the
+   host's word — the player is parked off screen then, so these links are
+   never in front of it. The links wear the gold pills of the stage. */
+.stage-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 34rem;
+}
+.stage-notice-text {
+  margin: 0;
+  color: rgb(var(--ink));
+  font-size: 14px;
+  line-height: 1.4;
+  text-wrap: balance;
+  text-shadow: 0 1px 6px #0006;
+}
+.stage-notice .stage-prayer-share {
+  text-decoration: none;
+}
 /* A page of the hour's requests — what there is to pray for. Two on a phone. */
 .stage-wall-page {
   display: grid;
@@ -1308,6 +1329,17 @@
     font-size: 13px;
     -webkit-line-clamp: 2;
     line-clamp: 2;
+  }
+  /* A notice: the host's label, who it was from and the links fit; the
+     host's face and words and the few words about them do not. */
+  .stage-host.has-notice .stage-host-avatar,
+  .stage-host.has-notice .stage-host-text,
+  .stage-notice-text {
+    display: none;
+  }
+  .stage-notice .stage-prayer-share {
+    padding: 6px 12px;
+    font-size: 13px;
   }
 }
 

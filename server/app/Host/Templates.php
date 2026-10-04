@@ -81,6 +81,19 @@ final class Templates
     /** @param array<string,mixed> $c context from HostWriter::context() @return array<string,string> */
     public static function texts(string $kind, array $c): array
     {
+        $texts = self::plain($kind, $c);
+        // After an item of a group whose links the stage shows now.
+        $group = trim((string) ($c['previous_group']['name'] ?? ''));
+        if ($group === '') return $texts;
+        return [
+            'en' => $texts['en'] . " More from $group: the links are in the app now.",
+            'de' => $texts['de'] . " Mehr von $group – die Links findest du jetzt in der App.",
+        ];
+    }
+
+    /** @param array<string,mixed> $c @return array<string,string> */
+    private static function plain(string $kind, array $c): array
+    {
         $program = $c['program']['title'] ?? ['en' => 'ARCHE', 'de' => 'ARCHE'];
         $next = $c['next'] ?? null;
         $req = $c['request'] ?? null;

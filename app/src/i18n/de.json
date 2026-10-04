@@ -29,6 +29,11 @@
     "silence": "Ein Moment der Stille",
     "evergreen": "Unsere Lieblingslieder, bis das Programm wieder da ist",
     "hostSpeaking": "{{name}} spricht",
+    "moreFrom": "Mehr von {{name}}",
+    "link": {
+      "youtube": "YouTube",
+      "website": "Website"
+    },
     "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran",
     "prayingNow": "Gebetsanliegen",
     "sharePrayer": "Gebetsanliegen teilen",
@@ -387,6 +392,7 @@
     "nav": {
       "status": "Status",
       "library": "Bibliothek",
+      "groups": "Gruppen",
       "programs": "Sendungen",
       "plans": "Pläne",
       "review": "Prüfen",
@@ -497,6 +503,13 @@
       "testimonyHint": "Aus der Bibliothek laufen Glaubenszeugnisse nur in Zeugnissendungen (Sendungen → Format), mit Liedern dazwischen.",
       "missionHint": "Aus der Bibliothek laufen Missionsvideos nur in Missionssendungen (Sendungen → Format), mit Liedern dazwischen.",
       "filmHint": "Aus der Bibliothek laufen Filme nur in Filmsendungen (Sendungen → Format), deren Block länger ist als der Film. Füge Filme nur vom Filmstudio oder einem offiziellen Kanal hinzu.",
+      "group": "Gruppe",
+      "groupHint": "Ein Prediger, eine Gemeinde, ein Missionswerk oder Musiker (Gruppen): Nach ihren Videos kann die Bühne auf mehr von ihnen hinweisen. Videos vom YouTube-Kanal einer Gruppe kommen von selbst dazu.",
+      "noGroup": "Keine Gruppe",
+      "allGroups": "Alle Gruppen",
+      "groupBlockedPill": "{{name}} · nicht auf unserer Plattform",
+      "groupBlocked": "Die Urheber wollen nicht auf unserer Plattform sein (Gruppen), deshalb kann es nicht hinzugefügt werden.",
+      "invalidGroup": "Diese Gruppe gibt es nicht mehr.",
       "themes": "Themen",
       "moods": "Stimmungen",
       "tagsHint": "Mit Komma getrennt, z. B. worship, hope",
@@ -531,6 +544,56 @@
       "bedsHint": "Ruhige Musik für die Sammelzeit einer Gebetsstunde, für sich gespielt (nie unter der Moderation). Eine MP3 von 20 Sekunden bis 10 Minuten, höchstens 8 MB – etwa 128 kbit/s für 5 Minuten. Ausgewählt wird sie unter Sendungen.",
       "uploadBed": "Hintergrundmusik hochladen (MP3)",
       "bedTitle": "Name, z. B. Ruhiges Klavier"
+    },
+    "groups": {
+      "intro": "Ein Prediger, eine Gemeinde, ein Missionswerk oder Musiker, deren Videos zusammengehören. Mit Hinweis: Nach einem ihrer Videos weist die Moderation auf mehr von ihnen hin, während die Bühne die Links unten zeigt. Wer nicht auf unserer Plattform sein möchte: ankreuzen – dann wird nichts von ihnen angenommen oder gespielt.",
+      "none": "Noch keine Gruppen.",
+      "new": "Neue Gruppe",
+      "edit": "{{name}} bearbeiten",
+      "name": "Name",
+      "aboutEn": "Ein paar Worte über sie (Englisch)",
+      "aboutDe": "Ein paar Worte über sie (Deutsch)",
+      "aboutHint": "Steht nach ihren Videos auf der Bühne, während die Moderation spricht: ein, zwei Zeilen.",
+      "links": "Links",
+      "linkKind": "Art des Links",
+      "linkKinds": {
+        "youtube": "YouTube-Kanal",
+        "website": "Website",
+        "other": "Anderer Link"
+      },
+      "linkUrl": "Link",
+      "linksHint": "Nur https, höchstens vier. Die Bühne zeigt sie als Buttons; sie öffnen sich außerhalb der App.",
+      "addLink": "Link hinzufügen",
+      "remove": "Entfernen",
+      "channels": "YouTube-Kanäle",
+      "channelUrl": "Link zu einem ihrer Videos oder ihre Kanal-Adresse",
+      "addChannel": "Kanal hinzufügen",
+      "channelsHint": "Füge einen Link zu einem ihrer Videos ein oder ihre Adresse youtube.com/channel/… (ein @Name lässt sich nicht nachschlagen). Videos dieser Kanäle kommen von selbst in die Gruppe.",
+      "notice": "Nach ihren Videos weist die Moderation auf mehr von ihnen hin, und die Bühne zeigt diese Links",
+      "blocked": "Nicht auf unserer Plattform, auf ihren Wunsch: Nichts von ihnen wird angenommen – weder von Hörerinnen und Hörern noch von der Moderation –, und ihre Videos in der Bibliothek laufen nie",
+      "names": "Namen, unter denen ihre Videos erscheinen",
+      "namesHint": "Mit Komma getrennt, genau wie im Titel („Name - Song“); so werden auch Uploads auf anderen Kanälen erkannt. Leer: der Name der Gruppe.",
+      "note": "Notiz für die Moderation (z. B. wann und wie sie gefragt haben)",
+      "badgeNotice": "Hinweis",
+      "badgeBlocked": "Nicht auf unserer Plattform",
+      "items_one": "{{count}} in der Bibliothek",
+      "items_other": "{{count}} in der Bibliothek",
+      "saved": "Gruppe gespeichert.",
+      "deleted": "Gruppe gelöscht. Ihre Videos bleiben in der Bibliothek.",
+      "delete": "Gruppe löschen",
+      "deleteConfirm": "Diese Gruppe löschen? Ihre Videos bleiben in der Bibliothek.",
+      "errors": {
+        "invalid_name": "Gib der Gruppe einen Namen (bis zu 60 Zeichen).",
+        "about_too_long": "Nur ein paar Worte: höchstens 200 Zeichen pro Sprache.",
+        "invalid_link": "Links müssen mit https:// beginnen und eine Seite nennen.",
+        "too_many_links": "Höchstens vier Links.",
+        "invalid_channel": "Das ist keine YouTube-Kanal-ID.",
+        "too_many_channels": "Höchstens zehn Kanäle.",
+        "too_many_names": "Höchstens zehn Namen.",
+        "channel_in_group": "Dieser YouTube-Kanal gehört schon zu einer anderen Gruppe.",
+        "channel_handle": "Ein @Name lässt sich nicht nachschlagen: Füge stattdessen einen Link zu einem ihrer Videos ein.",
+        "channel_unknown": "YouTube sagt nicht, zu welchem Kanal dieses Video gehört."
+      }
     },
     "programs": {
       "new": "Neue Sendung",
@@ -762,6 +825,7 @@
       "blockers": {
         "recording_deleted": "Abgelehnte Aufnahmen werden sofort gelöscht (Datenschutzerklärung) und können nicht mehr freigegeben werden.",
         "video_unplayable": "YouTube spielt dieses Video im eingebetteten Player nicht ab; es kann nicht gesendet werden.",
+        "group_blocked": "Auf ihren Wunsch nicht auf unserer Plattform ({{group}}): kann nicht freigegeben werden.",
         "not_rejected": "—"
       },
       "wall": {

@@ -291,6 +291,21 @@ a deploy.
   testimony program can also take listeners' own recorded testimonies (tick
   "A testimony"). Only a video program takes suggested videos; elsewhere the
   tile says "Not part of this program".
+- **Groups** (/mod → Groups): a preacher, a church, a ministry or an
+  artist — a few words in English and German and up to four https links
+  (YouTube channel, website, other). Add their YouTube channels by pasting a
+  link to one of their videos: the library's videos from those channels join
+  the group (older ones once an hourly job has looked their channels up), and
+  in Library you can put any item into a group. With "After their videos, the
+  host points to more from them", the host's word after one of their videos
+  mentions them while the stage shows the words and links. **Someone who asks
+  not to be on our platform**: make a group for them with their channels,
+  the names their videos are titled with ("Name - Song"; empty: the group's
+  name) and a note on when and how they asked, and tick "Not on our
+  platform". From then on no listener suggestion of theirs is accepted, no
+  moderator can add one, and their library videos never play — what was
+  already planned or on air is taken off at once. Untick it and they play
+  again.
 - **Themes**: Kids Ark (light) and Storm Ark (dark), following the device
   until a listener picks one (welcome dialog, Profile). The design they
   implement is `concept-files/theme-preview.html`; the scenery lives in

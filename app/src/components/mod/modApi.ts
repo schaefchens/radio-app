@@ -103,6 +103,39 @@ export interface LibraryItem {
   last_played: number | null;
   trend_score: number;
   updated: number;
+  /** The library group a moderator put it in or its channel joined (LibraryGroup). */
+  group_id: number | null;
+  /** Its YouTube channel, once known (older items learn it from a job). */
+  yt_channel: string | null;
+}
+
+export interface GroupLink {
+  kind: 'youtube' | 'website' | 'other';
+  url: string;
+}
+
+/**
+ * A preacher, a church, a ministry or an artist (/mod › Groups): with
+ * `notice`, the stage shows these words and links after their items while the
+ * host speaks; `blocked`, they asked not to be on our platform — nothing of
+ * theirs is accepted or played.
+ */
+export interface LibraryGroup {
+  id: number;
+  name: string;
+  about_en: string;
+  about_de: string;
+  links: GroupLink[];
+  /** Their YouTube channels: videos from them join the group. */
+  channels: { id: string; title: string }[];
+  /** For blocking: the artist names their titles carry (empty: the group's name). */
+  names: string[];
+  notice: number;
+  blocked: number;
+  /** For moderators only (e.g. when and how they asked to be left out). */
+  note: string;
+  /** How many library items it holds. */
+  items: number;
 }
 
 export interface VideoLookup {
@@ -162,6 +195,18 @@ const KNOWN: Record<string, string> = {
   video_unplayable: 'mod.review.blockers.video_unplayable',
   recording_deleted: 'mod.review.blockers.recording_deleted',
   prayer_fallback: 'mod.programs.prayer.notFallback',
+  group_blocked: 'mod.library.groupBlocked',
+  invalid_group: 'mod.library.invalidGroup',
+  invalid_name: 'mod.groups.errors.invalid_name',
+  about_too_long: 'mod.groups.errors.about_too_long',
+  invalid_link: 'mod.groups.errors.invalid_link',
+  too_many_links: 'mod.groups.errors.too_many_links',
+  invalid_channel: 'mod.groups.errors.invalid_channel',
+  too_many_channels: 'mod.groups.errors.too_many_channels',
+  too_many_names: 'mod.groups.errors.too_many_names',
+  channel_in_group: 'mod.groups.errors.channel_in_group',
+  channel_handle: 'mod.groups.errors.channel_handle',
+  channel_unknown: 'mod.groups.errors.channel_unknown',
 };
 
 export function modError(e: unknown): string {

@@ -137,7 +137,7 @@ final class Committer
                 return null;
             }
         }
-        $end = $this->commitItem($item, $frontier, $breaks->airDuration($hb), $breaks->payload($hb));
+        $end = $this->commitItem($item, $frontier, $breaks->airDuration($hb), $breaks->payload($hb, $this->app->timeline()->before((int) $channel['id'], $item['seq'])));
         // The prayer requests it prays for air with it: "aired" once this
         // start has passed, like any other submission.
         foreach (HostBreaks::prayerIds($hb) as $id) $this->app->submissions()->markScheduled($id, $frontier);

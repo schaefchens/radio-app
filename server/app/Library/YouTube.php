@@ -34,12 +34,12 @@ class YouTube
     }
 
     /**
-     * @return array{ok:bool,error:string,id:string,title:string,channel:string,description:string,tags:list<string>,
+     * @return array{ok:bool,error:string,id:string,title:string,channel:string,channel_id:string,description:string,tags:list<string>,
      *   duration_ms:int,embeddable:bool,public:bool,live:bool,age_restricted:bool,blocked:list<string>,allowed:list<string>|null}
      */
     public function video(string $id): array
     {
-        $empty = ['ok' => false, 'error' => '', 'id' => $id, 'title' => '', 'channel' => '', 'description' => '', 'tags' => [],
+        $empty = ['ok' => false, 'error' => '', 'id' => $id, 'title' => '', 'channel' => '', 'channel_id' => '', 'description' => '', 'tags' => [],
             'duration_ms' => 0, 'embeddable' => false, 'public' => false, 'live' => false, 'age_restricted' => false,
             'blocked' => [], 'allowed' => null];
         if (!$this->configured()) return ['error' => 'not_configured'] + $empty;
@@ -68,6 +68,8 @@ class YouTube
             'id' => $id,
             'title' => (string) ($snippet['title'] ?? ''),
             'channel' => (string) ($snippet['channelTitle'] ?? ''),
+            // Who it is from, unlike the title a channel can change: groups go by it.
+            'channel_id' => (string) ($snippet['channelId'] ?? ''),
             'description' => mb_substr((string) ($snippet['description'] ?? ''), 0, 1500),
             'tags' => array_slice(array_map('strval', (array) ($snippet['tags'] ?? [])), 0, 20),
             'duration_ms' => self::isoDurationMs((string) ($details['duration'] ?? '')),
@@ -78,6 +80,39 @@ class YouTube
             'blocked' => array_map('strval', (array) ($region['blocked'] ?? [])),
             'allowed' => isset($region['allowed']) ? array_map('strval', (array) $region['allowed']) : null,
         ];
+    }
+
+    /**
+     * The channels of up to 50 videos, in one call (one quota unit): video id
+     * → channel id. A video YouTube no longer has is missing from the answer.
+     * Null when the API could not be asked (a later run tries again).
+     *
+     * @param list<string> $ids
+     * @return array<string,string>|null
+     */
+    public function channelsOf(array $ids): ?array
+    {
+        if (!$this->configured() || !$ids) return null;
+        $url = rtrim($this->app->config->get('YOUTUBE_API_BASE'), '/') . '/videos?' . http_build_query([
+            'part' => 'snippet',
+            'id' => implode(',', array_slice($ids, 0, 50)),
+            'maxResults' => 50,
+            'key' => $this->app->config->get('YOUTUBE_API_KEY'),
+        ]);
+        try {
+            $r = $this->app->http()->get($url, [], 10);
+        } catch (\Throwable) {
+            return null;
+        }
+        $data = $r->json();
+        if ($r->status !== 200 || !is_array($data)) return null;
+        $out = [];
+        foreach ((array) ($data['items'] ?? []) as $item) {
+            $vid = (string) ($item['id'] ?? '');
+            $cid = (string) ($item['snippet']['channelId'] ?? '');
+            if ($vid !== '' && $cid !== '') $out[$vid] = $cid;
+        }
+        return $out;
     }
 
     /** Whether the video plays in every market we care about. @param array<string,mixed> $v @param list<string> $markets */

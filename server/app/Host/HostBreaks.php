@@ -213,7 +213,7 @@ final class HostBreaks
     }
 
     /** @param array<string,mixed> $hb @return array<string,mixed> */
-    public function payload(array $hb): array
+    public function payload(array $hb, ?array $before = null): array
     {
         return [
             'kind' => (string) $hb['kind'],
@@ -221,7 +221,26 @@ final class HostBreaks
             'text' => array_intersect_key($hb['texts'], $hb['audio']),
             'voices' => $hb['kind'] === 'break' ? array_slice($this->app->presence()->voices($this->channelSlug($hb)), 0, 3) : [],
             'prayers' => $this->wallRefs($hb),
-        ];
+        ] + $this->notice($hb, $before);
+    }
+
+    /**
+     * The group the script pointed to (HostWriter::context()), for the stage:
+     * only while the committed item before is still theirs — after anything
+     * else the links would name the wrong ones.
+     *
+     * @param array<string,mixed> $hb
+     * @param array<string,mixed>|null $before the committed item right before
+     * @return array{notice?:array<string,mixed>}
+     */
+    private function notice(array $hb, ?array $before): array
+    {
+        $gid = (int) ($hb['context']['group_id'] ?? 0);
+        if ($gid === 0 || $before === null || $before['type'] !== 'song' || $before['library_id'] === null) return [];
+        $lib = $this->app->library()->get((int) $before['library_id']);
+        if ($lib === null || $lib['group_id'] !== $gid) return [];
+        $notice = $this->app->groups()->notice($gid);
+        return $notice !== null ? ['notice' => $notice] : [];
     }
 
     /**

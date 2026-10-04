@@ -42,6 +42,7 @@ final class Library
         }
         foreach (['id', 'duration_ms', 'active', 'plays'] as $k) $row[$k] = (int) $row[$k];
         $row['trend_score'] = (float) $row['trend_score'];
+        $row['group_id'] = isset($row['group_id']) ? (int) $row['group_id'] : null;
         return $row;
     }
 
@@ -67,21 +68,28 @@ final class Library
         );
     }
 
+    /** SQL: not in a blocked group (Groups) — their items never play. */
+    private const PLAYABLE = '(group_id IS NULL OR group_id NOT IN (SELECT id FROM library_groups WHERE blocked = 1))';
+
     /**
      * Changes when the set of playable songs does (added, disabled, enabled
-     * again) — not with plays or trend scores.
+     * again, their group blocked or not) — not with plays or trend scores.
      */
     public function fingerprint(): string
     {
-        $r = $this->app->store()->one("SELECT COUNT(*) AS n, COALESCE(SUM(id), 0) AS s FROM library_items WHERE kind = 'song' AND active = 1");
+        $r = $this->app->store()->one("SELECT COUNT(*) AS n, COALESCE(SUM(id), 0) AS s FROM library_items WHERE kind = 'song' AND active = 1 AND " . self::PLAYABLE);
         return ($r['n'] ?? 0) . ':' . ($r['s'] ?? 0);
     }
 
     /** @return list<array<string,mixed>> for /mod */
-    public function search(string $q = '', string $kind = '', int $limit = 200, int $offset = 0): array
+    public function search(string $q = '', string $kind = '', int $limit = 200, int $offset = 0, int $groupId = 0): array
     {
         $where = [];
         $args = [];
+        if ($groupId > 0) {
+            $where[] = 'group_id = ?';
+            $args[] = $groupId;
+        }
         if ($q !== '') {
             $where[] = '(title LIKE ? OR artist LIKE ? OR yt_id = ?)';
             array_push($args, "%$q%", "%$q%", $q);
@@ -116,6 +124,7 @@ final class Library
             'title' => $title,
             'artist' => $artist,
             'channel' => $v['channel'],
+            'channel_id' => $v['channel_id'],
             'duration_ms' => $v['duration_ms'],
             'embeddable' => $v['embeddable'],
             'public' => $v['public'],
@@ -141,6 +150,9 @@ final class Library
         [$min, $max] = self::VIDEO_KINDS[$kind] ?? throw new ApiError(422, 'bad_kind');
         $info = $this->lookup($input);
         if ($info['existing'] !== null) throw new ApiError(409, 'already_in_library', ['id' => $info['existing']]);
+        // Its creator asked not to be on our platform.
+        $blocked = $this->app->groups()->blocking($info);
+        if ($blocked !== null) throw new ApiError(409, 'group_blocked', ['group' => $blocked['name']]);
         if (!$info['embeddable'] || !$info['public'] || $info['live'] || $info['age_restricted']) {
             throw new ApiError(422, 'video_not_embeddable');
         }
@@ -160,6 +172,8 @@ final class Library
             'channel_ids' => json_encode(self::ints((array) ($attrs['channel_ids'] ?? []))),
             'source' => 'curated',
             'meta' => json_encode(['channel' => $info['channel']], JSON_UNESCAPED_UNICODE),
+            'yt_channel' => $info['channel_id'] !== '' ? $info['channel_id'] : null,
+            'group_id' => $this->app->groups()->ofChannel($info['channel_id']),
             'created' => $now,
             'updated' => $now,
         ]);
@@ -187,7 +201,16 @@ final class Library
             // Re-enabling clears the error reports that may have disabled it.
             if ($attrs['active']) $this->app->store()->query('DELETE FROM playback_errors WHERE library_id = ?', [$id]);
         }
+        if (array_key_exists('group_id', $attrs)) {
+            $gid = $attrs['group_id'] === null || $attrs['group_id'] === '' ? null : (int) $attrs['group_id'];
+            if ($gid !== null && $this->app->groups()->get($gid) === null) throw new ApiError(422, 'invalid_group');
+            $row['group_id'] = $gid;
+        }
         if ($row) $this->app->store()->update('library_items', $row + ['updated' => $this->app->clock->now()], 'id = ?', [$id]);
+        // Put in a blocked group: what is planned or on air of it goes at once.
+        if (isset($row['group_id']) && $this->app->groups()->isBlocked($row['group_id'])) {
+            $this->app->groups()->pull($this->app->groups()->get($row['group_id']) ?? []);
+        }
         $this->app->store()->audit($actor, 'Library edit', (string) $id . ' ' . $item['title']);
         return $this->get($id) ?? throw new ApiError(404, 'not_found');
     }
@@ -280,7 +303,7 @@ final class Library
     public function candidates(int $channelId, int $programId, int $maxMs, string $kind = 'song'): array
     {
         $rows = $this->app->store()->all(
-            'SELECT * FROM library_items WHERE kind = ? AND active = 1 AND duration_ms <= ?',
+            'SELECT * FROM library_items WHERE kind = ? AND active = 1 AND duration_ms <= ? AND ' . self::PLAYABLE,
             [$kind, $maxMs],
         );
         $out = [];
@@ -348,12 +371,42 @@ final class Library
     public function evergreen(int $channelId, int $limit = 20): array
     {
         $rows = array_map([self::class, 'decode'], $this->app->store()->all(
-            "SELECT * FROM library_items WHERE kind = 'song' AND active = 1 ORDER BY trend_score DESC, plays DESC, id LIMIT 200",
+            "SELECT * FROM library_items WHERE kind = 'song' AND active = 1 AND " . self::PLAYABLE . ' ORDER BY trend_score DESC, plays DESC, id LIMIT 200',
         ));
         $rows = array_values(array_filter($rows, fn($r) => !$r['channel_ids'] || in_array($channelId, $r['channel_ids'], true)));
         $top = array_slice($rows, 0, $limit);
         usort($top, fn($a, $b) => $a['id'] <=> $b['id']);
         return $top;
+    }
+
+    /**
+     * The `channels` job, hourly while some videos do not know their YouTube
+     * channel (added before groups existed): in the runner's budget, never in
+     * the publish phase — it asks YouTube.
+     */
+    public function queueChannels(): void
+    {
+        if (!$this->app->youtube()->configured()) return;
+        if ($this->app->store()->value('SELECT id FROM library_items WHERE yt_id IS NOT NULL AND yt_channel IS NULL LIMIT 1') === null) return;
+        $this->app->jobs()->enqueue('channels', 0, 90, $this->app->clock->nowMs());
+    }
+
+    /**
+     * Fifty videos' channels per call; '' for a video YouTube no longer has,
+     * so it is not asked again. Their items join their groups.
+     *
+     * @param array<string,mixed> $job
+     */
+    public function runChannels(array $job): ?string
+    {
+        $store = $this->app->store();
+        $rows = $store->all('SELECT id, yt_id FROM library_items WHERE yt_id IS NOT NULL AND yt_channel IS NULL ORDER BY id LIMIT 50');
+        if (!$rows) return null;
+        $channels = $this->app->youtube()->channelsOf(array_map(fn($r) => (string) $r['yt_id'], $rows));
+        if ($channels === null) throw new \RuntimeException('YouTube channels unreachable');
+        foreach ($rows as $r) $store->update('library_items', ['yt_channel' => $channels[(string) $r['yt_id']] ?? ''], 'id = ?', [(int) $r['id']]);
+        $this->app->groups()->assignAll();
+        return count($rows) === 50 ? 'start' : null;
     }
 
     /** @param array<mixed> $v @return list<string> */

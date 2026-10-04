@@ -19,6 +19,7 @@ use Arche\Identity\Identities;
 use Arche\Identity\RateLimit;
 use Arche\Jobs\Jobs;
 use Arche\Jobs\Runner;
+use Arche\Library\Groups;
 use Arche\Library\Library;
 use Arche\Library\Media;
 use Arche\Library\YouTube;
@@ -148,6 +149,11 @@ final class App
     public function library(): Library
     {
         return $this->service('library', Library::class, fn() => new Library($this));
+    }
+
+    public function groups(): Groups
+    {
+        return $this->service('groups', Groups::class, fn() => new Groups($this));
     }
 
     public function youtube(): YouTube

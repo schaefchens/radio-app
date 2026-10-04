@@ -117,6 +117,8 @@ final class Tick
         if ($this->due('highlights', 120)) $this->app->moderator()->queueHighlights();
         // Open Doors' daily prayer request: fetched (and translated) by a job, in the runner's budget.
         if ($this->due('opendoors', 3600)) $this->app->openDoors()->queue();
+        // Older library videos learn their YouTube channel, so groups find them.
+        if ($this->due('channels', 3600)) $this->app->library()->queueChannels();
         if ($this->due('cdn', 60)) {
             try {
                 $out['cdn'] = $this->app->cdn()->maintain();

@@ -9,6 +9,7 @@ import {
   parseSlotFile,
   regionOf,
   slotPath,
+  type GroupNotice,
 } from '../src/index.ts';
 
 /**
@@ -47,6 +48,16 @@ describe('program file fixtures', () => {
     expect(slot!.items.find((i) => i.type === 'song' && i.kind === 'film')?.dur).toBe(7_200_000);
     const host = slot!.items.find((i) => i.type === 'host');
     expect(host?.type === 'host' && host.prayers).toEqual(['pk3v9q2m7x4tb']);
+    // A group's notice after the item before: its links https only — the
+    // fixture's javascript: one would run in the app when tapped.
+    expect(host?.type === 'host' && host.notice).toEqual({
+      name: 'Grace Chapel',
+      text: { en: 'A church in Accra, Ghana.', de: 'Eine Gemeinde in Accra, Ghana.' },
+      links: [
+        { kind: 'youtube', url: 'https://www.youtube.com/@gracechapel' },
+        { kind: 'website', url: 'https://gracechapel.example' },
+      ],
+    });
     // A listener's request read out word for word: one language, the request on the wall it is.
     const reading = slot!.items.find((i) => i.type === 'host' && i.kind === 'reading');
     expect(reading).toMatchObject({ kind: 'reading', audio: { en: '/media/host/20260923/9c20.en.mp3' }, prayers: ['pk3v9q2m7x4tb'] });
@@ -123,6 +134,25 @@ describe('program file fixtures', () => {
     const start = Number(raw.items[1]!.start);
     const newer = parseSlotFile({ ...raw, items: kinds.map((kind, i) => ({ ...host, id: `n${i}`, start: start + i * 30_000, kind })) });
     expect(newer?.items.map((i) => i.type === 'host' && i.kind)).toEqual(kinds);
+  });
+
+  it('a host item without a notice has none; a notice needs a name, keeps https links only — an unknown kind as "other" — and at most four', () => {
+    const raw = load('slot.json') as { items: Record<string, unknown>[] };
+    const { notice: _notice, ...host } = raw.items[1]!;
+    const noticeOf = (notice: unknown): GroupNotice | null => {
+      const item = parseSlotFile({ ...(raw as object), items: [{ ...host, notice }] })?.items[0];
+      if (item?.type !== 'host') throw new Error('not a host item');
+      return item.notice;
+    };
+    expect(noticeOf(undefined)).toBeNull();
+    expect(noticeOf({ text: { en: 'x' }, links: [] })).toBeNull();
+    const https = (n: number): string => `https://example.org/${n}`;
+    expect(noticeOf({ name: 'Hope', links: [{ kind: 'podcast', url: https(1) }, { kind: 'website', url: 'http://example.org' }, { url: 'data:text/html,x' }] })).toEqual({
+      name: 'Hope',
+      text: { en: '', de: '' },
+      links: [{ kind: 'other', url: https(1) }],
+    });
+    expect(noticeOf({ name: 'Hope', links: [1, 2, 3, 4, 5].map((n) => ({ kind: 'website', url: https(n) })) })?.links).toHaveLength(4);
   });
 
   it('a song item without a kind is a song; a format or kind it does not know reads as music and a song', () => {

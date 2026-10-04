@@ -58,6 +58,16 @@ describe('i18n', () => {
       'videoForm.message',
       'videoForm.messageHint',
       'videoForm.nameHint',
+      // A group's notice on the stage (an "other" link shows its site's name), and /mod › Groups.
+      ...['youtube', 'website'].map((kind) => `stage.link.${kind}`),
+      ...['youtube', 'website', 'other'].map((kind) => `mod.groups.linkKinds.${kind}`),
+      ...['recording_deleted', 'video_unplayable', 'group_blocked', 'not_rejected'].map((b) => `mod.review.blockers.${b}`),
+      // modError's map of the server's group and library errors.
+      'mod.library.groupBlocked',
+      'mod.library.invalidGroup',
+      ...['invalid_name', 'about_too_long', 'invalid_link', 'too_many_links', 'invalid_channel', 'too_many_channels', 'too_many_names', 'channel_in_group', 'channel_handle', 'channel_unknown'].map(
+        (code) => `mod.groups.errors.${code}`,
+      ),
     ];
     expect(built.filter((k) => !all.has(k))).toEqual([]);
   });

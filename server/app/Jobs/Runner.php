@@ -39,6 +39,7 @@ final class Runner
                 'moderate' => $this->app->moderator()->runPhase($job),
                 'highlights' => $this->app->moderator()->runHighlights($job),
                 'opendoors' => $this->app->openDoors()->runPhase($job),
+                'channels' => $this->app->library()->runChannels($job),
                 default => null,
             };
             $jobs->advance($job, $next);

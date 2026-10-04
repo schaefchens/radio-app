@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { Lang, SubmissionState, SubmissionType, Voice, WallEntry } from '@arche/shared';
+import type { GroupNotice, Lang, SubmissionState, SubmissionType, Voice, WallEntry } from '@arche/shared';
 import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
 import { useSheets } from '@/store/sheets';
@@ -25,6 +25,9 @@ import { RadioIcon } from '@/components/common/icons';
  * read out shows on the stage as it is read; a listener's written prayer
  * shows as theirs, never as the host's. The compact stage of other pages has
  * no sheets to open, so no buttons.
+ *
+ * Right after an item of a library group that wants it, the host's word comes
+ * with the group's notice: who it was from and links to more (full stage only).
  */
 export function StageVisual({ engine, compact = false }: { engine: EngineState; compact?: boolean }) {
   const { t, i18n } = useTranslation();
@@ -57,7 +60,14 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
           </div>
         )}
         {engine.mode === 'host' && onAir.length === 0 && hostKind !== 'intercession' && (
-          <HostMoment name={hostName} avatar={channel?.host.avatar ?? null} text={engine.hostText} label={t('stage.hostSpeaking', { name: hostName })} />
+          <HostMoment
+            name={hostName}
+            avatar={channel?.host.avatar ?? null}
+            text={engine.hostText}
+            label={t('stage.hostSpeaking', { name: hostName })}
+            notice={!compact && item?.type === 'host' ? item.notice : null}
+            lang={lang}
+          />
         )}
         {engine.mode === 'contrib' && item?.type === 'contrib' && (
           <div className="max-w-lg animate-fly-in">
@@ -258,10 +268,24 @@ function Logo() {
   );
 }
 
-function HostMoment({ name, avatar, text, label }: { name: string; avatar: string | null; text: string | null; label: string }) {
+function HostMoment({
+  name,
+  avatar,
+  text,
+  label,
+  notice,
+  lang,
+}: {
+  name: string;
+  avatar: string | null;
+  text: string | null;
+  label: string;
+  notice: GroupNotice | null;
+  lang: Lang;
+}) {
   return (
-    <div className="flex max-w-xl flex-col items-center gap-3 animate-fly-in">
-      <div className="relative h-20 w-20 sm:h-24 sm:w-24">
+    <div className={clsx('stage-host flex max-w-xl flex-col items-center gap-3 animate-fly-in', notice && 'has-notice')}>
+      <div className="stage-host-avatar relative h-20 w-20 sm:h-24 sm:w-24">
         <span className="absolute inset-0 animate-ring rounded-full border-2 border-accent/60" />
         <span className="absolute inset-0 animate-ring rounded-full border-2 border-accent/40 [animation-delay:0.7s]" />
         {avatar ? (
@@ -273,7 +297,43 @@ function HostMoment({ name, avatar, text, label }: { name: string; avatar: strin
         )}
       </div>
       <p className="eyebrow">{label}</p>
-      {text && <p className="text-balance text-base leading-snug text-ink drop-shadow sm:text-xl">{text}</p>}
+      {text && <p className="stage-host-text text-balance text-base leading-snug text-ink drop-shadow sm:text-xl">{text}</p>}
+      {notice && <NoticeCard notice={notice} lang={lang} />}
+    </div>
+  );
+}
+
+/** A link's label: what it is, or for any other site its name ("example.org"). */
+function linkHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Who the item before was from — a preacher, a church, a ministry, an artist
+ * — a few words about them and where to find more. The links open outside
+ * the app (a new tab; the system browser in the store apps), and are https
+ * only: the parser drops anything else.
+ */
+function NoticeCard({ notice, lang }: { notice: GroupNotice; lang: Lang }) {
+  const { t } = useTranslation();
+  const about = notice.text[lang] || notice.text.en;
+  return (
+    <div className="stage-notice">
+      <p className="eyebrow">{t('stage.moreFrom', { name: notice.name })}</p>
+      {about && <p className="stage-notice-text">{about}</p>}
+      {notice.links.length > 0 && (
+        <div className="stage-prayer-actions">
+          {notice.links.map((l, i) => (
+            <a key={`${i}-${l.url}`} className="stage-prayer-share" href={l.url} target="_blank" rel="noopener noreferrer">
+              {l.kind === 'other' ? linkHost(l.url) : t(`stage.link.${l.kind}`)}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

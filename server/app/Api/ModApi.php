@@ -123,7 +123,7 @@ final class ModApi
     {
         $this->mod();
         $q = $this->c->req->query;
-        return ['items' => $this->c->app->library()->search((string) ($q['q'] ?? ''), (string) ($q['kind'] ?? ''), (int) ($q['limit'] ?? 200), (int) ($q['offset'] ?? 0))];
+        return ['items' => $this->c->app->library()->search((string) ($q['q'] ?? ''), (string) ($q['kind'] ?? ''), (int) ($q['limit'] ?? 200), (int) ($q['offset'] ?? 0), (int) ($q['group'] ?? 0))];
     }
 
     public function libraryLookup(): array
@@ -170,6 +170,42 @@ final class ModApi
         foreach ($app->catalog()->channels() as $ch) $app->publisher()->publishLive($ch);
         $app->store()->audit($this->actor(), 'Pulled from air', "library $id, $n airing(s)");
         return ['blocked' => $n];
+    }
+
+    // --- groups (Library\Groups) ---------------------------------------------------------------
+
+    public function groups(): array
+    {
+        $this->mod();
+        return ['groups' => $this->c->app->groups()->all()];
+    }
+
+    public function groupCreate(): array
+    {
+        $this->mod();
+        return ['group' => $this->c->app->groups()->save(null, $this->c->req->json(), $this->actor())];
+    }
+
+    /** @param array<string,string> $a */
+    public function groupUpdate(array $a): array
+    {
+        $this->mod();
+        return ['group' => $this->c->app->groups()->save($this->id($a), $this->c->req->json(), $this->actor())];
+    }
+
+    /** @param array<string,string> $a */
+    public function groupDelete(array $a): array
+    {
+        $this->mod();
+        $this->c->app->groups()->delete($this->id($a), $this->actor());
+        return ['ok' => true];
+    }
+
+    /** A YouTube channel from a link to one of its videos or its /channel/ address. */
+    public function groupChannel(): array
+    {
+        $this->mod();
+        return ['channel' => $this->c->app->groups()->resolveChannel((string) $this->c->req->input('url', ''))];
     }
 
     public function jingleUpload(): array
@@ -427,6 +463,8 @@ final class ModApi
                 'verdict' => json_decode((string) $s['verdict'], true), 'created' => (int) $s['created'] * 1000,
                 'status' => $s['status'], 'reason' => $s['reason'], 'updated' => (int) $s['updated'] * 1000,
                 'blocker' => $s['status'] === 'rejected' ? $subs->overruleBlocker($s) : null,
+                // Refused because its creator asked not to be here: whose request it was.
+                'group' => ($gid = (int) ((json_decode((string) $s['verdict'], true) ?: [])['group_blocked'] ?? 0)) > 0 ? ($this->c->app->groups()->get($gid)['name'] ?? null) : null,
                 'hidden' => (bool) $s['hidden'], 'consentAir' => (bool) $s['consent_air'],
                 // On a wall at all: with the box ticked, or as a prayer hour's request (on that hour's wall).
                 'wall' => $s['type'] === 'prayer' && $s['mode'] === 'text' && ((bool) $s['consent_air'] || (bool) $s['of_prayer_hour']),

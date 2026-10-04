@@ -129,7 +129,8 @@ final class Publisher
                 'text' => (object) ($p['text'] ?? []),
                 'voices' => array_values((array) ($p['voices'] ?? [])),
                 'prayers' => array_values((array) ($p['prayers'] ?? [])),
-            ],
+            // After an item of a group that wants it: who, a few words, their links.
+            ] + (isset($p['notice']) ? ['notice' => $p['notice']] : []),
             'jingle' => $base + ['audio' => (string) ($p['audio'] ?? '')],
             'bed' => $base + [
                 'audio' => (string) ($p['audio'] ?? ''),

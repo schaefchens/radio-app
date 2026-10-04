@@ -131,6 +131,24 @@ export interface HostItem extends ItemBase {
   /** The wall entries ('p' + id) this moment is about — a request read out —
    *  ids only: live.json says what may be shown of them ("On air now"). */
   prayers: string[];
+  /** Right after an item of a library group that wants it (a preacher, a
+   *  church, a ministry, an artist): who it was from, a few words and links
+   *  to more, shown on the stage while the host speaks. null otherwise — and
+   *  in every file of an older generator. */
+  notice: GroupNotice | null;
+}
+
+/** A group's "more from …" on the stage. Links are https only (a
+ *  `javascript:` one would run in every listener's app), at most four. */
+export interface GroupNotice {
+  name: string;
+  text: I18nText;
+  links: GroupLink[];
+}
+
+export interface GroupLink {
+  kind: 'youtube' | 'website' | 'other';
+  url: string;
 }
 
 export interface JingleItem extends ItemBase {

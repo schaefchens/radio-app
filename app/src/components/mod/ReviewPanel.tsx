@@ -31,7 +31,9 @@ interface ReviewItem {
   reason: string;
   updated: number;
   /** Rejected only: why it can no longer be approved (null: it can). */
-  blocker: 'recording_deleted' | 'video_unplayable' | 'not_rejected' | null;
+  blocker: 'recording_deleted' | 'video_unplayable' | 'group_blocked' | 'not_rejected' | null;
+  /** Refused because its creator asked not to be on our platform: their group's name. */
+  group: string | null;
   /** The sender agreed to show it (prayer requests: on the prayer wall). */
   consentAir: boolean;
   /** On a prayer wall at all: ticked, or a prayer hour's request (on that hour's wall, ticked or not). */
@@ -196,7 +198,7 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
             <p className="text-xs text-ink-faint">{t('mod.review.overruleHint')}</p>
           </div>
         ) : (
-          <p className="text-xs text-ink-faint">{t(`mod.review.blockers.${item.blocker}`)}</p>
+          <p className="text-xs text-ink-faint">{t(`mod.review.blockers.${item.blocker}`, { group: item.group ?? '' })}</p>
         ))}
     </Section>
   );

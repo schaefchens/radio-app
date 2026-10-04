@@ -6,6 +6,7 @@ import { useSession, isModerator } from '@/store/session';
 import { useOverview } from '@/components/mod/overview';
 import { StatusPanel } from '@/components/mod/StatusPanel';
 import { LibraryPanel } from '@/components/mod/LibraryPanel';
+import { GroupsPanel } from '@/components/mod/GroupsPanel';
 import { ProgramsPanel } from '@/components/mod/ProgramsPanel';
 import { PlansPanel } from '@/components/mod/PlansPanel';
 import { ReviewPanel } from '@/components/mod/ReviewPanel';
@@ -38,6 +39,7 @@ export function ModRoutes() {
   const tabs: { to: string; label: string; badge?: number; end?: boolean }[] = [
     { to: '/mod', label: t('mod.nav.status'), end: true },
     { to: '/mod/library', label: t('mod.nav.library') },
+    { to: '/mod/groups', label: t('mod.nav.groups') },
     { to: '/mod/programs', label: t('mod.nav.programs') },
     { to: '/mod/plans', label: t('mod.nav.plans') },
     { to: '/mod/review', label: t('mod.nav.review'), badge: (overview?.review ?? 0) + (overview?.wallReports ?? 0) },
@@ -67,6 +69,7 @@ export function ModRoutes() {
       <Routes>
         <Route index element={<StatusPanel />} />
         <Route path="library" element={<LibraryPanel />} />
+        <Route path="groups" element={<GroupsPanel />} />
         <Route path="programs" element={<ProgramsPanel />} />
         <Route path="plans" element={<PlansPanel />} />
         <Route path="review" element={<ReviewPanel />} />

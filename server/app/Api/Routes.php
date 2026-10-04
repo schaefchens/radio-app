@@ -56,6 +56,11 @@ final class Routes
         $r->add('POST', '/mod/jingles', $m('jingleUpload'));
         $r->add('POST', '/mod/jingles/tts', $m('jingleTts'));
         $r->add('POST', '/mod/beds', $m('bedUpload'));
+        $r->add('GET', '/mod/groups', $m('groups'));
+        $r->add('POST', '/mod/groups', $m('groupCreate'));
+        $r->add('POST', '/mod/groups/channel', $m('groupChannel'));
+        $r->add('PATCH', '/mod/groups/{id}', $m('groupUpdate'));
+        $r->add('DELETE', '/mod/groups/{id}', $m('groupDelete'));
         $r->add('GET', '/mod/channels', $m('channels'));
         $r->add('POST', '/mod/channels', $m('channelCreate'));
         $r->add('PATCH', '/mod/channels/{id}', $m('channelUpdate'));

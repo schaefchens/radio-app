@@ -60,7 +60,16 @@
       "audio": { "en": "/media/host/20260923/9c1e.en.mp3", "de": "/media/host/20260923/9c1e.de.mp3" },
       "text": { "en": "That was Good God…", "de": "Das war Good God…" },
       "voices": [{ "id": "v81", "name": "Maria", "country": "DE", "text": "What a beautiful song!", "at": 1790189700000, "by": "3f9a1c07be52" }],
-      "prayers": ["pk3v9q2m7x4tb"]
+      "prayers": ["pk3v9q2m7x4tb"],
+      "notice": {
+        "name": "Grace Chapel",
+        "text": { "en": "A church in Accra, Ghana.", "de": "Eine Gemeinde in Accra, Ghana." },
+        "links": [
+          { "kind": "youtube", "url": "https://www.youtube.com/@gracechapel" },
+          { "kind": "website", "url": "https://gracechapel.example" },
+          { "kind": "website", "url": "javascript:alert(1)" }
+        ]
+      }
     },
     { "id": "i7kq2p", "type": "jingle", "start": 1790190199400, "dur": 6000, "p": "worship", "audio": "/media/jingles/a41b.mp3" },
     { "id": "i7kq2q", "type": "silence", "start": 1790190205400, "dur": 60000, "p": "worship", "label": { "en": "A moment of silence", "de": "Ein Moment der Stille" } },

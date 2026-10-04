@@ -485,7 +485,7 @@ final class Drafter
     {
         if (in_array($sub['type'], Submissions::VIDEO_TYPES, true)) {
             $song = $sub['library_id'] !== null ? $this->app->library()->get((int) $sub['library_id']) : null;
-            if ($song === null || !$song['active']) return null;
+            if ($song === null || !$song['active'] || $this->app->groups()->isBlocked($song['group_id'])) return null;
             return ['sub' => $sub, 'song' => $song, 'dur_ms' => (int) $song['duration_ms'], 'tags' => Catalog::tags([...$song['themes'], ...$song['moods']])];
         }
         if ((string) ($sub['audio'] ?? '') === '') return null;

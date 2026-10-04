@@ -99,6 +99,27 @@ is not trusted). Approved requests graduate automatically (tags only — never t
 dedication). Playback errors disable an item only for codes 100/101/150 from ≥ 3
 identities *and* when YouTube confirms.
 
+**Groups** (`Library\Groups`, /mod › Groups): a preacher, a church, a
+ministry or an artist, with a few words (en/de, ≤ 200 characters) and up to
+four https links. A video belongs to one by its YouTube channel
+(`library_items.yt_channel`, from the Data API; older items learn it from the
+hourly `channels` job, 50 per call, in the runner's budget) or because a
+moderator put it there (`group_id`); one channel belongs to one group. With
+`notice`, the host's moment right after one of its items (`break`, `outro`
+or a video's introduction — never in a prayer hour) gets `previous_group`:
+one sentence pointing to more from them, nothing beyond `about`, never a web
+address. The committed host item carries `notice` for the stage
+(`HostBreaks::payload`, only while the item before is still theirs): the card
+shows while the host speaks — no host, no notice; older apps ignore the field,
+and the parser keeps https links only. `blocked` is for those who asked not to
+be on our platform. Blocking also matches the artist a title names, exactly as
+the group lists its names, to catch re-uploads of their songs on other
+channels: a suggestion is "not accepted" (`group_blocked`, which no moderator
+can overrule while it stands), a moderator cannot add one, the selection, the
+fallback loop and a waiting request skip theirs, and blocking takes what is
+planned or on air like "Pull from air" — without switching the items off, so
+unblocking brings them back.
+
 Background music (kind and item `bed`: the prayer hour's prayer music) is an
 uploaded MP3 of 20 s – 10 min (`/mod/beds`). A `bed` item plays a piece of it
 from `offset`, never longer than the rest of the file, so the app never loops
@@ -561,7 +582,12 @@ own kind, a two-hour film inside its block and across midnight, one endpoint
 for a mission program that also takes testimonies, a suggestion airing as
 what it was suggested as, format changes, a video suggested twice, the
 limits per type and the one rate limit, /mod's kinds, the migration, the
-host's words per kind, every format in every list), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+host's words per kind, every format in every list), library groups
+(`groups.php`: the notice after a group's item — the model gets the group,
+never its id —, items joining by channel, one channel one group, blocking by
+channel, by a fan upload's artist and by a library item, never overruled,
+pulled from air and back, the channel backfill in one call, links https only,
+the migration), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -575,7 +601,8 @@ written instead, both endpoints, the yes never ticked in advance, staying
 anonymous), our audio not starting a clip over in its quiet, the prayer
 sheet's wall box (and in a prayer hour, the wall after it), the video
 sheet's picker (open kinds only, the program's own kind first, a kind in use
-kept with its notice) and `allowedForFormat`, "Stay anonymous"
+kept with its notice) and `allowedForFormat`, the stage's notice card (its
+links and labels, none on the compact stage), "Stay anonymous"
 on every form hiding name and place and sending neither, and the
 rules on the first post, the install sheet's single-use prompt; the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status

@@ -7,6 +7,8 @@ import type {
   DayProgram,
   EvergreenFile,
   EvergreenTrack,
+  GroupLink,
+  GroupNotice,
   HostKind,
   I18nText,
   LangMap,
@@ -122,6 +124,20 @@ const HOST_KINDS: HostKind[] = [
   'encourage',
 ];
 const CONTRIB_KINDS = ['story', 'testimony', 'greeting', 'prayer'] as const;
+const LINK_KINDS: GroupLink['kind'][] = ['youtube', 'website', 'other'];
+const MAX_NOTICE_LINKS = 4;
+
+/** A group's notice on a host item. Only https links: a `javascript:` or
+ *  `data:` one would run in every listener's app the moment they tap it. */
+function parseNotice(v: unknown): GroupNotice | null {
+  if (!isObj(v) || !isStr(v.name) || v.name === '') return null;
+  const links: GroupLink[] = [];
+  for (const l of arr(v.links)) {
+    if (!isObj(l) || !isStr(l.url) || !l.url.startsWith('https://')) continue;
+    links.push({ kind: LINK_KINDS.find((k) => k === l.kind) ?? 'other', url: l.url });
+  }
+  return { name: v.name, text: i18n(v.text), links: links.slice(0, MAX_NOTICE_LINKS) };
+}
 
 export function parseItem(v: unknown): TimelineItem | null {
   if (!isObj(v) || !isStr(v.id) || !isNum(v.start) || !isNum(v.dur) || v.dur <= 0) return null;
@@ -153,6 +169,7 @@ export function parseItem(v: unknown): TimelineItem | null {
         text: langMap(v.text),
         voices: compact(arr(v.voices), parseVoice),
         prayers: arr(v.prayers).filter(isStr),
+        notice: parseNotice(v.notice),
       };
     case 'jingle':
       return isStr(v.audio) ? { ...base, type: 'jingle', audio: v.audio } : null;

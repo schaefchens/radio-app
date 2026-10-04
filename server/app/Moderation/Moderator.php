@@ -97,12 +97,19 @@ final class Moderator
             [$artist, $title] = YouTube::splitTitle($v['title'], $v['channel']);
             $meta = json_decode((string) $sub['meta'], true) ?: [];
             $meta['youtube'] = [
-                'title' => $title, 'artist' => $artist, 'channel' => $v['channel'], 'duration_ms' => $v['duration_ms'],
+                'title' => $title, 'artist' => $artist, 'channel' => $v['channel'], 'channel_id' => (string) ($v['channel_id'] ?? ''), 'duration_ms' => $v['duration_ms'],
                 'description' => mb_substr($v['description'], 0, 800), 'tags' => array_slice($v['tags'], 0, 12),
                 // A testimony, a mission video or a film keeps it whole (Submissions::graduateVideo()).
                 'full_title' => mb_substr($v['title'], 0, 200),
             ];
             $this->app->store()->update('submissions', ['meta' => json_encode($meta, JSON_UNESCAPED_UNICODE)], 'id = ?', [$sub['id']]);
+        }
+        // Its creator asked not to be on our platform (Library\Groups): the
+        // listener hears the usual "not accepted", the moderators see who.
+        $blocked = $this->app->groups()->blocking($v, $this->app->library()->byYouTube((string) $sub['yt_id']));
+        if ($blocked !== null) {
+            $subs->reject((int) $sub['id'], 'not_accepted', ['group_blocked' => (int) $blocked['id']], 'moderator');
+            return null;
         }
         $problems = self::videoProblems($v, $this->app->config, (string) $sub['type']);
         if ($problems) {

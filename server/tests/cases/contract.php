@@ -21,8 +21,9 @@ function shape(mixed $actual, mixed $fixture, string $path, array $maps): void
             foreach ($a as $k => $v) shape($v, $sample, "$path.$k", $maps);
             return;
         }
-        // Keys only some files carry: a prayer hour's wall and count, the station's own request, a sender's name.
-        $missing = array_diff(array_keys($f), array_keys($a), ['collected', 'from', 'source', 'texts', 'name', 'place']);
+        // Keys only some files carry: a prayer hour's wall and count, the station's own request, a sender's name,
+        // a host moment's notice after an item of a group.
+        $missing = array_diff(array_keys($f), array_keys($a), ['collected', 'from', 'source', 'texts', 'name', 'place', 'notice']);
         $extra = array_diff(array_keys($a), array_keys($f));
         check(!$missing, "$path lacks " . implode(',', $missing));
         check(!$extra, "$path has unexpected " . implode(',', $extra));

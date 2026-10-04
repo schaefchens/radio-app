@@ -7,13 +7,15 @@ import { api } from '@/lib/api';
 import { clockDuration } from '@/lib/format';
 import { useApi } from './useApi';
 import { NO_CHANNELS, useOverview } from './overview';
-import { modError, VOICES, type LibraryItem, type VideoLookup } from './modApi';
+import { modError, VOICES, type LibraryGroup, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { BookIcon, MusicIcon } from '@/components/common/icons';
 
 type Kind = '' | 'song' | VideoFormat | 'jingle' | 'contrib' | 'bed';
 /** What a moderator adds by its YouTube link. */
 type AddKind = 'song' | VideoFormat;
+/** One reference while the groups load: a new [] per render would re-render every row. */
+const NO_GROUPS: LibraryGroup[] = [];
 
 /** Who a video is by, as its kind says it: a song's artist, a preaching's preacher, the channel of the rest. */
 function byLabel(t: TFunction, kind: string): string {
@@ -40,9 +42,11 @@ export function LibraryPanel() {
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<Kind>('');
+  const [group, setGroup] = useState('');
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const path = `/mod/library?limit=200&q=${encodeURIComponent(query)}&kind=${kind}`;
+  const path = `/mod/library?limit=200&q=${encodeURIComponent(query)}&kind=${kind}&group=${group}`;
   const { data, error, reload } = useApi<{ items: LibraryItem[] }>(path);
+  const groups = useApi<{ groups: LibraryGroup[] }>('/mod/groups').data?.groups ?? NO_GROUPS;
 
   const done = (text: string, tone: 'ok' | 'error' = 'ok'): void => {
     setNotice({ tone, text });
@@ -76,6 +80,16 @@ export function LibraryPanel() {
               <option value="contrib">{t('mod.library.kind.contrib')}</option>
               <option value="bed">{t('mod.library.kind.bed')}</option>
             </select>
+            {groups.length > 0 && (
+              <select className="field w-auto py-1.5" value={group} onChange={(e) => setGroup(e.target.value)} aria-label={t('mod.library.group')}>
+                <option value="">{t('mod.library.allGroups')}</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <button type="submit" className="btn-ghost px-3 py-1.5">
               {t('mod.common.search')}
             </button>
@@ -91,7 +105,7 @@ export function LibraryPanel() {
         ) : (
           <ul className="flex flex-col gap-2">
             {data.items.map((item) => (
-              <LibraryRow key={`${item.id}:${item.updated}`} item={item} onChanged={done} />
+              <LibraryRow key={`${item.id}:${item.updated}`} item={item} groups={groups} onChanged={done} />
             ))}
           </ul>
         )}
@@ -260,11 +274,21 @@ function AttrsEditor({ value, onChange }: { value: Attrs; onChange: (v: Attrs) =
   );
 }
 
-function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: string, tone?: 'ok' | 'error') => void }) {
+function LibraryRow({
+  item,
+  groups,
+  onChanged,
+}: {
+  item: LibraryItem;
+  groups: LibraryGroup[];
+  onChanged: (text: string, tone?: 'ok' | 'error') => void;
+}) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [artist, setArtist] = useState(item.artist);
+  const [groupId, setGroupId] = useState<number | null>(item.group_id ?? null);
+  const group = groups.find((g) => g.id === item.group_id) ?? null;
   const [attrs, setAttrs] = useState<Attrs>({ themes: item.themes, moods: item.moods, languages: item.languages, program_ids: item.program_ids });
   const [busy, setBusy] = useState(false);
   const active = Number(item.active) === 1;
@@ -311,6 +335,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
           <div className="mt-1 flex flex-wrap gap-1">
             <Pill tone={active ? 'good' : 'default'}>{active ? t('mod.common.active') : t('mod.common.inactive')}</Pill>
             <Pill>{t(`mod.library.kind.${item.kind}`)}</Pill>
+            {group && <Pill tone={group.blocked === 1 ? 'bad' : 'default'}>{group.blocked === 1 ? t('mod.library.groupBlockedPill', { name: group.name }) : group.name}</Pill>}
             {item.kind === 'song' && <Pill>{item.source === 'submission' ? t('mod.library.source.submission') : t('mod.library.source.curated')}</Pill>}
             {isVideoFormat(item.kind) && <Pill>{item.source === 'submission' ? t('mod.library.source.suggestion') : t('mod.library.source.curated')}</Pill>}
             <Pill>
@@ -349,8 +374,25 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
             </Field>
           </div>
           <AttrsEditor value={attrs} onChange={setAttrs} />
+          {item.yt_id !== null && (
+            <Field label={t('mod.library.group')} hint={t('mod.library.groupHint')}>
+              <select className="field" value={groupId ?? ''} onChange={(e) => setGroupId(e.target.value === '' ? null : Number(e.target.value))}>
+                <option value="">{t('mod.library.noGroup')}</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.blocked === 1 ? t('mod.library.groupBlockedPill', { name: g.name }) : g.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <div className="flex gap-2">
-            <button type="button" className="btn-primary" disabled={busy} onClick={() => void patch({ title, artist, ...attrs }, t('mod.common.saved'))}>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={busy}
+              onClick={() => void patch({ title, artist, ...attrs, ...(groupId !== (item.group_id ?? null) ? { group_id: groupId } : {}) }, t('mod.common.saved'))}
+            >
               {t('mod.common.save')}
             </button>
             <button type="button" className="btn-ghost" onClick={() => setEditing(false)}>

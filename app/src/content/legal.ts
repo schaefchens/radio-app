@@ -96,7 +96,8 @@ const de = (host: string): StationTexts => ({
         'Die Inhalte dieser App werden mit Sorgfalt erstellt. Für Richtigkeit, Vollständigkeit und Aktualität kann ' +
         'keine Gewähr übernommen werden. Beiträge von Hörerinnen und Hörern geben deren eigene Sicht wieder. Die ' +
         'Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos und Filme – werden über den YouTube-Player eingebunden; für ihre Inhalte sind die jeweiligen Rechteinhaber ' +
-        'verantwortlich. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich; zum Zeitpunkt der ' +
+        'verantwortlich. Nach manchen Videos verlinkt die Bühne auf die Kanäle und Websites der Prediger, Gemeinden, ' +
+        'Missionswerke und Musiker. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich; zum Zeitpunkt der ' +
         'Verlinkung waren keine Rechtsverstöße erkennbar.',
     },
     {
@@ -379,7 +380,8 @@ const en = (host: string): StationTexts => ({
       p:
         'The content of this app is compiled with care. No guarantee can be given for accuracy, completeness or ' +
         "timeliness. Listeners' contributions express their own views. The videos (music, preachings, testimonies, mission videos and films) are embedded through the " +
-        'YouTube player; their rights holders are responsible for their content. The operators of linked external ' +
+        'YouTube player; their rights holders are responsible for their content. After some videos the stage links to ' +
+        'the channels and websites of the preachers, churches, ministries and artists. The operators of linked external ' +
         'sites are responsible for their content; no legal violations were apparent at the time of linking.',
     },
     { h: 'Copyright', p: "Arche Radio's texts and design are protected by copyright. The rights to the music belong to its creators." },

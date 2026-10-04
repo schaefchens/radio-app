@@ -29,6 +29,11 @@
     "silence": "A moment of silence",
     "evergreen": "Our favourites while the program reconnects",
     "hostSpeaking": "{{name}} is speaking",
+    "moreFrom": "More from {{name}}",
+    "link": {
+      "youtube": "YouTube",
+      "website": "Website"
+    },
     "unavailable": "This song can't be played here — stay with us",
     "prayingNow": "Prayer request",
     "sharePrayer": "Share a prayer request",
@@ -387,6 +392,7 @@
     "nav": {
       "status": "Status",
       "library": "Library",
+      "groups": "Groups",
       "programs": "Programs",
       "plans": "Plans",
       "review": "Review",
@@ -497,6 +503,13 @@
       "testimonyHint": "From the library, testimonies play only in testimony programs (Programs → Format), with songs between them.",
       "missionHint": "From the library, mission videos play only in mission programs (Programs → Format), with songs between them.",
       "filmHint": "From the library, films play only in film programs (Programs → Format) whose block is longer than the film. Add films from their studio or an official channel only.",
+      "group": "Group",
+      "groupHint": "A preacher, church, ministry or artist (Groups): after their items the stage can point to more from them. Videos from a group’s YouTube channel join it by themselves.",
+      "noGroup": "No group",
+      "allGroups": "All groups",
+      "groupBlockedPill": "{{name}} · not on our platform",
+      "groupBlocked": "Its creator asked not to be on our platform (Groups), so it cannot be added.",
+      "invalidGroup": "That group does not exist any more.",
       "themes": "Themes",
       "moods": "Moods",
       "tagsHint": "Comma-separated, e.g. worship, hope",
@@ -531,6 +544,56 @@
       "bedsHint": "Quiet music for a prayer hour's collection time, played on its own (never under the host). An MP3 of 20 seconds to 10 minutes, at most 8 MB — about 128 kbps for 5 minutes. Choose it in Programs.",
       "uploadBed": "Upload background music (MP3)",
       "bedTitle": "Name, e.g. Quiet piano"
+    },
+    "groups": {
+      "intro": "A preacher, a church, a ministry or an artist whose videos belong together. With a notice, after one of their videos the host points to more from them while the stage shows the links below. Someone who asked not to be on our platform: tick it, and nothing of theirs is accepted or played.",
+      "none": "No groups yet.",
+      "new": "New group",
+      "edit": "Edit {{name}}",
+      "name": "Name",
+      "aboutEn": "A few words about them (English)",
+      "aboutDe": "A few words about them (German)",
+      "aboutHint": "Shown on the stage after their videos while the host speaks: a line or two.",
+      "links": "Links",
+      "linkKind": "Kind of link",
+      "linkKinds": {
+        "youtube": "YouTube channel",
+        "website": "Website",
+        "other": "Other link"
+      },
+      "linkUrl": "Link",
+      "linksHint": "https only, up to four. The stage shows them as buttons; they open outside the app.",
+      "addLink": "Add a link",
+      "remove": "Remove",
+      "channels": "YouTube channels",
+      "channelUrl": "Link to one of their videos, or their channel address",
+      "addChannel": "Add channel",
+      "channelsHint": "Paste a link to one of their videos, or their youtube.com/channel/… address (an @name cannot be looked up). Videos from these channels join the group by themselves.",
+      "notice": "After their videos, the host points to more from them and the stage shows these links",
+      "blocked": "Not on our platform, at their request: nothing of theirs is accepted — from listeners or moderators — and their videos in the library never play",
+      "names": "Names their videos are titled with",
+      "namesHint": "Comma-separated, exactly as in titles like “Name - Song”; this also catches re-uploads on other channels. Empty: the group’s name.",
+      "note": "Note for moderators (e.g. when and how they asked)",
+      "badgeNotice": "Notice",
+      "badgeBlocked": "Not on our platform",
+      "items_one": "{{count}} in the library",
+      "items_other": "{{count}} in the library",
+      "saved": "Group saved.",
+      "deleted": "Group deleted. Its videos stay in the library.",
+      "delete": "Delete group",
+      "deleteConfirm": "Delete this group? Its videos stay in the library.",
+      "errors": {
+        "invalid_name": "Give the group a name (up to 60 characters).",
+        "about_too_long": "A few words only: at most 200 characters per language.",
+        "invalid_link": "Links must start with https:// and name a site.",
+        "too_many_links": "Up to four links.",
+        "invalid_channel": "That is not a YouTube channel id.",
+        "too_many_channels": "Up to ten channels.",
+        "too_many_names": "Up to ten names.",
+        "channel_in_group": "This YouTube channel already belongs to another group.",
+        "channel_handle": "An @name cannot be looked up: paste a link to one of their videos instead.",
+        "channel_unknown": "YouTube does not say which channel this video belongs to."
+      }
     },
     "programs": {
       "new": "New program",
@@ -762,6 +825,7 @@
       "blockers": {
         "recording_deleted": "Rejected recordings are deleted at once (privacy policy), so this one cannot be approved any more.",
         "video_unplayable": "YouTube does not play this video in the embedded player, so it cannot air.",
+        "group_blocked": "Not on our platform at their request ({{group}}): it cannot be approved.",
         "not_rejected": "—"
       },
       "wall": {

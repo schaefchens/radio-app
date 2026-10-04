@@ -380,6 +380,8 @@ final class Submissions
         if (in_array($sub['type'], self::VIDEO_TYPES, true)) {
             $meta = json_decode((string) $sub['meta'], true) ?: [];
             $verdict = json_decode((string) $sub['verdict'], true) ?: [];
+            // Its creator asked not to be on our platform — as long as that stands.
+            if (isset($verdict['group_blocked']) && $this->app->groups()->isBlocked((int) $verdict['group_blocked'])) return 'group_blocked';
             // Older rows name the problem with one string ('unplayable').
             $unplayable = array_diff((array) ($verdict['video'] ?? []), ['too_long', 'too_short']);
             if (!isset($meta['youtube']) || $unplayable) return 'video_unplayable';
@@ -422,6 +424,8 @@ final class Submissions
             'program_ids' => '[]',
             'source' => 'submission',
             'submission_id' => (int) $sub['id'],
+            'yt_channel' => ($v['channel_id'] ?? '') !== '' ? (string) $v['channel_id'] : null,
+            'group_id' => $this->app->groups()->ofChannel((string) ($v['channel_id'] ?? '')),
             'created' => $now,
             'updated' => $now,
         ]);

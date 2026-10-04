@@ -56,6 +56,11 @@ test('host: no text that airs without the model prays', function () {
         }
     }
     foreach ([1, 3] as $n) $cases["prayer, $n requests read"] = Templates::texts('prayer', ['program' => $program, 'requests' => $n]);
+    // After an item of a group whose links the stage shows: the sentence pointing to more from them.
+    foreach (['break', 'outro', 'preaching'] as $kind) {
+        $cases["$kind after a group's item"] = Templates::texts($kind, ['program' => $program, 'next' => ['title' => 'Song', 'artist' => 'Band'],
+            'previous_group' => ['name' => 'Grace Chapel', 'about' => ['en' => 'A church.', 'de' => 'Eine Gemeinde.']]]);
+    }
     foreach (['open', 'read', 'new', 'again', 'general'] as $phase) {
         $cases["prayer $phase"] = Templates::texts('prayer', $hour + ['phase' => $phase, 'prayers' => $phase === 'general' ? [] : $requests]);
     }

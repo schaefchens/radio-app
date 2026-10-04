@@ -570,6 +570,32 @@ final class Schema
             CREATE UNIQUE INDEX library_yt ON library_items(yt_id) WHERE yt_id IS NOT NULL;
             CREATE INDEX library_kind_active ON library_items(kind, active);
             SQL,
+            // 12 — groups of library items (Library\Groups): a preacher, a
+            // church, a ministry, an artist — with a few words and links the
+            // stage shows after their items, or blocked at their request. A
+            // video belongs to a group by its YouTube channel (yt_channel,
+            // filled in for older items by the `channels` job) or because a
+            // moderator put it there (group_id).
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS library_groups (
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL,
+              about_en TEXT NOT NULL DEFAULT '',
+              about_de TEXT NOT NULL DEFAULT '',
+              links TEXT NOT NULL DEFAULT '[]',
+              channels TEXT NOT NULL DEFAULT '[]',
+              names TEXT NOT NULL DEFAULT '[]',
+              notice INTEGER NOT NULL DEFAULT 0,
+              blocked INTEGER NOT NULL DEFAULT 0,
+              note TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            ALTER TABLE library_items ADD COLUMN group_id INTEGER REFERENCES library_groups(id) ON DELETE SET NULL;
+            ALTER TABLE library_items ADD COLUMN yt_channel TEXT;
+            CREATE INDEX IF NOT EXISTS library_group ON library_items(group_id) WHERE group_id IS NOT NULL;
+            CREATE INDEX IF NOT EXISTS library_yt_channel ON library_items(yt_channel) WHERE yt_channel IS NOT NULL;
+            SQL,
         ];
     }
 }
