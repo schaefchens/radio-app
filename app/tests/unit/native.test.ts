@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { barStyle, detectPlatform, pluginIn } from '@/lib/native';
+import { barStyle, detectPlatform, pluginIn, shellTurns } from '@/lib/native';
 
 /** What a store app's shell injects before any script of ours: its bridge and its plugin list. */
 const HEADERS = [
@@ -84,5 +84,22 @@ describe('the status bar icons', () => {
     ['dark', 'android', Number.NaN, 'DEFAULT'],
   ] as const)('%s theme on %s, inset %s → %s', (theme, p, inset, expected) => {
     expect(barStyle(theme, p, inset)).toBe(expected);
+  });
+});
+
+// The big stage's button only where the shell turns sideways with the phone.
+describe('a shell that turns sideways', () => {
+  it.each([
+    ['android', '2', true],
+    ['android', '17', true],
+    // The first closed test stayed upright; a shell that cannot tell its build too.
+    ['android', '1', false],
+    ['android', undefined, false],
+    ['android', '', false],
+    // The iOS app stays upright (Info.plist), whatever its build.
+    ['ios', '5', false],
+    ['web', '5', false],
+  ] as const)('%s, build %s → %s', (p, build, expected) => {
+    expect(shellTurns(p, build)).toBe(expected);
   });
 });

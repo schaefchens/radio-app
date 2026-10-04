@@ -158,6 +158,18 @@ export function syncSystemBars(theme: 'light' | 'dark'): void {
     });
 }
 
+// --- Turning sideways ---------------------------------------------------------
+
+/**
+ * Android shells from build 2 on turn sideways with the phone; build 1 (the
+ * first closed test) and the iOS app stay upright (Info.plist). The big
+ * stage's button shows only where turning makes it bigger (home.css,
+ * <html data-turns>).
+ */
+export function shellTurns(p: Platform, build: string | undefined): boolean {
+  return p === 'android' && Number(build) >= 2;
+}
+
 /** The page has rendered: the splash may go (it also goes by itself after 3 s). */
 export function hideSplash(): void {
   void plugin('SplashScreen')
@@ -189,6 +201,11 @@ export function initNative(): void {
   });
   void plugin('App').then(async (m) => {
     if (!m) return;
+    try {
+      if (shellTurns(PLATFORM, (await m.App.getInfo()).build)) document.documentElement.dataset.turns = '';
+    } catch {
+      /* no build to tell: an upright shell, as before */
+    }
     try {
       if (PLATFORM === 'ios') {
         await m.App.addListener('pause', goAway);

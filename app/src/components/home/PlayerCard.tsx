@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChannelInfo, Lang } from '@arche/shared';
 import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { joinRadio, leaveRadio, react, switchChannel } from '@/lib/radio';
-import { openFullStage } from '@/lib/fullStage';
-import { isNative } from '@/lib/native';
+import { followTurns, openFullStage } from '@/lib/fullStage';
 import { clockDuration } from '@/lib/format';
 import { useServerNow } from './useServerNow';
 import { Reactions } from './Reactions';
@@ -26,6 +25,8 @@ const NONE: ChannelInfo[] = [];
  */
 export function PlayerCard() {
   const { t } = useTranslation();
+  // A phone turned sideways on Home while the radio plays: the big stage.
+  useEffect(() => followTurns(), []);
   return (
     <section className="card player-card" aria-label={t('player.label')}>
       <StationRow />
@@ -68,13 +69,11 @@ function StationRow() {
           <span>{t('live.listeningNow')}</span>
         </div>
       </div>
-      {/* Not in the store apps: they stay upright, and an upright phone's
-          stage is as wide as the screen already. */}
-      {!isNative() && (
-        <button type="button" className="full-button" aria-label={t('stage.full')} title={t('stage.full')} onClick={openFullStage}>
-          <ExpandIcon />
-        </button>
-      )}
+      {/* Hidden in store apps that stay upright (home.css): there an upright
+          phone's stage is as wide as the screen already. */}
+      <button type="button" className="full-button" aria-label={t('stage.full')} title={t('stage.full')} onClick={openFullStage}>
+        <ExpandIcon />
+      </button>
       {several && (
         <BottomSheet open={choosing} onClose={() => setChoosing(false)} title={t('channel.choose')}>
           <BottomSheetBody>

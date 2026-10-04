@@ -276,6 +276,38 @@ test.describe('YouTube required minimum functionality', () => {
     await playing(page);
   });
 
+  test('a phone turned sideways: the stage fits the screen, the big stage takes over while the radio plays, upright gives the page back', async ({ browser }) => {
+    const context = await browser.newContext({ baseURL: BASE_URL, viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
+    const page = await context.newPage();
+    await waitForSong();
+    await fakeYouTube(page);
+    await page.goto('/');
+    // Not joined yet: the page's stage, no taller than the screen.
+    const slot = await page.locator('[data-stage-slot]').boundingBox();
+    expect(slot?.height ?? 999).toBeLessThan(390 - 60);
+    await page.getByRole('button', { name: JOIN }).tap();
+    await playing(page);
+    const view = () =>
+      page.evaluate(() => {
+        const f = document.querySelector('iframe[data-fake-youtube]');
+        if (!f) return null;
+        const r = f.getBoundingClientRect();
+        const points: [number, number][] = [[0.5, 0.5], [0.05, 0.05], [0.95, 0.05], [0.05, 0.95], [0.95, 0.95]];
+        return {
+          big: !!document.querySelector('[data-stage-slot]')?.closest('.stage-full'),
+          tall: r.height >= 300,
+          covered: points.filter(([x, y]) => document.elementFromPoint(r.left + r.width * x, r.top + r.height * y) !== f).length,
+        };
+      });
+    await expect.poll(view).toEqual({ big: true, tall: true, covered: 0 });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(view).toEqual({ big: false, tall: false, covered: 0 });
+    await playing(page);
+    expect((await ytCalls(page)).filter((c) => c.fn === 'create')).toHaveLength(1);
+    await context.close();
+  });
+
   test('a sheet over the stage pauses the video; closing it resumes at the live position', async ({ page }) => {
     await waitForSong(40_000);
     await fakeYouTube(page);

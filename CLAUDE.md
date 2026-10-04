@@ -343,16 +343,23 @@ elsewhere. The event can fire before the bundle runs, and the CSP allows no
 inline script, so `public/install-event.js` catches it — only for that link,
 so every other visitor keeps Chrome's own install banner.
 
-**Big stage** (`lib/fullStage.ts`, a button in the station row; not in
-the store apps, which stay upright). The slot moves into a layer over the
-page (`StageRegion`, a portal; z 32: over the dock, under the player and the
-sheets) and the player follows it there as it follows every slot, so the
-video never reloads; the browser's fullscreen, where there is one (not on
-iPhones), only hides its bars. YouTube's own fullscreen stays off: it shows
-the video alone, without the host, the prayer hour or a notice, and needs
-YouTube's controls, which seek out of the live program. Our visuals are drawn
-at 800 px and scaled up, Android turns to landscape, the screen stays on, and
-the browser's way out (Esc, back) or leaving the page closes it.
+**Big stage** (`lib/fullStage.ts`, a button in the station row). The slot
+moves into a layer over the page (`StageRegion`, a portal; z 32: over the
+dock, under the player and the sheets) and the player follows it there as it
+follows every slot, so the video never reloads; the browser's fullscreen,
+where there is one (not on iPhones), only hides its bars. YouTube's own
+fullscreen stays off: it shows the video alone, without the host, the prayer
+hour or a notice, and needs YouTube's controls, which seek out of the live
+program. Our visuals are drawn at 800 px and scaled up, Android's browser
+turns to landscape, the screen stays on, and the browser's way out (Esc,
+back), Android's back button or leaving the page closes it. A phone turned
+sideways on Home while the radio plays opens it by itself and closes it
+upright again (`followTurns`; closed by hand, it waits for the next turn).
+The store apps never ask the WebView for fullscreen — Capacitor's ends it at
+once — but hide the system bars; the Android app turns from build 2, and the
+button shows only in shells that turn (`shellTurns`, `<html data-turns>`):
+the iOS app and Android build 1 stay upright. Short, wide screens cap the
+stage to the screen's height (home.css).
 
 **Station page and privacy** (`/about`, `app/src/content/legal.ts`). The
 imprint and the privacy policy describe what this code does — the data flows
@@ -614,7 +621,8 @@ sheet's wall box (and in a prayer hour, the wall after it), the video
 sheet's picker (open kinds only, the program's own kind first, a kind in use
 kept with its notice) and `allowedForFormat`, the stage's notice card (its
 links and labels, none on the compact stage), the big stage (the slot there
-and back, the browser's way out, no Fullscreen API, the page left), "Stay anonymous"
+and back, the browser's way out, no Fullscreen API, the page left, a phone's
+turns, Android's back) and which shells turn, "Stay anonymous"
 on every form hiding name and place and sending neither, and the
 rules on the first post, the install sheet's single-use prompt; the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
@@ -644,7 +652,8 @@ test), an install link after the welcome, the theme following the device until P
 phone player and the tiles unfolding, a prayer on the prayer wall (with its
 sender's first name and place; a second listener prays along, the sender sees the count),
 no sideways scroll and the stage uncovered in both themes, the big stage
-(the video larger above its bar, uncovered, the one player, back in place), chat between two
+(the video larger above its bar, uncovered, the one player, back in place; a
+touch phone turned sideways and back), chat between two
 listeners, the program read cross-origin from
 the stand-in CDN (CSP included) and from the site when the CDN is down, a
 prayer hour on a channel of its own (prayer music on the stage, a request from

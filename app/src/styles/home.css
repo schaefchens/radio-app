@@ -149,6 +149,10 @@
   width: 22px;
   height: 22px;
 }
+/* A store app that stays upright (lib/native.ts shellTurns): no bigger there. */
+:root[data-native]:not([data-turns]) .full-button {
+  display: none;
+}
 
 /* The prayer hour on the stage (StageVisual) — only while no song plays, so
    nothing here is ever in front of the YouTube player. The wall's gold on the
@@ -343,7 +347,7 @@
   z-index: 32;
   display: flex;
   flex-direction: column;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   background: #000;
   color: rgb(var(--ink));
   /* A swipe on it would scroll the page behind (and an iPhone's bars with it). */
@@ -382,8 +386,8 @@
   font-size: 13px;
   line-height: 1.3;
 }
-/* An upright phone: the 16:9 stage is no wider than before. Android turns
-   itself (lib/fullStage.ts); an iPhone needs the listener's hand. */
+/* An upright phone: the 16:9 stage is no wider than before. Android's
+   browser turns itself (lib/fullStage.ts); elsewhere it takes a hand. */
 @media (orientation: portrait) and (max-width: 600px) {
   .stage-full-turn {
     display: block;
@@ -408,6 +412,20 @@
 .stage-full-exit:focus-visible {
   outline: 3px solid #249dff;
   outline-offset: 3px;
+}
+
+/* A phone turned sideways (short and wide): the stage fits the screen's
+   height with the station row above it. Taller, it could never be seen whole,
+   and with less than half of it in view the video stops (YouTube's rules).
+   While the radio plays, Home gives the turn to the big stage instead. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .player-dock {
+    max-width: calc((100dvh - 96px) * 16 / 9);
+    margin-inline: auto;
+  }
+  .stage-dock {
+    max-width: min(640px, calc((100dvh - 24px) * 16 / 9));
+  }
 }
 
 .track-row {

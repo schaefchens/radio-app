@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import '@/i18n';
 import { PlayerCard } from '@/components/home/PlayerCard';
 import { closeFullStage } from '@/lib/fullStage';
+import { closeTop, resetBackStack } from '@/lib/backStack';
+import { useRadio } from '@/store/radio';
 import { useSettings } from '@/store/settings';
 import { useStage } from '@/store/stage';
 
@@ -24,7 +26,26 @@ const change = (el: Element | null): void => {
 const requestFullscreen = vi.fn(async () => change(document.documentElement));
 const exitFullscreen = vi.fn(async () => change(null));
 
+// A phone that can be turned: only the big stage's query answers, and only sideways.
+let sideways = false;
+const turned = new Set<() => void>();
+window.matchMedia = ((query: string) => ({
+  get matches() {
+    return sideways && query.includes('landscape');
+  },
+  media: query,
+  addEventListener: (_: string, f: () => void) => turned.add(f),
+  removeEventListener: (_: string, f: () => void) => turned.delete(f),
+})) as unknown as typeof window.matchMedia;
+const turn = (to: 'sideways' | 'upright'): void => {
+  sideways = to === 'sideways';
+  act(() => turned.forEach((f) => f()));
+};
+const joined = (on: boolean): void => act(() => useRadio.setState((s) => ({ engine: { ...s.engine, joined: on } })));
+
 beforeEach(() => {
+  resetBackStack();
+  sideways = false;
   useSettings.setState({ lang: 'en' });
   fullscreenElement = null;
   requestFullscreen.mockClear();
@@ -35,7 +56,11 @@ beforeEach(() => {
   Object.assign(document, { exitFullscreen });
 });
 
-afterEach(() => act(() => closeFullStage()));
+afterEach(() => {
+  act(() => closeFullStage());
+  joined(false);
+  useStage.setState({ overlays: 0 });
+});
 
 function card() {
   return render(
@@ -106,5 +131,62 @@ describe('the big stage', () => {
     expect(useStage.getState().full).toBe(false);
     expect(layer()).toBeNull();
     expect(exitFullscreen).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Home on a phone: the turn itself opens and closes it, as in YouTube's app.
+describe('the big stage and a phone turned sideways', () => {
+  it('opens while the radio plays, without asking the browser (a turn is no gesture), and closes upright again', () => {
+    joined(true);
+    card();
+    turn('sideways');
+    expect(layer()?.querySelector('[data-stage-slot]')).toBeTruthy();
+    expect(requestFullscreen).not.toHaveBeenCalled();
+    turn('upright');
+    expect(layer()).toBeNull();
+  });
+
+  it('opens when the listener joins while sideways, not before', () => {
+    card();
+    turn('sideways');
+    expect(layer()).toBeNull();
+    joined(true);
+    expect(layer()).toBeTruthy();
+  });
+
+  it('stays closed once the listener closes it, until the next turn', async () => {
+    joined(true);
+    card();
+    turn('sideways');
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Exit full screen' })));
+    expect(layer()).toBeNull();
+    turn('upright');
+    turn('sideways');
+    expect(layer()).toBeTruthy();
+  });
+
+  it('opened with the button, it stays when the phone is turned upright', async () => {
+    joined(true);
+    card();
+    sideways = true;
+    await open();
+    turn('upright');
+    expect(layer()).toBeTruthy();
+  });
+
+  it('waits while a sheet is open on the page', () => {
+    joined(true);
+    card();
+    useStage.setState({ overlays: 1 });
+    turn('sideways');
+    expect(layer()).toBeNull();
+  });
+
+  it("closes with Android's back button", () => {
+    joined(true);
+    card();
+    turn('sideways');
+    act(() => void closeTop());
+    expect(layer()).toBeNull();
   });
 });
