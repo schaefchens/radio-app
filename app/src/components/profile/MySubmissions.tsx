@@ -55,7 +55,7 @@ export function MySubmissions() {
     };
   }, []);
 
-  // A recorded prayer is "A prayer", as the recording sheet calls it.
+  // A recorded request is "A prayer request", as the recording sheet calls it; a prayer of the prayer time "A prayer".
   const typeLabel = (s: SubmissionView): string => (s.type === 'prayer' && s.mode === 'audio' ? t('record.prayer') : submissionLabel(s.type));
 
   if (items === null) return <p className="text-sm text-ink-muted">{t('common.loading')}</p>;

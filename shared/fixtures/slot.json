@@ -5,7 +5,7 @@
   "gen": 1790189640000,
   "current": "worship",
   "next": { "p": "prayer", "start": 1790193600000 },
-  "submissions": { "song": "open", "prayer": "closing" },
+  "submissions": { "song": "open", "prayer": "closing", "intercession": "open" },
   "programs": {
     "worship": {
       "id": "worship",
@@ -92,6 +92,18 @@
       "thumb": "/media/thumbs/aBcDeFgHiJk.jpg",
       "request": { "name": "Samuel", "place": "Accra" },
       "fallback": null
+    },
+    {
+      "id": "i7kq2w",
+      "type": "host",
+      "start": 1790193099400,
+      "dur": 11000,
+      "p": "sermon",
+      "kind": "reading",
+      "audio": { "en": "/media/host/20260923/9c20.en.mp3" },
+      "text": { "en": "A prayer request: Please pray for my mother, she has surgery on Friday." },
+      "voices": [],
+      "prayers": ["pk3v9q2m7x4tb"]
     }
   ]
 }

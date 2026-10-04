@@ -53,6 +53,12 @@ export interface WallEntry {
   id: string;
   text: string;
   at: number;
+  /** In a prayer hour: when its reading begins — shown from then on. */
+  from?: number;
+  /** The station's own request (Open Doors' daily one): who it is from. */
+  source?: string;
+  /** Its translation, for the station's own request. */
+  texts?: LangMap<string>;
 }
 
 interface ItemBase {
@@ -82,10 +88,28 @@ export interface SongItem extends ItemBase {
   fallback: string | null;
 }
 
-/** opening and invite belong to a prayer hour: its opening prayer and the
- *  invitation to send prayer requests; preaching introduces the preaching
- *  that follows in a preaching program. */
-export type HostKind = 'intro' | 'break' | 'announce' | 'outro' | 'prayer' | 'contrib' | 'opening' | 'invite' | 'preaching';
+/** `reading` is a listener's prayer request read out word for word, and
+ *  `intercession` a listener's written prayer (the host's voice, their
+ *  words); after requests read out, `prayer` invites everyone to pray — the
+ *  host never prays itself. opening (a moderator's prepared prayer), present,
+ *  prayertime, encourage (and invite, in hours planned before) belong to a
+ *  prayer hour; preaching introduces the preaching that follows in a
+ *  preaching program. */
+export type HostKind =
+  | 'intro'
+  | 'break'
+  | 'announce'
+  | 'outro'
+  | 'prayer'
+  | 'contrib'
+  | 'opening'
+  | 'invite'
+  | 'preaching'
+  | 'reading'
+  | 'intercession'
+  | 'present'
+  | 'prayertime'
+  | 'encourage';
 
 export interface HostItem extends ItemBase {
   type: 'host';
@@ -94,8 +118,8 @@ export interface HostItem extends ItemBase {
   text: LangMap<string>;
   /** Community voices the host picked up; shown as fly-ins on the stage. */
   voices: Voice[];
-  /** In a prayer hour, the wall entries ('p' + id) this moment prays for — ids
-   *  only: live.json says what may be shown of them ("Praying now"). */
+  /** The wall entries ('p' + id) this moment is about — a request read out —
+   *  ids only: live.json says what may be shown of them ("On air now"). */
   prayers: string[];
 }
 
@@ -201,9 +225,12 @@ export interface LiveFile {
   listeners: number;
   voices: Voice[];
   /** Typed prayer requests the sender agreed to show, anonymous, newest
-   *  first, at most 30. In live.json (not the minute files) so that a
-   *  moderator's takedown applies with the next tick. */
+   *  first, at most 30 (a prayer hour's: as they are read out, up to 60). In
+   *  live.json (not the minute files) so that a moderator's takedown applies
+   *  with the next tick. */
   wall: WallEntry[];
+  /** While a prayer hour is on air: requests it received, not yet read out. */
+  collected?: number;
   /** Item ids a moderator pulled from air after they were published. */
   blocked: string[];
   /** Seconds between presence pulses; 0 = do not pulse. Raised under load. */

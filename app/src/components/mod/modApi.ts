@@ -41,9 +41,12 @@ export interface ProgramSettings {
   replay_contrib: boolean;
   format: ProgramFormat;
   prayer: {
-    collect: { with: 'music' | 'songs'; minutes: number; songs: number; bed_id: number };
+    /** The collection: `songs` songs (0–3), then prayer music until it has lasted `minutes`. */
+    collect: { songs: number; minutes: number; bed_id: number };
     quiet_min: number;
     after_songs: number;
+    /** Open Doors' daily prayer request, read first. */
+    opendoors: boolean;
   };
   preaching: { songs_between: number };
 }

@@ -32,7 +32,7 @@ describe('program file fixtures', () => {
     );
     const bed = slot!.items.find((i) => i.type === 'bed');
     expect(bed).toMatchObject({ audio: '/media/beds/5e0d7a.mp3', offset: 60000, label: { en: 'What can we pray for?', de: 'Wofür dürfen wir beten?' } });
-    expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing' });
+    expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing', intercession: 'open' });
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
     expect(slot!.programs.worship?.format).toBe('music');
     expect(slot!.programs.sermon?.format).toBe('preaching');
@@ -42,6 +42,9 @@ describe('program file fixtures', () => {
     ]);
     const host = slot!.items.find((i) => i.type === 'host');
     expect(host?.type === 'host' && host.prayers).toEqual(['pk3v9q2m7x4tb']);
+    // A listener's request read out word for word: one language, the request on the wall it is.
+    const reading = slot!.items.find((i) => i.type === 'host' && i.kind === 'reading');
+    expect(reading).toMatchObject({ kind: 'reading', audio: { en: '/media/host/20260923/9c20.en.mp3' }, prayers: ['pk3v9q2m7x4tb'] });
   });
 
   it('day, live, channels and evergreen parse', () => {
@@ -55,13 +58,23 @@ describe('program file fixtures', () => {
     expect(live?.voices).toHaveLength(2);
     // The author's mark, for a listener who blocked them (Presence::voiceTag).
     expect(live?.voices[0]?.by).toBe('3f9a1c07be52');
-    expect(live?.wall).toHaveLength(2);
+    expect(live?.wall).toHaveLength(3);
+    // A prayer hour's: shown from its reading on; the station's own says whose it is, translated.
     expect(live?.wall[0]).toEqual({
+      id: 'pq7n4x2k9m3sd',
+      text: 'Bewaffnete Kämpfer töteten die Frau von Pastor Josiah. Beten wir, dass Jesus ihn tröstet.',
+      at: 1790186400000,
+      from: 1790189880000,
+      source: 'Open Doors · Nigeria',
+      texts: { en: 'Armed fighters killed the wife of Pastor Josiah. Let us pray that Jesus comforts him.' },
+    });
+    expect(live?.wall[1]).toEqual({
       id: 'pk3v9q2m7x4tb',
       text: 'Please pray for my mother, she has surgery on Friday.',
       at: 1790189940000,
     });
     expect(live?.blocked).toEqual(['i7kq2s']);
+    expect(live?.collected).toBe(3);
 
     const channels = parseChannelsFile(load('channels.json'));
     expect(channels?.channels.filter((c) => c.main)).toHaveLength(1);
@@ -96,6 +109,10 @@ describe('program file fixtures', () => {
     const slot = parseSlotFile({ ...raw, programs: { worship }, items: [host, { ...host, id: 'k2', kind: 'invite' }, { ...host, id: 'k3', kind: 'hymn' }] });
     expect(slot?.programs.worship?.format).toBe('music');
     expect(slot?.items.map((i) => (i.type === 'host' ? [i.kind, i.prayers] : null))).toEqual([['break', []], ['invite', []], ['break', []]]);
+    const kinds = ['reading', 'intercession', 'present', 'prayertime', 'encourage'];
+    const start = Number(raw.items[1]!.start);
+    const newer = parseSlotFile({ ...raw, items: kinds.map((kind, i) => ({ ...host, id: `n${i}`, start: start + i * 30_000, kind })) });
+    expect(newer?.items.map((i) => i.type === 'host' && i.kind)).toEqual(kinds);
   });
 
   it('a song item without a kind is a song; a format or kind it does not know reads as music and a song', () => {

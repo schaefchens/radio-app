@@ -77,6 +77,10 @@ export class HostAudio {
 
   /** Play `url` from `offsetMs` in, rising from silence over `fadeInMs`. Resolves false if the browser refused. */
   async play(url: string, offsetMs: number, fadeInMs = 0): Promise<boolean> {
+    // In the quiet after a clip (a listener's words, then a few seconds to
+    // take them in), re-entering its item — a sheet closed, a join, a resume
+    // — must not start it over, nor take the next clip's element.
+    if (this.isOver(url, offsetMs)) return true;
     const next = (this.active + 1) % 2;
     const el = this.els[next]!;
     this.stop();
@@ -91,15 +95,16 @@ export class HostAudio {
     const started = Date.now();
     const start = async (src: string): Promise<boolean> => {
       if (!isSrc(el, src)) el.src = src;
-      const seek = (): void => {
-        try {
-          el.currentTime = Math.max(0, (offsetMs + Date.now() - started) / 1000);
-        } catch {
-          /* not seekable yet */
-        }
-      };
-      if (el.readyState >= 1) seek();
-      else el.addEventListener('loadedmetadata', seek, { once: true });
+      // Its length first: before it, a fresh element would play the clip's
+      // start until it knew where to seek — which may be past its end.
+      if (el.readyState < 1) await metadata(el);
+      const at = Math.max(0, (offsetMs + Date.now() - started) / 1000);
+      if (Number.isFinite(el.duration) && el.duration > 0 && at >= el.duration - 0.05) return true;
+      try {
+        el.currentTime = at;
+      } catch {
+        /* not seekable yet */
+      }
       await el.play();
       return true;
     };
@@ -117,6 +122,14 @@ export class HostAudio {
         return refused();
       }
     }
+  }
+
+  /** `url` is loaded on one of our elements, and `offsetMs` lies past its end. */
+  private isOver(url: string, offsetMs: number): boolean {
+    return this.els.some(
+      (el) =>
+        (isSrc(el, cdnUrl(url)) || isSrc(el, url)) && el.readyState >= 1 && Number.isFinite(el.duration) && el.duration > 0 && offsetMs / 1000 >= el.duration - 0.05,
+    );
   }
 
   /** Warm the idle element with the next clip. */
@@ -199,6 +212,21 @@ export class HostAudio {
       el.pause();
     }, ms);
   }
+}
+
+/** Resolves once `el` knows its length — or failed, or 3 s went by (play() then says what is wrong). */
+function metadata(el: HTMLAudioElement): Promise<void> {
+  return new Promise((resolve) => {
+    const done = (): void => {
+      el.removeEventListener('loadedmetadata', done);
+      el.removeEventListener('error', done);
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(done, 3000);
+    el.addEventListener('loadedmetadata', done);
+    el.addEventListener('error', done);
+  });
 }
 
 /** Whether the element already holds `src` (a path or an absolute URL: the edge's copy is another file than the site's). */

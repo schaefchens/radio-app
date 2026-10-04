@@ -199,6 +199,45 @@
   outline: 3px solid #249dff;
   outline-offset: 3px;
 }
+/* "Pray" in the prayer time: the hour's main thing to do. */
+.stage-prayer-share.is-main {
+  border-color: #ffcb73;
+  background: #ffcb73;
+  color: #2b1d05;
+}
+.stage-prayer-share.is-main:hover {
+  background: #ffd894;
+}
+.stage-prayer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+/* A page of the hour's requests — what there is to pray for. Two on a phone. */
+.stage-wall-page {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+.stage-wall-source {
+  margin: 0;
+  color: #ffcb73;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.stage-prayer-count {
+  margin: 0;
+  color: rgb(var(--ink) / 0.85);
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .stage-wall-page .stage-wall-entry:nth-child(n + 3) {
+    display: none;
+  }
+}
 
 /* The join overlay: the round play button over the stage, before YouTube loads. */
 .join-overlay {
@@ -624,7 +663,18 @@
   border-color: rgb(var(--accent));
   background: rgb(var(--surface) / var(--surface-a));
 }
-/* The request the host is praying for right now (a prayer hour's moment). */
+/* The station's own request (Open Doors'): whose it is. */
+.wall-source {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 6px;
+  color: rgb(var(--ink-muted));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* The request being read out right now. */
 .praying-badge {
   grid-column: 1 / -1;
   justify-self: start;

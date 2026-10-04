@@ -29,8 +29,10 @@ export const SLOT_WALKBACK_MINUTES = 10;
 
 /** What a listener can hand in. `song` and `preaching` (a sermon suggested for
  *  a preaching program) are YouTube links; `prayer` covers both a typed and a
- *  recorded prayer request; the other three are always recordings. */
-export const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching'] as const;
+ *  recorded prayer request; `intercession` is a listener's own prayer, typed
+ *  or recorded, sent in a prayer hour's prayer time; the other three are
+ *  always recordings. */
+export const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching', 'intercession'] as const;
 export type SubmissionType = (typeof SUBMISSION_TYPES)[number];
 
 export const SUBMISSION_STATES = ['open', 'closing', 'closed'] as const;

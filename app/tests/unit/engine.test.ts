@@ -70,7 +70,7 @@ const live: LiveFile = {
   pulse: 120,
 };
 
-function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?: EvergreenFile } = {}) {
+function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?: EvergreenFile; live?: LiveFile } = {}) {
   let now = 50_000;
   let stage = opts.canAutoplay ?? true;
   let page = true;
@@ -84,7 +84,7 @@ function setup(opts: { slot?: SlotFile | null; canAutoplay?: boolean; evergreen?
     audio,
     fetchSlot: async () => (opts.slot === undefined ? slotFile : opts.slot),
     fetchSlotWalkingBack: async () => (opts.slot === undefined ? slotFile : opts.slot),
-    fetchLive: async () => live,
+    fetchLive: async () => opts.live ?? live,
     fetchEvergreen: async () => opts.evergreen ?? null,
     canAutoplay: () => stage,
     pageVisible: () => page,
@@ -480,12 +480,12 @@ describe('prayer music', () => {
 });
 
 describe('the prayer hour', () => {
-  it('knows which wall requests the host is praying for while the moment airs', async () => {
+  it('knows which wall request is on air while it is read out', async () => {
     const moment: TimelineItem = {
-      id: 'h9', type: 'host', start: 40_000, dur: 20_000, p: 'prayer', kind: 'prayer',
-      audio: { en: '/media/host/p.mp3' }, text: { en: 'Lord, we pray…' }, voices: [], prayers: ['pk3v9q2m7x4tb'],
+      id: 'h9', type: 'host', start: 40_000, dur: 20_000, p: 'prayer', kind: 'reading',
+      audio: { en: '/media/host/p.mp3' }, text: { en: 'A prayer request: Please pray for my mother.' }, voices: [], prayers: ['pk3v9q2m7x4tb'],
     };
-    const quiet: TimelineItem = { id: 'q9', type: 'silence', start: 60_000, dur: 60_000, p: 'prayer', label: { en: 'Silent prayer', de: 'Stilles Gebet' } };
+    const quiet: TimelineItem = { id: 'q9', type: 'silence', start: 60_000, dur: 60_000, p: 'prayer', label: { en: 'Prayer time', de: 'Gebetszeit' } };
     const s = setup({ slot: { ...slotFile, items: [moment, quiet] } });
     await s.engine.start('main');
     expect(s.engine.snapshot.praying).toEqual(['pk3v9q2m7x4tb']);
@@ -494,6 +494,30 @@ describe('the prayer hour', () => {
     expect(s.engine.snapshot.mode).toBe('silence');
     // The same empty list every time: a new [] per state would loop a zustand selector.
     expect(s.engine.snapshot.praying).toBe(initialState().praying);
+    s.engine.stop();
+  });
+
+  it('a request comes onto the wall as its reading begins, for everyone at once — the same list until then', async () => {
+    const quiet: TimelineItem = { id: 'q1', type: 'silence', start: 40_000, dur: 30_000, p: 'prayer', label: { en: 'Prayer time', de: 'Gebetszeit' } };
+    const reading: TimelineItem = {
+      id: 'r1', type: 'host', start: 70_000, dur: 12_000, p: 'prayer', kind: 'reading',
+      audio: { en: '/media/host/r.mp3' }, text: { en: 'A prayer request: For my mother.' }, voices: [], prayers: ['pq'],
+    };
+    const wall = [{ id: 'pq', text: 'For my mother.', at: 1000, from: 70_000 }, { id: 'pk', text: 'For peace.', at: 900, from: 30_000 }];
+    const s = setup({ slot: { ...slotFile, items: [quiet, reading] }, live: { ...live, wall, collected: 1 } });
+    await s.engine.start('main');
+    expect(s.engine.snapshot.wall.map((e) => e.id)).toEqual(['pk']);
+    expect(s.engine.snapshot.collected).toBe(1);
+    const before = s.engine.snapshot.wall;
+    const emitted = s.states.length;
+    s.setNow(60_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.wall).toBe(before);
+    expect(s.states.length).toBe(emitted);
+    s.setNow(70_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.wall.map((e) => e.id)).toEqual(['pq', 'pk']);
+    expect(s.engine.snapshot.praying).toEqual(['pq']);
     s.engine.stop();
   });
 });

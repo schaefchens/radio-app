@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-export type Sheet = 'song' | 'preaching' | 'record' | 'prayer';
+/** `pray`: a listener's own prayer in a prayer hour's prayer time (the stage's Pray button). */
+export type Sheet = 'song' | 'preaching' | 'record' | 'prayer' | 'pray';
 export type RecordKind = 'story' | 'prayer';
 
 interface SheetsState {

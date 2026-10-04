@@ -1,13 +1,12 @@
-import type { WallEntry } from '@arche/shared';
+import type { Lang, WallEntry } from '@arche/shared';
 
-/** In silent prayer the stage shows one request at a time, this long each. */
-export const SILENT_ROTATE_MS = 12_000;
+/** In the prayer time the stage shows a few requests at a time, this long each page. */
+export const WALL_PAGE_MS = 15_000;
 
 /**
- * The wall with the requests the host is praying for right now first (a
- * prayer hour's moment lists them by wall id): "Praying now". The same list,
- * not a copy, when none of them is on the wall — it may have been taken down
- * after the moment was published.
+ * The wall with the request on air right now first (a request read out lists
+ * it by wall id): "On air now". The same list, not a copy, when it is not on
+ * the wall — it may have been taken down after its reading was published.
  */
 export function prayingFirst(wall: WallEntry[], praying: readonly string[]): WallEntry[] {
   if (praying.length === 0) return wall;
@@ -16,9 +15,18 @@ export function prayingFirst(wall: WallEntry[], praying: readonly string[]): Wal
 }
 
 /**
- * The request the stage shows in silent prayer at server time `t`: picked by
- * the clock, so every listener prays for the same one at the same moment.
+ * The requests the stage shows in the prayer time at server time `t`: a page
+ * of `size`, turned by the clock, so every listener sees the same ones —
+ * what there is to pray for, not one request picked for them.
  */
-export function silentEntry(wall: WallEntry[], t: number): WallEntry | null {
-  return wall.length === 0 ? null : wall[Math.floor(t / SILENT_ROTATE_MS) % wall.length]!;
+export function wallPage(wall: WallEntry[], t: number, size: number): WallEntry[] {
+  if (wall.length <= size) return wall;
+  const pages = Math.ceil(wall.length / size);
+  const page = Math.floor(t / WALL_PAGE_MS) % pages;
+  return wall.slice(page * size, page * size + size);
+}
+
+/** A request's text in the listener's language: the station's own (Open Doors') comes translated. */
+export function entryText(entry: WallEntry, lang: Lang): string {
+  return entry.texts?.[lang] ?? entry.text;
 }

@@ -21,7 +21,8 @@ function shape(mixed $actual, mixed $fixture, string $path, array $maps): void
             foreach ($a as $k => $v) shape($v, $sample, "$path.$k", $maps);
             return;
         }
-        $missing = array_diff(array_keys($f), array_keys($a));
+        // Keys only some files carry: a prayer hour's wall and count, the station's own request.
+        $missing = array_diff(array_keys($f), array_keys($a), ['collected', 'from', 'source', 'texts']);
         $extra = array_diff(array_keys($a), array_keys($f));
         check(!$missing, "$path lacks " . implode(',', $missing));
         check(!$extra, "$path has unexpected " . implode(',', $extra));
@@ -99,4 +100,34 @@ test('contract: generated program files match shared/fixtures', function () {
     shape(json_decode((string) file_get_contents($app->publicPath(ltrim($channels->channels[0]->evergreen, '/')))), fixture('evergreen.json'), 'evergreen', []);
     unset($j, $types, $now, $maps, $live, $identity, $bed, $fixtureBed);
     eq(Timing::COMMIT, Timing::WINDOW + Timing::LEAD, 'timing constants');
+});
+
+test('contract: a prayer hour\'s files match shared/fixtures — its readings, its wall as it is read, its count', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $app->store()->set('opendoors', ['guid' => '1', 'published' => TestKit::T0, 'country_de' => 'Nigeria', 'de' => 'Beten wir für die Christen in Nigeria.',
+        'country_en' => 'Nigeria', 'en' => 'Let us pray for the Christians in Nigeria.']);
+    $p = prayerHour($app, 735, 60, ['opendoors' => true]);
+    $counted = false;
+    for ($m = 0; $m < 40; $m++) {
+        if ($m === 16) prayFor($app, 'Contract');
+        if ($m === 34) prayAs($app, 'Contract');
+        $app->tick()->run('test');
+        $live = json_decode((string) file_get_contents($app->publicPath('program/main/live.json')));
+        shape($live, fixture('live.json'), 'live', []);
+        $counted = $counted || isset($live->collected);
+        TestKit::clock($app)->advance(60_000);
+    }
+    check($counted, 'live.json counted the hour\'s requests');
+    $wall = json_decode((string) file_get_contents($app->publicPath('program/main/live.json')))->wall;
+    check(count(array_filter($wall, fn($e) => isset($e->from))) === 2 && count(array_filter($wall, fn($e) => isset($e->source, $e->texts))) === 1,
+        'the wall carried the moment each was read, and the station\'s own with its source and translation');
+    $kinds = [];
+    foreach (glob($app->publicPath('program/main/slots/*/*.json')) as $file) {
+        $slot = json_decode((string) file_get_contents($file));
+        shape($slot, fixture('slot.json'), 'slot', ['programs', 'submissions', 'audio', 'text', 'caption']);
+        foreach ($slot->items as $it) if ($it->type === 'host') $kinds[$it->kind] = true;
+    }
+    foreach (['intro', 'present', 'reading', 'prayertime', 'intercession'] as $k) check(isset($kinds[$k]), "a published $k");
+    unset($p);
 });

@@ -67,7 +67,15 @@ export function parseVoice(v: unknown): Voice | null {
 
 export function parseWallEntry(v: unknown): WallEntry | null {
   if (!isObj(v) || !isStr(v.id) || !isStr(v.text) || v.text === '') return null;
-  return { id: v.id, text: v.text, at: isNum(v.at) ? v.at : 0 };
+  const texts = langMap(v.texts);
+  return {
+    id: v.id,
+    text: v.text,
+    at: isNum(v.at) ? v.at : 0,
+    ...(isNum(v.from) ? { from: v.from } : {}),
+    ...(isStr(v.source) && v.source !== '' ? { source: v.source } : {}),
+    ...(Object.keys(texts).length ? { texts } : {}),
+  };
 }
 
 function stage(v: unknown): StageConfig {
@@ -92,7 +100,22 @@ export function parseProgramRef(v: unknown): ProgramRef | null {
   };
 }
 
-const HOST_KINDS: HostKind[] = ['intro', 'break', 'announce', 'outro', 'prayer', 'contrib', 'opening', 'invite', 'preaching'];
+const HOST_KINDS: HostKind[] = [
+  'intro',
+  'break',
+  'announce',
+  'outro',
+  'prayer',
+  'contrib',
+  'opening',
+  'invite',
+  'preaching',
+  'reading',
+  'intercession',
+  'present',
+  'prayertime',
+  'encourage',
+];
 const CONTRIB_KINDS = ['story', 'testimony', 'greeting', 'prayer'] as const;
 
 export function parseItem(v: unknown): TimelineItem | null {
@@ -237,6 +260,7 @@ export function parseLiveFile(v: unknown): LiveFile | null {
     wall: compact(arr(v.wall), parseWallEntry),
     blocked: arr(v.blocked).filter(isStr),
     pulse: isNum(v.pulse) ? Math.max(0, v.pulse) : 0,
+    ...(isNum(v.collected) ? { collected: Math.max(0, Math.round(v.collected)) } : {}),
   };
 }
 

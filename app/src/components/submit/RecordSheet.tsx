@@ -1,17 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import type { SubmissionState } from '@arche/shared';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { api } from '@/lib/api';
-import { describeMicError, micConstraints, pickMicMime } from '@/lib/micRecord';
 import { toMp3 } from '@/lib/recordingEncoder';
-import { setRadioMuted } from '@/lib/radio';
-import { isNative } from '@/lib/native';
 import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
+import { useRecorder } from './useRecorder';
 import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
 import { MicIcon } from '@/components/common/icons';
 import { RulesCheckbox } from '@/components/common/RulesConsent';
@@ -19,13 +17,11 @@ import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
 
 type Kind = 'story' | 'testimony' | 'greeting' | 'prayer';
 const LIMIT_S: Record<Kind, number> = { story: 90, testimony: 90, greeting: 60, prayer: 90 };
-const wallClock = (): number => Date.now();
 
 /**
- * Record a story, testimony, greeting or prayer in the browser. The radio is
- * muted while recording (the processing that would cancel echo is off to keep
- * the iOS audio session alone), the listener can listen back, and it goes up
- * as a normalised MP3.
+ * Record a story, testimony, greeting or prayer request in the browser. The
+ * radio is muted while recording (useRecorder), the listener can listen
+ * back, and it goes up as a normalised MP3.
  */
 export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: boolean; onClose: () => void; initialKind?: Kind }) {
   const { t } = useTranslation();
@@ -40,14 +36,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
   // The community rules, once per device before the first post.
   const rulesNeeded = useRulesNeeded();
   const [rulesTicked, setRulesTicked] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [blob, setBlob] = useState<Blob | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [micError, setMicError] = useState<string | null>(null);
-  const rec = useRef<MediaRecorder | null>(null);
-  const stream = useRef<MediaStream | null>(null);
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rec = useRecorder();
 
   // A new initial kind (the prayer sheet's "record instead") resets the choice —
   // adjusted during render rather than in an effect.
@@ -62,58 +51,9 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
     return s === 'open' || s === 'closing';
   };
 
-  const cleanup = (): void => {
-    if (timer.current) clearInterval(timer.current);
-    timer.current = null;
-    stream.current?.getTracks().forEach((tr) => tr.stop());
-    stream.current = null;
-    setRadioMuted(false);
-  };
-  useEffect(() => cleanup, []);
-
-  const start = async (): Promise<void> => {
-    setMicError(null);
-    setBlob(null);
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(null);
-    try {
-      stream.current = await navigator.mediaDevices.getUserMedia(micConstraints());
-    } catch (e) {
-      const denied = e instanceof DOMException && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
-      setMicError(denied ? (isNative() ? t('record.micDeniedApp') : t('record.micDenied')) : describeMicError(e));
-      return;
-    }
-    const mime = pickMicMime();
-    const r = new MediaRecorder(stream.current, mime ? { mimeType: mime } : undefined);
-    const chunks: BlobPart[] = [];
-    r.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-    r.onstop = () => {
-      const b = new Blob(chunks, { type: r.mimeType || mime || 'audio/webm' });
-      setBlob(b);
-      setPreview(URL.createObjectURL(b));
-      cleanup();
-    };
-    rec.current = r;
-    setRadioMuted(true);
-    r.start(250);
-    setRecording(true);
-    setElapsed(0);
-    const began = wallClock();
-    timer.current = setInterval(() => {
-      const s = Math.floor((wallClock() - began) / 1000);
-      setElapsed(s);
-      if (s >= LIMIT_S[kind]) stop();
-    }, 250);
-  };
-
-  const stop = (): void => {
-    setRecording(false);
-    if (rec.current && rec.current.state !== 'inactive') rec.current.stop();
-  };
-
   const submit = useSubmit(async () => {
-    if (!blob) throw new Error('no recording');
-    const { mp3 } = await toMp3(blob);
+    if (!rec.blob) throw new Error('no recording');
+    const { mp3 } = await toMp3(rec.blob);
     const form = new FormData();
     form.set('channel', engine.channel);
     form.set('type', kind);
@@ -127,12 +67,11 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
   });
 
   const close = (): void => {
-    if (recording) stop();
-    cleanup();
+    if (rec.recording) rec.stop();
+    rec.cleanup();
     onClose();
     if (submit.done) {
-      setBlob(null);
-      setPreview(null);
+      rec.reset();
       submit.reset();
     }
   };
@@ -152,7 +91,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
                   <button
                     key={k}
                     type="button"
-                    disabled={!allowed(k) || recording}
+                    disabled={!allowed(k) || rec.recording}
                     onClick={() => setKind(k)}
                     className={clsx('rounded-xl border px-3 py-2 text-sm', kind === k ? 'border-accent-fill bg-accent-fill/20 text-ink' : 'border-line/30 text-ink-muted', !allowed(k) && 'opacity-40')}
                   >
@@ -162,22 +101,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
               </div>
             </div>
 
-            <div className="card-inset flex flex-col items-center gap-3 p-4">
-              <p className="text-xs text-ink-muted">{t('record.limit', { seconds: LIMIT_S[kind] })}</p>
-              <button
-                type="button"
-                onClick={() => (recording ? stop() : void start())}
-                disabled={!allowed(kind)}
-                className={clsx('flex h-20 w-20 items-center justify-center rounded-full text-white shadow-glow transition-colors', recording ? 'bg-live' : 'bg-accent-fill hover:bg-accent')}
-                aria-label={recording ? t('record.stop') : blob ? t('record.again') : t('record.start')}
-              >
-                <MicIcon size={32} />
-              </button>
-              <p className="tabular-nums text-sm">{recording ? `${elapsed}s / ${LIMIT_S[kind]}s` : blob ? t('record.again') : t('record.start')}</p>
-              {recording && <p className="text-xs text-ink-faint">{t('record.radioMuted')}</p>}
-              {micError && <p className="text-sm text-heart">{micError}</p>}
-              {preview && !recording && <audio controls src={preview} className="w-full" aria-label={t('record.listen')} />}
-            </div>
+            <RecorderPanel rec={rec} limitS={LIMIT_S[kind]} disabled={!allowed(kind)} />
 
             <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
             <label className="flex items-start gap-2 text-sm text-ink-muted">
@@ -194,7 +118,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
             <button
               type="button"
               className="btn-primary"
-              disabled={!blob || !consentAir || submit.busy || recording || (rulesNeeded && !rulesTicked)}
+              disabled={!rec.blob || !consentAir || submit.busy || rec.recording || (rulesNeeded && !rulesTicked)}
               onClick={() => {
                 if (rulesNeeded) acceptRules();
                 void submit.run();
@@ -206,5 +130,28 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
         )}
       </BottomSheetBody>
     </BottomSheet>
+  );
+}
+
+/** The round record button, the time, the radio muted, the preview to listen back. */
+export function RecorderPanel({ rec, limitS, disabled = false }: { rec: ReturnType<typeof useRecorder>; limitS: number; disabled?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <div className="card-inset flex flex-col items-center gap-3 p-4">
+      <p className="text-xs text-ink-muted">{t('record.limit', { seconds: limitS })}</p>
+      <button
+        type="button"
+        onClick={() => (rec.recording ? rec.stop() : void rec.start(limitS))}
+        disabled={disabled}
+        className={clsx('flex h-20 w-20 items-center justify-center rounded-full text-white shadow-glow transition-colors', rec.recording ? 'bg-live' : 'bg-accent-fill hover:bg-accent')}
+        aria-label={rec.recording ? t('record.stop') : rec.blob ? t('record.again') : t('record.start')}
+      >
+        <MicIcon size={32} />
+      </button>
+      <p className="tabular-nums text-sm">{rec.recording ? `${rec.elapsed}s / ${limitS}s` : rec.blob ? t('record.again') : t('record.start')}</p>
+      {rec.recording && <p className="text-xs text-ink-faint">{t('record.radioMuted')}</p>}
+      {rec.micError && <p className="text-sm text-heart">{rec.micError}</p>}
+      {rec.preview && !rec.recording && <audio controls src={rec.preview} className="w-full" aria-label={t('record.listen')} />}
+    </div>
   );
 }

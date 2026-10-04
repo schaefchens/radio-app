@@ -60,10 +60,13 @@ export interface EngineState {
   lastHost: { text: string; at: number } | null;
   listeners: number;
   voices: Voice[];
-  /** The prayer wall from live.json: anonymous typed prayer requests, newest first. */
+  /** The prayer wall from live.json: anonymous typed prayer requests, newest
+   *  first — in a prayer hour each one from the start of its reading. */
   wall: WallEntry[];
-  /** The wall entries the host is praying for right now (a prayer hour's moment). */
+  /** The wall entries on air right now (a request being read out). */
   praying: string[];
+  /** While a prayer hour is on air: requests it received, not yet read out. */
+  collected: number | null;
   hasData: boolean;
 }
 
@@ -160,6 +163,7 @@ export function initialState(channel = ''): EngineState {
     voices: [],
     wall: NO_WALL,
     praying: NO_IDS,
+    collected: null,
     hasData: false,
   };
 }
@@ -167,6 +171,8 @@ export function initialState(channel = ''): EngineState {
 export class RadioEngine {
   private timeline = new Timeline();
   private blocked = new Set<string>();
+  /** live.json's wall as it came: entries whose reading has not begun are held back (dueWall()). */
+  private liveWall: WallEntry[] = NO_WALL;
   private evergreenFile: EvergreenFile | null = null;
   private evergreenUrl: string | null = null;
   private key: string | null = null;
@@ -421,9 +427,25 @@ export class RadioEngine {
     if (!live || gen !== this.generation) return;
     const wasBlocked = this.state.item !== null && !this.blocked.has(this.state.item.id) && live.blocked.includes(this.state.item.id);
     this.blocked = new Set(live.blocked);
-    this.state = { ...this.state, listeners: live.listeners, voices: live.voices, wall: live.wall };
+    this.liveWall = live.wall.length ? live.wall : NO_WALL;
+    this.state = { ...this.state, listeners: live.listeners, voices: live.voices, wall: this.dueWall(this.deps.now()), collected: live.collected ?? null };
     if (wasBlocked) this.key = null;
     this.emit();
+  }
+
+  /**
+   * The wall as it may be shown at `now`: in a prayer hour a request appears
+   * as its reading begins (`from`) — live.json brings it a minute or two
+   * early. The same array while nothing changes (a new one would make a
+   * zustand selector loop React).
+   */
+  private dueWall(now: number): WallEntry[] {
+    const raw = this.liveWall;
+    if (!raw.some((e) => e.from !== undefined && e.from > now)) return raw;
+    const due = raw.filter((e) => e.from === undefined || e.from <= now);
+    const shown = this.state.wall;
+    if (due.length === shown.length && due.every((e, i) => e === shown[i])) return shown;
+    return due.length ? due : NO_WALL;
   }
 
   // --- the loop -----------------------------------------------------------------------
@@ -439,6 +461,12 @@ export class RadioEngine {
       void this.fetchNow(thin);
     }
     if (now - this.lastLive > LIVE_EVERY_MS) void this.fetchLiveNow();
+    const wall = this.dueWall(now);
+    if (wall !== this.state.wall) {
+      // A request's reading has begun: it comes onto the wall now, for everyone at once.
+      this.state = { ...this.state, wall };
+      this.emit();
+    }
     // Nothing of ours plays while the listener is out: a clip resumed from
     // outside (the lock screen, headphones, a key) is stopped again.
     if (!this.state.joined && this.deps.audio.playing()) this.deps.audio.stop();

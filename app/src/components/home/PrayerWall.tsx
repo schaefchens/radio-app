@@ -1,10 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { WallEntry } from '@arche/shared';
+import type { Lang, WallEntry } from '@arche/shared';
 import { useRadio } from '@/store/radio';
 import { useSheets } from '@/store/sheets';
 import { reactVoice } from '@/lib/radio';
 import { dayKey } from '@/lib/format';
+import { entryText } from '@/lib/prayerWall';
 import { useServerNow } from './useServerNow';
 import { usePrayingWall } from './usePrayingWall';
 import { useRotation, WALL_ROTATE_MS } from './useRotation';
@@ -17,10 +18,11 @@ import { reportWallEntry } from '@/lib/reports';
 /**
  * The prayer wall on desktop, under the community voices (on a tablet under
  * the player): one prayer request at a time, set like a verse, the next one
- * every 15 s (the phone shows it in the carousel); while the host prays for
- * one of them, that one, "Praying now". Requests come from live.json: typed,
+ * every 15 s (the phone shows it in the carousel); while one of them is read
+ * out, that one, "On air now". Requests come from live.json: typed,
  * approved, and shown only with the sender's yes; anonymous, the text and
- * the day.
+ * the day (in a prayer hour, once it is read out). The station's own request
+ * (Open Doors') says whose it is.
  */
 export function DesktopPrayerWall({ onMore }: { onMore: () => void }) {
   const { t } = useTranslation();
@@ -66,6 +68,7 @@ export function WallHeading({ onMore }: { onMore: () => void }) {
 
 export function PrayerEntry({ entry, praying = false, onActivity }: { entry: WallEntry; praying?: boolean; onActivity?: (pickerOpen: boolean) => void }) {
   const { i18n, t } = useTranslation();
+  const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
   const now = useServerNow(60_000);
   const key = dayKey(entry.at, now);
   const day = key ? t(`wall.${key}`) : new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long' }).format(entry.at);
@@ -73,8 +76,9 @@ export function PrayerEntry({ entry, praying = false, onActivity }: { entry: Wal
     <div className="quote feed-message prayer-entry">
       <div className="message-copy">
         <time dateTime={new Date(entry.at).toISOString()}>{day}</time>
+        {entry.source && <span className="wall-source">{entry.source}</span>}
         {praying && <span className="praying-badge">{t('wall.prayingNow')}</span>}
-        <p>{entry.text}</p>
+        <p>{entryText(entry, lang)}</p>
       </div>
       <Reactions
         markId={`voice:${entry.id}`}

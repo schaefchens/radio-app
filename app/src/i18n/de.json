@@ -31,7 +31,11 @@
     "hostSpeaking": "{{name}} spricht",
     "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran",
     "prayingNow": "Gebetsanliegen",
-    "sharePrayer": "Gebetsanliegen teilen"
+    "sharePrayer": "Gebetsanliegen teilen",
+    "listenerPrayer": "Gebet aus der Gemeinde",
+    "pray": "Beten",
+    "collected_one": "{{count}} Gebetsanliegen bisher",
+    "collected_other": "{{count}} Gebetsanliegen bisher"
   },
   "live": {
     "badge": "LIVE",
@@ -52,7 +56,8 @@
     "contrib": "{{name}} erzählt",
     "openYouTube": "{{title}} auf YouTube öffnen",
     "position": "{{elapsed}} von {{duration}}",
-    "bed": "Gebetsmusik"
+    "bed": "Gebetsmusik",
+    "readBy": "Wort für Wort vorgelesen von {{name}}, unserer KI-Moderation"
   },
   "host": {
     "idle": "{{name}} meldet sich zwischen den Liedern wieder.",
@@ -134,7 +139,7 @@
   },
   "prayerForm": {
     "text": "Dein Gebetsanliegen",
-    "textHint": "Genannt werden nur dein Vorname und dein Ort.",
+    "textHint": "Es wird auf Sendung Wort für Wort vorgelesen – mit deinem Vornamen und Ort, oder ohne Namen, wenn es an der Gebetswand steht.",
     "record": "Lieber aufnehmen",
     "type": "Lieber schreiben",
     "showOnWall": "Zeig mein Anliegen auch an der Gebetswand, ohne meinen Namen, damit andere mit mir beten."
@@ -144,7 +149,7 @@
     "story": "Eine Geschichte",
     "testimony": "Ein Zeugnis",
     "greeting": "Einen Gruß",
-    "prayer": "Ein Gebet",
+    "prayer": "Ein Gebetsanliegen",
     "start": "Aufnahme starten",
     "stop": "Stopp",
     "again": "Neu aufnehmen",
@@ -153,7 +158,8 @@
     "micDenied": "Mikrofonzugriff verweigert. Erlaube ihn in den Browser-Einstellungen.",
     "micDeniedApp": "Arche Radio darf das Mikrofon noch nicht benutzen. Erlaube es in den Einstellungen deines Handys für Arche Radio.",
     "preparing": "Aufnahme wird vorbereitet…",
-    "radioMuted": "Das Radio ist während der Aufnahme stumm."
+    "radioMuted": "Das Radio ist während der Aufnahme stumm.",
+    "intercession": "Ein Gebet"
   },
   "status": {
     "title": "Meine Beiträge",
@@ -522,20 +528,18 @@
       "formatPrayer": "Gebetsstunde",
       "prayer": {
         "heading": "Gebetsstunde",
-        "order": "Begrüßung → ein Eröffnungsgebet aus der Moderation, wenn eines vorbereitet ist → Einladung, Gebetsanliegen zu schicken → Sammelzeit → die Moderation stellt die Anliegen vor, ein Moment nach dem anderen, und lädt zum Mitbeten ein, mit Stille dazwischen → Abschluss. Die Moderation betet nie selbst. Anliegen aus den letzten Minuten vor einem Moment kommen ein paar Minuten später dran.",
-        "onlyPrayer": "Eine Gebetsstunde nimmt nur Gebetsanliegen an (geschrieben oder aufgenommen).",
+        "order": "Begrüßung → ein Eröffnungsgebet aus der Moderation, wenn eines vorbereitet ist → Sammelzeit: die Lieder, dann Gebetsmusik → die Anliegen werden Wort für Wort vorgelesen, zuerst das Tagesanliegen von Open Doors, und erscheinen beim Vorlesen an der Wand → die Moderation eröffnet die Gebetszeit → Gebete der Hörerinnen und Hörer: geschriebene Wort für Wort vorgelesen, gesprochene abgespielt, Stille dazwischen, nach den stillen Minuten ein ermutigendes Wort → Abschluss. Die Moderation betet nie selbst. Anliegen, die kommen, während das Vorlesen vorbereitet wird (seine letzten 7 Minuten), werden in der Gebetszeit gelesen.",
+        "onlyPrayer": "Eine Gebetsstunde nimmt Gebetsanliegen (geschrieben oder aufgenommen) und in ihrer Gebetszeit eigene Gebete der Hörerinnen und Hörer (geschrieben oder gesprochen).",
         "intakeHint": "In einer Gebetsstunde zählen diese Minuten bis zum Abschluss.",
-        "collect": "Während die Anliegen eingehen",
-        "collectMusic": "Gebetsmusik",
-        "collectSongs": "Lieder",
-        "music": "Hintergrundmusik",
+        "music": "Gebetsmusik (nach den Liedern)",
         "quiet": "Keine – Stille",
         "noMusic": "Lade zuerst Hintergrundmusik in der Bibliothek hoch.",
-        "minutes": "Für … Minuten",
-        "songs": "Anzahl der Lieder",
-        "quietMin": "Stille Minuten, bevor die Moderation wieder zum Gebet einlädt",
+        "minutes": "Sammelzeit mindestens … Minuten",
+        "songs": "Zuerst Lieder (0–3)",
+        "quietMin": "Stille Minuten, bevor die Moderation wieder ermutigt",
         "afterSongs": "Lieder nach dem Abschluss",
-        "notFallback": "Eine Gebetsstunde kann nicht das Ersatzprogramm eines Kanals sein: Ihr Ablauf braucht ein Ende."
+        "notFallback": "Eine Gebetsstunde kann nicht das Ersatzprogramm eines Kanals sein: Ihr Ablauf braucht ein Ende.",
+        "opendoors": "Zuerst das tägliche Gebetsanliegen von Open Doors für verfolgte Christen vorlesen (Deutsch wie veröffentlicht, übersetzt für englische Hörer)"
       },
       "preaching": {
         "heading": "Predigtsendung",
@@ -644,7 +648,8 @@
         "testimony": "Zeugnis",
         "greeting": "Gruß",
         "prayer": "Gebetsanliegen",
-        "preaching": "Predigtvorschlag"
+        "preaching": "Predigtvorschlag",
+        "intercession": "Gebet (Gebetszeit)"
       },
       "statuses": {
         "received": "Eingegangen",
@@ -904,5 +909,12 @@
     "read": "Regeln lesen",
     "beforeWriting": "Bevor du schreibst: die Community-Regeln.",
     "acceptAndWrite": "Zustimmen und schreiben"
+  },
+  "pray": {
+    "title": "Für die Anliegen beten",
+    "introSpoken": "Sprich dein Gebet für die Anliegen, die du gehört hast. Es wird so gesendet, wie du es aufnimmst, mit deinem Vornamen und Ort.",
+    "introWritten": "Schreib dein Gebet für die Anliegen, die du gehört hast. Die Moderation liest es auf Sendung Wort für Wort vor, mit deinem Vornamen und Ort.",
+    "text": "Dein Gebet",
+    "consent": "Ich bin einverstanden, dass mein Gebet auf Arche Radio gesendet wird, Wort für Wort, mit meinem Vornamen und Ort."
   }
 }

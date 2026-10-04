@@ -118,8 +118,10 @@ function TrackRow() {
     ({ title, artist: subtitle, thumb, yt, start, dur } = engine.evergreen);
     icon = <MusicIcon />;
   } else if (item?.type === 'host') {
-    title = t('nowPlaying.host', { name: channel?.host.name ?? 'Hope' });
-    subtitle = t('host.aiNote');
+    // A listener's request or prayer, read out in the host's voice: theirs, not the host's words.
+    const theirs = item.kind === 'reading' || item.kind === 'intercession';
+    title = theirs ? t(item.kind === 'reading' ? 'stage.prayingNow' : 'stage.listenerPrayer') : t('nowPlaying.host', { name: channel?.host.name ?? 'Hope' });
+    subtitle = theirs ? t('nowPlaying.readBy', { name: channel?.host.name ?? 'Hope' }) : t('host.aiNote');
     ({ start, dur } = item);
     icon = <MicIcon />;
   } else if (item?.type === 'contrib') {

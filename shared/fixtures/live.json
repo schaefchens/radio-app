@@ -8,9 +8,18 @@
     { "id": "v82", "name": "James", "country": "US", "text": "This really speaks to my heart today.", "at": 1790189820000, "by": "c41d8e6f0a93" }
   ],
   "wall": [
+    {
+      "id": "pq7n4x2k9m3sd",
+      "text": "Bewaffnete Kämpfer töteten die Frau von Pastor Josiah. Beten wir, dass Jesus ihn tröstet.",
+      "at": 1790186400000,
+      "from": 1790189880000,
+      "source": "Open Doors · Nigeria",
+      "texts": { "en": "Armed fighters killed the wife of Pastor Josiah. Let us pray that Jesus comforts him." }
+    },
     { "id": "pk3v9q2m7x4tb", "text": "Please pray for my mother, she has surgery on Friday.", "at": 1790189940000 },
     { "id": "pa8r2w5n1c6yd", "text": "Bitte betet für unsere Gemeinde und für Frieden in unserer Stadt.", "at": 1790186400000 }
   ],
   "blocked": ["i7kq2s"],
-  "pulse": 120
+  "pulse": 120,
+  "collected": 3
 }

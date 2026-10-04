@@ -31,7 +31,11 @@
     "hostSpeaking": "{{name}} is speaking",
     "unavailable": "This song can't be played here — stay with us",
     "prayingNow": "Prayer request",
-    "sharePrayer": "Share a prayer request"
+    "sharePrayer": "Share a prayer request",
+    "listenerPrayer": "Prayer from a listener",
+    "pray": "Pray",
+    "collected_one": "{{count}} prayer request so far",
+    "collected_other": "{{count}} prayer requests so far"
   },
   "live": {
     "badge": "LIVE",
@@ -52,7 +56,8 @@
     "contrib": "{{name}} shares",
     "openYouTube": "Open {{title}} on YouTube",
     "position": "{{elapsed}} of {{duration}}",
-    "bed": "Prayer music"
+    "bed": "Prayer music",
+    "readBy": "Read out word for word by {{name}}, our AI host"
   },
   "host": {
     "idle": "{{name}} will be back between the songs.",
@@ -134,7 +139,7 @@
   },
   "prayerForm": {
     "text": "Your prayer request",
-    "textHint": "Only your first name and place are mentioned.",
+    "textHint": "It is read out on air word for word — with your first name and place, or without your name if it is on the prayer wall.",
     "record": "Record it instead",
     "type": "Type it instead",
     "showOnWall": "Also show my request on the prayer wall, without my name, so others can pray with me."
@@ -144,7 +149,7 @@
     "story": "A story",
     "testimony": "A testimony",
     "greeting": "A greeting",
-    "prayer": "A prayer",
+    "prayer": "A prayer request",
     "start": "Start recording",
     "stop": "Stop",
     "again": "Record again",
@@ -153,7 +158,8 @@
     "micDenied": "Microphone permission denied. Enable it in your browser settings.",
     "micDeniedApp": "Arche Radio may not use the microphone yet. Allow it in your phone's settings for Arche Radio.",
     "preparing": "Preparing the recording…",
-    "radioMuted": "The radio is muted while you record."
+    "radioMuted": "The radio is muted while you record.",
+    "intercession": "A prayer"
   },
   "status": {
     "title": "My submissions",
@@ -522,20 +528,18 @@
       "formatPrayer": "Prayer hour",
       "prayer": {
         "heading": "Prayer hour",
-        "order": "Welcome → a moderator's opening prayer, if one is prepared → invitation to send prayer requests → collection time → the host presents the requests, one moment at a time, and invites listeners to pray, with silence in between → outro. The host never prays. Requests sent in the last minutes before a moment come a few minutes later.",
-        "onlyPrayer": "A prayer hour takes prayer requests only (typed or recorded).",
+        "order": "Welcome → a moderator's opening prayer, if one is prepared → the collection: the songs, then prayer music → the requests are read out word for word, Open Doors' request of the day first, and appear on the wall as they are read → the host opens the prayer time → listeners' prayers: written ones read out word for word, spoken ones played, silence in between, a word of encouragement after the quiet minutes → outro. The host never prays. Requests sent while the presentation is being prepared (its last 7 minutes) are read in the prayer time.",
+        "onlyPrayer": "A prayer hour takes prayer requests (typed or recorded) and, in its prayer time, listeners' own prayers (written or spoken).",
         "intakeHint": "In a prayer hour, these minutes count to the outro.",
-        "collect": "While requests come in",
-        "collectMusic": "Prayer music",
-        "collectSongs": "Songs",
-        "music": "Background music",
+        "music": "Prayer music (after the songs)",
         "quiet": "None — quiet",
         "noMusic": "Upload background music in Library first.",
-        "minutes": "For … minutes",
-        "songs": "Number of songs",
-        "quietMin": "Quiet minutes before the host invites listeners to pray again",
+        "minutes": "Collection lasts at least … minutes",
+        "songs": "Songs first (0–3)",
+        "quietMin": "Quiet minutes before the host encourages listeners again",
         "afterSongs": "Songs after the outro",
-        "notFallback": "A prayer hour cannot be a channel's fallback program: its running order needs an end."
+        "notFallback": "A prayer hour cannot be a channel's fallback program: its running order needs an end.",
+        "opendoors": "Read Open Doors' daily prayer request for persecuted Christians first (German as published, translated for English listeners)"
       },
       "preaching": {
         "heading": "Preaching program",
@@ -644,7 +648,8 @@
         "testimony": "Testimony",
         "greeting": "Greeting",
         "prayer": "Prayer request",
-        "preaching": "Preaching suggestion"
+        "preaching": "Preaching suggestion",
+        "intercession": "Prayer (prayer time)"
       },
       "statuses": {
         "received": "Received",
@@ -904,5 +909,12 @@
     "read": "Read the rules",
     "beforeWriting": "Before you write: the community rules.",
     "acceptAndWrite": "Accept and write"
+  },
+  "pray": {
+    "title": "Pray for the requests",
+    "introSpoken": "Speak your prayer for the requests you heard. It is played on air as you recorded it, with your first name and place.",
+    "introWritten": "Write your prayer for the requests you heard. The host reads it out on air word for word, with your first name and place.",
+    "text": "Your prayer",
+    "consent": "I agree that my prayer is aired on Arche Radio, word for word, with my first name and place."
   }
 }

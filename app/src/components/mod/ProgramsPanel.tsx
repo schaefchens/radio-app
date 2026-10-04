@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS: ProgramSettings = {
   max_queue_min: 30,
   replay_contrib: false,
   format: 'music',
-  prayer: { collect: { with: 'music', minutes: 8, songs: 2, bed_id: 0 }, quiet_min: 4, after_songs: 0 },
+  prayer: { collect: { songs: 0, minutes: 10, bed_id: 0 }, quiet_min: 4, after_songs: 0, opendoors: true },
   preaching: { songs_between: 2 },
 };
 
@@ -322,35 +322,24 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           <p className="label">{t('mod.programs.prayer.heading')}</p>
           <p className="text-sm text-ink-muted">{t('mod.programs.prayer.order')}</p>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label={t('mod.programs.prayer.collect')}>
-              <select className="field" value={d.settings.prayer.collect.with} onChange={(e) => setC({ with: e.target.value as 'music' | 'songs' })}>
-                <option value="music">{t('mod.programs.prayer.collectMusic')}</option>
-                <option value="songs">{t('mod.programs.prayer.collectSongs')}</option>
+            <Field label={t('mod.programs.prayer.songs')}>
+              <input type="number" min={0} max={3} className="field" value={d.settings.prayer.collect.songs} onChange={(e) => setC({ songs: num(e.target.value) })} />
+            </Field>
+            <Field label={t('mod.programs.prayer.music')} hint={beds.data?.items.length === 0 ? t('mod.programs.prayer.noMusic') : undefined}>
+              <select className="field" value={d.settings.prayer.collect.bed_id} onChange={(e) => setC({ bed_id: num(e.target.value) })}>
+                <option value={0}>{t('mod.programs.prayer.quiet')}</option>
+                {(beds.data?.items ?? [])
+                  .filter((b) => Number(b.active) === 1 || b.id === d.settings.prayer.collect.bed_id)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.title} · {clockDuration(b.duration_ms)}
+                    </option>
+                  ))}
               </select>
             </Field>
-            {d.settings.prayer.collect.with === 'music' ? (
-              <>
-                <Field label={t('mod.programs.prayer.music')} hint={beds.data?.items.length === 0 ? t('mod.programs.prayer.noMusic') : undefined}>
-                  <select className="field" value={d.settings.prayer.collect.bed_id} onChange={(e) => setC({ bed_id: num(e.target.value) })}>
-                    <option value={0}>{t('mod.programs.prayer.quiet')}</option>
-                    {(beds.data?.items ?? [])
-                      .filter((b) => Number(b.active) === 1 || b.id === d.settings.prayer.collect.bed_id)
-                      .map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.title} · {clockDuration(b.duration_ms)}
-                        </option>
-                      ))}
-                  </select>
-                </Field>
-                <Field label={t('mod.programs.prayer.minutes')}>
-                  <input type="number" min={3} max={20} className="field" value={d.settings.prayer.collect.minutes} onChange={(e) => setC({ minutes: num(e.target.value) })} />
-                </Field>
-              </>
-            ) : (
-              <Field label={t('mod.programs.prayer.songs')}>
-                <input type="number" min={1} max={5} className="field" value={d.settings.prayer.collect.songs} onChange={(e) => setC({ songs: num(e.target.value) })} />
-              </Field>
-            )}
+            <Field label={t('mod.programs.prayer.minutes')}>
+              <input type="number" min={3} max={20} className="field" value={d.settings.prayer.collect.minutes} onChange={(e) => setC({ minutes: num(e.target.value) })} />
+            </Field>
             <Field label={t('mod.programs.prayer.quietMin')}>
               <input type="number" min={2} max={15} className="field" value={d.settings.prayer.quiet_min} onChange={(e) => setP({ quiet_min: num(e.target.value) })} />
             </Field>
@@ -358,6 +347,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
               <input type="number" min={0} max={5} className="field" value={d.settings.prayer.after_songs} onChange={(e) => setP({ after_songs: num(e.target.value) })} />
             </Field>
           </div>
+          <Check label={t('mod.programs.prayer.opendoors')} checked={d.settings.prayer.opendoors} onChange={(v) => setP({ opendoors: v })} />
           {program ? <OpeningPrayers programId={program.id} /> : <p className="text-xs text-ink-faint">{t('mod.programs.opening.saveFirst')}</p>}
         </div>
       )}

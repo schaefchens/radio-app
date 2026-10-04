@@ -6,11 +6,12 @@ import { useSheets } from '@/store/sheets';
 import { VideoRequestSheet } from '@/components/submit/VideoRequestSheet';
 import { PrayerSheet } from '@/components/submit/PrayerSheet';
 import { RecordSheet } from '@/components/submit/RecordSheet';
+import { PraySheet } from '@/components/submit/PraySheet';
 import { BookIcon, MicIcon, MusicIcon, PrayIcon } from '@/components/common/icons';
 
 type Tile = 'song' | 'story' | 'prayer' | 'preaching';
 
-/** The four submission sheets, mounted once, on Home (AppShell). */
+/** The submission sheets, mounted once, on Home (AppShell); a prayer hour's Pray sheet opens from the stage. */
 export function SubmitSheets() {
   const open = useSheets((s) => s.open);
   const recordKind = useSheets((s) => s.recordKind);
@@ -22,6 +23,7 @@ export function SubmitSheets() {
       <VideoRequestSheet kind="preaching" open={open === 'preaching'} onClose={close} />
       <PrayerSheet open={open === 'prayer'} onClose={close} onRecord={() => show('record', 'prayer')} />
       <RecordSheet open={open === 'record'} onClose={close} initialKind={recordKind} />
+      <PraySheet open={open === 'pray'} onClose={close} />
     </>
   );
 }

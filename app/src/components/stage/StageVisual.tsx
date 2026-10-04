@@ -1,13 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { Lang, Voice, WallEntry } from '@arche/shared';
+import type { Lang, SubmissionState, SubmissionType, Voice, WallEntry } from '@arche/shared';
 import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
 import { useSheets } from '@/store/sheets';
-import { NO_MARK, useReactions } from '@/store/reactions';
 import { countryName } from '@/lib/format';
-import { reactVoice } from '@/lib/radio';
-import { silentEntry } from '@/lib/prayerWall';
+import { entryText, wallPage } from '@/lib/prayerWall';
 import { visibleVoices, visibleWall } from '@/lib/blocking';
 import { useBlocks } from '@/store/blocks';
 import { useServerNow } from '@/components/home/useServerNow';
@@ -19,12 +17,14 @@ import { RadioIcon } from '@/components/common/icons';
  * a listener's recording, the moment of silence, community fly-ins. Captions
  * and fly-ins live here only — never over the YouTube player.
  *
- * In a prayer hour the wall comes onto the stage while no song plays (the
- * player is parked off screen then, so the stage may carry buttons): the
- * newest request and "Share a prayer request" during the collection, one
- * request at a time to pray along with in silent prayer, and the requests
- * the host is praying for. The compact stage of other pages has no sheets
- * to open, so no share button.
+ * In a prayer hour, while no song plays (the player is parked off screen
+ * then, so the stage may carry buttons), its prayer view: a few of the
+ * requests read out so far — or how many came in, during the collection —
+ * and the buttons for what the minute file says is taken now: "Pray" in the
+ * prayer time, "Share a prayer request" while requests are taken. A request
+ * read out shows on the stage as it is read; a listener's written prayer
+ * shows as theirs, never as the host's. The compact stage of other pages has
+ * no sheets to open, so no buttons.
  */
 export function StageVisual({ engine, compact = false }: { engine: EngineState; compact?: boolean }) {
   const { t, i18n } = useTranslation();
@@ -40,7 +40,8 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
   const blocked = useBlocks((s) => s.users);
   const hidden = useBlocks((s) => s.hidden);
   const wall = visibleWall(engine.wall, hidden);
-  const praying = prayerHour && engine.mode === 'host' ? wall.filter((e) => engine.praying.includes(e.id)) : [];
+  const onAir = engine.mode === 'host' ? wall.filter((e) => engine.praying.includes(e.id)) : [];
+  const hostKind = item?.type === 'host' ? item.kind : null;
 
   return (
     <div className="absolute inset-0 z-0 select-none">
@@ -48,8 +49,14 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
 
       {/* Before joining, the round play button has the stage to itself. */}
       <div className={clsx('absolute inset-0 flex flex-col items-center justify-center p-5 text-center', !engine.joined && 'invisible')}>
-        {engine.mode === 'host' && praying.length > 0 && <PrayingNow entries={praying} label={t('stage.prayingNow', { name: hostName })} />}
-        {engine.mode === 'host' && praying.length === 0 && (
+        {engine.mode === 'host' && onAir.length > 0 && <OnAir entries={onAir} label={t('stage.prayingNow')} lang={lang} />}
+        {engine.mode === 'host' && onAir.length === 0 && hostKind === 'intercession' && (
+          <div className="stage-prayer animate-fly-in">
+            <p className="eyebrow">{t('stage.listenerPrayer')}</p>
+            {engine.hostText && <p className="text-balance text-base leading-snug text-ink drop-shadow sm:text-xl">{engine.hostText}</p>}
+          </div>
+        )}
+        {engine.mode === 'host' && onAir.length === 0 && hostKind !== 'intercession' && (
           <HostMoment name={hostName} avatar={channel?.host.avatar ?? null} text={engine.hostText} label={t('stage.hostSpeaking', { name: hostName })} />
         )}
         {engine.mode === 'contrib' && item?.type === 'contrib' && (
@@ -60,15 +67,22 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
             </p>
           </div>
         )}
-        {engine.mode === 'bed' && item?.type === 'bed' && (
+        {(engine.mode === 'bed' || engine.mode === 'silence') && prayerHour && (
+          <PrayerView
+            eyebrow={engine.mode === 'bed' ? t('nowPlaying.bed') : null}
+            label={item && (item.type === 'bed' || item.type === 'silence') ? item.label[lang] : t('stage.silence')}
+            wall={wall}
+            collected={engine.collected}
+            submissions={engine.submissions}
+            compact={compact}
+            lang={lang}
+          />
+        )}
+        {engine.mode === 'bed' && !prayerHour && item?.type === 'bed' && (
           <div className="stage-prayer animate-fly-in">
             <p className="eyebrow">{t('nowPlaying.bed')}</p>
             {item.label[lang] && <p className="stage-prayer-title">{item.label[lang]}</p>}
-            {prayerHour && <Collecting wall={wall} share={!compact} />}
           </div>
-        )}
-        {engine.mode === 'silence' && prayerHour && (
-          <SilentPrayer label={item?.type === 'silence' ? item.label[lang] : t('stage.silence')} wall={wall} share={!compact} />
         )}
         {engine.mode === 'silence' && !prayerHour && (
           <div className="animate-fly-in">
@@ -107,55 +121,76 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
   );
 }
 
-/** The collection: the newest request flies in as it arrives (keyed by its id). */
-function Collecting({ wall, share }: { wall: WallEntry[]; share: boolean }) {
-  const entry = wall[0];
-  return (
-    <>
-      {share && <ShareButton />}
-      {entry && (
-        <div key={entry.id} className="stage-wall-entry animate-fly-in">
-          <p className="stage-wall-text">{entry.text}</p>
-        </div>
-      )}
-    </>
-  );
-}
+const taken = (s: SubmissionState | undefined): boolean => s === 'open' || s === 'closing';
 
 /**
- * Silent prayer: one request at a time, picked by the server clock so that
- * everyone prays for the same one; 🙏 prays along with it. The 60 s pieces
- * of silence render as one view: nothing here is keyed by the item.
+ * A prayer hour while nobody speaks — the collection's prayer music, the
+ * quiet of the prayer time: its label; a few of the requests read out so far,
+ * a page at a time and the same for everyone (what there is to pray for, not
+ * one request picked for them), or how many came in; and the buttons for
+ * what is taken now. The 60 s pieces render as one view: nothing here is
+ * keyed by the item.
  */
-function SilentPrayer({ label, wall, share }: { label: string; wall: WallEntry[]; share: boolean }) {
+function PrayerView({
+  eyebrow,
+  label,
+  wall,
+  collected,
+  submissions,
+  compact,
+  lang,
+}: {
+  eyebrow: string | null;
+  label: string;
+  wall: WallEntry[];
+  collected: number | null;
+  submissions: Partial<Record<SubmissionType, SubmissionState>>;
+  compact: boolean;
+  lang: Lang;
+}) {
+  const { t } = useTranslation();
   const now = useServerNow(1000);
-  const entry = silentEntry(wall, now);
+  const page = wallPage(wall, now, compact ? 1 : 3);
+  const pray = !compact && taken(submissions.intercession);
+  const share = !compact && taken(submissions.prayer);
   return (
     <div className="stage-prayer animate-fly-in">
       <div className="stage-prayer-ring mx-auto h-12 w-12 rounded-full border border-ink/30">
         <div className="h-full w-full animate-ring rounded-full border border-ink/40" />
       </div>
-      <p className="stage-prayer-title">{label}</p>
-      {entry ? (
-        <div key={entry.id} className="stage-wall-entry animate-fly-in">
-          <p className="stage-wall-text">{entry.text}</p>
-          <PrayAlong id={entry.id} />
+      {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+      {label && <p className="stage-prayer-title">{label}</p>}
+      {page.length > 0 ? (
+        <div className="stage-wall-page">
+          {page.map((e) => (
+            <div key={e.id} className="stage-wall-entry animate-fly-in">
+              {e.source && <p className="stage-wall-source">{e.source}</p>}
+              <p className="stage-wall-text">{entryText(e, lang)}</p>
+            </div>
+          ))}
         </div>
       ) : (
-        share && <ShareButton />
+        collected !== null && collected > 0 && <p className="stage-prayer-count">{t('stage.collected', { count: collected })}</p>
+      )}
+      {(pray || share) && (
+        <div className="stage-prayer-actions">
+          {pray && <PrayButton />}
+          {share && <ShareButton />}
+        </div>
       )}
     </div>
   );
 }
 
-/** The requests the host is praying for right now, instead of the long prayer text a phone's stage cannot hold. */
-function PrayingNow({ entries, label }: { entries: WallEntry[]; label: string }) {
+/** The request being read out right now, instead of the text a phone's stage cannot hold. */
+function OnAir({ entries, label, lang }: { entries: WallEntry[]; label: string; lang: Lang }) {
   return (
     <div className="stage-prayer animate-fly-in">
       <p className="eyebrow">{label}</p>
       {entries.slice(0, 2).map((e) => (
         <div key={e.id} className="stage-wall-entry">
-          <p className="stage-wall-text">{e.text}</p>
+          {e.source && <p className="stage-wall-source">{e.source}</p>}
+          <p className="stage-wall-text">{entryText(e, lang)}</p>
         </div>
       ))}
     </div>
@@ -172,15 +207,13 @@ function ShareButton() {
   );
 }
 
-/** 🙏 "I prayed": the same mark as on the wall card, so it stays pressed everywhere; counted once per device. */
-function PrayAlong({ id }: { id: string }) {
+/** The prayer time's main thing to do: a listener's own prayer, spoken first (the recorder), or written. */
+function PrayButton() {
   const { t } = useTranslation();
-  const markId = `voice:${id}`;
-  const pressed = useReactions((s) => (s.marks[markId] ?? NO_MARK).pray);
-  const toggle = useReactions((s) => s.toggle);
+  const show = useSheets((s) => s.show);
   return (
-    <button type="button" className="stage-pray" aria-pressed={pressed} onClick={() => toggle(markId, 'pray') && reactVoice(id, 'pray')}>
-      <span aria-hidden="true">🙏</span> {t('reactions.prayed')}
+    <button type="button" className="stage-prayer-share is-main" onClick={() => show('pray')}>
+      <span aria-hidden="true">🙏</span> {t('stage.pray')}
     </button>
   );
 }
