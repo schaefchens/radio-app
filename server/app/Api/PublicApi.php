@@ -208,6 +208,13 @@ final class PublicApi
         return ['submission' => $this->c->app->submissions()->submitPrayer($i, $this->c->channel(), $this->c->req->json())];
     }
 
+    /** A written prayer for a prayer hour's prayer time (a spoken one goes to /submissions/audio). */
+    public function submitIntercession(): array
+    {
+        $i = $this->c->requireIdentity();
+        return ['submission' => $this->c->app->submissions()->submitIntercession($i, $this->c->channel(), $this->c->req->json())];
+    }
+
     /** @param array<string,string> $a */
     public function reportWall(array $a): array
     {

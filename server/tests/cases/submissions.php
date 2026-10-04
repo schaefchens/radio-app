@@ -273,10 +273,12 @@ test('submissions: waiting typed prayers count towards a full queue', function (
     $block = $app->resolver()->blockAt($ch, TestKit::T0);
     $state = fn() => SubmissionWindow::states($app, $ch, $program, $block, TestKit::T0)['prayer'] ?? null;
     eq($state(), 'open', 'open with nothing waiting');
-    for ($i = 0; $i < 12; $i++) prayerRow($app, $ch);
-    eq($state(), 'closing', 'twelve waiting fill most of five minutes');
-    for ($i = 0; $i < 3; $i++) prayerRow($app, $ch);
-    eq($state(), 'closed', 'fifteen fill them');
+    // Each is read out by its length: 300 characters take about 27 seconds with the pause after it.
+    $long = fn() => prayerRow($app, $ch, ['text' => str_repeat('Pray for us. ', 23) . 'Amen.']);
+    for ($i = 0; $i < 9; $i++) $long();
+    eq($state(), 'closing', 'nine long ones waiting fill most of five minutes');
+    for ($i = 0; $i < 2; $i++) $long();
+    eq($state(), 'closed', 'eleven fill them');
 });
 
 test('submissions: the prayers the old code left "scheduled" are repaired once', function () {
@@ -444,4 +446,38 @@ test('submissions: the check judges the song, not the links in its video descrip
     check(str_contains($seen[1], "God's Not Dead"), 'the check sees which song it is');
     check(!preg_match('~https?://|www\.|@~', $seen[1]), 'but none of the links, handles or addresses');
     check(str_contains($seen[0], "uploader's text"), 'and the rules say whose text the description is');
+});
+
+test('submissions: a listener\'s prayer — written or spoken — needs the consent to air it, has limits of its own, is never on the wall, and shows in My submissions', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    prayerHour($app, 735);
+    ticks($app, 30);
+    $ch = TestKit::main($app);
+    $subs = $app->submissions();
+    $me = listener($app);
+    check(refuses(fn() => $subs->submitIntercession($me, $ch, ['text' => 'Lord, be with Anna.', 'name' => 'Ben']), 'consent_required'), 'only with the yes to air it word for word');
+    check(refuses(fn() => $subs->submitIntercession($me, $ch, ['text' => str_repeat('a', 401), 'consent_air' => '1']), 'too_long'), '400 characters at most');
+    $written = $subs->submitIntercession($me, $ch, ['text' => 'Lord, be with Anna and her family in these days.', 'name' => 'Ben', 'place' => 'Ulm', 'consent_air' => '1']);
+    eq([$written['type'], $written['status'], $written['title']], ['intercession', 'pending', 'Lord, be with Anna and her family in these days.'], 'checked first, and the sender sees what they wrote');
+    for ($i = 0; $i < 3; $i++) $subs->submitIntercession($me, $ch, ['text' => "Lord, hear us ($i).", 'consent_air' => '1']);
+    check(refuses(fn() => $subs->submitIntercession($me, $ch, ['text' => 'Lord, once more.', 'consent_air' => '1']), 'rate_limited'), 'four an hour');
+
+    $file = function (float $seconds): string {
+        $tmp = tempnam(sys_get_temp_dir(), 'rec');
+        copy(silentMp3($seconds), $tmp);
+        return $tmp;
+    };
+    check(refuses(fn() => $subs->submitAudio($me, $ch, ['type' => 'intercession', 'consent_air' => '1'], $file(63)), 'invalid_audio'), 'a spoken prayer is a minute at most');
+    $spoken = $subs->submitAudio($me, $ch, ['type' => 'intercession', 'name' => 'Ben', 'consent_air' => '1', 'consent_replay' => '1'], $file(30));
+    eq((int) $subs->byPublicId($spoken['id'])['consent_replay'], 0, 'a prayer is for its hour: never kept for replays');
+    $subs->submitAudio($me, $ch, ['type' => 'prayer', 'consent_air' => '1'], $file(20));
+    // The one refused for its length counted too: the limit comes before the file is opened.
+    $subs->submitAudio($me, $ch, ['type' => 'intercession', 'consent_air' => '1'], $file(20));
+    check(refuses(fn() => $subs->submitAudio($me, $ch, ['type' => 'intercession', 'consent_air' => '1'], $file(20)), 'rate_limited'), 'three spoken prayers an hour, besides a recorded request');
+    runJobs($app);
+    eq($subs->byPublicId($written['id'])['status'], 'approved', 'approved by the check');
+    $kinds = array_column($app->text()->calls, 'kind');
+    check(in_array('moderate_intercession', $kinds, true), 'judged as a prayer');
+    check(!in_array('p' . $written['id'], array_column($subs->wall('main'), 'id'), true), 'never on the prayer wall');
 });

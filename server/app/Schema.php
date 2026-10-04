@@ -508,6 +508,28 @@ final class Schema
             );
             CREATE INDEX IF NOT EXISTS erasures_created ON erasures(created);
             SQL,
+            // 10 — the prayer hour of listeners' prayers: its collection is N
+            // songs (0–3) and then prayer music, no longer one or the other.
+            // Every program carries the block (cleanSettings wrote it into
+            // music programs too, as "music, 2 songs": switched to a prayer
+            // hour later they must not play two songs). Only the old default
+            // of 8 minutes becomes the new 10. A prayer hour now also takes
+            // listeners' prayers (`intercession`). A new plan version: drafts
+            // made by the old order are planned again.
+            <<<'SQL'
+            UPDATE programs SET settings = json_set(settings, '$.prayer.collect.songs',
+                CASE WHEN json_extract(settings, '$.prayer.collect.with') = 'songs'
+                     THEN MIN(3, MAX(0, COALESCE(json_extract(settings, '$.prayer.collect.songs'), 0))) ELSE 0 END)
+              WHERE json_valid(settings) AND json_type(settings, '$.prayer.collect') = 'object';
+            UPDATE programs SET settings = json_remove(settings, '$.prayer.collect.with')
+              WHERE json_valid(settings) AND json_type(settings, '$.prayer.collect.with') IS NOT NULL;
+            UPDATE programs SET settings = json_set(settings, '$.prayer.collect.minutes', 10)
+              WHERE json_valid(settings) AND json_extract(settings, '$.prayer.collect.minutes') = 8;
+            UPDATE programs SET allowed = '["prayer","intercession"]'
+              WHERE json_valid(settings) AND json_extract(settings, '$.format') = 'prayer';
+            INSERT INTO kv(key, value) VALUES('plan_version', '1')
+              ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT);
+            SQL,
         ];
     }
 }

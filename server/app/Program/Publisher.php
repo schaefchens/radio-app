@@ -165,6 +165,9 @@ final class Publisher
             'blocked' => $this->blocked((int) $channel['id']),
             'pulse' => $this->app->config->int('PULSE_SECONDS', 120),
         ];
+        // A prayer hour's collection shows how many requests came in, not what they say.
+        $collected = $this->app->submissions()->collected($slug);
+        if ($collected !== null) $live['collected'] = $collected;
         Files::write($this->app->publicPath("program/$slug/live.json"), Files::json($live));
     }
 
@@ -203,9 +206,13 @@ final class Publisher
                 $played[] = [
                     'start' => (int) $it['start_ms'],
                     'type' => (string) $it['type'],
-                    'title' => $it['type'] === 'song'
-                        ? (string) ($p['title'] ?? '')
-                        : trim(($p['name'] ?? '') . (($p['place'] ?? '') !== '' ? ', ' . $p['place'] : '')),
+                    // Who prayed, or asked for prayer, is not kept for two months
+                    // for anyone to read (it can reveal faith or health).
+                    'title' => match (true) {
+                        $it['type'] === 'song' => (string) ($p['title'] ?? ''),
+                        ($p['kind'] ?? '') === 'prayer' => '',
+                        default => trim(($p['name'] ?? '') . (($p['place'] ?? '') !== '' ? ', ' . $p['place'] : '')),
+                    },
                     'artist' => $it['type'] === 'song' ? (string) ($p['artist'] ?? '') : '',
                     'thumb' => $it['type'] === 'song' ? ($p['thumb'] ?? null) : null,
                     'p' => $program !== null ? (string) $program['slug'] : '',

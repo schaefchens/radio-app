@@ -38,7 +38,9 @@ final class Submissions
     public const REASONS = ['not_program_fit', 'not_suitable', 'not_accepted'];
     /** Handed in as a YouTube link; approved, they join the library (a preaching as kind `preaching`). */
     public const VIDEO_TYPES = ['song', 'preaching'];
-    private const AUDIO_TYPES = ['story', 'testimony', 'greeting', 'prayer'];
+    private const AUDIO_TYPES = ['story', 'testimony', 'greeting', 'prayer', 'intercession'];
+    /** Prayers a listener sends in a prayer hour's prayer time, written or spoken, aired as they are. */
+    public const INTERCESSION = 'intercession';
 
     public function __construct(private App $app) {}
 
@@ -160,11 +162,17 @@ final class Submissions
         if (!in_array($type, self::AUDIO_TYPES, true)) throw new ApiError(422, 'bad_type');
         if (empty($in['consent_air'])) throw new ApiError(422, 'consent_required');
         ['program' => $program, 'block' => $block] = $this->openProgram($channel, $type);
-        $this->limit($identity, 'audio', 2, 4);
+        // A prayer in the prayer time has a bucket of its own: one who recorded
+        // a request may still pray for others.
+        $type === self::INTERCESSION ? $this->limit($identity, 'audio-intercession', 3, 6) : $this->limit($identity, 'audio', 2, 4);
 
         if (!is_file($tmpFile) || filesize($tmpFile) > 4_000_000) throw new ApiError(422, 'invalid_audio');
         $check = Mp3::inspect($tmpFile);
-        $max = ($type === 'greeting' ? $this->app->config->int('GREETING_MAX_SECONDS', 60) : $this->app->config->int('AUDIO_MAX_SECONDS', 90)) * 1000;
+        $max = match ($type) {
+            'greeting' => $this->app->config->int('GREETING_MAX_SECONDS', 60),
+            self::INTERCESSION => $this->app->config->int('PRAYER_MAX_SECONDS', 60),
+            default => $this->app->config->int('AUDIO_MAX_SECONDS', 90),
+        } * 1000;
         if (!$check['ok'] || $check['ms'] < 3000 || $check['ms'] > $max + 1500) throw new ApiError(422, 'invalid_audio');
 
         $publicId = Ids::short(12);
@@ -183,7 +191,8 @@ final class Submissions
             'upload' => basename($upload),
             'audio_ms' => $check['ms'],
             'consent_air' => 1,
-            'consent_replay' => empty($in['consent_replay']) ? 0 : 1,
+            // A prayer is for its hour: never kept for replays.
+            'consent_replay' => empty($in['consent_replay']) || $type === self::INTERCESSION ? 0 : 1,
         ]);
         return $this->publicView($row);
     }
@@ -209,6 +218,35 @@ final class Submissions
             'lang' => ($in['lang'] ?? '') === 'de' ? 'de' : 'en',
             // Shown on the prayer wall (text and day only) only with consent.
             'consent_air' => empty($in['consent_air']) ? 0 : 1,
+        ]);
+        return $this->publicView($row);
+    }
+
+    /**
+     * A written prayer for a prayer hour's prayer time: read out on air word
+     * for word, with first name and place — which the sender agrees to
+     * (consent_air). Never on the prayer wall.
+     *
+     * @param array<string,mixed> $identity
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $in text, name, place, lang, consent_air
+     * @return array<string,mixed>
+     */
+    public function submitIntercession(array $identity, array $channel, array $in): array
+    {
+        if ($identity['banned']) throw new ApiError(403, 'banned');
+        $text = self::text($in['text'] ?? '', 400);
+        if (mb_strlen($text) < 5) throw new ApiError(422, 'too_short');
+        if (empty($in['consent_air'])) throw new ApiError(422, 'consent_required');
+        ['program' => $program, 'block' => $block] = $this->openProgram($channel, self::INTERCESSION);
+        $this->limit($identity, self::INTERCESSION, 4, 8);
+        $row = $this->insert($identity, $channel, $program, $block, self::INTERCESSION, [
+            'mode' => 'text',
+            'text' => $text,
+            'name' => self::text($in['name'] ?? '', 30),
+            'place' => self::text($in['place'] ?? '', 40),
+            'lang' => ($in['lang'] ?? '') === 'de' ? 'de' : 'en',
+            'consent_air' => 1,
         ]);
         return $this->publicView($row);
     }
@@ -428,7 +466,8 @@ final class Submissions
     /**
      * Approved songs and recordings waiting for this program, longest-waiting
      * first. Text prayers go through takePrayers(), preachings through
-     * waitingPreachings().
+     * waitingPreachings(), a prayer hour's requests and prayers through
+     * takeNext().
      *
      * @param array<string,mixed> $channel
      * @param array<string,mixed> $program
@@ -438,7 +477,7 @@ final class Submissions
     {
         return $this->app->store()->all(
             "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved'
-             AND NOT (type = 'prayer' AND mode = 'text') AND type != 'preaching' ORDER BY created, id LIMIT ?",
+             AND NOT (type = 'prayer' AND mode = 'text') AND type NOT IN ('preaching', 'intercession') ORDER BY created, id LIMIT ?",
             [(int) $channel['id'], (int) $program['id'], $limit],
         );
     }
@@ -474,14 +513,20 @@ final class Submissions
 
     /**
      * Where the plan could place something approved now: requests go to the
-     * end of the drafts, which reach DRAFT ahead — or further, when the last
-     * item runs past that.
+     * end of the drafts, which reach DRAFT ahead (a prayer hour's only
+     * PRAYER_LEAD) — or further, when the last item runs past that.
      */
-    private function reach(int $channelId): int
+    private function reach(int $channelId, int $lead = Timing::DRAFT): int
     {
         $tail = $this->app->timeline()->tail($channelId);
         $end = $tail === null ? 0 : ($tail['start_ms'] ?? $tail['est_start']) + $tail['dur_ms'];
-        return max($this->app->clock->nowMs() + Timing::DRAFT, $end);
+        return max($this->app->clock->nowMs() + $lead, $end);
+    }
+
+    /** How long a request or prayer takes on air: read out by its length, or its recording; a few seconds of quiet after. @param array<string,mixed> $sub */
+    public static function airtime(array $sub): int
+    {
+        return $sub['mode'] === 'audio' ? (int) $sub['audio_ms'] + Timing::PRAYER_GAP : Timing::readingEstimate(mb_strlen((string) $sub['text']));
     }
 
     /**
@@ -499,9 +544,9 @@ final class Submissions
         $block = $this->app->resolver()->blockAt($channel, $end - 1);
         if ($block['program_id'] === (int) $sub['program_id']) {
             $program = $this->app->catalog()->program((int) $sub['program_id']);
-            // A prayer hour prays until its outro, a moment at a time.
+            // A prayer hour reads and plays what listeners sent until its outro, planned PRAYER_LEAD ahead.
             if (PrayerHour::applies($program)) {
-                return $this->app->prayerHour()->closingAt($channel, $program, $end - 1) - Timing::momentEstimate(1) >= $this->reach((int) $channel['id']);
+                return $this->app->prayerHour()->closingAt($channel, $program, $end - 1) - self::airtime($sub) >= $this->reach((int) $channel['id'], Timing::PRAYER_LEAD);
             }
             $end = max($end, $block['end']);
         }
@@ -569,6 +614,59 @@ final class Submissions
         return $ids;
     }
 
+    /**
+     * How many typed requests for this program wait to be read out: approved,
+     * sent by $until, not taken off the wall, not tried MAX_TRIES times. The
+     * prayer hour presents them, when there are any.
+     *
+     * @param array<int,int> $tries submission id → readings tried this run
+     */
+    public function waitingRequests(int $channelId, int $programId, int $until, array $tries, int $maxTries): int
+    {
+        $n = 0;
+        foreach ($this->app->store()->all(
+            "SELECT id FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved' AND type = 'prayer' AND mode = 'text'
+             AND hidden = 0 AND created <= ?",
+            [$channelId, $programId, intdiv($until, 1000)],
+        ) as $r) {
+            if (($tries[(int) $r['id']] ?? 0) < $maxTries) $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * A prayer hour's next words to air, claimed (schedule()) — the oldest
+     * approved typed request sent by $until (the presentation), or with
+     * $until null (the prayer time) the oldest request or prayer, written or
+     * spoken. Skipped: what is taken off the wall, what was tried $maxTries
+     * times this run, what no longer fits into $roomMs, text without a voice
+     * to read it ($voice false); a recording that went is missed.
+     *
+     * @param array<int,int> $tries submission id → readings tried this run
+     * @return array<string,mixed>|null the claimed row
+     */
+    public function takeNext(array $channel, array $program, ?int $until, array $tries, int $maxTries, int $roomMs, bool $voice): ?array
+    {
+        $rows = $this->app->store()->all(
+            "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved' AND hidden = 0 AND "
+            . ($until !== null ? "type = 'prayer' AND mode = 'text' AND created <= ?" : "type IN ('prayer', 'intercession')")
+            . ' ORDER BY created, id LIMIT 30',
+            $until !== null ? [(int) $channel['id'], (int) $program['id'], intdiv($until, 1000)] : [(int) $channel['id'], (int) $program['id']],
+        );
+        foreach ($rows as $sub) {
+            if (($tries[(int) $sub['id']] ?? 0) >= $maxTries) continue;
+            $audio = $sub['mode'] === 'audio';
+            if (!$audio && !$voice) continue;
+            if ($audio && (string) ($sub['audio'] ?? '') === '') {
+                $this->markMissed((int) $sub['id']);
+                continue;
+            }
+            if (self::airtime($sub) > $roomMs) continue;
+            if ($this->schedule((int) $sub['id'])) return $sub;
+        }
+        return null;
+    }
+
     public function markScheduled(int $id, int $startMs): void
     {
         $this->app->store()->update('submissions', ['status' => 'scheduled', 'aired_at' => $startMs, 'updated' => $this->app->clock->now()], 'id = ?', [$id]);
@@ -629,13 +727,15 @@ final class Submissions
              AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
             [$channelId, $programId, $this->app->clock->nowMs()],
         );
-        // Typed prayers take airtime too: a flood of them must close intake.
-        $prayers = (int) $store->value(
-            "SELECT COUNT(*) FROM submissions WHERE channel_id = ? AND program_id = ? AND type = 'prayer' AND mode = 'text'
+        // Typed requests and prayers take airtime too, read out by their
+        // length (Timing::readingEstimate): a flood of them must close intake.
+        $texts = (int) $store->value(
+            "SELECT COALESCE(SUM(MAX(8000, 2000 + LENGTH(text) * 1000 / 14 + ?)), 0) FROM submissions
+             WHERE channel_id = ? AND program_id = ? AND type IN ('prayer', 'intercession') AND mode = 'text'
              AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
-            [$channelId, $programId, $this->app->clock->nowMs()],
+            [Timing::PRAYER_GAP, $channelId, $programId, $this->app->clock->nowMs()],
         );
-        return $songs + $audio + $prayers * Timing::PRAYER_EACH;
+        return $songs + $audio + $texts;
     }
 
     public function markAired(): int
@@ -667,23 +767,73 @@ final class Submissions
      * The id is the one community voices used for prayers ('p' + public id),
      * so the app's reactions on a wall entry keep their shape.
      *
-     * While a prayer hour is on air, its wall: the requests sent to it, up to
-     * 60 — what the host reads and takes up again. Then the newest 30 of all
-     * programs again, with the hour's on top.
+     * While a prayer hour is on air, its wall: the requests sent to it as
+     * they are read out — each from the start of its reading (`from`, which
+     * the app waits for: live.json is fetched every half minute), up to 60.
+     * Then the newest 30 of all programs again, with the hour's on top. A
+     * request of the station's own (Open Doors) says so (`source`) and may
+     * carry its translation (`texts`).
      *
-     * @return list<array{id:string,text:string,at:int}>
+     * @return list<array{id:string,text:string,at:int,from?:int,source?:string,texts?:array<string,string>}>
      */
     public function wall(string $channel, int $limit = 30): array
     {
         $hour = $this->hourOnAir($channel);
         $rows = $this->app->store()->all(
-            "SELECT s.public_id, s.text, s.created FROM submissions s JOIN channels c ON c.id = s.channel_id
-             WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.hidden = 0
-             AND s.status IN ('approved', 'scheduled', 'aired')" . ($hour !== null ? ' AND s.program_id = ? AND s.created >= ?' : '') . "
-             ORDER BY s.created DESC, s.id DESC LIMIT ?",
-            $hour !== null ? [$channel, $hour['program_id'], intdiv($hour['start'], 1000), 60] : [$channel, $limit],
+            "SELECT s.public_id, s.text, s.created, s.aired_at, s.place, s.meta FROM submissions s JOIN channels c ON c.id = s.channel_id
+             WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.hidden = 0 AND "
+            . ($hour !== null
+                ? "s.status IN ('scheduled', 'aired') AND s.aired_at IS NOT NULL AND s.aired_at <= ? AND s.program_id = ? AND s.created >= ?
+                   ORDER BY s.aired_at DESC, s.id DESC LIMIT 60"
+                : "s.status IN ('approved', 'scheduled', 'aired') ORDER BY s.created DESC, s.id DESC LIMIT ?"),
+            $hour !== null ? [$channel, $this->app->clock->nowMs() + Timing::LEAD, $hour['program_id'], intdiv($hour['start'], 1000)] : [$channel, $limit],
         );
-        return array_map(fn($r) => ['id' => 'p' . $r['public_id'], 'text' => (string) $r['text'], 'at' => (int) $r['created'] * 1000], $rows);
+        return array_map(function (array $r) use ($hour): array {
+            $entry = ['id' => 'p' . $r['public_id'], 'text' => (string) $r['text'], 'at' => (int) $r['created'] * 1000];
+            if ($hour !== null) $entry['from'] = (int) $r['aired_at'];
+            $meta = json_decode((string) $r['meta'], true) ?: [];
+            if (($meta['source'] ?? '') === 'opendoors') {
+                $entry['source'] = 'Open Doors' . (trim((string) $r['place']) !== '' ? ' · ' . trim((string) $r['place']) : '');
+                if (trim((string) ($meta['text_en'] ?? '')) !== '') $entry['texts'] = ['en' => trim((string) $meta['text_en'])];
+            }
+            return $entry;
+        }, $rows);
+    }
+
+    /**
+     * How many requests the prayer hour on air has received that are not yet
+     * read out (the collection shows the number, not the requests): approved,
+     * or planned and not yet on air. The station's own does not count. Null
+     * when no prayer hour is on air.
+     */
+    public function collected(string $channel): ?int
+    {
+        $hour = $this->hourOnAir($channel);
+        if ($hour === null) return null;
+        return (int) $this->app->store()->value(
+            "SELECT COUNT(*) FROM submissions s JOIN channels c ON c.id = s.channel_id
+             WHERE c.slug = ? AND s.program_id = ? AND s.created >= ? AND s.type = 'prayer'
+             AND (s.status = 'approved' OR (s.status = 'scheduled' AND (s.aired_at IS NULL OR s.aired_at > ?)))
+             AND (CASE WHEN json_valid(s.meta) THEN json_extract(s.meta, '$.source') END) IS NULL",
+            [$channel, $hour['program_id'], intdiv($hour['start'], 1000), $this->app->clock->nowMs()],
+        );
+    }
+
+    /**
+     * Whether a wall may show this request now: on the wall (a typed prayer,
+     * its sender's yes, not taken down), accepted — and in a prayer hour on
+     * air, once it is read out. Only then can it be prayed along with or
+     * reported.
+     *
+     * @param array<string,mixed> $s
+     */
+    public function shownOnWall(array $s): bool
+    {
+        if (!self::onWall($s) || !in_array($s['status'], ['approved', 'scheduled', 'aired'], true)) return false;
+        $channel = $this->app->catalog()->channel((int) $s['channel_id']);
+        $hour = $channel !== null ? $this->hourOnAir((string) $channel['slug']) : null;
+        if ($hour === null || (int) $s['program_id'] !== $hour['program_id'] || (int) $s['created'] < intdiv($hour['start'], 1000)) return true;
+        return $s['aired_at'] !== null && (int) $s['aired_at'] <= $this->app->clock->nowMs() + Timing::LEAD;
     }
 
     /** The prayer hour on air on this channel now, as its run. @return array{start:int,end:int,program_id:int}|null */
@@ -710,7 +860,7 @@ final class Submissions
     public function prayAlong(string $publicId, string $deviceId): bool
     {
         $sub = $this->byPublicId($publicId);
-        if ($sub === null || !self::onWall($sub) || !in_array($sub['status'], ['approved', 'scheduled', 'aired'], true)) return false;
+        if ($sub === null || !$this->shownOnWall($sub)) return false;
         $store = $this->app->store();
         $who = $this->app->identities()->prayKey($deviceId, (int) $sub['id']);
         if ($store->value('SELECT 1 FROM prayed_along WHERE submission_id = ? AND who = ?', [(int) $sub['id'], $who]) !== null) return false;
@@ -811,7 +961,7 @@ final class Submissions
             'mode' => (string) $s['mode'],
             'status' => $status,
             'reason' => $status === 'rejected' ? ((string) $s['reason'] ?: 'not_accepted') : null,
-            'title' => (string) ($meta['youtube']['title'] ?? ($s['type'] === 'prayer' && $s['mode'] === 'text' ? mb_substr((string) $s['text'], 0, 60) : '')),
+            'title' => (string) ($meta['youtube']['title'] ?? (in_array($s['type'], ['prayer', self::INTERCESSION], true) && $s['mode'] === 'text' ? mb_substr((string) $s['text'], 0, 60) : '')),
             'airsAt' => $status === 'scheduled' && $s['aired_at'] !== null ? (int) $s['aired_at'] : null,
             'airedAt' => $status === 'aired' ? (int) $s['aired_at'] : null,
             'created' => (int) $s['created'] * 1000,

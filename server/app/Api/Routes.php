@@ -38,6 +38,7 @@ final class Routes
         $r->add('POST', '/submissions/preaching', $p('submitPreaching'));
         $r->add('POST', '/submissions/audio', $p('submitAudio'));
         $r->add('POST', '/submissions/prayer', $p('submitPrayer'));
+        $r->add('POST', '/submissions/intercession', $p('submitIntercession'));
         $r->add('POST', '/wall/{id}/report', $p('reportWall'));
         $r->add('POST', '/voices/{id}/report', $p('reportVoice'));
         $r->add('POST', '/realtime/wake', $p('wake'));

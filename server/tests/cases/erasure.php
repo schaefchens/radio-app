@@ -421,3 +421,35 @@ test('erasure: the sweep also scrubs a reaction and a quoted voice written back 
     eq($get($quote)['texts'], [], 'the quote');
     eq([$get($unused)['texts']['en'], array_column($get($unused)['context']['community'], 'name'), $get($unused)['context']['community_by']], ['Pia says Hallelujah.', ['Pia'], ['other']], 'a script that does not use it keeps its words; the voice leaves its context');
 });
+
+test('erasure: a listener\'s prayers leave the prayer hour — a written one still planned, a spoken one on air', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    prayerHour($app, 735);
+    ticks($app, 30);
+    [$h, $ben] = account($app, 'Ben');
+    $ch = TestKit::main($app);
+    $tmp = tempnam(sys_get_temp_dir(), 'rec');
+    copy(dirname(__DIR__, 2) . '/resources/stub-voice.mp3', $tmp);
+    $spoken = $app->submissions()->submitAudio($ben, $ch, ['type' => 'intercession', 'name' => 'Ben', 'place' => 'Ulm', 'consent_air' => '1'], $tmp);
+    runJobs($app);
+    $spokenId = (int) $app->submissions()->byPublicId($spoken['id'])['id'];
+    $onAir = null;
+    for ($m = 0; $m < 12 && $onAir === null; $m++) {
+        ticks($app, 1);
+        $onAir = $app->store()->one("SELECT * FROM timeline_items WHERE submission_id = ? AND state = 'committed'", [$spokenId]);
+    }
+    check($onAir !== null, 'the spoken prayer is in the fixed timeline');
+    $written = $app->submissions()->submitIntercession($ben, $ch, ['text' => 'Lord, comfort my sister in hospital.', 'name' => 'Ben', 'place' => 'Ulm', 'consent_air' => '1']);
+    runJobs($app);
+    $writtenId = (int) $app->submissions()->byPublicId($written['id'])['id'];
+    $reading = readingFor($app, $writtenId);
+
+    eq(call($app, 'DELETE', '/api/me', [], $h)[0], 200, 'Ben deletes his account');
+    eq($app->store()->value('SELECT state FROM timeline_items WHERE host_break_id = ?', [$reading]), 'dropped', 'the written prayer leaves the plan');
+    $row = $app->store()->one('SELECT * FROM timeline_items WHERE id = ?', [(int) $onAir['id']]) ?? [];
+    $payload = json_decode((string) $row['payload'], true);
+    eq([(int) $row['blocked'], $payload['name'], $payload['audio']], [1, '', ''], 'the spoken one is pulled from air, its name and recording gone');
+    check(!str_contains((string) json_encode($app->store()->all('SELECT context, texts FROM host_breaks')), 'sister in hospital'), 'his words are in no script');
+    eq($app->store()->value('SELECT COUNT(*) FROM submissions WHERE identity_id = ?', [(int) $ben['id']]), 0, 'and his prayers are gone');
+});

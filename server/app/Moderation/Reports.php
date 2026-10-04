@@ -32,7 +32,8 @@ final class Reports
         $subs = $this->app->submissions();
         // The wall's ids are 'p' + the request's public id (Submissions::wall).
         $sub = $subs->byPublicId(str_starts_with($wallId, 'p') ? substr($wallId, 1) : $wallId);
-        if ($sub === null || !Submissions::onWall($sub) || !in_array($sub['status'], ['approved', 'scheduled', 'aired'], true)) {
+        // Only what a wall shows now (in a prayer hour: once it is read out).
+        if ($sub === null || !$subs->shownOnWall($sub)) {
             throw new ApiError(404, 'not_found');
         }
         $store = $this->app->store();

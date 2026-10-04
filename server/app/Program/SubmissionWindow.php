@@ -10,7 +10,9 @@ use Arche\App;
  * PWA which buttons to offer. A submission can only air inside its program's
  * block, and only after moderation plus the plan ahead (Timing::DRAFT), so
  * intake closes `closed_min` before the block ends (and when the approved
- * queue already holds `max_queue_min` of airtime).
+ * queue already holds `max_queue_min` of airtime). A prayer hour takes
+ * prayers only in its prayer time — from the host's announcement until
+ * shortly before its outro.
  */
 final class SubmissionWindow
 {
@@ -18,16 +20,18 @@ final class SubmissionWindow
      * @param array<string,mixed> $channel
      * @param array<string,mixed> $program decoded program on air at $t
      * @param array{start:int,end:int,program_id:int} $block
+     * @param ?int $assumePrayerFrom when the prayer time begins, for the announcement's own script (still a draft then)
      * @return array<string,string>|\stdClass
      */
-    public static function states(App $app, array $channel, array $program, array $block, int $t): array|\stdClass
+    public static function states(App $app, array $channel, array $program, array $block, int $t, ?int $assumePrayerFrom = null): array|\stdClass
     {
         $allowed = array_values(array_filter($program['allowed'], fn($type) => self::featureOn($app, $type)));
         if (!$allowed) return new \stdClass();
 
         $s = $program['settings'];
-        // A prayer hour prays until its outro; the songs after it take no requests.
-        $end = PrayerHour::applies($program) ? $app->prayerHour()->closingAt($channel, $program, $t) : $block['end'];
+        // A prayer hour takes requests until its outro; the songs after it take none.
+        $prayerHour = PrayerHour::applies($program);
+        $end = $prayerHour ? $app->prayerHour()->closingAt($channel, $program, $t) : $block['end'];
         $remainingMin = intdiv(max(0, $end - $t), 60_000);
         $queueMin = intdiv($app->submissions()->queuedAirtime((int) $channel['id'], (int) $program['id']), 60_000);
         $maxQueue = max(1, (int) $s['max_queue_min']);
@@ -39,7 +43,21 @@ final class SubmissionWindow
         } else {
             $state = 'open';
         }
-        return array_fill_keys($allowed, $state);
+        $states = array_fill_keys($allowed, $state);
+        if ($prayerHour && isset($states['intercession'])) {
+            // Prayers from the announcement of the prayer time on — once it
+            // is committed (PrayerHour::prayerTimeFrom), so the minute files
+            // and the check at submit time agree — until there is no longer
+            // time to read them before the outro.
+            $from = $assumePrayerFrom ?? $app->prayerHour()->prayerTimeFrom($channel, $program, $t);
+            $left = $end - $t;
+            $states['intercession'] = match (true) {
+                $from === null || $from > $t, $left < Timing::PRAYER_CLOSED, $queueMin >= $maxQueue => 'closed',
+                $left < Timing::PRAYER_CLOSING, $queueMin * 10 >= $maxQueue * 7 => 'closing',
+                default => 'open',
+            };
+        }
+        return $states;
     }
 
     /**
@@ -56,6 +74,8 @@ final class SubmissionWindow
         return match ($type) {
             'song', 'preaching' => $app->youtube()->configured(),
             'prayer' => true,
+            // Read out in the host's voice, or a recording to transcribe.
+            'intercession' => $app->hostBreaks()->available() && $c->openaiKey() !== '',
             default => $c->openaiKey() !== '',
         };
     }

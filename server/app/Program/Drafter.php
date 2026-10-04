@@ -459,33 +459,6 @@ final class Drafter
     }
 
     /**
-     * A recording waiting for this program (in a prayer hour: a recorded
-     * prayer request) as a unit — the host's introduction and the recording —
-     * if it fits into $roomMs. Null when none waits or fits.
-     *
-     * @param array<string,mixed> $base
-     * @return array{0:int,1:int}|null
-     */
-    public function addRecording(array $channel, array $program, int $cursor, array $base, bool $hostOn, int $roomMs): ?array
-    {
-        return $this->app->store()->tx(function () use ($channel, $program, $cursor, $base, $hostOn, $roomMs): ?array {
-            $subs = $this->app->submissions();
-            foreach ($subs->waiting($channel, $program, Timing::BLOCK_MAX) as $sub) {
-                if ($sub['mode'] !== 'audio') continue;
-                $unit = $this->unitOf($sub);
-                if ($unit === null) {
-                    $subs->markMissed((int) $sub['id']);
-                    continue;
-                }
-                if ($unit['dur_ms'] + ($hostOn ? Timing::HOST_ESTIMATE : 0) > $roomMs) return null;
-                if (!$subs->schedule((int) $sub['id'])) continue;
-                return $this->addUnit($channel, $program, $unit, $cursor, $base, $hostOn);
-            }
-            return null;
-        });
-    }
-
-    /**
      * What a submission airs as, or null when it cannot air any more (its
      * song or preaching was removed from the library or switched off).
      *

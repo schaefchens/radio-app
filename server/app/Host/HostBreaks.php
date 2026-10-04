@@ -329,13 +329,14 @@ final class HostBreaks
         $owed = $theirs || in_array($hb['kind'], ['announce', 'contrib'], true)
             // Outside a prayer hour the invitation after requests read out; in it, a moment with requests.
             || ($hb['kind'] === 'prayer' && (self::prayerIds($hb) !== [] || !$prayerHour))
-            || (in_array($hb['kind'], ['intro', 'invite'], true) && $prayerHour);
+            || (in_array($hb['kind'], ['intro', 'invite', 'present', 'prayertime'], true) && $prayerHour);
         // A listener who handed something in gets it read out, announced or
         // presented even when they are the only one listening. A prayer hour's
-        // welcome and invitation are written about eight minutes before the
-        // hour, before its listeners tune in: gated, the hour opened without
-        // them for everyone who came on time. Everything else — breaks, a
-        // moment for everyone, the outro — needs an audience.
+        // welcome is written about eight minutes before the hour, before its
+        // listeners tune in: gated, the hour opened without them for everyone
+        // who came on time — and its order (the requests presented, the prayer
+        // time opened) must not depend on who happens to listen. Everything
+        // else — breaks, an encouragement, the outro — needs an audience.
         if (!$owed && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
         // The daily cap is for the host's own words: a reading costs one voice
         // call, and someone sent it — it is neither stopped nor counted.

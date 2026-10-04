@@ -16,7 +16,7 @@ use Arche\App;
  */
 final class Catalog
 {
-    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching'];
+    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching', 'intercession'];
     public const STAGE_MODES = ['image', 'ambient', 'flyins'];
     public const FORMATS = ['music', 'prayer', 'preaching'];
 
@@ -38,12 +38,15 @@ final class Catalog
         // of music with the host between songs.
         'format' => 'music',
         'prayer' => [
-            // The collection: prayer music (a `bed` from the library) for N
-            // minutes, or N songs, while listeners send their requests.
-            'collect' => ['with' => 'music', 'minutes' => 8, 'songs' => 2, 'bed_id' => 0],
-            // Quiet minutes in the prayer time before the host prays again.
+            // The collection, while listeners send their requests: N songs,
+            // then prayer music (a `bed` from the library) until it has
+            // lasted N minutes.
+            'collect' => ['songs' => 0, 'minutes' => 10, 'bed_id' => 0],
+            // Quiet minutes in the prayer time before the host encourages listeners again.
             'quiet_min' => 4,
             'after_songs' => 0,
+            // Open Doors' daily prayer request for persecuted Christians, read first.
+            'opendoors' => true,
         ],
         'preaching' => [
             // Regular songs after a preaching before the next one may start.
@@ -210,17 +213,20 @@ final class Catalog
             ? (string) json_decode($row['settings'], true)['format']
             : (string) ($id !== null ? ($this->program($id)['settings']['format'] ?? 'music') : 'music');
         if ($format === 'prayer') {
-            // A prayer hour takes prayer requests only (typed or recorded) …
-            $row['allowed'] = json_encode(['prayer']);
+            // A prayer hour takes prayer requests (typed or recorded) and, in
+            // its prayer time, listeners' prayers — nothing else …
+            $row['allowed'] = json_encode(['prayer', 'intercession']);
             // … and cannot fill a plan's gaps: its running order needs an end.
             if ($id !== null && $this->app->store()->value('SELECT COUNT(*) FROM channels WHERE fallback_program_id = ?', [$id]) > 0) {
                 throw new ApiError(422, 'prayer_fallback');
             }
-        } elseif ($format !== 'preaching') {
-            // Only a preaching program plays preachings: a suggestion sent to
-            // any other would wait for a moment that never comes.
+        } else {
+            // Only a preaching program plays preachings, only a prayer hour
+            // has a prayer time: sent to any other, they would wait for a
+            // moment that never comes.
             $allowed = isset($row['allowed']) ? (array) json_decode($row['allowed'], true) : ($id !== null ? ($this->program($id)['allowed'] ?? []) : []);
-            if (in_array('preaching', $allowed, true)) $row['allowed'] = json_encode(array_values(array_diff($allowed, ['preaching'])));
+            $drop = $format === 'preaching' ? ['intercession'] : ['preaching', 'intercession'];
+            if (array_intersect($allowed, $drop)) $row['allowed'] = json_encode(array_values(array_diff($allowed, $drop)));
         }
 
         $now = $this->app->clock->now();
@@ -283,13 +289,13 @@ final class Catalog
             'format' => in_array($s['format'], self::FORMATS, true) ? $s['format'] : 'music',
             'prayer' => [
                 'collect' => [
-                    'with' => ($collect['with'] ?? 'music') === 'songs' ? 'songs' : 'music',
-                    'minutes' => max(3, min(20, (int) ($collect['minutes'] ?? 8))),
-                    'songs' => max(1, min(5, (int) ($collect['songs'] ?? 2))),
+                    'songs' => max(0, min(3, (int) ($collect['songs'] ?? 0))),
+                    'minutes' => max(3, min(20, (int) ($collect['minutes'] ?? 10))),
                     'bed_id' => max(0, (int) ($collect['bed_id'] ?? 0)),
                 ],
                 'quiet_min' => max(2, min(15, (int) ($prayer['quiet_min'] ?? 4))),
                 'after_songs' => max(0, min(5, (int) ($prayer['after_songs'] ?? 0))),
+                'opendoors' => (bool) ($prayer['opendoors'] ?? true),
             ],
             'preaching' => [
                 'songs_between' => max(0, min(10, (int) ($preaching['songs_between'] ?? 2))),

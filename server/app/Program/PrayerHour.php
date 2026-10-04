@@ -8,33 +8,41 @@ use Arche\Host\HostBreaks;
 use Arche\Support\Ids;
 
 /**
- * The running order of a program with the prayer format — the prayer hour:
+ * The running order of a program with the prayer format — the prayer hour,
+ * where the listeners pray and the host never does:
  *
- *   welcome → a moderator's opening prayer → invitation → the collection
- *   (prayer music for N minutes, or N songs, while listeners send requests;
- *   they appear on the wall only) → the prayer time (a moment presenting what
- *   was approved since the last one, a pause of silence after each; a
- *   recorded request is played; after a few quiet minutes one request from
- *   the wall again, or an invitation for everyone; otherwise silence) → the
- *   outro at C → songs until the next program, if it asks for them. The host
- *   presents and invites; it never prays.
+ *   welcome → a moderator's opening prayer, if one is prepared → the
+ *   collection (N songs, then prayer music, while listeners send requests)
+ *   → the presentation (the requests sent so far, each read out word for
+ *   word, appearing on the wall as it is read) → the prayer time, announced
+ *   by the host (listeners' prayers: a written one read out word for word, a
+ *   spoken one played as it is; requests sent since are read too; silence
+ *   in between, and after a few quiet minutes a word of encouragement) →
+ *   the outro at C → songs until the next program, if it asks for them.
  *
  * Like the rest of the Drafter, one step appends the next item. Where the
  * hour stands is read from its own items (state()), never from a block's
  * start: blockAt() begins a new block at midnight. A moment its gate or its
  * time refused counts as tried, so it is not drafted again and again.
  *
- * In the prayer time the plan reaches only PRAYER_LEAD ahead (the step
- * returns null: "later"), so a moment takes the requests approved up to
- * about seven minutes before it airs. Every moment a listener waits for is a
- * unit: not voiced in time, it waits behind silence (filler()) instead of
- * going, and if it waits too long its requests go back to the queue.
+ * From the presentation on the plan reaches only PRAYER_LEAD ahead (the step
+ * returns null: "later"), so a reading takes what was approved up to about
+ * seven minutes before it airs. Every reading is a unit: not voiced in time,
+ * it waits briefly behind a short filler (READING_WAIT), then gives its
+ * request back — which is tried twice at most. A step may move the plan on
+ * by less than MIN_CHUNK (a short reading, at least 8 s): within the
+ * seven minutes ahead that is still far below the Drafter's and the
+ * Committer's loop guards.
  */
 final class PrayerHour
 {
     public const COLLECT = ['en' => 'What can we pray for?', 'de' => 'Wofür dürfen wir beten?'];
-    public const SILENT = ['en' => 'Silent prayer', 'de' => 'Stilles Gebet'];
+    public const PRAY = ['en' => 'Prayer time', 'de' => 'Gebetszeit'];
     private const WAIT = ['en' => 'Stay with us', 'de' => 'Bleib dran'];
+    /** A listener's spoken prayer, as the stage names it. */
+    public const PRAYER_CAPTION = ['en' => 'Prayer', 'de' => 'Gebet'];
+    /** How often a request is tried in one run before it is left to wait (a failing voice must not loop on it). */
+    public const MAX_TRIES = 2;
 
     public function __construct(private App $app) {}
 
@@ -55,14 +63,42 @@ final class PrayerHour
      */
     public function closingAt(array $channel, array $program, int $t): int
     {
-        $run = $this->app->resolver()->runAt($channel, $t);
+        return self::closeOf($program, $this->app->resolver()->runAt($channel, $t));
+    }
+
+    /** @param array<string,mixed> $program @param array{start:int,end:int,program_id:int} $run */
+    private static function closeOf(array $program, array $run): int
+    {
         return $run['end'] - (int) $program['settings']['prayer']['after_songs'] * Timing::AFTER_SONG - Timing::OUTRO_ESTIMATE;
     }
 
     /**
-     * The next item of the running order at $cursor. Every result moves the
-     * cursor at least MIN_CHUNK (or to the outro), so the Drafter's and the
-     * Committer's loop guards are never reached.
+     * When the prayer time of the run at $t began: the start of its
+     * `prayertime` moment, committed — or tried, when its gate or its time
+     * refused it (the prayer time began all the same) — or null before.
+     * Drafts never count: published minute files (up to LEAD ahead) and the
+     * check at submit time (now) must agree, and everything that starts by
+     * then is committed — even when the generator has stalled and its drafts
+     * carry starts already past.
+     *
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $program
+     */
+    public function prayerTimeFrom(array $channel, array $program, int $t): ?int
+    {
+        $run = $this->app->resolver()->runAt($channel, $t);
+        $at = $this->app->store()->value(
+            "SELECT COALESCE(t.start_ms, t.est_start) FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id
+             WHERE t.channel_id = ? AND t.program_id = ? AND t.block_start = ? AND h.kind = 'prayertime'
+               AND (t.state = 'committed' OR (t.state = 'dropped' AND (h.state = 'failed' OR h.source = 'skipped:late')))
+             ORDER BY t.seq LIMIT 1",
+            [(int) $channel['id'], (int) $program['id'], $run['start']],
+        );
+        return $at === null ? null : (int) $at;
+    }
+
+    /**
+     * The next item of the running order at $cursor.
      *
      * @param array<string,mixed> $channel
      * @param array<string,mixed> $program decoded, prayer format
@@ -82,7 +118,7 @@ final class PrayerHour
             // One broken step must not take the channel off air: a minute of
             // silence now, and the next step tries again.
             $this->app->store()->audit('generator', 'Prayer hour step failed', $e::class . ': ' . $e->getMessage());
-            return $this->silence($channel, $base, $cursor, Timing::SILENT_CHUNK, self::SILENT);
+            return $this->silence($channel, $base, $cursor, Timing::SILENT_CHUNK, self::PRAY);
         }
     }
 
@@ -97,7 +133,7 @@ final class PrayerHour
     {
         $s = $program['settings'];
         $drafter = $this->app->drafter();
-        $close = $run['end'] - (int) $s['prayer']['after_songs'] * Timing::AFTER_SONG - Timing::OUTRO_ESTIMATE;
+        $close = self::closeOf($program, $run);
         $hostOn = $s['host']['enabled'] && $this->app->hostBreaks()->available();
         $st = $this->state((int) $channel['id'], (int) $program['id']);
 
@@ -108,64 +144,92 @@ final class PrayerHour
             return $drafter->addHost($channel, $program, 'outro', $cursor, $base, [], self::unit(), Timing::OUTRO_ESTIMATE);
         }
 
-        // 2. The opening: the welcome, the opening prayer, the invitation —
-        //    each once, in the hour's first minutes, counted from its first
-        //    item (an outage, or a plan changed at the last minute, moves the
-        //    start). All three wait for their voice rather than go.
-        if (!$st['collecting'] && $st['moments'] === 0) {
+        // 2. The opening: the welcome, and a moderator's opening prayer when
+        //    one is prepared — each once, in the hour's first minutes, counted
+        //    from its first item (an outage, or a plan changed at the last
+        //    minute, moves the start). Both wait for their voice rather than go.
+        if (!$st['collecting'] && !$st['presenting']) {
             if ($st['empty'] && $hostOn && $s['host']['intro']) {
                 return $drafter->addHost($channel, $program, 'intro', $cursor, $base, [], self::unit());
             }
             $from = $st['from'] ?? $cursor;
-            if (!$st['opening'] && !$st['invite'] && $cursor < $from + Timing::OPENING_WITHIN && $close - $cursor >= Timing::MIN_PRAYER + 120_000) {
+            if (!$st['opening'] && $cursor < $from + Timing::OPENING_WITHIN && $close - $cursor >= Timing::MIN_PRAYER + 120_000) {
                 $opening = $this->opening($channel, $program, $base, $cursor, $hostOn);
                 if ($opening !== null) return $opening;
             }
-            if (!$st['invite'] && $hostOn && $cursor < $from + Timing::INVITE_WITHIN && $this->intakeOpen($channel, $program, $run, $cursor)) {
-                return $drafter->addHost($channel, $program, 'invite', $cursor, $base, [], self::unit());
-            }
         }
 
-        // 3. The collection: requests come in and appear on the wall; nobody reads them yet.
-        if ($st['moments'] === 0 && ($item = $this->collect($channel, $program, $st, $base, $cursor, $close)) !== null) return $item;
+        // 3. The collection: requests come in; nobody reads them yet.
+        if (!$st['presenting'] && ($item = $this->collect($channel, $program, $st, $base, $cursor, $close)) !== null) return $item;
 
-        // 4. The prayer time, planned late, so each moment takes the newest requests.
-        if ($cursor >= $this->app->clock->nowMs() + Timing::PRAYER_LEAD) return null;
+        // 4. From here on planned late, so each reading takes the newest requests.
+        $now = $this->app->clock->nowMs();
+        if ($cursor >= $now + Timing::PRAYER_LEAD) return null;
         $room = $close - $cursor;
-        if ($room < Timing::MIN_CHUNK) return $this->silence($channel, $base, $cursor, $room, self::SILENT);
-        if ($st['lastMomentEnd'] !== null && $cursor < $st['lastMomentEnd'] + Timing::PRAYER_PAUSE) {
-            return $this->silence($channel, $base, $cursor, self::chunk($st['lastMomentEnd'] + Timing::PRAYER_PAUSE - $cursor, $room), self::SILENT);
+        if ($room < Timing::MIN_CHUNK) return $this->silence($channel, $base, $cursor, $room, self::PRAY);
+
+        // 5. The presentation — the requests sent until it began, word for
+        //    word — and the announcement of the prayer time, which always
+        //    comes: at the latest early enough to leave time for prayers.
+        //    Without the host's voice nothing can be read: straight on.
+        if (!$st['prayertime'] && $hostOn) {
+            if (!$st['present']) {
+                if ($this->app->submissions()->waitingRequests((int) $channel['id'], (int) $program['id'], $now, $st['tries'], self::MAX_TRIES) > 0) {
+                    return $drafter->addHost($channel, $program, 'present', $cursor, $base, ['until' => $now], self::unit());
+                }
+            } elseif ($cursor < $close - Timing::PRAYER_CLOSING - 120_000) {
+                $reading = $this->read($channel, $program, $base, $cursor, $room, $st, $st['until'] ?? $now, true);
+                if ($reading !== null) return $reading;
+            }
+            return $drafter->addHost($channel, $program, 'prayertime', $cursor, $base, [], self::unit());
         }
-        if ($hostOn && $room >= Timing::momentEstimate(1) && ($moment = $this->moment($channel, $program, $st, $base, $cursor)) !== null) return $moment;
-        if (($recording = $drafter->addRecording($channel, $program, $cursor, $base, $hostOn, $room)) !== null) return $recording;
+
+        // 6. The prayer time: what listeners sent, in the order it came; quiet otherwise.
+        if (($item = $this->read($channel, $program, $base, $cursor, $room, $st, null, $hostOn)) !== null) return $item;
         $quietMs = (int) $s['prayer']['quiet_min'] * 60_000;
-        if ($hostOn && $room >= Timing::momentEstimate(1) && $st['lastWord'] !== null && $cursor - $st['lastWord'] >= $quietMs) {
-            $again = $this->again($channel, $program, $run, $st);
-            return $drafter->addHost($channel, $program, 'prayer', $cursor, $base,
-                $again !== null ? ['phase' => 'again', 'again_id' => $again] : ['phase' => 'general'], null, Timing::momentEstimate(1));
+        if ($hostOn && $room >= Timing::HOST_ESTIMATE + Timing::MIN_CHUNK && $st['lastWord'] !== null && $cursor - $st['lastWord'] >= $quietMs) {
+            return $drafter->addHost($channel, $program, 'encourage', $cursor, $base);
         }
-        return $this->silence($channel, $base, $cursor, self::chunk(Timing::SILENT_CHUNK, $room), self::SILENT);
+        return $this->silence($channel, $base, $cursor, self::chunk(Timing::SILENT_CHUNK, $room), self::PRAY);
     }
 
     /**
-     * A prayer moment for the typed requests approved since the last one (up
-     * to three). The prayer time's first moment opens it even with none yet.
-     * Claimed in one transaction with the moment: taken without it, they would
-     * never air and never come back.
+     * The next of the listeners' words, claimed in one transaction with its
+     * draft (taken without it, they would never air and never come back):
+     * the oldest approved typed request — in the presentation only those
+     * sent until it began ($until) — or, in the prayer time, a request or a
+     * prayer, written or spoken, whichever came first. Text is read out word
+     * for word (a unit; only with the host's voice), a recording plays as it
+     * is, without a word from the host, with a few seconds of quiet after it.
      *
      * @param array<string,mixed> $st
      * @param array<string,mixed> $base
-     * @return array{0:int,1:int}|null
+     * @return array{0:int,1:int}|null null: nothing waits that fits before C
      */
-    private function moment(array $channel, array $program, array $st, array $base, int $cursor): ?array
+    private function read(array $channel, array $program, array $base, int $cursor, int $room, array $st, ?int $until, bool $voice): ?array
     {
-        return $this->app->store()->tx(function () use ($channel, $program, $st, $base, $cursor): ?array {
-            $ids = $this->app->submissions()->takePrayers($channel, $program, Timing::BLOCK_MAX);
-            if ($ids === [] && $st['moments'] > 0) return null;
-            // Sent before the prayer time began: read from the wall; later: new.
-            $phase = $ids === [] ? 'open' : ($this->sentBefore($ids, $st['firstMoment'] ?? $cursor) ? 'read' : 'new');
-            return $this->app->drafter()->addHost($channel, $program, 'prayer', $cursor, $base,
-                ['phase' => $phase, 'first' => $st['moments'] === 0, 'prayer_ids' => $ids], $ids !== [] ? self::unit() : null, Timing::momentEstimate(count($ids)));
+        return $this->app->store()->tx(function () use ($channel, $program, $base, $cursor, $room, $st, $until, $voice): ?array {
+            $sub = $this->app->submissions()->takeNext($channel, $program, $until, $st['tries'], self::MAX_TRIES, $room, $voice);
+            if ($sub === null) return null;
+            if ($sub['mode'] === 'audio') {
+                $meta = json_decode((string) $sub['meta'], true) ?: [];
+                $dur = (int) $sub['audio_ms'] + Timing::PRAYER_GAP;
+                $this->app->timeline()->addDraft((int) $channel['id'], $base + [
+                    'type' => 'contrib', 'dur_ms' => $dur, 'est_start' => $cursor, 'submission_id' => (int) $sub['id'],
+                    'payload' => [
+                        // `prayer` for both: an app that does not know newer kinds knows this one.
+                        'kind' => 'prayer',
+                        'audio' => (string) $sub['audio'],
+                        'caption' => $sub['type'] === 'intercession' ? self::PRAYER_CAPTION
+                            : ['en' => (string) ($meta['caption_en'] ?? ''), 'de' => (string) ($meta['caption_de'] ?? '')],
+                        'name' => (string) $sub['name'],
+                        'place' => (string) $sub['place'],
+                    ],
+                ]);
+                return [1, $cursor + $dur];
+            }
+            return $this->app->drafter()->addReading($channel, $program, $sub['type'] === 'intercession' ? 'intercession' : 'reading',
+                (int) $sub['id'], $cursor, $base, self::unit(), ['phase' => $until !== null ? 'read' : 'new']);
         });
     }
 
@@ -201,9 +265,9 @@ final class PrayerHour
     }
 
     /**
-     * The next piece of the collection, or null once it is complete: songs
-     * (when the program asks for songs), or prayer music going on with the
-     * file, or quiet when there is no music to play.
+     * The next piece of the collection, or null once it is complete: first
+     * the songs the program asks for, then prayer music going on with the
+     * file (or quiet without music) until it has lasted its minutes.
      *
      * @param array<string,mixed> $st
      * @param array<string,mixed> $base
@@ -214,10 +278,9 @@ final class PrayerHour
         $c = $program['settings']['prayer']['collect'];
         // However short the hour, the prayer time keeps its minimum.
         $latest = $close - Timing::MIN_PRAYER;
-        if ($c['with'] === 'songs') {
-            if ($st['collectSongs'] >= (int) $c['songs'] || $latest - $cursor < Timing::MIN_SONG) return null;
+        if ($st['collectSongs'] < (int) $c['songs'] && $latest - $cursor >= Timing::MIN_SONG) {
             $song = $this->app->selector()->pick($channel, $program, $cursor, $latest - $cursor + Timing::SOFT_OVERRUN);
-            return $song !== null ? $this->app->drafter()->addSong($channel, $song, $cursor, $base, null, null, null, ['collect' => true]) : null;
+            if ($song !== null) return $this->app->drafter()->addSong($channel, $song, $cursor, $base, null, null, null, ['collect' => true]);
         }
         $until = min(($st['segEnd'] ?? $st['from'] ?? $cursor) + (int) $c['minutes'] * 60_000, $latest);
         $left = $until - $cursor;
@@ -254,12 +317,12 @@ final class PrayerHour
 
     /**
      * What a prayer hour's unit waits behind when its voice is late: never a
-     * song — before a late outro one would push the blessing past the end,
-     * where the committer drops it. Prayer music (going on with the file)
-     * before the opening, silence in the prayer time. In the waiting unit's
-     * program and bounds, not blockAt() at the frontier, which is still the
-     * previous program while the timeline runs early. Marked, so the run's
-     * state ignores it.
+     * song — before a late outro one would push it past the end, where the
+     * committer drops it. Prayer music (going on with the file) before the
+     * prayer time, silence in it — short pieces, so a reading that is ready
+     * a little late follows soon. In the waiting unit's program and bounds,
+     * not blockAt() at the frontier, which is still the previous program
+     * while the timeline runs early. Marked, so the run's state ignores it.
      *
      * @param array<string,mixed> $channel
      * @param array<string,mixed> $waiting the delayed unit's draft
@@ -270,10 +333,10 @@ final class PrayerHour
         $cid = (int) $channel['id'];
         $program = $this->app->catalog()->program((int) $waiting['program_id']) ?? throw new \LogicException('no program for a prayer hour unit');
         $base = ['program_id' => (int) $program['id'], 'block_start' => $waiting['block_start'], 'block_end' => $waiting['block_end'], 'est_start' => $atMs];
-        $dur = max(Timing::MIN_CHUNK, min($gapMs, Timing::SILENT_CHUNK));
+        $dur = max(Timing::MIN_CHUNK, min($gapMs, Timing::PRAYER_FILLER));
         $kind = $waiting['type'] === 'host' ? (string) ($waiting['payload']['kind'] ?? '') : '';
-        $opening = in_array($kind, ['intro', 'opening', 'invite'], true);
-        $bed = $opening ? $this->bed($program) : null;
+        $opening = in_array($kind, ['intro', 'opening'], true);
+        $bed = !$this->state($cid, (int) $program['id'], (float) $waiting['seq'])['prayertime'] ? $this->bed($program) : null;
         if ($bed !== null) {
             $offset = $this->bedOffset($cid, (int) $program['id'], $bed, (float) $waiting['seq']);
             return $this->app->timeline()->addDraft($cid, $base + [
@@ -283,7 +346,7 @@ final class PrayerHour
             ], $seq);
         }
         return $this->app->timeline()->addDraft($cid, $base + [
-            'type' => 'silence', 'dur_ms' => $dur, 'payload' => ['label' => $opening ? self::WAIT : self::SILENT, 'filler' => true],
+            'type' => 'silence', 'dur_ms' => $dur, 'payload' => ['label' => $opening ? self::WAIT : self::PRAY, 'filler' => true],
         ], $seq);
     }
 
@@ -292,18 +355,19 @@ final class PrayerHour
      * last item of another program (by seq: times move with every estimate),
      * before $beforeSeq, without gaps and fillers. A host item dropped because
      * its gate refused it or its time came first counts as tried; one a plan
-     * change threw away does not — it is planned again.
+     * change threw away does not — it is planned again. `tries` counts, per
+     * request, the readings that were tried and did not air.
      *
-     * @return array{empty:bool,from:?int,intro:bool,opening:bool,invite:bool,outro:bool,segEnd:?int,collecting:bool,collectSongs:int,moments:int,firstMoment:?int,lastMomentEnd:?int,lastWord:?int,again:array<int,int>}
+     * @return array{empty:bool,from:?int,opening:bool,outro:bool,segEnd:?int,collecting:bool,collectSongs:int,presenting:bool,present:bool,until:?int,prayertime:bool,lastWord:?int,tries:array<int,int>}
      */
     public function state(int $channelId, int $programId, ?float $beforeSeq = null): array
     {
-        $st = ['empty' => true, 'from' => null, 'intro' => false, 'opening' => false, 'invite' => false, 'outro' => false, 'segEnd' => null,
-            'collecting' => false, 'collectSongs' => 0, 'moments' => 0, 'firstMoment' => null, 'lastMomentEnd' => null, 'lastWord' => null, 'again' => []];
+        $st = ['empty' => true, 'from' => null, 'opening' => false, 'outro' => false, 'segEnd' => null, 'collecting' => false, 'collectSongs' => 0,
+            'presenting' => false, 'present' => false, 'until' => null, 'prayertime' => false, 'lastWord' => null, 'tries' => []];
         $args = [$channelId, $programId, $this->runStartSeq($channelId, $programId, $beforeSeq)];
         if ($beforeSeq !== null) $args[] = $beforeSeq;
         $rows = $this->app->store()->all(
-            "SELECT t.type, t.payload, t.est_start, t.start_ms, t.dur_ms, h.kind AS hb_kind, h.context AS hb_context
+            "SELECT t.type, t.state, t.payload, t.est_start, t.start_ms, t.dur_ms, h.kind AS hb_kind, h.context AS hb_context
              FROM timeline_items t LEFT JOIN host_breaks h ON h.id = t.host_break_id
              WHERE t.channel_id = ? AND t.program_id = ? AND t.seq > ?" . ($beforeSeq !== null ? ' AND t.seq < ?' : '') . "
                AND t.type != 'gap' AND (t.state != 'dropped' OR (t.type = 'host' AND (h.state = 'failed' OR h.source = 'skipped:late')))
@@ -315,6 +379,7 @@ final class PrayerHour
             if (!empty($payload['filler'])) continue;
             $start = (int) ($r['start_ms'] ?? $r['est_start']);
             $end = $start + (int) $r['dur_ms'];
+            $context = json_decode((string) ($r['hb_context'] ?? ''), true) ?: [];
             $st['empty'] = false;
             $st['from'] = min($st['from'] ?? $start, $start);
             if (!empty($payload['collect'])) {
@@ -325,39 +390,57 @@ final class PrayerHour
             // A moderator's recorded opening prayer is a recording, but the opening.
             if ($r['type'] === 'contrib' && !empty($payload['opening'])) $kind = 'opening';
             if (in_array($kind, ['intro', 'opening', 'invite'], true)) {
-                $st[$kind] = true;
+                if ($kind === 'opening') $st['opening'] = true;
                 $st['segEnd'] = max($st['segEnd'] ?? $end, $end);
             }
             if ($kind === 'outro') $st['outro'] = true;
-            if ($kind === 'prayer') {
-                $st['moments']++;
-                $st['firstMoment'] = min($st['firstMoment'] ?? $start, $start);
-                $again = (json_decode((string) ($r['hb_context'] ?? ''), true) ?: [])['again_id'] ?? null;
-                if (is_int($again)) $st['again'][$again] = ($st['again'][$again] ?? 0) + 1;
+            if ($kind === 'present') {
+                $st['present'] = true;
+                $st['until'] = isset($context['until']) ? (int) $context['until'] : $start;
             }
-            if ($kind === 'prayer' || ($r['type'] === 'contrib' && $kind !== 'opening')) $st['lastMomentEnd'] = max($st['lastMomentEnd'] ?? $end, $end);
+            // An hour that began before this order existed prayed in moments: it is in its prayer time.
+            if ($kind === 'prayertime' || $kind === 'prayer') $st['prayertime'] = true;
+            if (in_array($kind, ['present', 'prayertime', 'prayer', 'reading', 'intercession'], true) || ($r['type'] === 'contrib' && $kind !== 'opening')) {
+                $st['presenting'] = true;
+            }
+            if ($r['state'] === 'dropped' && in_array($kind, ['reading', 'intercession'], true)) {
+                foreach (HostBreaks::prayerIds(['context' => $context]) as $id) $st['tries'][$id] = ($st['tries'][$id] ?? 0) + 1;
+            }
             if ($r['type'] === 'host' || $r['type'] === 'contrib') $st['lastWord'] = max($st['lastWord'] ?? $end, $end);
         }
         return $st;
     }
 
     /**
-     * The requests the run prayed for before $beforeSeq (the outro thanks for
-     * them), each once.
+     * What the run aired before $beforeSeq, for the outro's thanks: the
+     * listeners' requests read out or played, their prayers, and how often
+     * listeners prayed along with the requests in the app.
      *
-     * @return list<int> submission ids
+     * @return array{requests:int,prayers:int,prayed_along:int}
      */
-    public function prayedFor(int $channelId, int $programId, float $beforeSeq): array
+    public function counts(int $channelId, int $programId, float $beforeSeq): array
     {
         $ids = [];
         foreach ($this->app->store()->all(
-            "SELECT h.context FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id
-             WHERE t.channel_id = ? AND t.program_id = ? AND t.seq > ? AND t.seq < ? AND t.state != 'dropped' AND h.kind = 'prayer'",
+            "SELECT t.submission_id, h.context FROM timeline_items t LEFT JOIN host_breaks h ON h.id = t.host_break_id
+             WHERE t.channel_id = ? AND t.program_id = ? AND t.seq > ? AND t.seq < ? AND t.state != 'dropped'
+               AND (h.kind IN ('reading', 'intercession', 'prayer') OR (t.type = 'contrib' AND t.submission_id IS NOT NULL))",
             [$channelId, $programId, $this->runStartSeq($channelId, $programId, $beforeSeq), $beforeSeq],
         ) as $r) {
-            foreach (HostBreaks::prayerIds(['context' => json_decode((string) $r['context'], true) ?: []]) as $id) $ids[$id] = true;
+            if ($r['submission_id'] !== null) $ids[(int) $r['submission_id']] = true;
+            foreach (HostBreaks::prayerIds(['context' => json_decode((string) ($r['context'] ?? ''), true) ?: []]) as $id) $ids[$id] = true;
         }
-        return array_keys($ids);
+        $out = ['requests' => 0, 'prayers' => 0, 'prayed_along' => 0];
+        if (!$ids) return $out;
+        $marks = implode(',', array_fill(0, count($ids), '?'));
+        foreach ($this->app->store()->all("SELECT type, meta, prayed_count FROM submissions WHERE id IN ($marks)", array_keys($ids)) as $s) {
+            // Open Doors' request is the station's, not a listener's.
+            $station = (json_decode((string) $s['meta'], true) ?: [])['source'] ?? null;
+            if ($s['type'] === 'intercession') $out['prayers']++;
+            elseif ($station === null) $out['requests']++;
+            if ($s['type'] === 'prayer') $out['prayed_along'] += (int) $s['prayed_count'];
+        }
+        return $out;
     }
 
     /**
@@ -376,48 +459,12 @@ final class PrayerHour
         ) ?? 0);
     }
 
-    /**
-     * A request from this hour's wall to pray for once more: already prayed
-     * for, still shown, the one taken up least so far (the longest ago first).
-     *
-     * @param array{start:int,end:int,program_id:int} $run
-     * @param array<string,mixed> $st
-     */
-    private function again(array $channel, array $program, array $run, array $st): ?int
-    {
-        $rows = $this->app->store()->all(
-            "SELECT id FROM submissions WHERE channel_id = ? AND program_id = ? AND type = 'prayer' AND mode = 'text' AND consent_air = 1 AND hidden = 0
-             AND status IN ('scheduled', 'aired') AND aired_at IS NOT NULL AND aired_at <= ? AND created >= ? ORDER BY aired_at, id",
-            [(int) $channel['id'], (int) $program['id'], $this->app->clock->nowMs(), intdiv($run['start'], 1000)],
-        );
-        $best = null;
-        foreach ($rows as $r) {
-            $id = (int) $r['id'];
-            if ($best === null || ($st['again'][$id] ?? 0) < ($st['again'][$best] ?? 0)) $best = $id;
-        }
-        return $best;
-    }
-
-    /** @param list<int> $ids */
-    private function sentBefore(array $ids, int $ms): bool
-    {
-        $marks = implode(',', array_fill(0, count($ids), '?'));
-        return (int) $this->app->store()->value("SELECT MIN(created) FROM submissions WHERE id IN ($marks)", $ids) * 1000 < $ms;
-    }
-
-    /** Whether prayer requests are still taken at $t (the invitation is pointless otherwise). @param array{start:int,end:int,program_id:int} $run */
-    private function intakeOpen(array $channel, array $program, array $run, int $t): bool
-    {
-        $states = SubmissionWindow::states($this->app, $channel, $program, $run, $t);
-        return is_array($states) && ($states['prayer'] ?? 'closed') !== 'closed';
-    }
-
     /** The prayer music this program plays, if it can play. @param array<string,mixed> $program @return array<string,mixed>|null */
     private function bed(array $program): ?array
     {
-        $c = $program['settings']['prayer']['collect'];
-        if ($c['with'] !== 'music' || (int) $c['bed_id'] <= 0) return null;
-        $bed = $this->app->library()->get((int) $c['bed_id']);
+        $id = (int) $program['settings']['prayer']['collect']['bed_id'];
+        if ($id <= 0) return null;
+        $bed = $this->app->library()->get($id);
         return $bed !== null && $bed['kind'] === 'bed' && $bed['active'] && (string) $bed['audio'] !== '' ? $bed : null;
     }
 

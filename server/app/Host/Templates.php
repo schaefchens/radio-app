@@ -146,7 +146,8 @@ final class Templates
     }
 
     /**
-     * The prayer hour's moments: presenting and inviting, never praying.
+     * The prayer hour's moments: explaining, presenting and inviting, never
+     * praying. What listeners may send follows `intake`.
      *
      * @param array<string,mixed> $c
      * @param array<string,string> $program
@@ -155,30 +156,51 @@ final class Templates
      */
     private static function prayerHour(string $kind, array $c, array $program, ?array $after): ?array
     {
+        $intake = (array) ($c['intake'] ?? []);
+        $prayersOpen = in_array($intake['prayers'] ?? 'closed', ['open', 'closing'], true);
         $requests = (array) ($c['prayers'] ?? []);
         $names = array_values(array_filter(array_map(fn($r) => empty($r['on_wall']) ? trim((string) ($r['name'] ?? '')) : '', $requests)));
         $wall = count(array_filter($requests, fn($r) => !empty($r['on_wall']))) > 0;
         $list = fn(array $n, string $and) => count($n) > 1 ? implode(', ', array_slice($n, 0, -1)) . " $and " . end($n) : ($n[0] ?? '');
+        $by = trim((string) ($c['opening_by'] ?? ''));
         return match ($kind) {
-            'intro' => ($by = trim((string) ($c['opening_by'] ?? ''))) !== '' ? [
-                'en' => "Welcome to {$program['en']} on ARCHE, a time to pray for one another. $by opens it with a prayer.",
-                'de' => "Willkommen bei {$program['de']} auf ARCHE, einer Zeit, in der wir füreinander beten. $by eröffnet sie mit einem Gebet.",
+            'intro' => [
+                'en' => "Welcome to {$program['en']} on ARCHE, a time to pray for one another. Share your prayer request now with the button in the app. "
+                    . 'Soon we read every request out, and then you can send your own prayer for them.' . ($by !== '' ? " $by opens our hour with a prayer." : ''),
+                'de' => "Willkommen bei {$program['de']} auf ARCHE, einer Zeit, in der wir füreinander beten. Teile jetzt dein Gebetsanliegen über den Button in der App. "
+                    . 'Gleich lesen wir alle Anliegen vor, und dann kannst du dein eigenes Gebet dafür schicken.' . ($by !== '' ? " $by eröffnet unsere Stunde mit einem Gebet." : ''),
+            ],
+            'present' => [
+                'en' => 'These are the prayer requests that have reached us.',
+                'de' => 'Das sind die Gebetsanliegen, die uns erreicht haben.',
+            ],
+            'prayertime' => $prayersOpen ? [
+                'en' => 'Now it is time to pray. Send your prayer for these requests with the Pray button, spoken or written. We share them here.',
+                'de' => 'Jetzt ist Zeit zum Beten. Schick dein Gebet für diese Anliegen über den Button „Beten“, gesprochen oder geschrieben. Wir teilen es hier.',
             ] : [
-                'en' => "Welcome to {$program['en']} on ARCHE, a time to pray for one another. Share your prayer request with the button in the app.",
-                'de' => "Willkommen bei {$program['de']} auf ARCHE, einer Zeit, in der wir füreinander beten. Teile dein Gebetsanliegen über den Button in der App.",
+                'en' => 'Now it is time to pray. Take a moment for these requests, wherever you are.',
+                'de' => 'Jetzt ist Zeit zum Beten. Nimm dir einen Moment für diese Anliegen, wo immer du gerade bist.',
+            ],
+            'encourage' => $prayersOpen ? [
+                'en' => 'Look at the requests on our prayer wall and pray for what moves you. You can send your prayer with the Pray button.',
+                'de' => 'Schau dir die Anliegen an unserer Gebetswand an und bete für das, was dich bewegt. Dein Gebet kannst du über den Button „Beten“ schicken.',
+            ] : [
+                'en' => 'Look at the requests on our prayer wall and pray for what moves you.',
+                'de' => 'Schau dir die Anliegen an unserer Gebetswand an und bete für das, was dich bewegt.',
             ],
             'invite' => [
                 'en' => 'What would you like prayer for? Share your prayer request now with the button in the app. In a few minutes we read every request out.',
                 'de' => 'Wofür sollen wir beten? Teile jetzt dein Gebetsanliegen über den Button in der App. In ein paar Minuten lesen wir jedes Anliegen vor.',
             ],
+            // A moment of an hour planned before this order existed.
             'prayer' => match (true) {
                 $names !== [] || $wall => [
                     'en' => 'Please pray with us for ' . implode(' and ', array_filter([$list($names, 'and'), $wall ? 'the requests on our prayer wall' : ''])) . '. Take a moment in the quiet.',
                     'de' => 'Bete mit für ' . implode(' und ', array_filter([$list($names, 'und'), $wall ? 'die Anliegen an unserer Gebetswand' : ''])) . '. Nimm dir einen Moment in der Stille.',
                 ],
                 default => [
-                    'en' => 'Take a moment in the quiet to pray for everyone listening, for the sick and the lonely. You can also share a prayer request with the button in the app.',
-                    'de' => 'Nimm dir einen Moment in der Stille und bete für alle, die jetzt zuhören, für die Kranken und die Einsamen. Du kannst auch ein Gebetsanliegen über den Button in der App teilen.',
+                    'en' => 'Take a moment in the quiet to pray for everyone listening, for the sick and the lonely.',
+                    'de' => 'Nimm dir einen Moment in der Stille und bete für alle, die jetzt zuhören, für die Kranken und die Einsamen.',
                 ],
             },
             'outro' => [

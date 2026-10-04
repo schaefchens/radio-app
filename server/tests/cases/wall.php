@@ -132,7 +132,7 @@ test('reactions: the new kinds count on songs and voices, unknown kinds still do
     eq((int) $app->store()->value("SELECT reactions FROM highlights WHERE uid = 'h1'"), 1, 'a voice counts the new kind, not the unknown one');
 });
 
-test('wall: while a prayer hour is on air it shows that hour\'s requests, then the usual wall again', function () {
+test('wall: while a prayer hour is on air it shows that hour\'s requests as they are read out, then the usual wall again', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $main = TestKit::main($app);
@@ -147,13 +147,17 @@ test('wall: while a prayer hour is on air it shows that hour\'s requests, then t
     $notShown = prayFor($app, 'Private', false);
     $app->runner()->runUntilBudget();
     unset($notShown);
-    eq($ids(), ['p' . $mine], 'then its own requests, shown with their senders\' yes');
-    // Already prayed for (approved ones the hour cannot reach any more would be missed at its end).
-    for ($i = 0; $i < 40; $i++) prayerRow($app, $main, ['program_id' => (int) $p['id'], 'status' => 'aired', 'created' => $app->clock->now() - 1 - $i]);
+    eq([$ids(), $app->submissions()->collected('main')], [[], 2], 'sent, approved, not yet read: counted, not shown');
+    check(!$app->submissions()->prayAlong($mine, 'd-' . str_repeat('a', 30)), 'nobody can pray along with what the wall does not show yet');
+    ticks($app, 15);
+    eq($ids(), ['p' . $mine], 'read out: its own requests, shown with their senders\' yes');
+    // Already read out (approved ones the hour cannot reach any more would be missed at its end).
+    for ($i = 0; $i < 40; $i++) prayerRow($app, $main, ['program_id' => (int) $p['id'], 'status' => 'aired', 'aired_at' => $app->clock->nowMs() - 1_000 - $i,
+        'created' => intdiv(TestKit::T0, 1000) + 15 * 60 + $i]);
     eq(count($app->submissions()->wall('main')), 41, 'more than the usual 30: the hour\'s requests, up to 60');
     ticks($app, 60);
     eq(count($ids()), 30, 'after the hour the newest 30 of all programs');
-    eq($ids()[0], 'p' . $mine, 'with the hour\'s on top');
+    eq($ids()[0], 'p' . $mine, 'with the hour\'s newest on top');
     check(!in_array('p' . $older, $ids(), true), 'pushing the older ones out');
 });
 

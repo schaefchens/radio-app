@@ -26,8 +26,8 @@ use Arche\Submission\Submissions;
 final class HostWriter
 {
     private const MAX_CHARS = 700;
-    /** A prayer hour's moment presenting three requests runs longer — in German past 700. */
-    private const MAX_CHARS_PRAYER = 1100;
+    /** A prayer hour's welcome explains the hour, and runs longer — in German past 700. */
+    private const MAX_CHARS_LONG = 1100;
     /** People's own words, read out as written: no model, one language — the text's own. */
     public const READINGS = ['reading', 'intercession'];
     /** Context kept for a deleted account to be found by (Identity\Erasure), not for the script. */
@@ -139,51 +139,73 @@ final class HostWriter
     {
         $ctx['format'] = 'prayer hour';
         $c = $hb['context'];
-        if ($hb['kind'] === 'prayer') {
+        $kind = (string) $hb['kind'];
+        $at = (int) ($item['est_start'] ?? $this->app->clock->nowMs());
+        // What listeners may send at this moment — for the announcement as it
+        // will be once it airs (the prayer time opens with it).
+        $intake = function (?int $assumePrayerFrom = null) use ($channel, $program, $at): array {
+            $states = SubmissionWindow::states($this->app, $channel, $program, $this->app->resolver()->runAt($channel, $at), $at, $assumePrayerFrom);
+            return is_array($states)
+                ? ['requests' => $states['prayer'] ?? 'closed', 'prayers' => $states['intercession'] ?? 'closed']
+                : ['requests' => 'closed', 'prayers' => 'closed'];
+        };
+        $counts = fn() => $item !== null ? $this->app->prayerHour()->counts((int) $hb['channel_id'], (int) $program['id'], (float) $item['seq'])
+            : ['requests' => 0, 'prayers' => 0, 'prayed_along' => 0];
+        if ($kind === 'intro') {
+            $collect = $program['settings']['prayer']['collect'];
+            $bed = (int) $collect['bed_id'] > 0 ? $this->app->library()->get((int) $collect['bed_id']) : null;
+            $ctx['collect'] = ['songs' => (int) $collect['songs'], 'minutes' => (int) $collect['minutes'],
+                'music' => $bed !== null && $bed['kind'] === 'bed' && $bed['active']];
+            $ctx['intake'] = $intake()['requests'];
+        }
+        if ($kind === 'present') {
+            // How many requests are about to be read — and whether Open Doors' is among them.
+            $run = $this->app->resolver()->runAt($channel, $at);
+            $listeners = $station = 0;
+            foreach ($this->app->store()->all(
+                "SELECT meta FROM submissions WHERE channel_id = ? AND program_id = ? AND type = 'prayer' AND mode = 'text' AND hidden = 0
+                 AND status IN ('approved', 'scheduled', 'aired') AND created >= ? AND created <= ?",
+                [(int) $channel['id'], (int) $program['id'], intdiv($run['start'], 1000), intdiv((int) ($c['until'] ?? $at), 1000)],
+            ) as $r) {
+                if (((json_decode((string) $r['meta'], true) ?: [])['source'] ?? null) === null) $listeners++;
+                else $station++;
+            }
+            $ctx['requests'] = $listeners;
+            if ($station > 0) $ctx['opendoors'] = true;
+        }
+        if ($kind === 'prayertime') {
+            $ctx['requests'] = $counts()['requests'];
+            $ctx['intake'] = $intake($at);
+        }
+        if ($kind === 'encourage') {
+            $ctx['requests'] = $counts()['requests'];
+            $ctx['intake'] = $intake();
+        }
+        if ($kind === 'outro' && $item !== null) {
+            $n = $counts();
+            $ctx['requests'] = $n['requests'];
+            $ctx['prayers'] = $n['prayers'];
+            if ($n['prayed_along'] > 0) $ctx['prayed_along'] = $n['prayed_along'];
+        }
+        // An hour planned before this order existed: its moments as they were drafted.
+        if ($kind === 'prayer') {
             $ctx['phase'] = (string) ($c['phase'] ?? 'new');
-            if (!empty($c['first'])) $ctx['first'] = true;
             $requests = [];
             foreach (HostBreaks::prayerIds($hb) as $id) {
                 $p = $this->app->submissions()->get($id);
                 if ($p !== null) $requests[] = $this->request($p);
             }
-            if (isset($c['again_id'])) {
-                $p = $this->app->submissions()->get((int) $c['again_id']);
-                // Taken off the wall since it was planned: a prayer for everyone instead.
-                if ($p !== null && Submissions::onWall($p)) $requests = [$this->request($p)];
-                else $ctx['phase'] = 'general';
-            }
             unset($ctx['prayers']);
             if ($requests) $ctx['prayers'] = $requests;
         }
-        if ($hb['kind'] === 'invite') {
-            $collect = $program['settings']['prayer']['collect'];
-            $bed = $collect['with'] === 'music' && (int) $collect['bed_id'] > 0 ? $this->app->library()->get((int) $collect['bed_id']) : null;
-            $ctx['collect'] = match (true) {
-                $collect['with'] === 'songs' => ['songs' => (int) $collect['songs']],
-                $bed !== null && $bed['kind'] === 'bed' && $bed['active'] => ['quiet_music_minutes' => (int) $collect['minutes']],
-                default => ['quiet_minutes' => (int) $collect['minutes']],
-            };
-            $at = (int) ($item['est_start'] ?? $this->app->clock->nowMs());
-            $states = SubmissionWindow::states($this->app, $channel, $program, $this->app->resolver()->runAt($channel, $at), $at);
-            $ctx['intake'] = is_array($states) ? ($states['prayer'] ?? 'closed') : 'closed';
-        }
         // Who prays the opening prayer, when a moderator prepared it: the welcome names them.
-        if ($hb['kind'] === 'intro' && $item !== null && ($next = $this->app->timeline()->after((int) $hb['channel_id'], $item['seq'])) !== null) {
+        if ($kind === 'intro' && $item !== null && ($next = $this->app->timeline()->after((int) $hb['channel_id'], $item['seq'])) !== null) {
             $by = match (true) {
                 $next['type'] === 'contrib' && !empty($next['payload']['opening']) => (string) ($next['payload']['name'] ?? ''),
                 $next['type'] === 'host' && $next['host_break_id'] !== null => (string) ($this->app->hostBreaks()->get($next['host_break_id'])['context']['by'] ?? ''),
                 default => '',
             };
             if (trim($by) !== '') $ctx['opening_by'] = trim($by);
-        }
-        if ($hb['kind'] === 'outro' && $item !== null) {
-            $prayed = $this->app->prayerHour()->prayedFor((int) $hb['channel_id'], (int) $program['id'], (float) $item['seq']);
-            $ctx['prayed'] = count($prayed);
-            if ($prayed) {
-                $marks = implode(',', array_fill(0, count($prayed), '?'));
-                $ctx['prayed_along'] = (int) $this->app->store()->value("SELECT COALESCE(SUM(prayed_count), 0) FROM submissions WHERE id IN ($marks)", $prayed);
-            }
         }
     }
 
@@ -250,7 +272,7 @@ final class HostWriter
         $fallback = Templates::texts((string) $hb['kind'], $context);
         if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason];
 
-        $max = $hb['kind'] === 'prayer' ? self::MAX_CHARS_PRAYER : self::MAX_CHARS;
+        $max = in_array($hb['kind'], ['intro', 'prayertime', 'prayer'], true) ? self::MAX_CHARS_LONG : self::MAX_CHARS;
         $texts = [];
         $prayed = [];
         foreach ($langs as $l) {
@@ -345,8 +367,7 @@ final class HostWriter
         Voice and length:
         - Warm, joyful and sincere; never preachy, never salesy, never over the top.
         - Written for the ear: 1 to 3 short sentences, at most 45 words per language; a moment
-          that also reacts to previous_request up to 70, a prayer hour's moment that presents
-          several requests up to 90.
+          that also reacts to previous_request up to 70.
         - No emojis, hashtags, links, stage directions or quotation marks around the whole text.
 
         Facts and honesty:
@@ -383,26 +404,32 @@ final class HostWriter
         - outro: close the program; point to what comes next if given.
 
         In a prayer hour ("format": "prayer hour") listeners send prayer requests and pray for one
-        another. Its moments:
-        - intro: welcome everyone to the prayer hour, a time in which listeners pray for one
-          another, and invite them to share their prayer requests; with "opening_by", say that this
-          person opens the hour with a prayer (by name only).
-        - invite: invite listeners to send their prayer requests now with the "Share a prayer request"
-          button in the app; say for how long ("collect": minutes of quiet music or of quiet, or while
-          the next songs play) and that every request will then be read out. If "intake" is
-          "closing", say that time is short.
-        - prayer, by "phase": open — the time of prayer begins: invite everyone to pray for the
-          requests and for one another; never say that nothing has come in. read — requests sent
-          during the collection: present each listed request in a few words and invite listeners to
-          pray for it. new — a request has just come in: present it and invite listeners to pray for
-          it. again — take up this request from the prayer wall once more and invite listeners to
-          pray for it in the quiet. general — invite listeners to pray in the quiet for the world,
-          the sick, the lonely and everyone listening, or to send a request.
-        - contrib: introduce the listener's recorded prayer request and invite everyone to pray for
-          it in the quiet afterwards.
-        - outro: thank everyone who sent requests and prayed (you may say how many requests there
-          were, "prayed", and how often listeners prayed along with them in the app,
-          "prayed_along"), say goodbye and point to what comes next if given. No blessing.
+        another: first the requests are collected, then read out, then listeners send their own
+        prayers, spoken or written, which the station plays or reads out — never you. Its moments:
+        - intro: welcome everyone to the prayer hour and explain in a few words how it goes:
+          share a prayer request now with the "Share a prayer request" button ("collect": the
+          songs and minutes until the requests are read out); then every request is read out, and
+          then everyone can send a prayer for them with the "Pray" button — spoken or written. If
+          "intake" is "closing", say that time is short. With "opening_by", say that this person
+          opens the hour with a prayer (by name only). Up to 70 words.
+        - present: the collection is over: say that the prayer requests that reached us are now
+          read out, word for word ("requests": how many from listeners; "opendoors": first one
+          from Open Doors for persecuted Christians). Do not read or retell them yourself.
+        - prayertime: the requests have been read: the prayer time begins. Invite everyone to pray
+          for them — and, as "intake.prayers" allows, to send their own prayer with the "Pray"
+          button, spoken or written: written ones are read out with their first name, spoken
+          ones are played. New requests are still welcome while "intake.requests" allows. With
+          "requests": 0, invite listeners to share a request or to pray for what is on their
+          heart. Up to 70 words.
+        - encourage: it has been quiet for a while: encourage everyone to pray for the requests on
+          the prayer wall, or for what is on their heart — and, as "intake" allows, to send a
+          prayer with the "Pray" button or a request. Never pick out one request.
+        - outro: the prayer hour ends: thank everyone who sent requests and prayers ("requests",
+          "prayers": how many aired; "prayed_along": how often listeners prayed along in the app),
+          say goodbye and point to what comes next if given. No blessing.
+        - prayer (an hour planned before this order, rare): by "phase", present the listed
+          requests in a few words and invite listeners to pray for them, or invite everyone to
+          pray in the quiet.
 
         previous_request, when given, is a listener's request, preaching suggestion or recording that
         aired shortly before this moment. Begin with one warm sentence that reacts to it — a thought

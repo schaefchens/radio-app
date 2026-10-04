@@ -131,14 +131,19 @@ final class Moderator
         $id = (int) $sub['id'];
         $c = $this->app->config;
         $moderationCalls = 0;
-        foreach (['moderate_song', 'moderate_preaching', 'moderate_audio', 'moderate_prayer'] as $k) $moderationCalls += $this->app->usage()->callsToday('text:' . $k);
+        foreach (['moderate_song', 'moderate_preaching', 'moderate_audio', 'moderate_prayer', 'moderate_intercession'] as $k) $moderationCalls += $this->app->usage()->callsToday('text:' . $k);
         if ($moderationCalls >= $c->int('MODERATION_MAX_PER_DAY', 300)) {
             $subs->reject($id, 'not_accepted', ['error' => 'daily_cap'], 'moderator');
             return;
         }
         $program = $this->app->catalog()->program((int) $sub['program_id']);
         $video = in_array($sub['type'], Submissions::VIDEO_TYPES, true);
-        $kind = $video ? 'moderate_' . $sub['type'] : ($sub['mode'] === 'audio' ? 'moderate_audio' : 'moderate_prayer');
+        $kind = match (true) {
+            $video => 'moderate_' . $sub['type'],
+            $sub['mode'] === 'audio' => 'moderate_audio',
+            $sub['type'] === Submissions::INTERCESSION => 'moderate_intercession',
+            default => 'moderate_prayer',
+        };
         $meta = json_decode((string) $sub['meta'], true) ?: [];
 
         $data = [
@@ -160,6 +165,8 @@ final class Moderator
         } elseif ($sub['mode'] === 'audio') {
             $data['transcript'] = (string) $sub['transcript'];
             $data['language'] = (string) $sub['lang'];
+        } elseif ($sub['type'] === Submissions::INTERCESSION) {
+            $data['prayer'] = (string) $sub['text'];
         } else {
             $data['prayer_request'] = (string) $sub['text'];
         }

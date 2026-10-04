@@ -50,6 +50,14 @@ final class Policy
         or promises of blessing or healing in return for money. A church's own donation or
         livestream links in the description are uploader's text like a music video's.
 
+        A prayer (type "intercession") is a listener's own prayer, written ("prayer") or recorded
+        ("transcript"), sent in a prayer hour's prayer time in answer to the prayer requests read
+        out on air. It airs word for word (or as recorded) with their first name and place.
+        Approve a sincere prayer: for others or for the requests, thanks, praise, or a short plea
+        for prayer. It does not fit (program_fit = false) when it is not a prayer at all — chat, a
+        question to the station, a song request. A prayer that names another person by first name
+        only is fine; the rules above on other people's personal data still apply.
+
         christian: the content must be Christian — worship, gospel, hymns, Christian artists, faith,
         prayer, testimony, preaching, encouragement grounded in faith. Secular songs are not
         suitable even when pleasant. A denomination, a minority doctrinal position, a style of
