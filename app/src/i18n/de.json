@@ -30,7 +30,7 @@
     "evergreen": "Unsere Lieblingslieder, bis das Programm wieder da ist",
     "hostSpeaking": "{{name}} spricht",
     "unavailable": "Dieses Lied kann hier nicht abgespielt werden – bleib dran",
-    "prayingNow": "{{name}} betet",
+    "prayingNow": "Gebetsanliegen",
     "sharePrayer": "Gebetsanliegen teilen"
   },
   "live": {
@@ -56,7 +56,7 @@
   },
   "host": {
     "idle": "{{name}} meldet sich zwischen den Liedern wieder.",
-    "idlePrayer": "{{name}} betet gleich wieder mit uns.",
+    "idlePrayer": "{{name}} liest hier die Gebetsanliegen vor und lädt dich ein, mitzubeten.",
     "aiNote": "KI-Moderation",
     "heading": "Stimme der Moderation"
   },
@@ -97,7 +97,7 @@
     },
     "prayer": {
       "title": "Gebetsanliegen teilen",
-      "subtitle": "Wir beten mit dir."
+      "subtitle": "Unsere Gemeinde betet mit dir."
     },
     "preaching": {
       "title": "Predigt vorschlagen",
@@ -522,7 +522,7 @@
       "formatPrayer": "Gebetsstunde",
       "prayer": {
         "heading": "Gebetsstunde",
-        "order": "Begrüßung → Eröffnungsgebet → Einladung, Gebetsanliegen zu schicken → Sammelzeit → die Moderation betet für die Anliegen, ein Moment nach dem anderen, mit Stille dazwischen → Abschluss mit Segen. Anliegen aus den letzten Minuten vor dem Gebet kommen ein paar Minuten später dran.",
+        "order": "Begrüßung → ein Eröffnungsgebet aus der Moderation, wenn eines vorbereitet ist → Einladung, Gebetsanliegen zu schicken → Sammelzeit → die Moderation stellt die Anliegen vor, ein Moment nach dem anderen, und lädt zum Mitbeten ein, mit Stille dazwischen → Abschluss. Die Moderation betet nie selbst. Anliegen aus den letzten Minuten vor einem Moment kommen ein paar Minuten später dran.",
         "onlyPrayer": "Eine Gebetsstunde nimmt nur Gebetsanliegen an (geschrieben oder aufgenommen).",
         "intakeHint": "In einer Gebetsstunde zählen diese Minuten bis zum Abschluss.",
         "collect": "Während die Anliegen eingehen",
@@ -533,7 +533,7 @@
         "noMusic": "Lade zuerst Hintergrundmusik in der Bibliothek hoch.",
         "minutes": "Für … Minuten",
         "songs": "Anzahl der Lieder",
-        "quietMin": "Stille Minuten, bevor die Moderation wieder betet",
+        "quietMin": "Stille Minuten, bevor die Moderation wieder zum Gebet einlädt",
         "afterSongs": "Lieder nach dem Abschluss",
         "notFallback": "Eine Gebetsstunde kann nicht das Ersatzprogramm eines Kanals sein: Ihr Ablauf braucht ein Ende."
       },
@@ -545,8 +545,8 @@
       },
       "opening": {
         "heading": "Eröffnungsgebete",
-        "hint": "Jede Ausstrahlung nimmt das älteste wartende; ohne eines betet die KI-Moderation. Ein geschriebenes Gebet liest die Moderationsstimme Wort für Wort, nur in den Sprachen, die du ausfüllst; eine Aufnahme läuft, wie sie ist (höchstens 3 Minuten). Die Eröffnung wird etwa 8 Minuten vor der Stunde geplant: Was später dazukommt, ist für die nächste Ausstrahlung.",
-        "none": "Keines vorbereitet – die KI-Moderation betet.",
+        "hint": "Jede Ausstrahlung nimmt das älteste wartende; ohne eines gibt es kein Eröffnungsgebet (die KI-Moderation betet nie selbst). Ein geschriebenes Gebet liest die Moderationsstimme Wort für Wort, nur in den Sprachen, die du ausfüllst; eine Aufnahme läuft, wie sie ist (höchstens 3 Minuten). Die Eröffnung wird etwa 8 Minuten vor der Stunde geplant: Was später dazukommt, ist für die nächste Ausstrahlung.",
+        "none": "Keines vorbereitet – die Stunde beginnt ohne Eröffnungsgebet.",
         "waiting": "Wartet",
         "aired": "Gebetet am {{date}}",
         "name": "Wer betet (die Begrüßung nennt den Namen)",
@@ -815,7 +815,7 @@
     "today": "Heute",
     "yesterday": "Gestern",
     "intro": "Gebetsanliegen von Hörerinnen und Hörern, die sie teilen wollten. Betet mit.",
-    "prayingNow": "Wir beten gerade dafür",
+    "prayingNow": "Gerade im Radio",
     "report": "Melden",
     "reportConfirm": "Dieses Gebetsanliegen melden? Es wird für dich ausgeblendet, und eine Moderatorin prüft es."
   },

@@ -52,9 +52,10 @@ final class HostBreaks
             'created' => $now,
             'updated' => $now,
         ]);
-        // Earliest airtime first; announcements, prayers and every moment the
-        // committer would rather delay than drop (a unit) before plain breaks.
-        $priority = in_array($kind, ['announce', 'contrib', 'prayer', 'opening', 'invite'], true) || ($item['unit'] ?? null) !== null ? 10 : 20;
+        // Earliest airtime first; announcements, listeners' words read out,
+        // prayer moments and every moment the committer would rather delay
+        // than drop (a unit) before plain breaks.
+        $priority = in_array($kind, ['announce', 'contrib', 'prayer', 'reading', 'intercession', 'opening', 'invite'], true) || ($item['unit'] ?? null) !== null ? 10 : 20;
         $this->app->jobs()->enqueue('host', $id, $priority, (int) $item['est_start']);
         return $id;
     }
@@ -206,7 +207,9 @@ final class HostBreaks
     {
         $max = 0;
         foreach ($hb['durations'] as $ms) $max = max($max, (int) $ms);
-        return max(2000, $max + Timing::HOST_PAD);
+        // After a listener's words a few seconds of quiet, to take them in.
+        $pad = in_array($hb['kind'], HostWriter::READINGS, true) ? Timing::PRAYER_GAP : Timing::HOST_PAD;
+        return max(2000, $max + $pad);
     }
 
     /** @param array<string,mixed> $hb @return array<string,mixed> */
@@ -222,17 +225,18 @@ final class HostBreaks
     }
 
     /**
-     * In a prayer hour, the requests this moment prays for that are on the
-     * wall, by their wall id ('p' + public id): the app shows them as
-     * "Praying now". Only ids — what may be shown of them is live.json's
-     * business, where a moderator's takedown applies after publishing too.
+     * The requests on the wall this moment is about, by their wall id ('p' +
+     * public id): a request read out (in any program), or those a prayer
+     * hour's moment takes up. The app marks them "On air now". Only ids —
+     * what may be shown of them is live.json's business, where a moderator's
+     * takedown applies after publishing too.
      *
      * @param array<string,mixed> $hb
      * @return list<string>
      */
     private function wallRefs(array $hb): array
     {
-        if ($hb['kind'] !== 'prayer' || !$this->inPrayerHour($hb)) return [];
+        if ($hb['kind'] !== 'reading' && ($hb['kind'] !== 'prayer' || !$this->inPrayerHour($hb))) return [];
         $ids = self::prayerIds($hb);
         if (isset($hb['context']['again_id'])) $ids[] = (int) $hb['context']['again_id'];
         $refs = [];
@@ -266,12 +270,21 @@ final class HostBreaks
             // The model takes seconds: an account deleted meanwhile has had this break forgotten.
             if (!$this->saveIfPending($hb['id'], [
                 'context' => json_encode($context + $hb['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'texts' => json_encode($written['texts'], JSON_UNESCAPED_UNICODE),
+                'texts' => json_encode($written['texts'] ?: new \stdClass(), JSON_UNESCAPED_UNICODE),
                 'source' => $written['source'],
             ])) {
                 return null;
             }
-            return 'tts:' . $this->app->config->stationLangs()[0];
+            // Straight to the first language there is something to say in: a
+            // reading is voiced once, and a phase that does nothing still costs
+            // one of the runner's runs this tick.
+            $first = $this->nextLang($written['texts'], null);
+            if ($first === null) {
+                // A listener's words gone since it was planned, or no prayer prepared: nothing to say.
+                $this->fail($hb, 'no_text');
+                return null;
+            }
+            return 'tts:' . $first;
         }
 
         if (str_starts_with($phase, 'tts:')) {
@@ -292,9 +305,8 @@ final class HostBreaks
                     return null;
                 }
             }
-            $langs = $this->app->config->stationLangs();
-            $i = array_search($lang, $langs, true);
-            if ($i !== false && isset($langs[$i + 1])) return 'tts:' . $langs[$i + 1];
+            $next = $this->nextLang($hb['texts'], $lang);
+            if ($next !== null) return 'tts:' . $next;
             if (!$hb['audio']) {
                 $this->fail($hb, 'no_audio');
                 return null;
@@ -311,22 +323,46 @@ final class HostBreaks
         $c = $this->app->config;
         if (!$this->available()) return 'unavailable';
         $slug = $this->channelSlug($hb);
-        $owed = in_array($hb['kind'], ['announce', 'contrib'], true)
-            || ($hb['kind'] === 'prayer' && self::prayerIds($hb) !== [])
-            || (in_array($hb['kind'], ['intro', 'opening', 'invite'], true) && $this->inPrayerHour($hb));
-        // A listener who handed something in gets their announcement or
-        // prayer even when they are the only one listening. A prayer hour's
-        // welcome, opening prayer and invitation are written about eight
-        // minutes before the hour, before its listeners tune in: gated, the
-        // hour opened without them for everyone who came on time. Everything
-        // else — breaks, a prayer for everyone, the outro — needs an audience.
+        $prayerHour = $this->inPrayerHour($hb);
+        // People's own words, read out (and a moderator's prepared opening prayer).
+        $theirs = in_array($hb['kind'], HostWriter::READINGS, true) || $hb['kind'] === 'opening';
+        $owed = $theirs || in_array($hb['kind'], ['announce', 'contrib'], true)
+            // Outside a prayer hour the invitation after requests read out; in it, a moment with requests.
+            || ($hb['kind'] === 'prayer' && (self::prayerIds($hb) !== [] || !$prayerHour))
+            || (in_array($hb['kind'], ['intro', 'invite'], true) && $prayerHour);
+        // A listener who handed something in gets it read out, announced or
+        // presented even when they are the only one listening. A prayer hour's
+        // welcome and invitation are written about eight minutes before the
+        // hour, before its listeners tune in: gated, the hour opened without
+        // them for everyone who came on time. Everything else — breaks, a
+        // moment for everyone, the outro — needs an audience.
         if (!$owed && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
-        $today = (int) $this->app->store()->value(
-            "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND state = 'ready' AND updated >= ?",
-            [(int) $hb['channel_id'], $this->app->clock->now() - 86400],
-        );
-        if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 300)) return 'daily_cap';
+        // The daily cap is for the host's own words: a reading costs one voice
+        // call, and someone sent it — it is neither stopped nor counted.
+        if (!$theirs) {
+            $today = (int) $this->app->store()->value(
+                "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND state = 'ready' AND updated >= ? AND source NOT IN ('listener', 'moderator')",
+                [(int) $hb['channel_id'], $this->app->clock->now() - 86400],
+            );
+            if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 300)) return 'daily_cap';
+        }
         if (!$this->app->usage()->withinBudget()) return 'budget';
+        return null;
+    }
+
+    /**
+     * The station language after $after (or the first) that has something to
+     * say in $texts, or null.
+     *
+     * @param array<string,mixed> $texts
+     */
+    private function nextLang(array $texts, ?string $after): ?string
+    {
+        $langs = $this->app->config->stationLangs();
+        $from = $after === null ? 0 : ((int) array_search($after, $langs, true)) + 1;
+        foreach (array_slice($langs, $from) as $l) {
+            if (trim((string) ($texts[$l] ?? '')) !== '') return $l;
+        }
         return null;
     }
 

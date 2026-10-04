@@ -5,6 +5,7 @@ namespace Arche\Program;
 
 use Arche\App;
 use Arche\Host\HostBreaks;
+use Arche\Host\HostWriter;
 
 /**
  * Turns drafts into the fixed timeline, contiguously, up to now + COMMIT.
@@ -116,9 +117,8 @@ final class Committer
         $ready = $hb !== null && $hb['state'] === 'ready';
 
         if (!$ready) {
-            $waited = $now - $item['created'] * 1000;
             $failed = $hb === null || in_array($hb['state'], ['failed', 'cancelled'], true);
-            if ($item['unit'] !== null && !$failed && $waited < Timing::UNIT_TIMEOUT) return -1;
+            if ($item['unit'] !== null && !$failed && $this->mayWait($item, $now)) return -1;
             // A plain break that is late, or a unit that waited too long: the
             // break goes, whatever it introduced still plays. Marked late: a
             // prayer hour counts it as tried (it must not draft it again).
@@ -144,6 +144,31 @@ final class Committer
         // A moderator's prepared opening prayer: used now, the next airing takes the next one.
         if (isset($hb['context']['prepared_id'])) $this->app->openingPrayers()->markAired((int) $hb['context']['prepared_id'], $frontier);
         return $end;
+    }
+
+    /**
+     * Whether a unit whose voice is not ready may wait behind one more filler.
+     * A listener's words read out wait READING_WAIT from the moment they were
+     * first due — drafted minutes ahead, their own time would be half used up
+     * already — so one late voice holds a prayer hour up briefly, not for ten
+     * minutes. Anything else waits UNIT_TIMEOUT from its drafting.
+     *
+     * @param array<string,mixed> $item
+     */
+    private function mayWait(array $item, int $now): bool
+    {
+        if (!in_array($item['payload']['kind'] ?? '', HostWriter::READINGS, true)) {
+            return $now - $item['created'] * 1000 < Timing::UNIT_TIMEOUT;
+        }
+        $since = (int) ($item['payload']['held_since'] ?? 0);
+        if ($since === 0) {
+            $since = $now;
+            // In the draft's payload, which is never published: commit replaces it.
+            $this->app->store()->update('timeline_items', [
+                'payload' => json_encode($item['payload'] + ['held_since' => $now], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ], 'id = ?', [$item['id']]);
+        }
+        return $now - $since < Timing::READING_WAIT;
     }
 
     /** @param array<string,mixed> $item @param array<string,mixed> $payload */

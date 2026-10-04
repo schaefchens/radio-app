@@ -30,7 +30,7 @@
     "evergreen": "Our favourites while the program reconnects",
     "hostSpeaking": "{{name}} is speaking",
     "unavailable": "This song can't be played here — stay with us",
-    "prayingNow": "{{name}} is praying",
+    "prayingNow": "Prayer request",
     "sharePrayer": "Share a prayer request"
   },
   "live": {
@@ -56,7 +56,7 @@
   },
   "host": {
     "idle": "{{name}} will be back between the songs.",
-    "idlePrayer": "{{name}} will pray with us again soon.",
+    "idlePrayer": "{{name}} reads the prayer requests here and invites you to pray.",
     "aiNote": "AI host",
     "heading": "From the host"
   },
@@ -97,7 +97,7 @@
     },
     "prayer": {
       "title": "Share a prayer request",
-      "subtitle": "We will pray with you."
+      "subtitle": "Our listeners pray with you."
     },
     "preaching": {
       "title": "Suggest a preaching",
@@ -522,7 +522,7 @@
       "formatPrayer": "Prayer hour",
       "prayer": {
         "heading": "Prayer hour",
-        "order": "Welcome → opening prayer → invitation to send prayer requests → collection time → the host prays for the requests, one moment at a time, with silence in between → outro with a blessing. Requests sent in the last minutes before the host prays come a few minutes later.",
+        "order": "Welcome → a moderator's opening prayer, if one is prepared → invitation to send prayer requests → collection time → the host presents the requests, one moment at a time, and invites listeners to pray, with silence in between → outro. The host never prays. Requests sent in the last minutes before a moment come a few minutes later.",
         "onlyPrayer": "A prayer hour takes prayer requests only (typed or recorded).",
         "intakeHint": "In a prayer hour, these minutes count to the outro.",
         "collect": "While requests come in",
@@ -533,7 +533,7 @@
         "noMusic": "Upload background music in Library first.",
         "minutes": "For … minutes",
         "songs": "Number of songs",
-        "quietMin": "Quiet minutes before the host prays again",
+        "quietMin": "Quiet minutes before the host invites listeners to pray again",
         "afterSongs": "Songs after the outro",
         "notFallback": "A prayer hour cannot be a channel's fallback program: its running order needs an end."
       },
@@ -545,8 +545,8 @@
       },
       "opening": {
         "heading": "Opening prayers",
-        "hint": "Each airing takes the oldest one waiting; without one, the AI host prays. A typed prayer is read word for word in the host voice, only in the languages you fill in; a recording plays as it is (at most 3 minutes). The opening is planned about 8 minutes before the hour: a prayer added later serves the next airing.",
-        "none": "None prepared — the AI host prays.",
+        "hint": "Each airing takes the oldest one waiting; without one, the hour has no opening prayer (the AI host never prays). A typed prayer is read word for word in the host voice, only in the languages you fill in; a recording plays as it is (at most 3 minutes). The opening is planned about 8 minutes before the hour: a prayer added later serves the next airing.",
+        "none": "None prepared — the hour opens without an opening prayer.",
         "waiting": "Waiting",
         "aired": "Prayed {{date}}",
         "name": "Who prays it (the welcome names them)",
@@ -815,7 +815,7 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "intro": "Prayer requests from listeners who agreed to share them. Pray along.",
-    "prayingNow": "Praying now",
+    "prayingNow": "On air now",
     "report": "Report",
     "reportConfirm": "Report this prayer request? It is hidden for you, and a moderator checks it."
   },

@@ -4,11 +4,65 @@ declare(strict_types=1);
 namespace Arche\Host;
 
 /**
- * What the host says when Claude is unavailable (no key, budget reached,
- * refusal, timeout). Deliberately plain; they only need to be correct.
+ * What the host says when the model is unavailable (no key, budget reached,
+ * refusal, timeout) or when its answer prays — the host never does: it
+ * invites listeners to. Deliberately plain; they only need to be correct.
+ *
+ * Also the short lead-ins before people's own words, which are read out
+ * exactly as they were written (HostWriter::reading()).
  */
 final class Templates
 {
+    /**
+     * A few of each, so the host does not say the same words before every
+     * prayer. A request on the prayer wall (or one without a name) never gets
+     * a name: the wall shows it anonymously, and name and text must not meet.
+     * {who}: first name and place; {where}: a country.
+     */
+    private const LEADS = [
+        'prayer' => [
+            'en' => ['{who} prays:', 'A prayer from {who}:', '{who} sent us this prayer:', 'Here is the prayer of {who}:', 'From {who}:'],
+            'de' => ['{who} betet:', 'Ein Gebet von {who}:', '{who} hat uns dieses Gebet geschickt:', 'Hier ist das Gebet von {who}:', 'Von {who}:'],
+        ],
+        'prayer_anon' => [
+            'en' => ['A prayer:', 'Someone prays:', 'A prayer from our community:', 'Someone sent us this prayer:'],
+            'de' => ['Ein Gebet:', 'Jemand betet:', 'Ein Gebet aus unserer Gemeinde:', 'Jemand hat uns dieses Gebet geschickt:'],
+        ],
+        'request' => [
+            'en' => ['{who} asks for prayer:', 'A prayer request from {who}:', '{who} writes:', '{who} asks us to pray:'],
+            'de' => ['{who} bittet um Gebet:', 'Ein Gebetsanliegen von {who}:', '{who} schreibt:', '{who} bittet uns um Gebet:'],
+        ],
+        'wall' => [
+            'en' => ['A prayer request:', 'Someone asks for prayer:', 'From our prayer wall:', 'Another request:', 'Someone writes:'],
+            'de' => ['Ein Gebetsanliegen:', 'Jemand bittet um Gebet:', 'Von unserer Gebetswand:', 'Ein weiteres Anliegen:', 'Jemand schreibt:'],
+        ],
+        'opendoors' => [
+            'en' => ['A prayer request from Open Doors for persecuted Christians in {where}:', 'Open Doors asks us to pray for persecuted Christians in {where}:'],
+            'de' => ['Ein Gebetsanliegen von Open Doors für verfolgte Christen in {where}:', 'Open Doors bittet um Gebet für verfolgte Christen in {where}:'],
+        ],
+        'opendoors_anywhere' => [
+            'en' => ['A prayer request from Open Doors for persecuted Christians:', 'Open Doors asks us to pray for persecuted Christians:'],
+            'de' => ['Ein Gebetsanliegen von Open Doors für verfolgte Christen:', 'Open Doors bittet um Gebet für verfolgte Christen:'],
+        ],
+    ];
+
+    /** The $n-th lead-in of its kind: neighbours ($n, $n + 1) never share one. */
+    public static function leadIn(string $case, string $lang, int $n, string $who = '', string $where = ''): string
+    {
+        $pools = self::LEADS[$case] ?? self::LEADS['wall'];
+        $pool = $pools[$lang] ?? $pools['en'];
+        return strtr($pool[abs($n) % count($pool)], ['{who}' => $who, '{where}' => $where]);
+    }
+
+    /** First name and place as the host says them: "Tom aus Berlin", "Tom"; '' without a name. */
+    public static function who(string $name, string $place, string $lang): string
+    {
+        $name = trim($name);
+        $place = trim($place);
+        if ($name === '') return '';
+        return $place === '' ? $name : $name . ($lang === 'de' ? ' aus ' : ' from ') . $place;
+    }
+
     /** @param array<string,mixed> $c context from HostWriter::context() @return array<string,string> */
     public static function texts(string $kind, array $c): array
     {
@@ -54,9 +108,13 @@ final class Templates
                 'en' => $who !== '' ? "Now let's listen to $who." : "Now let's listen to one of our listeners.",
                 'de' => $who !== '' ? "Jetzt hören wir $who." : 'Jetzt hören wir einen unserer Hörer.',
             ],
-            'prayer' => [
-                'en' => 'Let us pray together for everyone who shared a prayer request with us today. Lord, hear our prayers. Amen.',
-                'de' => 'Lasst uns gemeinsam für alle beten, die uns heute ein Gebetsanliegen geschickt haben. Herr, erhöre unsere Gebete. Amen.',
+            // After the requests were read out word for word: an invitation, never a prayer.
+            'prayer' => ((int) ($c['requests'] ?? 1)) > 1 ? [
+                'en' => 'Take a moment to pray for these requests. On the prayer wall in the app you can pray along.',
+                'de' => 'Nimm dir einen Moment und bete für diese Anliegen. An der Gebetswand in der App kannst du mitbeten.',
+            ] : [
+                'en' => 'Take a moment to pray for this request. On the prayer wall in the app you can pray along.',
+                'de' => 'Nimm dir einen Moment und bete für dieses Anliegen. An der Gebetswand in der App kannst du mitbeten.',
             ],
             default => [
                 'en' => $nextTitle !== '' ? "You're listening to ARCHE. Up next: $nextTitle." : "You're listening to ARCHE. Stay with us.",
@@ -88,9 +146,7 @@ final class Templates
     }
 
     /**
-     * The prayer hour's moments. A prayer names the requests it may name and
-     * speaks of the wall's without their senders: a template still prays for
-     * the requests its moment is marked aired for.
+     * The prayer hour's moments: presenting and inviting, never praying.
      *
      * @param array<string,mixed> $c
      * @param array<string,string> $program
@@ -99,45 +155,35 @@ final class Templates
      */
     private static function prayerHour(string $kind, array $c, array $program, ?array $after): ?array
     {
-        $tod = (string) ($c['time_of_day_de'] ?? 'Tag');
-        $blessing = $tod === 'Nacht' ? 'eine gesegnete Nacht' : ($tod === 'Mittag' ? 'einen gesegneten Mittag' : "einen gesegneten $tod");
         $requests = (array) ($c['prayers'] ?? []);
         $names = array_values(array_filter(array_map(fn($r) => empty($r['on_wall']) ? trim((string) ($r['name'] ?? '')) : '', $requests)));
         $wall = count(array_filter($requests, fn($r) => !empty($r['on_wall']))) > 0;
         $list = fn(array $n, string $and) => count($n) > 1 ? implode(', ', array_slice($n, 0, -1)) . " $and " . end($n) : ($n[0] ?? '');
         return match ($kind) {
             'intro' => ($by = trim((string) ($c['opening_by'] ?? ''))) !== '' ? [
-                'en' => "Welcome to {$program['en']} on ARCHE. $by opens our time of prayer.",
-                'de' => "Willkommen bei {$program['de']} auf ARCHE. $by eröffnet unsere Gebetszeit.",
+                'en' => "Welcome to {$program['en']} on ARCHE, a time to pray for one another. $by opens it with a prayer.",
+                'de' => "Willkommen bei {$program['de']} auf ARCHE, einer Zeit, in der wir füreinander beten. $by eröffnet sie mit einem Gebet.",
             ] : [
-                'en' => "Welcome to {$program['en']} on ARCHE. Let us pray together in this hour.",
-                'de' => "Willkommen bei {$program['de']} auf ARCHE. Lasst uns in dieser Stunde miteinander beten.",
-            ],
-            'opening' => [
-                'en' => 'Lord, we come before you in this hour. You know what is on our hearts. Be with us as we pray together. Amen.',
-                'de' => 'Herr, wir kommen in dieser Stunde zu dir. Du weißt, was uns bewegt. Sei bei uns, wenn wir jetzt miteinander beten. Amen.',
+                'en' => "Welcome to {$program['en']} on ARCHE, a time to pray for one another. Share your prayer request with the button in the app.",
+                'de' => "Willkommen bei {$program['de']} auf ARCHE, einer Zeit, in der wir füreinander beten. Teile dein Gebetsanliegen über den Button in der App.",
             ],
             'invite' => [
-                'en' => 'What would you like us to pray for? Share your prayer request now with the button in the app. In a few minutes we will pray for every request together.',
-                'de' => 'Wofür dürfen wir beten? Teile jetzt dein Gebetsanliegen über den Button in der App. In ein paar Minuten beten wir gemeinsam für jedes Anliegen.',
+                'en' => 'What would you like prayer for? Share your prayer request now with the button in the app. In a few minutes we read every request out.',
+                'de' => 'Wofür sollen wir beten? Teile jetzt dein Gebetsanliegen über den Button in der App. In ein paar Minuten lesen wir jedes Anliegen vor.',
             ],
             'prayer' => match (true) {
                 $names !== [] || $wall => [
-                    'en' => 'Let us pray for ' . implode(' and ', array_filter([$list($names, 'and'), $wall ? 'the requests on our prayer wall' : ''])) . '. Lord, you know what moves them. Hear our prayers. Amen.',
-                    'de' => 'Lasst uns beten für ' . implode(' und ', array_filter([$list($names, 'und'), $wall ? 'die Anliegen an unserer Gebetswand' : ''])) . '. Herr, du weißt, was sie bewegt. Erhöre unsere Gebete. Amen.',
-                ],
-                ($c['phase'] ?? '') === 'open' => [
-                    'en' => 'Let us begin our time of prayer. Lord, we bring before you everyone who is listening and all that is on our hearts. Amen.',
-                    'de' => 'Lasst uns unsere Gebetszeit beginnen. Herr, wir bringen alle vor dich, die jetzt zuhören, und alles, was uns bewegt. Amen.',
+                    'en' => 'Please pray with us for ' . implode(' and ', array_filter([$list($names, 'and'), $wall ? 'the requests on our prayer wall' : ''])) . '. Take a moment in the quiet.',
+                    'de' => 'Bete mit für ' . implode(' und ', array_filter([$list($names, 'und'), $wall ? 'die Anliegen an unserer Gebetswand' : ''])) . '. Nimm dir einen Moment in der Stille.',
                 ],
                 default => [
-                    'en' => 'Let us pray in silence for everyone who is listening, for the sick and the lonely. Lord, hear our prayers. Amen.',
-                    'de' => 'Lasst uns in der Stille für alle beten, die jetzt zuhören, für die Kranken und die Einsamen. Herr, erhöre unsere Gebete. Amen.',
+                    'en' => 'Take a moment in the quiet to pray for everyone listening, for the sick and the lonely. You can also share a prayer request with the button in the app.',
+                    'de' => 'Nimm dir einen Moment in der Stille und bete für alle, die jetzt zuhören, für die Kranken und die Einsamen. Du kannst auch ein Gebetsanliegen über den Button in der App teilen.',
                 ],
             },
             'outro' => [
-                'en' => "Thank you for praying with us in {$program['en']}. May God bless you and keep you, wherever you are. Amen." . ($after ? " Stay with us for {$after['en']}." : ''),
-                'de' => "Danke, dass du mit uns in {$program['de']} gebetet hast. Gott segne und behüte dich – $blessing. Amen." . ($after ? " Bleib dran für {$after['de']}." : ''),
+                'en' => "Thank you for every request and every prayer in {$program['en']}." . ($after ? " Stay with us for {$after['en']}." : ''),
+                'de' => "Danke für jedes Anliegen und jedes Gebet in {$program['de']}." . ($after ? " Bleib dran für {$after['de']}." : ''),
             ],
             default => null,
         };

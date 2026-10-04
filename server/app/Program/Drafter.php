@@ -165,13 +165,23 @@ final class Drafter
             if ($taken !== null) return $taken;
         }
 
-        // 4. Text prayer requests: the host prays for them together. One
-        //    transaction, as for a block: claimed without their break in the
-        //    plan, they would never air and never come back to the queue.
+        // 4. Text prayer requests: each read out word for word, then the host
+        //    invites everyone to pray for them — it never prays itself. Not
+        //    a unit: a reading not voiced in time gives its request back for
+        //    a later break, and no song comes between a reading and the next.
+        //    One transaction, as for a block: claimed without their readings
+        //    in the plan, they would never air and never come back.
         if ($hostOn && in_array('prayer', $program['allowed'], true) && !$this->isHost($prev)) {
             $taken = $this->app->store()->tx(function () use ($channel, $program, $cursor, $base): ?array {
-                $prayers = $this->app->submissions()->takePrayers($channel, $program, 3);
-                return $prayers ? $this->addHost($channel, $program, 'prayer', $cursor, $base, ['prayer_ids' => $prayers]) : null;
+                $ids = $this->app->submissions()->takePrayers($channel, $program, Timing::BLOCK_MAX, Timing::READ_CHARS);
+                if (!$ids) return null;
+                $added = 0;
+                foreach ($ids as $id) {
+                    [$n, $cursor] = $this->addReading($channel, $program, 'reading', $id, $cursor, $base);
+                    $added += $n;
+                }
+                [$n, $cursor] = $this->addHost($channel, $program, 'prayer', $cursor, $base, ['requests' => count($ids)]);
+                return [$added + $n, $cursor];
             });
             if ($taken !== null) return $taken;
         }
@@ -277,6 +287,27 @@ final class Drafter
         $breakId = $this->app->hostBreaks()->create($channel, $program, $kind, $item, $context);
         $this->app->store()->update('timeline_items', ['host_break_id' => $breakId], 'id = ?', [$item['id']]);
         return [1, $cursor + $estimate];
+    }
+
+    /**
+     * A listener's prayer request (`reading`) or prayer (`intercession`), to
+     * be read out word for word (HostWriter::reading()) — planned by its
+     * length. `n` is its place among the channel's readings, so the lead-in
+     * changes from one to the next.
+     *
+     * @param array<string,mixed> $base
+     * @param array<string,mixed> $context more context (a prayer hour's phase)
+     * @return array{0:int,1:int}
+     */
+    public function addReading(array $channel, array $program, string $kind, int $submissionId, int $cursor, array $base, ?string $unit = null, array $context = []): array
+    {
+        $text = (string) ($this->app->submissions()->get($submissionId)['text'] ?? '');
+        $n = (int) $this->app->store()->value(
+            "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND kind IN ('reading', 'intercession')",
+            [(int) $channel['id']],
+        );
+        return $this->addHost($channel, $program, $kind, $cursor, $base, ['prayer_ids' => [$submissionId], 'n' => $n] + $context,
+            $unit, Timing::readingEstimate(mb_strlen($text)));
     }
 
     /**

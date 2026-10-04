@@ -262,25 +262,34 @@ final class Timeline
     }
 
     /**
-     * A request taken off the prayer wall: the planned moments that would take
-     * it up again from the wall go. The committed ones (the next five
-     * minutes) cannot; the plan fills the rest again.
+     * A request taken off the prayer wall is not read out any more: its
+     * planned readings, and the moments that would take it up again, go —
+     * and give their requests back in the same transaction (left "scheduled",
+     * they would wait for good; this one is not taken again while hidden).
+     * The committed ones (the next five minutes) cannot; the plan fills the
+     * rest again.
      *
      * @return int drafts dropped
      */
     public function dropRepeatsOf(int $submissionId): int
     {
         $store = $this->app->store();
-        $n = 0;
-        foreach ($store->all(
-            "SELECT t.id, t.host_break_id FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id
-             WHERE t.state = 'draft' AND h.kind = 'prayer' AND json_extract(h.context, '$.again_id') = ?",
-            [$submissionId],
-        ) as $d) {
-            $this->app->hostBreaks()->cancel((int) $d['host_break_id']);
-            $n += $store->update('timeline_items', ['state' => 'dropped'], "id = ? AND state = 'draft'", [(int) $d['id']]);
-        }
-        return $n;
+        return $store->tx(function () use ($store, $submissionId): int {
+            $n = 0;
+            foreach ($store->all(
+                "SELECT t.id, t.host_break_id FROM timeline_items t JOIN host_breaks h ON h.id = t.host_break_id
+                 WHERE t.state = 'draft' AND (json_extract(h.context, '$.again_id') = ?
+                   OR (h.kind IN ('reading', 'prayer') AND EXISTS (SELECT 1 FROM json_each(h.context, '$.prayer_ids') j WHERE j.value = ?)))",
+                [$submissionId, $submissionId],
+            ) as $d) {
+                $breaks = $this->app->hostBreaks();
+                $breaks->cancel((int) $d['host_break_id']);
+                $n += $store->update('timeline_items', ['state' => 'dropped'], "id = ? AND state = 'draft'", [(int) $d['id']]);
+                $hb = $breaks->get((int) $d['host_break_id']);
+                foreach ($hb !== null ? HostBreaks::prayerIds($hb) : [] as $id) $this->app->submissions()->requeue($id);
+            }
+            return $n;
+        });
     }
 
     /**

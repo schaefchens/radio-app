@@ -54,6 +54,11 @@ voiced (a tick or two; the cron runs every minute).
 5. **No secrets in the client or in URLs** (one exception: the cron key may be a
    query parameter if the panel cannot send headers; the endpoint can then do
    nothing but a rate-limited tick). Roles only for passphrase identities.
+6. **The host never prays.** Listeners pray; the host welcomes, presents and
+   invites them to. No prayer, blessing, "Amen" or "let us pray" in its words:
+   the prompt says so, `HostWriter::prays()` swaps a model answer that prays
+   for the template, and no template prays (`host.php` checks every one).
+   People's own words are read out as written, without the model.
 
 ## Layout
 
@@ -142,12 +147,18 @@ and anything else is `missed`: a recording that will never air is not
 published, or removed when the tick sweeps the queue. Intake closes 15 minutes
 before a program ends ("last chance" from 25).
 
-Typed prayer requests are not a block: the host prays for up to three in one
-`prayer` break, which carries their ids as `prayer_ids` (never `prayers`: the
-script phase stores the writer's context, whose `prayers` are the texts, over
-the drafted one). Committed, the break marks them with its start; dropped or
-discarded, it gives them back to the queue. Each counts 20 s in the queue that
-closes intake (`Timing::PRAYER_EACH`).
+Typed prayer requests are not a block: up to three (at most `READ_CHARS`
+together) are read out word for word, each by a host `reading`
+(`HostWriter::reading()`: a short lead-in that changes from one reading to the
+next, then the text in its own language only, no model; a request on the wall
+without its sender), and then the host's `prayer` break invites everyone to
+pray for them. A reading carries its request's id as `prayer_ids` (never
+`prayers`: the script phase stores the writer's context, whose `prayers` are
+the texts, over the drafted one). Committed, it marks the request with its
+start; dropped or discarded, it gives it back to the queue. A request taken
+off the wall is not read out any more (`Timeline::dropRepeatsOf` gives it back,
+`takePrayers` skips it). Each counts 20 s in the queue that closes intake
+(`Timing::PRAYER_EACH`).
 
 The **prayer wall** (`Submissions::wall`, `live.json.wall`) shows typed prayer
 requests that are approved, scheduled or aired — only with the sender's own

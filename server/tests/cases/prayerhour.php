@@ -94,7 +94,7 @@ function idsPrayedIn(array $run, int $id): array
     return $out;
 }
 
-test('prayer hour: welcome, opening prayer, invitation, prayer music while requests come in, the reading, silent prayer, the outro', function () {
+test('prayer hour: welcome, invitation, prayer music while requests come in, the reading, silent prayer, the outro — no opening prayer unless one was prepared', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $p = prayerHour($app, 735); // 12:15–13:15 Berlin = T0 + 15 … + 75 min
@@ -110,7 +110,7 @@ test('prayer hour: welcome, opening prayer, invitation, prayer music while reque
     }
     $run = runOf($app, (int) $p['id']);
     $labels = labelsOf($run);
-    eq(array_slice($labels, 0, 5), ['intro', 'opening', 'invite', 'bed', 'open'], 'welcome, opening prayer, invitation, the prayer music, then the time of prayer opens');
+    eq(array_slice($labels, 0, 4), ['intro', 'invite', 'bed', 'open'], 'welcome, invitation, the prayer music, then the time of prayer opens: no moderator prepared an opening prayer, and the AI never prays one');
     $beds = array_values(array_filter($run, fn($r) => $r['label'] === 'bed'));
     $bedFile = (int) $app->library()->get((int) $beds[0]['item']['library_id'])['duration_ms'];
     check(abs(array_sum(array_map(fn($r) => $r['item']['dur_ms'], $beds)) - 480_000) < 3_000, 'eight minutes of prayer music');
@@ -139,7 +139,8 @@ test('prayer hour: welcome, opening prayer, invitation, prayer music while reque
     check($outro['item']['start_ms'] >= $end - 3 * 60_000 && $outro['item']['start_ms'] + $outro['item']['dur_ms'] <= $end + Timing::SOFT_OVERRUN, 'at the end of the hour');
     eq($outro['context']['prayed'] ?? null, 4, 'and it knows how many requests the hour prayed for');
     eq(count(array_filter($run, fn($r) => $r['label'] === 'song')), 0, 'no songs in this hour');
-    eq(count(array_filter($run, fn($r) => in_array($r['label'], ['intro', 'opening', 'invite', 'outro'], true))), 4, 'one welcome, opening prayer, invitation and outro each');
+    eq(count(array_filter($run, fn($r) => in_array($r['label'], ['intro', 'invite', 'outro'], true))), 3, 'one welcome, invitation and outro each');
+    eq(count(array_filter($run, fn($r) => $r['label'] === 'opening')), 0, 'no opening prayer');
     $silence = array_values(array_filter($run, fn($r) => $r['label'] === 'silence'))[0]['item'];
     eq($silence['payload']['label']['de'], 'Stilles Gebet', 'the silence is labelled as silent prayer');
     assertContiguous(TestKit::committed($app), 'contiguous');
@@ -153,14 +154,14 @@ test('prayer hour: songs instead of prayer music, and songs after the outro unti
     ticks($app, 85);
     $run = runOf($app, (int) $p['id']);
     $labels = labelsOf($run);
-    eq(array_slice($labels, 0, 6), ['intro', 'opening', 'invite', 'song', 'song', 'open'], 'two songs while requests come in, then the time of prayer');
+    eq(array_slice($labels, 0, 5), ['intro', 'invite', 'song', 'song', 'open'], 'two songs while requests come in, then the time of prayer');
     $close = $app->prayerHour()->closingAt(TestKit::main($app), $app->catalog()->program((int) $p['id']) ?? [], TestKit::T0 + 20 * 60_000);
     eq($close, $end - 2 * Timing::AFTER_SONG - Timing::OUTRO_ESTIMATE, 'the outro leaves room for two songs and itself');
     $outro = (int) array_search('outro', array_column($run, 'label'), true);
     check($outro > 0 && abs($run[$outro]['item']['start_ms'] - $close) < 3 * 60_000, 'and comes then');
     $after = array_slice($run, $outro + 1);
     check(count(array_filter($after, fn($r) => $r['label'] === 'song')) >= 1, 'songs after the outro');
-    eq(count(array_filter(array_slice($run, 5, $outro - 5), fn($r) => $r['label'] === 'song')), 0, 'no song in the prayer time');
+    eq(count(array_filter(array_slice($run, 4, $outro - 4), fn($r) => $r['label'] === 'song')), 0, 'no song in the prayer time');
     $last = end($run)['item'];
     check($last['start_ms'] + $last['dur_ms'] <= $end + Timing::SOFT_OVERRUN, 'the music ends with the program');
     assertContiguous(TestKit::committed($app), 'contiguous');
@@ -291,7 +292,7 @@ test('prayer hour: across midnight it keeps one running order, closes at its rea
     ticks($app, 80);
     $run = runOf($app, (int) $p['id']);
     $count = fn(string $l) => count(array_filter($run, fn($r) => $r['label'] === $l));
-    eq([$count('intro'), $count('opening'), $count('invite'), $count('outro')], [1, 1, 1, 1], 'one welcome, opening prayer, invitation and outro');
+    eq([$count('intro'), $count('opening'), $count('invite'), $count('outro')], [1, 0, 1, 1], 'one welcome, invitation and outro (no opening prayer was prepared)');
     $outro = array_values(array_filter($run, fn($r) => $r['label'] === 'outro'))[0]['item'];
     check($outro['start_ms'] >= $end - 3 * 60_000 && $outro['start_ms'] < $end, 'the outro at 00:30, not at midnight');
     check(count(array_filter($run, fn($r) => in_array($r['label'], ['open', 'general'], true))) >= 3, 'the prayer time went on across midnight');
@@ -313,7 +314,7 @@ test('prayer hour: a plan change or an outage mid-hour does not start it over, a
     $run = runOf($app, (int) $p['id']);
     $labels = array_column($run, 'label');
     $count = fn(string $l) => count(array_keys($labels, $l, true));
-    eq([$count('intro'), $count('opening'), $count('invite'), $count('outro')], [1, 1, 1, 1], 'one welcome, opening prayer, invitation and outro');
+    eq([$count('intro'), $count('opening'), $count('invite'), $count('outro')], [1, 0, 1, 1], 'one welcome, invitation and outro');
     eq($count('gap'), 1, 'the outage left one gap');
     $idOf = fn(string $public) => (int) $app->submissions()->byPublicId($public)['id'];
     eq(count(idsPrayedIn($run, $idOf($before))), 1, 'the request drafted before the change was prayed for once');
@@ -322,7 +323,7 @@ test('prayer hour: a plan change or an outage mid-hour does not start it over, a
         'a request approved after the restart airs within about seven to nine minutes, not after the outage planned again');
 });
 
-test('prayer hour: planned at the last minute it still opens with the welcome, the opening prayer and the invitation', function () {
+test('prayer hour: planned at the last minute it still opens with the welcome and the invitation', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     ticks($app, 10);
@@ -331,7 +332,7 @@ test('prayer hour: planned at the last minute it still opens with the welcome, t
     ticks($app, 25);
     $labels = labelsOf(runOf($app, (int) $p['id']));
     $first = array_values(array_filter($labels, fn($l) => !str_ends_with($l, '*')));
-    eq(array_slice($first, 0, 4), ['intro', 'opening', 'invite', 'bed'], 'the moments wait for their voice instead of going');
+    eq(array_slice($first, 0, 3), ['intro', 'invite', 'bed'], 'the moments wait for their voice instead of going');
     $fillers = array_values(array_unique(array_filter($labels, fn($l) => str_ends_with($l, '*'))));
     check($fillers === [] || $fillers === ['bed*'], 'behind this hour\'s prayer music, never a song (' . implode(',', $fillers) . ')');
     $start = TestKit::T0 + 12 * 60_000;
@@ -351,7 +352,7 @@ test('prayer hour: saved twice around its start it keeps one opening and the who
     ticks($app, 30);
     $run = runOf($app, (int) $p['id']);
     $count = fn(string $l) => count(array_filter($run, fn($r) => $r['label'] === $l));
-    eq([$count('intro'), $count('opening'), $count('invite')], [1, 1, 1], 'one welcome, opening prayer and invitation');
+    eq([$count('intro'), $count('opening'), $count('invite')], [1, 0, 1], 'one welcome and invitation');
     $beds = array_filter($run, fn($r) => $r['label'] === 'bed');
     check(abs(array_sum(array_map(fn($r) => $r['item']['dur_ms'], $beds)) - 480_000) < 3_000, 'the eight minutes of prayer music, not fewer');
 });
@@ -371,9 +372,9 @@ test('prayer hour: with nobody listening it voices only its opening and what lis
             . ($state !== null ? ' AND state = ?' : '') . ($phase !== null ? " AND json_extract(context, '$.phase') = ?" : ''),
         array_merge([(int) $p['id'], $kind], $state !== null ? [$state] : [], $phase !== null ? [$phase] : []),
     );
-    eq([$count('intro'), $count('opening'), $count('invite'), $count('outro')], [1, 1, 1, 1], 'each opening moment tried once, not again and again');
+    eq([$count('intro'), $count('opening'), $count('invite'), $count('outro')], [1, 0, 1, 1], 'each opening moment tried once, not again and again');
     // Written about eight minutes before the hour, before its listeners tune in.
-    eq([$count('intro', 'ready'), $count('opening', 'ready'), $count('invite', 'ready')], [1, 1, 1], 'the welcome, opening prayer and invitation voiced for whoever comes on time');
+    eq([$count('intro', 'ready'), $count('invite', 'ready')], [1, 1], 'the welcome and invitation voiced for whoever comes on time');
     eq([$count('outro', 'ready'), $count('prayer', 'ready', 'general'), $count('prayer', 'ready', 'again')], [0, 0, 0], 'the outro and the prayers for everyone wait for an audience');
     check($count('prayer', null, 'general') <= 14, 'a prayer for everyone not more often than every few quiet minutes (' . $count('prayer', null, 'general') . ')');
     eq($app->submissions()->byPublicId($sent)['status'], 'aired', 'the request a listener sent is prayed for all the same');
@@ -413,7 +414,7 @@ test('prayer hour: a short hour keeps ten minutes of prayer, and invites no requ
     $run = runOf($app, (int) $p['id']);
     $labels = labelsOf($run);
     check(!in_array('invite', $labels, true), 'no invitation');
-    eq(array_slice($labels, 0, 2), ['intro', 'opening'], 'the welcome and the opening prayer still');
+    eq($labels[0], 'intro', 'the welcome still');
     $first = array_values(array_filter($run, fn($r) => $r['label'] === 'open'))[0]['item'];
     $outro = array_values(array_filter($run, fn($r) => $r['label'] === 'outro'))[0]['item'];
     check($outro['start_ms'] - $first['start_ms'] >= Timing::MIN_PRAYER - 2 * 60_000, 'about ten minutes of prayer before the outro');
@@ -432,33 +433,37 @@ test('prayer hour: never the fallback that fills a plan\'s gaps', function () {
     eq($app->resolver()->fallbackProgramId($cat->channel((int) $night['id']) ?? []), (int) $music['id'], 'by default the first program that is not a prayer hour');
 });
 
-test('prayer hour: the host\'s words — the reading names whom it may, the blessing fits the time of day in German only', function () {
+test('prayer hour: the host\'s words present and invite — by name whom it may, never a prayer or a blessing', function () {
     $app = TestKit::app();
     $c = ['format' => 'prayer hour', 'phase' => 'read', 'program' => ['title' => ['en' => 'Prayer Hour', 'de' => 'Gebetsstunde']],
         'prayers' => [['on_wall' => false, 'name' => 'Ana', 'place' => 'Porto', 'text' => 'x'], ['on_wall' => true, 'text' => 'y']]];
     $t = Arche\Host\Templates::texts('prayer', $c);
     check(str_contains($t['en'], 'Ana') && str_contains($t['en'], 'prayer wall') && str_contains($t['de'], 'Ana') && str_contains($t['de'], 'Gebetswand'),
-        'without the model the host still prays for the requests: by name, and the wall\'s without their senders');
+        'without the model the host still presents the requests: by name, and the wall\'s without their senders');
     $outro = Arche\Host\Templates::texts('outro', ['format' => 'prayer hour', 'time_of_day_de' => 'Abend', 'program' => $c['program']]);
-    check(str_contains($outro['de'], 'einen gesegneten Abend'), 'the German blessing fits the evening');
+    foreach (['en', 'de'] as $l) {
+        check(!Arche\Host\HostWriter::prays($t[$l]) && !Arche\Host\HostWriter::prays($outro[$l]), "no prayer in the $l templates");
+        check(preg_match('/segne|segen|bless/i', $outro[$l]) === 0, "and no blessing in the $l outro");
+    }
     check(preg_match('/evening|morning|afternoon|night|today|tonight/i', $outro['en']) === 0, 'the English one is heard worldwide: no time of day');
 
-    // A reading of three requests runs long; the model's text is kept, not swapped for the template.
+    // Presenting three requests runs long: the model's text is kept, not swapped for the template —
+    // unless it prays.
     TestKit::songs($app, 12);
     $p = prayerHour($app, 735);
-    $long = str_repeat('Lord, we bring these requests before you. ', 22);
-    $app->text()->respond('host_prayer', fn() => ['en' => ['text' => $long], 'de' => ['text' => $long]]);
+    $long = str_repeat('These are the requests our listeners sent tonight, and you can pray for each of them. ', 10);
+    $app->text()->respond('host_prayer', fn() => ['en' => ['text' => $long], 'de' => ['text' => 'Herr, wir bringen dir diese Anliegen. Amen.']]);
     for ($m = 0; $m < 30; $m++) {
         if ($m === 16) prayFor($app, 'Long');
         $app->tick()->run('test');
         TestKit::clock($app)->advance(60_000);
     }
     $read = array_values(array_filter(runOf($app, (int) $p['id']), fn($r) => $r['label'] === 'read'))[0]['item'];
-    eq($read['payload']['text']['en'], trim($long), 'a 900-character prayer is spoken as written');
+    eq($read['payload']['text']['en'], trim($long), 'an 860-character presentation is spoken as written');
+    check(!Arche\Host\HostWriter::prays($read['payload']['text']['de']) && str_contains($read['payload']['text']['de'], 'Gebetswand'), 'a version that prays is replaced by the template');
 });
 
-
-test('prayer hour: a moderator\'s prepared opening prayer is prayed instead of the AI\'s, word for word, and the welcome names them', function () {
+test('prayer hour: a moderator\'s prepared opening prayer is prayed word for word, and the welcome names them', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $p = prayerHour($app, 735);

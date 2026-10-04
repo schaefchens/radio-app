@@ -14,6 +14,11 @@ use Arche\Submission\Submissions;
  * context around the break (program, the songs either side, a listener's
  * dedication, prayer requests, community voices).
  *
+ * The host never prays: listeners do, and it invites them to. Their own
+ * words — prayer requests, prayers — are read out exactly as they were
+ * written, without the model (reading()); a model answer that prays anyway
+ * is replaced by the template (prays()).
+ *
  * Everything a listener wrote reaches the prompt only after moderation, and
  * is passed as data inside JSON with an explicit instruction never to follow
  * instructions found there.
@@ -21,8 +26,10 @@ use Arche\Submission\Submissions;
 final class HostWriter
 {
     private const MAX_CHARS = 700;
-    /** A prayer for three requests, or an opening prayer, runs longer — in German past 700. */
+    /** A prayer hour's moment presenting three requests runs longer — in German past 700. */
     private const MAX_CHARS_PRAYER = 1100;
+    /** People's own words, read out as written: no model, one language — the text's own. */
+    public const READINGS = ['reading', 'intercession'];
     /** Context kept for a deleted account to be found by (Identity\Erasure), not for the script. */
     private const NOT_FOR_MODEL = ['previous_id', 'community_by'];
 
@@ -94,13 +101,16 @@ final class HostWriter
             $ctx['previous_id'] = (int) $prev['submission_id'];
         }
         $prayerIds = HostBreaks::prayerIds($hb);
-        if ($prayerIds) {
+        // A reading needs no model, so nobody's words are copied into its context.
+        if ($prayerIds && !in_array($hb['kind'], self::READINGS, true)) {
             $ctx['prayers'] = [];
             foreach ($prayerIds as $pid) {
                 $p = $this->app->submissions()->get($pid);
                 if ($p !== null) $ctx['prayers'][] = ['name' => $p['name'], 'place' => $p['place'], 'text' => $p['text']];
             }
         }
+        // The invitation after requests read out: how many, nothing of what they say.
+        if ($hb['kind'] === 'prayer' && isset($hb['context']['requests'])) $ctx['requests'] = (int) $hb['context']['requests'];
         if ($hb['kind'] === 'break') {
             $voices = array_slice($this->app->presence()->voices((string) ($channel['slug'] ?? 'main')), 0, 2);
             $ctx['community'] = array_map(fn($v) => ['name' => $v['name'], 'country' => $v['country'], 'text' => $v['text']], $voices);
@@ -208,6 +218,11 @@ final class HostWriter
             }
             if ($texts) return ['texts' => $texts, 'source' => 'moderator'];
         }
+        // An opening prayer is a moderator's or none: the AI never writes one
+        // (not even when a prepared text is in no language the station speaks).
+        if ($hb['kind'] === 'opening') return ['texts' => [], 'source' => 'moderator'];
+        // People's own words, read out as they were written — no model.
+        if (in_array($hb['kind'], self::READINGS, true)) return ['texts' => $this->reading($hb), 'source' => 'listener'];
         $channel = $this->app->catalog()->channel((int) $hb['channel_id']) ?? [];
         $props = [];
         foreach ($langs as $l) {
@@ -235,14 +250,80 @@ final class HostWriter
         $fallback = Templates::texts((string) $hb['kind'], $context);
         if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason];
 
-        $max = in_array($hb['kind'], ['prayer', 'opening'], true) ? self::MAX_CHARS_PRAYER : self::MAX_CHARS;
+        $max = $hb['kind'] === 'prayer' ? self::MAX_CHARS_PRAYER : self::MAX_CHARS;
         $texts = [];
+        $prayed = [];
         foreach ($langs as $l) {
             $t = trim((string) ($result->data[$l]['text'] ?? ''));
             $t = trim((string) preg_replace('/\s+/u', ' ', strip_tags($t)), " \"'“”„");
-            $texts[$l] = ($t === '' || mb_strlen($t) > $max) ? $fallback[$l] : $t;
+            // The host never prays: a version that does is the template's.
+            if ($t !== '' && self::prays($t)) $prayed[] = $l;
+            $texts[$l] = ($t === '' || mb_strlen($t) > $max || in_array($l, $prayed, true)) ? $fallback[$l] : $t;
         }
+        if ($prayed) $this->app->store()->audit('host', 'The script prayed; the template was used', $hb['kind'] . ' ' . implode(',', $prayed));
         return ['texts' => $texts, 'source' => $model->provider()];
+    }
+
+    /**
+     * Whether the host's own words pray — it never does: an Amen, "let us
+     * pray", a blessing, a prayer's closing formula, or a sentence that speaks
+     * to God. Only the model's text is checked; people's words read out are
+     * theirs.
+     */
+    public static function prays(string $text): bool
+    {
+        return preg_match(
+            '/\bamen\b'
+            . '|\blet(?:\s+us|[\'’]s)\s+(?:\p{L}+\s+){0,3}pray\b'
+            . '|\blasst?\s+uns\s+(?:[\p{L}-]+\s+){0,4}beten\b'
+            . '|\bgod\s+bless|\bbless\s+(?:you|us)\b|\bgott\s+segne|\bgottes\s+segen|\bsegne\s+(?:dich|euch|uns|sie)\b'
+            . '|\bin\s+jesu\s+namen\b|\bin\s+jesus[\'’]?\s+name\b'
+            . '|(?:^|[.!?…:;]\s*)(?:lord|father|jesus|god|herr|vater|gott)\s*[,!]/iu',
+            $text,
+        ) === 1;
+    }
+
+    /**
+     * A listener's prayer request or prayer, read out exactly as written: a
+     * short lead-in (never the one the reading before had) and the text, in
+     * the text's own language only — never translated. A request on the
+     * prayer wall is read without its sender: the wall shows it anonymously.
+     * Gone, or taken off the wall since it was planned: nothing to say, and
+     * the break fails (its request waits again; a hidden one is never taken).
+     *
+     * @param array<string,mixed> $hb
+     * @return array<string,string>
+     */
+    private function reading(array $hb): array
+    {
+        $id = HostBreaks::prayerIds($hb)[0] ?? 0;
+        $sub = $id > 0 ? $this->app->submissions()->get($id) : null;
+        $text = trim((string) ($sub['text'] ?? ''));
+        if ($sub === null || $text === '' || (int) $sub['hidden'] !== 0) return [];
+        $n = (int) ($hb['context']['n'] ?? 0);
+        $lang = $this->readingLang($sub);
+        $who = Templates::who((string) $sub['name'], (string) $sub['place'], $lang);
+        $case = match (true) {
+            $hb['kind'] === 'intercession' => $who !== '' ? 'prayer' : 'prayer_anon',
+            $who === '' || Submissions::onWall($sub) => 'wall',
+            default => 'request',
+        };
+        return [$lang => Templates::leadIn($case, $lang, $n, $who) . ' ' . $text];
+    }
+
+    /**
+     * The language a listener's text is read in: the check's, when it names
+     * exactly one the station speaks; else the sender's app language.
+     *
+     * @param array<string,mixed> $sub
+     */
+    private function readingLang(array $sub): string
+    {
+        $langs = $this->app->config->stationLangs();
+        $verdict = json_decode((string) ($sub['verdict'] ?? ''), true) ?: [];
+        $named = array_values(array_intersect($langs, array_map(fn($l) => strtolower(substr(trim((string) $l), 0, 2)), (array) ($verdict['languages'] ?? []))));
+        if (count($named) === 1) return $named[0];
+        return in_array($sub['lang'], $langs, true) ? (string) $sub['lang'] : $langs[0];
     }
 
     private function system(string $hostName, string $style): string
@@ -256,11 +337,16 @@ final class HostWriter
         Write what you say next, in {$langs}. Both versions carry the same meaning; the German is
         natural spoken German, not a literal translation.
 
+        You never pray. Do not speak to God, and never say a prayer, a blessing, "Amen" or "let us
+        pray" — not even on behalf of the listeners. On this station the listeners pray, for one
+        another; you are the host who invites them to. Their own prayer requests and prayers are
+        read out by the station exactly as they wrote them, without you.
+
         Voice and length:
         - Warm, joyful and sincere; never preachy, never salesy, never over the top.
-        - Written for the ear: 1 to 3 short sentences, at most 45 words per language. A prayer
-          may use up to 90 words (a prayer hour's prayer for several requests up to 130), a moment
-          that also reacts to previous_request up to 70.
+        - Written for the ear: 1 to 3 short sentences, at most 45 words per language; a moment
+          that also reacts to previous_request up to 70, a prayer hour's moment that presents
+          several requests up to 90.
         - No emojis, hashtags, links, stage directions or quotation marks around the whole text.
 
         Facts and honesty:
@@ -290,34 +376,33 @@ final class HostWriter
           preaching by its title and preacher.
         - preaching: in a preaching program, introduce the preaching that follows ("next": its
           title and preacher) and invite everyone to listen.
-        - contrib: introduce a listener's recording (story, testimony, greeting or prayer).
-        - prayer: pray briefly for the listed prayer requests, speaking to God, by first name and
-          place when given.
+        - contrib: introduce a listener's recording (story, testimony, greeting or prayer request).
+        - prayer: listeners' prayer requests ("requests": how many) were just read out word for
+          word, right before you: invite everyone to pray for them — where they are, or with the
+          praying hands on the prayer wall in the app. Do not repeat or retell them.
         - outro: close the program; point to what comes next if given.
 
-        In a prayer hour ("format": "prayer hour") listeners send prayer requests and pray together.
-        Its moments:
-        - intro: welcome everyone to the prayer hour, a time to pray together; with "opening_by", say
-          that this person prays the opening prayer for us (by name only).
-        - opening: the opening prayer, speaking to God, for this hour together.
+        In a prayer hour ("format": "prayer hour") listeners send prayer requests and pray for one
+        another. Its moments:
+        - intro: welcome everyone to the prayer hour, a time in which listeners pray for one
+          another, and invite them to share their prayer requests; with "opening_by", say that this
+          person opens the hour with a prayer (by name only).
         - invite: invite listeners to send their prayer requests now with the "Share a prayer request"
           button in the app; say for how long ("collect": minutes of quiet music or of quiet, or while
-          the next songs play) and that we will then pray for every request together. If "intake" is
+          the next songs play) and that every request will then be read out. If "intake" is
           "closing", say that time is short.
-        - prayer, by "phase": open — the time of prayer begins: invite everyone to pray together and
-          pray briefly for everyone listening and all they bring; never say that nothing has come in.
-          read — requests sent during the collection: present each listed request in a few words and
-          pray for it. new — a request has just come in: present it and pray for it. again — take up
-          this request from the prayer wall once more and invite listeners to pray along in silence.
-          general — pray briefly for the world, the sick, the lonely and everyone listening, and invite
-          them to pray along in silence or to send a request.
+        - prayer, by "phase": open — the time of prayer begins: invite everyone to pray for the
+          requests and for one another; never say that nothing has come in. read — requests sent
+          during the collection: present each listed request in a few words and invite listeners to
+          pray for it. new — a request has just come in: present it and invite listeners to pray for
+          it. again — take up this request from the prayer wall once more and invite listeners to
+          pray for it in the quiet. general — invite listeners to pray in the quiet for the world,
+          the sick, the lonely and everyone listening, or to send a request.
         - contrib: introduce the listener's recorded prayer request and invite everyone to pray for
-          it in the silence afterwards.
-        - outro: thank everyone who prayed and sent requests (you may say how many requests we prayed
-          for, "prayed", and how often listeners prayed along with them in the app, "prayed_along"),
-          close with a short blessing and point to what comes next if given. The
-          German blessing may fit the given time of day ("einen gesegneten Abend"); the English one
-          stays time-neutral.
+          it in the quiet afterwards.
+        - outro: thank everyone who sent requests and prayed (you may say how many requests there
+          were, "prayed", and how often listeners prayed along with them in the app,
+          "prayed_along"), say goodbye and point to what comes next if given. No blessing.
 
         previous_request, when given, is a listener's request, preaching suggestion or recording that
         aired shortly before this moment. Begin with one warm sentence that reacts to it — a thought

@@ -66,16 +66,18 @@ describe('the stage in a prayer hour', () => {
     expect(screen.getByRole('button', { name: 'Share a prayer request' })).toBeTruthy();
   });
 
-  it('while the host prays for a request on the wall, that request instead of the long prayer', () => {
-    render(<StageVisual engine={stage(moment, 'host', { praying: ['pa'], hostText: 'Lord, we bring before you a request on our prayer wall…' })} />);
-    expect(screen.getByText('Hope is praying')).toBeTruthy();
+  it('while a request on the wall is on air, that request instead of the host\'s long text', () => {
+    render(<StageVisual engine={stage(moment, 'host', { praying: ['pa'], hostText: 'A prayer request: please pray for my mother, she is in hospital…' })} />);
+    expect(screen.getByText('Prayer request')).toBeTruthy();
     expect(screen.getByText(mother.text)).toBeTruthy();
-    expect(screen.queryByText(/Lord, we bring/)).toBeNull();
+    expect(screen.queryByText(/A prayer request: please/)).toBeNull();
+    // The host never prays: the stage never says it does.
+    expect(screen.queryByText(/is praying/)).toBeNull();
   });
 
   it('a request taken off the wall since: the host as usual', () => {
-    render(<StageVisual engine={stage(moment, 'host', { praying: ['px'], hostText: 'Lord, hear our prayers.' })} />);
-    expect(screen.getByText('Lord, hear our prayers.')).toBeTruthy();
+    render(<StageVisual engine={stage(moment, 'host', { praying: ['px'], hostText: 'Take a moment to pray for this request.' })} />);
+    expect(screen.getByText('Take a moment to pray for this request.')).toBeTruthy();
   });
 
   it('on the compact stage of the other pages: no sheet to open there, so no button', () => {

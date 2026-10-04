@@ -541,23 +541,30 @@ final class Submissions
 
     /**
      * Up to $n approved typed prayers for this program, longest-waiting first,
-     * claimed for one prayer break — each exactly once, like schedule(). The
-     * break carries their ids: committed, it marks them with its start
-     * (markScheduled); dropped or discarded, it gives them back (requeue).
+     * together at most $maxChars long (always the first) — each claimed
+     * exactly once, like schedule(). Their readings carry the ids: committed,
+     * they mark them with their start (markScheduled); dropped or discarded,
+     * they give them back (requeue). One taken off the wall is not read out.
      *
      * @return list<int>
      */
-    public function takePrayers(array $channel, array $program, int $n): array
+    public function takePrayers(array $channel, array $program, int $n, int $maxChars = PHP_INT_MAX): array
     {
         $store = $this->app->store();
         $rows = $store->all(
-            "SELECT id FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved' AND type = 'prayer' AND mode = 'text'
-             ORDER BY created, id LIMIT ?",
+            "SELECT id, text FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved' AND type = 'prayer' AND mode = 'text'
+             AND hidden = 0 ORDER BY created, id LIMIT ?",
             [(int) $channel['id'], (int) $program['id'], $n],
         );
         $ids = [];
+        $chars = 0;
         foreach ($rows as $r) {
-            if ($this->schedule((int) $r['id'])) $ids[] = (int) $r['id'];
+            $len = mb_strlen((string) $r['text']);
+            if ($ids && $chars + $len > $maxChars) break;
+            if ($this->schedule((int) $r['id'])) {
+                $ids[] = (int) $r['id'];
+                $chars += $len;
+            }
         }
         return $ids;
     }
@@ -749,10 +756,10 @@ final class Submissions
     }
 
     /**
-     * A moderator takes a typed prayer off the wall (or puts it back). Only
-     * the wall changes: its status, and so whether the host prays for it on
-     * air, stays as it was — except that a prayer hour no longer takes it up
-     * again "from the wall": repeats already planned for it go too.
+     * A moderator takes a typed prayer off the wall (or puts it back). Taken
+     * off, it is not read out on air any more either: the readings and
+     * repeats planned for it go (the committed minutes stay as they are), and
+     * it waits until a moderator puts it back or its program ends.
      *
      * @return bool false when there is no typed prayer with this id
      */
@@ -767,7 +774,7 @@ final class Submissions
     /**
      * Enough listeners reported a request on the wall (Moderation\Reports): it
      * comes off until a moderator decides — `hidden = 2`, so /mod can tell it
-     * from their own takedown. Like setHidden, the repeats planned for it go.
+     * from their own takedown. Like setHidden, what is planned for it goes.
      *
      * @return bool whether it was on the wall until now
      */

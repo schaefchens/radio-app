@@ -146,77 +146,122 @@ test('submissions: a recording is transcribed, published only after approval, an
     check(($contrib[0]['payload']['caption']['de'] ?? '') !== '', 'with a German caption');
 });
 
-test('submissions: text prayers are prayed for by the host and shown on the prayer wall', function () {
+test('submissions: typed prayer requests are read out word for word, then the host invites everyone to pray — it never prays itself', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $app->tick()->run('test');
-    $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for my mother in hospital.', 'name' => 'Maria', 'place' => 'Germany', 'consent_air' => '1']);
+    $shown = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for my mother in hospital.', 'name' => 'Maria', 'place' => 'Germany', 'consent_air' => '1']);
+    $named = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Pray for my new job, please.', 'name' => 'Tom', 'place' => 'Berlin', 'lang' => 'de']);
     runJobs($app);
-    eq($app->submissions()->byPublicId($sub['id'])['status'], 'approved', 'approved');
-    eq(array_column($app->submissions()->wall('main'), 'id'), ['p' . $sub['id']], 'shown on the prayer wall');
+    eq($app->submissions()->byPublicId($shown['id'])['status'], 'approved', 'approved');
+    eq(array_column($app->submissions()->wall('main'), 'id'), ['p' . $shown['id']], 'the one with the tick is shown on the prayer wall');
     for ($i = 0; $i < 50; $i++) {
         $app->tick()->run('test');
         TestKit::clock($app)->advance(60_000);
     }
-    $prayer = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && ($i['payload']['kind'] ?? '') === 'prayer'));
-    check(count($prayer) >= 1, 'a prayer break aired');
-    $id = (int) $app->submissions()->byPublicId($sub['id'])['id'];
-    $context = hostContext($app, $prayer[0]);
-    eq($context['prayer_ids'] ?? null, [$id], 'the break still knows whom it prayed for after its script was written');
-    eq(array_column($context['prayers'] ?? [], 'name'), ['Maria'], 'and the script was written for her');
-    $row = $app->submissions()->byPublicId($sub['id']);
-    eq([$row['status'], (int) $row['aired_at']], ['aired', $prayer[0]['start_ms']], 'marked aired, at the start of the prayer');
-    eq($app->submissions()->publicView($row)['airedAt'], $prayer[0]['start_ms'], 'and the sender sees when');
+    $items = TestKit::committed($app);
+    $readings = array_values(array_filter($items, fn($i) => $i['type'] === 'host' && ($i['payload']['kind'] ?? '') === 'reading'));
+    eq(count($readings), 2, 'each request read out once');
+    $byId = [];
+    foreach ($readings as $r) $byId[hostContext($app, $r)['prayer_ids'][0] ?? 0] = $r;
+    $idShown = (int) $app->submissions()->byPublicId($shown['id'])['id'];
+    $idNamed = (int) $app->submissions()->byPublicId($named['id'])['id'];
+    $wallText = (string) ($byId[$idShown]['payload']['text']['en'] ?? '');
+    check(str_ends_with($wallText, ' Please pray for my mother in hospital.') && !str_contains($wallText, 'Maria'),
+        'the wall\'s request word for word, without its sender (the wall shows it anonymously): ' . $wallText);
+    eq(array_keys($byId[$idShown]['payload']['text']), ['en'], 'in the language it was written in only (the stub check says English)');
+    $namedText = (string) ($byId[$idNamed]['payload']['text']['en'] ?? '');
+    check(str_contains($namedText, 'Tom from Berlin') && str_ends_with($namedText, ' Pray for my new job, please.'), 'the other one with first name and place: ' . $namedText);
+    eq($byId[$idShown]['payload']['prayers'], ['p' . $shown['id']], 'the app marks the wall\'s request as the one on air');
+    $hb = $app->hostBreaks()->get((int) $byId[$idShown]['host_break_id']) ?? [];
+    eq($hb['source'], 'listener', 'no model wrote it');
+    check(!isset($hb['context']['prayers']), 'and nobody\'s words were copied into its context');
+    $last = end($readings);
+    $after = array_values(array_filter($items, fn($i) => $i['start_ms'] === $last['start_ms'] + $last['dur_ms']))[0] ?? null;
+    eq([$after['type'] ?? null, $after['payload']['kind'] ?? null], ['host', 'prayer'], 'then the host invites everyone to pray');
+    eq(hostContext($app, $after)['requests'] ?? null, 2, 'for both — knowing only how many');
+    check($last['dur_ms'] >= 4_000 + 2_000, 'a few seconds of quiet after a reading, inside its item');
+    $row = $app->submissions()->byPublicId($shown['id']);
+    eq([$row['status'], (int) $row['aired_at']], ['aired', $byId[$idShown]['start_ms']], 'marked aired, at the start of its reading');
+    eq($app->submissions()->publicView($row)['airedAt'], $byId[$idShown]['start_ms'], 'and the sender sees when');
 });
 
 /**
- * Drafts minute by minute until a prayer break takes the request, before any
- * job runs for it. @return int the host break's id
+ * Drafts minute by minute until a reading takes the request, before any job
+ * runs for it. @return int the reading's host break id
  */
-function prayerBreakFor(Arche\App $app, int $submissionId): int
+function readingFor(Arche\App $app, int $submissionId): int
 {
     for ($i = 0; $i < 30; $i++) {
         TestKit::clock($app)->advance(60_000);
         $app->drafter()->draft(TestKit::main($app));
-        foreach ($app->store()->all("SELECT id, context FROM host_breaks WHERE kind = 'prayer' AND state = 'pending'") as $h) {
+        foreach ($app->store()->all("SELECT id, context FROM host_breaks WHERE kind IN ('reading', 'intercession') AND state = 'pending'") as $h) {
             if (in_array($submissionId, json_decode((string) $h['context'], true)['prayer_ids'] ?? [], true)) return (int) $h['id'];
         }
         $app->tick()->run('test');
     }
-    throw new RuntimeException('no prayer break took the request');
+    throw new RuntimeException('no reading took the request');
 }
 
-test('submissions: a prayer break that is not voiced in time gives its request to a later one', function () {
+test('submissions: a reading that is not voiced in time gives its request to a later one', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $app->tick()->run('test');
     $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for my brother in hospital.', 'name' => 'Ana', 'place' => 'Porto']);
     runJobs($app);
     $id = (int) $app->submissions()->byPublicId($sub['id'])['id'];
-    $stuck = prayerBreakFor($app, $id);
+    $stuck = readingFor($app, $id);
     eq($app->submissions()->get($id)['status'], 'scheduled', 'taken into the plan');
     // Its voice never comes: the job is stuck.
     $app->store()->query("UPDATE jobs SET status = 'done' WHERE type = 'host' AND ref_id = ?", [$stuck]);
     ticks($app, 30);
-    eq($app->store()->value('SELECT state FROM timeline_items WHERE host_break_id = ?', [$stuck]), 'dropped', 'the late break went, the music went on');
-    $prayed = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && in_array($id, hostContext($app, $i)['prayer_ids'] ?? [], true)));
-    eq(count($prayed), 1, 'a later break prayed for the request, once');
-    eq([$app->submissions()->get($id)['status'], (int) $app->submissions()->get($id)['aired_at']], ['aired', $prayed[0]['start_ms']], 'and it aired then');
+    eq($app->store()->value('SELECT state FROM timeline_items WHERE host_break_id = ?', [$stuck]), 'dropped', 'the late reading went, the music went on');
+    $read = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && in_array($id, hostContext($app, $i)['prayer_ids'] ?? [], true)));
+    eq(count($read), 1, 'a later reading read the request, once');
+    eq([$app->submissions()->get($id)['status'], (int) $app->submissions()->get($id)['aired_at']], ['aired', $read[0]['start_ms']], 'and it aired then');
 });
 
-test('submissions: a plan change gives the requests of drafted prayer breaks back', function () {
+test('submissions: a plan change gives the requests of drafted readings back', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $app->tick()->run('test');
     $sub = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for peace in our town.', 'name' => 'Lea', 'place' => 'Kiel']);
     runJobs($app);
     $id = (int) $app->submissions()->byPublicId($sub['id'])['id'];
-    $hb = prayerBreakFor($app, $id);
+    $hb = readingFor($app, $id);
     $app->timeline()->discardDrafts((int) TestKit::main($app)['id']);
-    eq($app->hostBreaks()->get($hb)['state'], 'cancelled', 'its break is cancelled');
+    eq($app->hostBreaks()->get($hb)['state'], 'cancelled', 'its reading is cancelled');
     eq($app->submissions()->get($id)['status'], 'approved', 'the request waits again');
     ticks($app, 20);
-    eq($app->submissions()->get($id)['status'], 'aired', 'and a new break prays for it');
+    eq($app->submissions()->get($id)['status'], 'aired', 'and a new reading reads it');
+});
+
+test('submissions: requests read together stay short, and one taken off the wall is not read out', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $app->tick()->run('test');
+    $ch = TestKit::main($app);
+    $long = fn(string $n) => $app->submissions()->submitPrayer(listener($app), $ch, ['text' => str_repeat("Please pray for $n. ", 18), 'name' => $n, 'consent_air' => '1']);
+    $a = $long('Ada');
+    $b = $long('Bea');
+    $hidden = $app->submissions()->submitPrayer(listener($app), $ch, ['text' => 'Please pray for Cleo.', 'name' => 'Cleo', 'consent_air' => '1']);
+    runJobs($app);
+    $app->submissions()->setHidden($hidden['id'], true);
+    $idA = (int) $app->submissions()->byPublicId($a['id'])['id'];
+    readingFor($app, $idA);
+    $taken = $app->store()->all("SELECT context FROM host_breaks WHERE kind = 'reading'");
+    eq(count($taken), 1, 'two of almost 400 characters are more than one break should read: the second waits for the next');
+    ticks($app, 40);
+    eq([$app->submissions()->byPublicId($a['id'])['status'], $app->submissions()->byPublicId($b['id'])['status']], ['aired', 'aired'], 'both were read');
+    eq($app->submissions()->byPublicId($hidden['id'])['status'], 'approved', 'the one taken off the wall was never taken');
+
+    // Taken off while its reading waits in the plan: the reading goes, and the request waits again.
+    $d = $app->submissions()->submitPrayer(listener($app), $ch, ['text' => 'Please pray for Dina.', 'name' => 'Dina', 'consent_air' => '1']);
+    runJobs($app);
+    $idD = (int) $app->submissions()->byPublicId($d['id'])['id'];
+    $reading = readingFor($app, $idD);
+    $app->submissions()->setHidden($d['id'], true);
+    eq([$app->hostBreaks()->get($reading)['state'], $app->submissions()->get($idD)['status']], ['cancelled', 'approved'], 'its planned reading went and gave it back, never left "scheduled"');
 });
 
 test('submissions: waiting typed prayers count towards a full queue', function () {

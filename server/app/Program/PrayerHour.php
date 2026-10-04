@@ -10,13 +10,14 @@ use Arche\Support\Ids;
 /**
  * The running order of a program with the prayer format — the prayer hour:
  *
- *   welcome → opening prayer → invitation → the collection (prayer music for
- *   N minutes, or N songs, while listeners send requests; they appear on the
- *   wall only) → the prayer time (a moment for what was approved since the
- *   last one, a pause of silence after each; a recorded request is played; after a few
- *   quiet minutes one request from the wall again, or a prayer for everyone;
- *   otherwise silence) → the outro with a blessing at C → songs until the
- *   next program, if it asks for them.
+ *   welcome → a moderator's opening prayer → invitation → the collection
+ *   (prayer music for N minutes, or N songs, while listeners send requests;
+ *   they appear on the wall only) → the prayer time (a moment presenting what
+ *   was approved since the last one, a pause of silence after each; a
+ *   recorded request is played; after a few quiet minutes one request from
+ *   the wall again, or an invitation for everyone; otherwise silence) → the
+ *   outro at C → songs until the next program, if it asks for them. The host
+ *   presents and invites; it never prays.
  *
  * Like the rest of the Drafter, one step appends the next item. Where the
  * hour stands is read from its own items (state()), never from a block's
@@ -169,9 +170,10 @@ final class PrayerHour
     }
 
     /**
-     * The opening prayer: the oldest one a moderator prepared (a recording
+     * The opening prayer: the oldest one a moderator prepared — a recording
      * plays as it is, even without the host; a text is read word for word in
-     * the host voice), else the AI host's own.
+     * the host voice. None prepared: no opening prayer. The AI host never
+     * prays.
      *
      * @param array<string,mixed> $base
      * @return array{0:int,1:int}|null
@@ -190,10 +192,7 @@ final class PrayerHour
             ]);
             return [1, $cursor + $dur];
         }
-        if (!$hostOn) return null;
-        if ($prepared === null) {
-            return $this->app->drafter()->addHost($channel, $program, 'opening', $cursor, $base, [], self::unit(), Timing::OPENING_ESTIMATE);
-        }
+        if ($prepared === null || !$hostOn) return null;
         $fixed = array_filter(['en' => trim((string) $prepared['text_en']), 'de' => trim((string) $prepared['text_de'])], fn($t) => $t !== '');
         // Planned by the text's length (about 14 characters a second), not a moment's estimate.
         $estimate = max(Timing::OPENING_ESTIMATE, intdiv(max(array_map('mb_strlen', $fixed)) * 1000, 14));

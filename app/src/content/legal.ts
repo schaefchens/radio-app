@@ -59,7 +59,7 @@ const de = (host: string): StationTexts => ({
       h: 'Mitmachen',
       p:
         'Wünsch dir einen Song, empfiehl eine Predigt, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als ' +
-        `Sprachaufnahme, oder schick uns ein Gebetsanliegen – ${host} betet auf Sendung dafür. In den Community-Räumen kannst du mit anderen ` +
+        `Sprachaufnahme, oder schick uns ein Gebetsanliegen – ${host} liest es auf Sendung vor und lädt alle ein, dafür zu beten. In den Community-Räumen kannst du mit anderen ` +
         'Hörerinnen und Hörern schreiben. Arche Radio braucht keine Anmeldung – keine E-Mail, kein Passwort; wer möchte, ' +
         'nimmt seine Identität mit einer Passphrase aus 12 Wörtern auf ein anderes Gerät mit. Arche Radio gibt es im ' +
         'Browser und als App für iPhone und Android.',
@@ -204,12 +204,13 @@ const de = (host: string): StationTexts => ({
         'Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Gebetsanliegen, Zeugnisse und Geschichten können Ihre religiöse ' +
         'Überzeugung oder Angaben zur Gesundheit erkennen lassen; mit dem Absenden willigen Sie ausdrücklich ein, dass ' +
         'wir diese Angaben dafür verarbeiten (Art. 9 Abs. 2 lit. a DSGVO).\n' +
-        'Auf Sendung nennen wir nur Vorname und Ort. Ein geschriebenes Gebetsanliegen erscheint nach der Freigabe ' +
+        'Von Ihnen nennen wir auf Sendung nur Vorname und Ort. Ein geschriebenes Gebetsanliegen lesen wir Wort für Wort vor, und ' +
+        'die App zeigt den Text dabei an; steht es an der Gebetswand, ohne Ihren Namen. Es erscheint nach der Freigabe ' +
         'zusätzlich an der Gebetswand der App, wenn Sie das eigens ankreuzen (das Kästchen ist nicht vorausgewählt): ' +
         'ohne Namen und Ort, nur der Text und der Tag. Die Wand zeigt die neuesten Anliegen (während einer ' +
         'Gebetsstunde die dieser Stunde); Ihres bleibt dort, bis neuere es verdrängen, eine Moderatorin bzw. ein ' +
-        'Moderator es abnimmt oder wir es nach 90 Tagen löschen. In einer Gebetsstunde beten wir auf Sendung für ein ' +
-        'Anliegen, das an der Wand steht, ohne Ihren Namen, und die App zeigt es dabei als das, wofür wir gerade beten.\n' +
+        'Moderator es abnimmt oder wir es nach 90 Tagen löschen. Während es auf Sendung vorgelesen wird, zeigt die App ' +
+        'es an der Wand als das, was gerade im Radio läuft. Ein abgenommenes Anliegen lesen wir nicht mehr vor.\n' +
         'Tippen Sie bei einem Anliegen an der Wand auf 🙏 („Ich habe mitgebetet“), sendet die App das mit ihrer ' +
         'nächsten Meldung. Damit jedes Gerät nur einmal zählt, speichern wir einen Wert, der aus Ihrer Gerätekennung ' +
         'und dem Anliegen mit einem geheimen Schlüssel gebildet ist und sich weder mit Ihren anderen Angaben noch mit ' +
@@ -326,7 +327,7 @@ const en = (host: string): StationTexts => ({
       h: 'Take part',
       p:
         'Request a song, suggest a preaching, share your story, a testimony or a greeting as a voice recording, or send a prayer request — ' +
-        `${host} prays for it on air. In the community rooms you can write with other listeners. Arche Radio needs no ` +
+        `${host} reads it out on air and invites everyone to pray for it. In the community rooms you can write with other listeners. Arche Radio needs no ` +
         'sign-up — no email, no password; if you like, a passphrase of 12 words takes your identity to another device. ' +
         'Arche Radio runs in the browser and as an app for iPhone and Android.',
     },
@@ -452,12 +453,12 @@ const en = (host: string): StationTexts => ({
         'id, to check and air it. The legal basis is your consent (Art. 6(1)(a) GDPR). Prayer requests, testimonies ' +
         'and stories can reveal religious beliefs or health information; by sending, you explicitly consent to our ' +
         'processing them for this purpose (Art. 9(2)(a) GDPR).\n' +
-        'On air we mention only your first name and place. A typed prayer request also appears on the app’s prayer ' +
+        'On air we name you only by your first name and place. A typed prayer request is read out word for word, and the ' +
+        'app shows the text meanwhile; if it is on the prayer wall, without your name. It also appears on the app’s prayer ' +
         'wall after approval if you tick that box (it is not ticked in advance): without your name and place, just ' +
         'the text and the day. The wall shows the newest requests (during a prayer hour, that hour\'s); yours stays ' +
-        'there until newer ones push it out, a moderator takes it down or we delete it after 90 days. In a prayer ' +
-        'hour we pray on air for a request that is on the wall without your name, and the app shows it as the one ' +
-        'we are praying for.\n' +
+        'there until newer ones push it out, a moderator takes it down or we delete it after 90 days. While it is read ' +
+        'out on air, the app marks it on the wall as the one on air now. A request taken down is no longer read out.\n' +
         'When you tap 🙏 (“I prayed”) on a request on the wall, the app sends it with its next report. So that each ' +
         'device counts once, we store a value derived from your device id and the request with a secret key, which ' +
         'cannot be linked to your other data or to your other prayers; by tapping you explicitly consent to our ' +

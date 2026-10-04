@@ -43,6 +43,20 @@ final class Timing
     public const BLOCK_GAP_SONGS = 2;
     /** Airtime a waiting typed prayer request is promised: three share a minute-long prayer. */
     public const PRAYER_EACH = 20_000;
+    /**
+     * Quiet after a listener's words read out (or a recording played) — inside
+     * the item, so the stage keeps showing them, no silence item shorter than
+     * MIN_CHUNK is needed, and no hole lets the fallback loop in.
+     */
+    public const PRAYER_GAP = 4_000;
+    /** Requests read out together, at most this many characters (always at least one). */
+    public const READ_CHARS = 600;
+    /**
+     * A prayer hour's reading waits at most this long for its voice behind
+     * short fillers, counted from when it was first due (not from its
+     * drafting, minutes earlier); then it gives its request back.
+     */
+    public const READING_WAIT = 120_000;
     public const STAGE_ITEM = 300_000;
     public const FILLER_SILENCE_MAX = 60_000;
 
@@ -80,6 +94,16 @@ final class Timing
     public static function momentEstimate(int $requests): int
     {
         return $requests > 0 ? 15_000 + 12_000 * $requests : 20_000;
+    }
+
+    /**
+     * How long a text read word for word is planned (its voice decides at
+     * commit): a short lead-in, about 14 characters a second, the gap after
+     * it — at least 8 s, so a step still moves the plan on.
+     */
+    public static function readingEstimate(int $chars): int
+    {
+        return max(8_000, 2_000 + intdiv($chars * 1000, 14) + self::PRAYER_GAP);
     }
 
     public static function floorMinute(int $ms): int

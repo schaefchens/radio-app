@@ -220,7 +220,7 @@ test('erasure: an aired recording is deleted, at the edge too; the day files no 
     eq((int) $app->store()->value("SELECT COUNT(*) FROM library_items WHERE kind = 'contrib'"), 0, 'not kept for replays either');
 });
 
-test('erasure: a shared prayer break gives the other request back, and it is prayed for later', function () {
+test('erasure: a request read out next to another listener\'s goes, the other stays in the plan', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $app->tick()->run('test');
@@ -230,15 +230,16 @@ test('erasure: a shared prayer break gives the other request back, and it is pra
     runJobs($app);
     $mineId = (int) $app->submissions()->byPublicId($mine['id'])['id'];
     $theirsId = (int) $app->submissions()->byPublicId($theirs['id'])['id'];
-    $break = prayerBreakFor($app, $mineId);
-    $ids = json_decode((string) $app->store()->value('SELECT context FROM host_breaks WHERE id = ?', [$break]), true)['prayer_ids'];
-    check(in_array($theirsId, $ids, true), 'one break prays for both');
+    $reading = readingFor($app, $mineId);
+    $other = (int) $app->store()->value("SELECT id FROM host_breaks WHERE kind = 'reading' AND id != ?", [$reading]);
+    check($other > 0, 'both are read in the same break between songs');
 
     eq(call($app, 'DELETE', '/api/me', [], $h)[0], 200, 'Ana deletes her account');
-    eq($app->submissions()->get($theirsId)['status'], 'approved', 'Ben’s request waits again');
+    eq($app->store()->value('SELECT state FROM timeline_items WHERE host_break_id = ?', [$reading]), 'dropped', 'her reading leaves the plan');
+    eq($app->submissions()->get($theirsId)['status'], 'scheduled', 'Ben’s reading keeps its place');
     ticks($app, 30);
-    check(in_array($app->submissions()->get($theirsId)['status'], ['scheduled', 'aired'], true), 'and is prayed for later');
-    check(!str_contains((string) json_encode($app->store()->all('SELECT context, texts FROM host_breaks')), 'brother in hospital'), 'Ana’s prayer is in no script');
+    eq($app->submissions()->get($theirsId)['status'], 'aired', 'and is read out');
+    check(!str_contains((string) json_encode($app->store()->all('SELECT context, texts FROM host_breaks')), 'brother in hospital'), 'Ana’s request is in no script');
 });
 
 test('erasure: the sweep scrubs a script written back after the account went, never a newer one that reused an id', function () {
