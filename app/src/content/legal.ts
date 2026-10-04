@@ -65,6 +65,14 @@ const de = (host: string): StationTexts => ({
         'Browser und als App für iPhone und Android.',
     },
     {
+      h: 'Die Gebetsstunde',
+      p:
+        'In der Gebetsstunde beten Hörerinnen und Hörer füreinander: Erst sammeln wir eure Gebetsanliegen, dann liest ' +
+        `${host} sie Wort für Wort vor – zuerst das tägliche Gebetsanliegen von Open Doors für verfolgte Christen ` +
+        '(https://www.opendoors.de) –, und dann schickt ihr eure Gebete, gesprochen oder geschrieben, und wir senden sie. ' +
+        `${host} selbst betet nie.`,
+    },
+    {
       h: 'Ein Projekt von Schäfchens',
       p: `Arche Radio ist ein nicht-kommerzielles Projekt von Schäfchens (https://schaefchens.de). Fragen und Hinweise: ${CONTACT}`,
     },
@@ -195,13 +203,14 @@ const de = (host: string): StationTexts => ({
         '(https://www.youtube.com/t/terms) und die Datenschutzerklärung von Google (https://policies.google.com/privacy).',
     },
     {
-      h: 'Einsendungen: Songwünsche, Predigtvorschläge, Aufnahmen, Gebetsanliegen',
+      h: 'Einsendungen: Songwünsche, Predigtvorschläge, Aufnahmen, Gebetsanliegen, Gebete',
       p:
-        'Wenn Sie einen Song wünschen, eine Predigt vorschlagen, eine Sprachaufnahme einsenden oder ein Gebetsanliegen ' +
-        'schicken, verarbeiten wir Ihre Angaben (Vorname, Ort, Ihren Text bzw. Ihre Aufnahme, bei Songwünschen und ' +
+        'Wenn Sie einen Song wünschen, eine Predigt vorschlagen, eine Sprachaufnahme einsenden, ein Gebetsanliegen ' +
+        'schicken oder in der Gebetszeit einer Gebetsstunde ein Gebet sprechen oder schreiben, verarbeiten wir Ihre ' +
+        'Angaben (Vorname, Ort, Ihren Text bzw. Ihre Aufnahme, bei Songwünschen und ' +
         'Predigtvorschlägen den Link und eine Widmung bzw. Ihre Begründung) ' +
         'zusammen mit Ihrer Gerätekennung, um den Beitrag zu prüfen und zu senden. Rechtsgrundlage ist Ihre ' +
-        'Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Gebetsanliegen, Zeugnisse und Geschichten können Ihre religiöse ' +
+        'Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Gebetsanliegen, Gebete, Zeugnisse und Geschichten können Ihre religiöse ' +
         'Überzeugung oder Angaben zur Gesundheit erkennen lassen; mit dem Absenden willigen Sie ausdrücklich ein, dass ' +
         'wir diese Angaben dafür verarbeiten (Art. 9 Abs. 2 lit. a DSGVO).\n' +
         'Von Ihnen nennen wir auf Sendung nur Vorname und Ort. Ein geschriebenes Gebetsanliegen lesen wir Wort für Wort vor, und ' +
@@ -211,6 +220,10 @@ const de = (host: string): StationTexts => ({
         'Gebetsstunde die dieser Stunde); Ihres bleibt dort, bis neuere es verdrängen, eine Moderatorin bzw. ein ' +
         'Moderator es abnimmt oder wir es nach 90 Tagen löschen. Während es auf Sendung vorgelesen wird, zeigt die App ' +
         'es an der Wand als das, was gerade im Radio läuft. Ein abgenommenes Anliegen lesen wir nicht mehr vor.\n' +
+        'In einer Gebetsstunde erscheint ein Anliegen erst an der Wand, wenn es vorgelesen wird. Ein Gebet, das Sie in ' +
+        'ihrer Gebetszeit schicken, lesen wir Wort für Wort mit Ihrem Vornamen und Ort vor; ein gesprochenes senden wir ' +
+        'so, wie Sie es aufgenommen haben. Gebete erscheinen nicht an der Gebetswand und werden nicht wiederholt. Die ' +
+        'Programmübersicht des Tages nennt bei Gebeten und Gebetsanliegen keine Namen.\n' +
         'Tippen Sie bei einem Anliegen an der Wand auf 🙏 („Ich habe mitgebetet“), sendet die App das mit ihrer ' +
         'nächsten Meldung. Damit jedes Gerät nur einmal zählt, speichern wir einen Wert, der aus Ihrer Gerätekennung ' +
         'und dem Anliegen mit einem geheimen Schlüssel gebildet ist und sich weder mit Ihren anderen Angaben noch mit ' +
@@ -222,7 +235,8 @@ const de = (host: string): StationTexts => ({
         'veröffentlicht und nur wiederholt, wenn Sie dem zugestimmt haben. Ein gewünschter Song oder eine ' +
         'vorgeschlagene Predigt kann in unsere Auswahl aufgenommen werden – ohne Ihren Namen und ohne Ihre Widmung ' +
         'bzw. Begründung.\n' +
-        'Abgelehnte Aufnahmen löschen wir sofort, alle übrigen Einsendungen nach 90 Tagen. Aufnahmen, die Sie zur ' +
+        'Abgelehnte Aufnahmen löschen wir sofort, ebenso Aufnahmen, die nicht mehr gesendet werden können; alle übrigen ' +
+        'Einsendungen nach 90 Tagen. Aufnahmen, die Sie zur ' +
         'Wiederholung freigegeben haben, bleiben, bis Sie widersprechen oder Ihr Konto löschen. Ihre Einwilligungen ' +
         'können Sie jederzeit mit Wirkung für die Zukunft widerrufen – indem Sie Ihr Konto löschen oder per E-Mail ' +
         `an ${CONTACT}.`,
@@ -230,7 +244,8 @@ const de = (host: string): StationTexts => ({
     {
       h: 'KI-Dienste (OpenAI)',
       p:
-        'Für die Prüfung der Einsendungen, die Texte und die Stimme des Hosts und die Verschriftlichung von Aufnahmen ' +
+        'Für die Prüfung der Einsendungen, die Texte und die Stimme des Hosts (auch beim Vorlesen von Gebetsanliegen und ' +
+        'Gebeten) und die Verschriftlichung von Aufnahmen ' +
         'nutzen wir die Programmierschnittstelle der OpenAI Ireland Limited, 1st Floor, The Liffey Trust Centre, ' +
         '117–126 Sheriff Street Upper, Dublin 1, D01 YC43, Irland, die in unserem Auftrag tätig ist. Dabei ' +
         'übermitteln wir Ihren eingesandten Text bzw. Ihre Aufnahme und deren Abschrift, Vorname und Ort, bei ' +
@@ -330,6 +345,14 @@ const en = (host: string): StationTexts => ({
         `${host} reads it out on air and invites everyone to pray for it. In the community rooms you can write with other listeners. Arche Radio needs no ` +
         'sign-up — no email, no password; if you like, a passphrase of 12 words takes your identity to another device. ' +
         'Arche Radio runs in the browser and as an app for iPhone and Android.',
+    },
+    {
+      h: 'The prayer hour',
+      p:
+        'In the prayer hour listeners pray for one another: first we collect your prayer requests, then ' +
+        `${host} reads them out word for word — first the daily prayer request of Open Doors for persecuted ` +
+        'Christians (https://www.opendoors.de) — and then you send your prayers, spoken or written, and we air them. ' +
+        `${host} never prays.`,
     },
     {
       h: 'A project of Schäfchens',
@@ -445,12 +468,13 @@ const en = (host: string): StationTexts => ({
         'Policy (https://policies.google.com/privacy) apply.',
     },
     {
-      h: 'Submissions: song requests, preaching suggestions, recordings, prayer requests',
+      h: 'Submissions: song requests, preaching suggestions, recordings, prayer requests, prayers',
       p:
-        'When you request a song, suggest a preaching, send a voice recording or a prayer request, we process what you ' +
+        'When you request a song, suggest a preaching, send a voice recording or a prayer request, or speak or write a ' +
+        'prayer in a prayer hour\'s prayer time, we process what you ' +
         'give us (first name, place, your text or recording, for a song request or a preaching suggestion the link and ' +
         'a dedication or your reason) together with your device ' +
-        'id, to check and air it. The legal basis is your consent (Art. 6(1)(a) GDPR). Prayer requests, testimonies ' +
+        'id, to check and air it. The legal basis is your consent (Art. 6(1)(a) GDPR). Prayer requests, prayers, testimonies ' +
         'and stories can reveal religious beliefs or health information; by sending, you explicitly consent to our ' +
         'processing them for this purpose (Art. 9(2)(a) GDPR).\n' +
         'On air we name you only by your first name and place. A typed prayer request is read out word for word, and the ' +
@@ -459,6 +483,10 @@ const en = (host: string): StationTexts => ({
         'the text and the day. The wall shows the newest requests (during a prayer hour, that hour\'s); yours stays ' +
         'there until newer ones push it out, a moderator takes it down or we delete it after 90 days. While it is read ' +
         'out on air, the app marks it on the wall as the one on air now. A request taken down is no longer read out.\n' +
+        'In a prayer hour a request appears on the wall only when it is read out. A prayer you send in its prayer time ' +
+        'is read out word for word with your first name and place; a spoken one is aired as you recorded it. Prayers ' +
+        'do not appear on the prayer wall and are never replayed. The day\'s program list names nobody for prayers and ' +
+        'prayer requests.\n' +
         'When you tap 🙏 (“I prayed”) on a request on the wall, the app sends it with its next report. So that each ' +
         'device counts once, we store a value derived from your device id and the request with a secret key, which ' +
         'cannot be linked to your other data or to your other prayers; by tapping you explicitly consent to our ' +
@@ -468,14 +496,16 @@ const en = (host: string): StationTexts => ({
         'Recordings are published only after approval and replayed only with your ' +
         'consent. A requested song or a suggested preaching may join our selection — without your name and without ' +
         'your dedication or reason.\n' +
-        'We delete rejected recordings immediately and all other submissions after 90 days. Recordings you allowed ' +
+        'We delete rejected recordings immediately, and recordings that can no longer be aired; all other submissions ' +
+        'after 90 days. Recordings you allowed ' +
         'to be replayed stay until you object or delete your account. You can withdraw your consent at any time, for ' +
         `the future — by deleting your account or by email to ${CONTACT}.`,
     },
     {
       h: 'AI services (OpenAI)',
       p:
-        "To check submissions, for the host's words and voice and to transcribe recordings we use the API of OpenAI " +
+        "To check submissions, for the host's words and voice (also when it reads out prayer requests and prayers) and " +
+        'to transcribe recordings we use the API of OpenAI ' +
         'Ireland Limited, 1st Floor, The Liffey Trust Centre, 117–126 Sheriff Street Upper, Dublin 1, D01 YC43, ' +
         'Ireland, on our behalf. We send your text or recording and its transcript, first name and place, for song ' +
         'requests and preaching suggestions the dedication or reason and — to select community voices — the chat ' +

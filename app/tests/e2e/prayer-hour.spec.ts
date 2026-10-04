@@ -6,11 +6,13 @@ import { BASE_URL, api, cron, ensureAdmin, itemAt, liveFile, serverNow, type Adm
  * The prayer hour end to end — on a channel of its own, so the shared `main`
  * station keeps its music program (and its song requests) for the other
  * specs. In real time, so only its first minutes: the stage during the
- * collection, a request on the stage and the wall without its sender,
- * praying along from a second listener, the sender's count. The whole hour —
- * the reading seven minutes on, silent prayer, repeats, the outro — is walked
- * on the server's fixed clock (server/tests/cases/prayerhour.php), and the
- * stage's prayer views are rendered in app/tests/component/StageVisual.test.tsx.
+ * collection, a request sent from it — counted, but not shown before it is
+ * read out — and no Pray button before the prayer time. The whole hour (the
+ * presentation, the prayer time with listeners' prayers, the outro) takes
+ * longer than a test should and is walked on the server's fixed clock
+ * (server/tests/cases/prayerhour.php); the stage's prayer views and the Pray
+ * sheet are rendered in app/tests/component (StageVisual, PraySheet). Praying
+ * along is tested on the music program's wall (listener.spec.ts).
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -57,9 +59,9 @@ async function deviceOf(page: Page): Promise<Device> {
 /**
  * Until the collection is on air: its prayer music, labelled "What can we pray
  * for?". A channel made just now plans the hour at the committed edge, so the
- * welcome, the opening prayer and the invitation first wait for their voice
- * behind the hour's own music (labelled with its title) — minutes, not seconds.
- * The cron runs every minute; a nudge every 20 s.
+ * welcome first waits for its voice behind the hour's own music (labelled
+ * with its title) — minutes, not seconds. The cron runs every minute; a nudge
+ * every 20 s.
  */
 async function waitForCollection(): Promise<void> {
   await expect
@@ -92,12 +94,12 @@ test.beforeAll(async () => {
         slug: 'gebet',
         title_en: 'Prayer Hour',
         title_de: 'Gebetsstunde',
-        settings: { format: 'prayer', max_queue_min: 180, prayer: { collect: { with: 'music', minutes: 10, songs: 2, bed_id: bed.id }, quiet_min: 4, after_songs: 0 } },
+        settings: { format: 'prayer', max_queue_min: 180, prayer: { collect: { songs: 0, minutes: 10, bed_id: bed.id }, quiet_min: 4, after_songs: 0, opendoors: false } },
       },
     }),
     'prayer hour',
   );
-  expect(prayer.program.allowed).toEqual(['prayer']);
+  expect(prayer.program.allowed).toEqual(['prayer', 'intercession']);
   // From two minutes from now (Berlin) for forty minutes, today.
   const local = new Date(new Date(await serverNow()).toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
   const start = local.getHours() * 60 + local.getMinutes() + 2;
@@ -114,7 +116,7 @@ test.afterAll(async () => {
   if (channelId) await api(admin, `/mod/channels/${channelId}`, { method: 'PATCH', body: { active: false } });
 });
 
-test('a prayer hour: the stage invites requests over prayer music; one appears without its sender, a listener prays along, the sender sees it', async ({ browser }) => {
+test('a prayer hour: over prayer music the stage invites requests and counts them — none is shown before it is read out, and no one prays yet', async ({ browser }) => {
   test.setTimeout(12 * 60_000);
   await waitForCollection();
   const sender = await listener(browser);
@@ -125,6 +127,8 @@ test('a prayer hour: the stage invites requests over prayer music; one appears w
   await expect(stage.getByText('What can we pray for?')).toBeVisible({ timeout: 45_000 });
   const share = stage.getByRole('button', { name: 'Share a prayer request' });
   await expect(share).toBeVisible();
+  // Prayers belong to the prayer time, after the requests are read out.
+  await expect(stage.getByRole('button', { name: /Pray$/ })).toHaveCount(0);
   expect(await sender.evaluate(() => document.querySelector('[class*="z-[35]"]')?.getAttribute('aria-hidden'))).toBe('true');
 
   // A request from the stage, with the wall box ticked.
@@ -139,7 +143,7 @@ test('a prayer hour: the stage invites requests over prayer music; one appears w
   await expect(sheet.getByText(/Thank you!/)).toBeVisible();
   await sender.keyboard.press('Escape');
 
-  // Checked on the next ticks, then on the wall in live.json, then on the stage.
+  // Checked on the next ticks; then counted in live.json — and not on the wall.
   const me = await deviceOf(sender);
   await expect
     .poll(
@@ -150,37 +154,22 @@ test('a prayer hour: the stage invites requests over prayer music; one appears w
       },
       { timeout: 120_000, intervals: [3000] },
     )
-    .toMatch(/approved|scheduled|aired/);
-  // The next tick publishes it in live.json — nudged here, the cron loop
-  // alone ticks only every minute — and the app reads that every 30 s.
+    .toMatch(/approved|scheduled/);
   await expect
     .poll(
       async () => {
         await cron();
-        return (await liveFile(slug))?.wall.some((e) => e.text === text) ?? false;
+        return (await liveFile(slug))?.collected ?? 0;
       },
       { timeout: 90_000, intervals: [3000] },
     )
-    .toBe(true);
-  await expect(stage.getByText(text)).toBeVisible({ timeout: 45_000 });
-  await expect(stage.getByText('Ruth')).toHaveCount(0);
-
-  // A second listener prays along on the wall card; the pulse carries it.
-  const friend = await listener(browser);
-  const wall = friend.getByRole('region', { name: 'Prayer wall' });
-  await expect(wall.getByText(text)).toBeVisible({ timeout: 60_000 });
-  await wall.getByRole('button', { name: 'I prayed' }).click();
-  await friend.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-
-  // Counted when the pulse arrives; My submissions loads after the page and
-  // polls every 30 s, so the page is opened once and waited on.
-  await sender.goto('/profile');
-  await expect(sender.getByText('🙏 1 prayed with you')).toBeVisible({ timeout: 60_000 });
+    .toBeGreaterThanOrEqual(1);
+  expect((await liveFile(slug))?.wall.some((e) => e.text === text)).toBe(false);
+  // The app reads live.json every 30 s: the stage shows the number, never the text.
+  await expect(stage.getByText(/prayer requests? so far/)).toBeVisible({ timeout: 45_000 });
+  await expect(stage.getByText(text)).toHaveCount(0);
+  await expect(sender.getByRole('region', { name: 'Prayer wall' }).getByText(text)).toHaveCount(0);
   await sender.context().close();
-  await friend.context().close();
 });
 
 for (const width of [360, 390]) {

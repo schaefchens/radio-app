@@ -138,7 +138,7 @@ test('a passphrase takes the listener’s identity to a second device', async ({
   await Promise.all([first.context().close(), second.context().close()]);
 });
 
-test('a prayer request is checked, accepted and shown on the prayer wall', async ({ page }) => {
+test('a prayer request is checked, accepted and shown on the prayer wall; a listener prays along and the sender sees it', async ({ page, browser }) => {
   await fakeYouTube(page);
   await page.goto('/');
   const sheet = await openSheet(page, /Share a prayer request/, 'Share a prayer request');
@@ -173,6 +173,22 @@ test('a prayer request is checked, accepted and shown on the prayer wall', async
   const wall = page.getByRole('region', { name: 'Prayer wall' });
   await wall.getByRole('button', { name: /More/ }).click({ timeout: 45_000 });
   await expect(page.getByRole('dialog', { name: 'Prayer wall' }).getByText(text)).toBeVisible({ timeout: 45_000 });
+
+  // A second listener prays along from the wall; the pulse carries it.
+  const friend = await listener(browser);
+  await friend.goto('/');
+  await friend.getByRole('region', { name: 'Prayer wall' }).getByRole('button', { name: /More/ }).click({ timeout: 45_000 });
+  const card = friend.getByRole('dialog', { name: 'Prayer wall' }).locator('.prayer-entry', { hasText: text });
+  await card.getByRole('button', { name: 'I prayed' }).click({ timeout: 45_000 });
+  await friend.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  // Counted when the pulse arrives; My submissions loads after the page and
+  // polls every 30 s, so the page is opened once and waited on.
+  await page.goto('/profile');
+  await expect(page.getByText('🙏 1 prayed with you')).toBeVisible({ timeout: 60_000 });
+  await friend.context().close();
 });
 
 test('before the listener agrees to YouTube, a song request asks YouTube nothing', async ({ page }) => {

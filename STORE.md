@@ -41,10 +41,11 @@ Hörerinnen und Hörern aus aller Welt – live.
 >
 > • Live together: everyone who tunes in hears the same song at the same second.
 > • Your voice on air: request a song, suggest a preaching, record a story, a
->   testimony or a greeting, or send a prayer request — our host prays for it
->   on air.
+>   testimony or a greeting, or send a prayer request — our host reads it out
+>   and invites everyone to pray.
 > • The prayer wall: pray along with other listeners' requests, anonymously.
-> • Prayer hours every morning and evening, and preaching programs.
+> • Prayer hours every morning and evening, where listeners pray for one
+>   another — spoken or written — and preaching programs.
 > • Community rooms: write with other listeners while you listen.
 > • Program reminders: a notification when a program you like begins.
 > • In English and German. No sign-up, no tracking, and no ads of our own.
@@ -63,9 +64,10 @@ Hörerinnen und Hörern aus aller Welt – live.
 > • Gemeinsam live: Alle, die einschalten, hören in derselben Sekunde denselben Song.
 > • Deine Stimme auf Sendung: Wünsch dir einen Song, empfiehl eine Predigt,
 >   nimm eine Geschichte, ein Zeugnis oder einen Gruß auf oder schick ein
->   Gebetsanliegen – unser Host betet auf Sendung dafür.
+>   Gebetsanliegen – unser Host liest es vor und lädt alle zum Mitbeten ein.
 > • Die Gebetswand: Bete anonym für die Anliegen anderer mit.
-> • Gebetsstunden jeden Morgen und Abend, dazu Predigtsendungen.
+> • Gebetsstunden jeden Morgen und Abend, in denen Hörerinnen und Hörer
+>   füreinander beten – gesprochen oder geschrieben –, dazu Predigtsendungen.
 > • Community-Räume: Schreib mit anderen, während ihr zuhört.
 > • Sendungs-Erinnerungen: eine Mitteilung, wenn eine Sendung beginnt, die du magst.
 > • Auf Deutsch und Englisch. Ohne Anmeldung, ohne Tracking und ohne eigene Werbung.

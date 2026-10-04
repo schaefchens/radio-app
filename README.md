@@ -28,8 +28,10 @@ The stack runs with `AI_MODE=stub` (no paid calls). For the real host voice:
 transcribes and moderates; with `ANTHROPIC_KEY` set, Claude writes and
 moderates instead). Costs are capped by `AI_DAILY_BUDGET_USD`; while nobody
 listens, the host voices only what listeners sent (announced requests,
-recordings, prayer requests) and a prayer hour's opening (welcome, opening
-prayer, invitation), which is written before its listeners tune in. One real
+recordings, prayer requests and prayers read out) and a prayer hour's order
+(welcome, presentation, the prayer time's announcement), whose welcome is
+written before its listeners tune in. Open Doors' daily prayer request is
+fetched hourly (`OPENDOORS_FEED_URL`; `off` turns it off). One real
 host break without touching the program: see `server/bin/try-host.php`.
 
 First admin, exactly as in production: open http://localhost:5180/profile,
@@ -51,7 +53,7 @@ web :8090, realtime :8797) on `.data/e2e`, with stub AI, a fake YouTube and no
 real keys — the dev stack and its data are not touched. The first run on a
 fresh e2e station waits a minute or two until the program is on air; the
 prayer hour spec opens a channel of its own and waits a few more minutes for
-its prayer music.
+its prayer music. The e2e stack makes no outside calls (`OPENDOORS_FEED_URL=off`).
 `npm run e2e:down` stops it, `npm run e2e:reset` deletes its data. Needs the
 Playwright browser once: `npx playwright install chromium`.
 
@@ -204,7 +206,7 @@ a deploy.
 - **/mod → Status**: last tick, how far ahead each channel is committed, jobs,
   host-break outcomes, AI spend vs budget, realtime nodes, audit log.
 - **Costs**: `AI_DAILY_BUDGET_USD` (all AI), `HOST_MAX_BREAKS_PER_DAY`
-  (300; a prayer hour adds 15–40 host moments), `HOST_MIN_LISTENERS`,
+  (300; people's words read out do not count), `HOST_MIN_LISTENERS`,
   `MODERATION_MAX_PER_DAY`. ElevenLabs is used only with
   `TTS_PROVIDER=elevenlabs` and `ELEVENLABS_MAX_CHARS_PER_DAY` > 0.
 - **Backups**: a daily `VACUUM INTO` copy in `/_arche/var/backups` (seven kept).
@@ -218,26 +220,49 @@ a deploy.
 - **Rejections**: /mod → Review → Rejected shows why each submission was
   declined (the automatic check's verdict and note, or the failed YouTube
   check) and approves it anyway where it can still air.
+- **Prayer requests** in a music program are read out word for word between
+  songs (up to three, at most 600 characters together), each after a short
+  lead-in — by first name and place, or without a name if it is on the wall —
+  and the host then invites everyone to pray. The host never prays itself.
 - **Prayer wall**: typed prayer requests whose senders ticked "show on the
   prayer wall" appear there once approved, without name or place (the newest
-  30). /mod → Review → Prayer wall takes one down, or puts it back, at once.
+  30). /mod → Review → Prayer wall takes one down, or puts it back, at once;
+  one taken down is no longer read out.
 - **Prayer hour**: a program with the format "Prayer hour" (/mod → Programs)
-  runs welcome → opening prayer → invitation → collection → prayer time →
-  outro with a blessing, and takes prayer requests only. For the collection,
-  upload quiet music in /mod → Library → Background music (an MP3 of
-  20 s – 10 min, at most 8 MB: re-encode to about 128 kbps, e.g.
-  `ffmpeg -i in.mp3 -b:a 128k prayer.mp3`) and pick it in the program, or let
-  N songs play. A request approved now is prayed for about seven minutes
-  later; intake closes 15 minutes before the outro. A prayer hour cannot be a
-  channel's fallback program (its running order needs an end). While it is
-  on air the wall shows its requests; a request on the wall is prayed for
-  without the sender's name and marked "Praying now". 🙏 on the wall counts
-  once per device (at most `PRAY_ALONG_PER_IP_HOUR`, 600, from one address an
-  hour); only the sender sees the number, and the outro may say the total.
-  Under the program's settings a moderator prepares opening prayers — typed
-  (read word for word in the host voice, only in the languages filled in),
-  an MP3 or a recording in the browser, up to 3 minutes; each airing takes the
-  oldest one waiting, otherwise the AI host prays.
+  is where the listeners pray; the host never does. It runs: welcome → a
+  moderator's opening prayer, if one is prepared → the collection (0–3 songs,
+  then prayer music until it has lasted its minutes, 10 by default) → the
+  requests read out word for word, Open Doors' request of the day first →
+  the host opens the prayer time → listeners' prayers until the outro (a
+  written one read out word for word after a short lead-in, a spoken one, up
+  to a minute, played as it is; requests sent since are read too; a few
+  seconds of quiet after each, silence in between, a word of encouragement
+  after the "quiet minutes") → outro → songs, if set. It takes prayer
+  requests, and in its prayer time prayers ("Pray" on the stage opens the
+  recorder, with "Type it instead"). For the collection, upload quiet music
+  in /mod → Library → Background music (an MP3 of 20 s – 10 min, at most 8 MB:
+  re-encode to about 128 kbps, e.g. `ffmpeg -i in.mp3 -b:a 128k prayer.mp3`)
+  and pick it in the program. Anything approved airs about seven minutes
+  later: requests sent while the presentation is prepared (its last seven
+  minutes) are read in the prayer time. Requests close 15 minutes before the
+  outro, prayers 12 minutes before it ("last chance" from 17); the prayer time
+  lasts at least 25 minutes. A prayer hour cannot be a channel's fallback
+  program (its running order needs an end). While it is on air the wall shows
+  its requests as they are read; one on the wall is read without the sender's
+  name and marked "On air now". 🙏 on the wall counts once per device (at most
+  `PRAY_ALONG_PER_IP_HOUR`, 600, from one address an hour); only the sender
+  sees the number, and the outro may say the total. Under the program's
+  settings a moderator prepares opening prayers — typed (read word for word
+  in the host voice, only in the languages filled in), an MP3 or a recording
+  in the browser, up to 3 minutes; each airing takes the oldest one waiting,
+  otherwise the hour has no opening prayer.
+- **Open Doors**: every prayer hour reads Open Doors Deutschland's daily
+  prayer request for persecuted Christians first (their RSS feed,
+  `OPENDOORS_FEED_URL`; a program can leave it out, `off` turns it off
+  everywhere). German listeners hear it as published, English listeners a
+  translation made once a day by the text model; on the wall it says "Open
+  Doors". A feed that is down keeps yesterday's request; one older than two
+  days is not read.
 - **Preaching program**: add sermons in /mod → Library → "Add a song or a
   preaching" (kind Preaching, 1 minute – 3 hours), create a program with the
   format "Preaching" (/mod → Programs) and put it into a plan. It runs intro →
@@ -256,8 +281,10 @@ a deploy.
 - **Retention** (the privacy policy states these — change both together):
   minute files and host audio 48 h, day files 60 days, submissions 90 days
   (`RETAIN_SUBMISSIONS_DAYS`; recordings allowed for replays stay in the
-  library), the timeline and the host's scripts 30 days (they can quote a
-  prayer request), who prayed along with a request until it is off the wall
+  library; a spoken prayer is never kept for replays, and a recording that
+  can no longer air is deleted), the timeline and the host's scripts 30 days
+  (they can quote a prayer request or a prayer), who prayed along with a
+  request until it is off the wall
   (the number stays with it), prepared opening prayers 90 days after they
   aired, chat voices 7 days, chat reports 30 days, presence 1 day,
   rate-limit entries 2 days, unused anonymous devices 60 days, backups 7 days.

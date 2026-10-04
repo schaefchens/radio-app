@@ -417,7 +417,9 @@ final class HostWriter
 
         In a prayer hour ("format": "prayer hour") listeners send prayer requests and pray for one
         another: first the requests are collected, then read out, then listeners send their own
-        prayers, spoken or written, which the station plays or reads out — never you. Its moments:
+        prayers, spoken or written, which the station plays or reads out — never you. The app's
+        buttons are "Share a prayer request" and "Pray" (in German "Gebetsanliegen teilen" and
+        "Beten"). Its moments:
         - intro: welcome everyone to the prayer hour and explain in a few words how it goes:
           share a prayer request now with the "Share a prayer request" button ("collect": the
           songs and minutes until the requests are read out); then every request is read out, and

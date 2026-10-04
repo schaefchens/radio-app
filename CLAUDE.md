@@ -41,7 +41,8 @@ voiced (a tick or two; the cron runs every minute).
    own lock (`publish`) with no network calls, before any job work (`jobs`
    lock). A host break that is not voiced in time is dropped; a listener's
    announced request is delayed (a filler song goes first), never split; a
-   prayer hour's moments wait behind silence or prayer music, never a song.
+   prayer hour's moments and readings wait behind its prayer music or
+   silence, never a song.
 2. **Published files are immutable.** UTC names, temp-file-and-rename writes,
    never a file for a past minute, never an overwrite. A moderator's "pull from
    air" goes through `live.json` (`blocked`), because minute files cannot change.
@@ -122,9 +123,12 @@ All language versions share one slot length: the longest one plus padding.
 Cost gates (listeners ≥ `HOST_MIN_LISTENERS`, daily cap, `AI_DAILY_BUDGET_USD`)
 run at *script time*, so a listener who tunes in still hears the host soon.
 What listeners sent skips the listener gate, and so does a prayer hour's
-welcome, opening prayer and invitation: they are written about eight minutes
-before the hour, before its listeners tune in, and gated they were lost for
-everyone who came on time.
+welcome, presentation and announcement: the welcome is written about eight
+minutes before the hour, before its listeners tune in, and gated it was lost
+for everyone who came on time; the hour's order must not depend on who
+listens. People's words read out (`reading`, `intercession`, a prepared
+opening prayer) are neither stopped nor counted by the daily cap. The job
+voices only the languages that have text (`HostBreaks::nextLang`).
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
 while the minute file says `open`/`closing` (checked again server-side). One job
@@ -164,9 +168,14 @@ The **prayer wall** (`Submissions::wall`, `live.json.wall`) shows typed prayer
 requests that are approved, scheduled or aired — only with the sender's own
 tick (never pre-ticked: Art. 9 needs a clear yes), anonymous (text and time,
 no name or place), the newest 30 — while a prayer hour is on air, that hour's
-requests (up to 60). In live.json, not the minute files, so a moderator's
-takedown (/mod → Review → Prayer wall, `submissions.hidden`) applies at once;
-it also drops the repeats a prayer hour planned for it. Community voices are
+requests as they are read out (up to 60): each carries `from` (its reading's
+start), and the engine shows it from then on, for everyone at once; during
+the collection `live.json.collected` counts what came in. In live.json, not
+the minute files, so a moderator's takedown (/mod → Review → Prayer wall,
+`submissions.hidden`) applies at once; a request taken down is no longer read
+out either (`Timeline::dropRepeatsOf` drops its planned reading and gives it
+back). Praying along and reports follow what a wall shows
+(`Submissions::shownOnWall`). Community voices are
 chat highlights only. 🙏 on a wall request (a `voices` reaction `p…`/`pray` in
 the pulse, never a request of its own) is praying along
 (`Submissions::prayAlong`): once per device and request — `prayed_along.who`
@@ -178,34 +187,63 @@ outro. The pulse keys voice reactions by voice *and* kind (a ❤️ after a 🙏
 used to replace it).
 
 The **prayer hour** (`Program\PrayerHour`; program setting `format: 'prayer'`,
-prayer requests only, never a channel's fallback) has its own running order:
-welcome → opening prayer → invitation → collection (prayer music in pieces that
-go on through the file, or N songs; requests appear on the wall only) → the
-prayer time → outro with a blessing at C → songs, if the program wants them.
-C = the run's end − `after_songs` × 4 min − 45 s, from the plan alone (an
-average song length would move the intake times already published). The run
-is `PlanResolver::runAt` (one run across midnight, where `blockAt` starts a new
-block); where the hour stands is read from its own items after the last item
-of another program (by seq), so an outage or a plan change mid-hour does not
-start it over, and a moment its gate refused (`failed`) or its time overtook
-(`skipped:late`) counts as tried. In the prayer time the plan reaches only
-`PRAYER_LEAD` (7 min) ahead — the step returns null and `Drafter::draft()`
-stops — so each moment takes what was approved since the last (three at most,
-`read` if sent during the collection, else `new`), with a pause of silence
-after it; quiet for `quiet_min` → one wall request again (`again`), an empty
-wall → `general`; otherwise 60 s pieces of "Silent prayer". The welcome,
-opening, invitation, outro and every moment with requests are units: late,
-they wait behind the hour's own filler (`PrayerHour::filler`: prayer music
-before the opening, silence later, in the waiting unit's program — never the
-previous program's song). A request on the wall reaches the model without
-name and place (it is prayed for anonymously); the moment's `prayers` lists
-the wall ids so the app can show "Praying now". Intake and `canStillAir`
-count to C. A moderator can prepare opening prayers (`Program\OpeningPrayers`,
+types `prayer` and `intercession`, never a channel's fallback) is where the
+listeners pray — the host never does. Its running order: welcome → a
+moderator's opening prayer, if one is prepared (none: no opening prayer) →
+the collection (`collect.songs` songs, 0–3, then prayer music in pieces that
+go on through the file, until `collect.minutes` have passed; requests come in,
+the stage shows how many) → the presentation (`present`, then one `reading`
+per request: Open Doors' request of the day first, then the requests sent
+until the presentation was planned — a fixed cutoff, `until` in its context —
+each read word for word and on the wall from that moment) → `prayertime`, the
+host's announcement → the prayer time → the outro at C → songs, if the program
+wants them. In the prayer time each step takes the oldest of what listeners
+sent: a request (`reading`), a written prayer (`intercession`, read word for
+word after a lead-in), a spoken prayer or recorded request (a `contrib`, no
+host intro); every one is followed by `PRAYER_GAP` of quiet inside its item.
+Nothing waiting → silence ("Prayer time"); quiet for `quiet_min` → `encourage`
+(the host invites everyone to pray for what is on the wall, never one picked
+request). Prayers are taken only from the committed announcement
+(`prayerTimeFrom`: drafts never count, so minute files and the server agree)
+until `PRAYER_CLOSED` before C (last chance from `PRAYER_CLOSING`); the
+presentation ends by `C − PRAYER_CLOSING − 2 min` at the latest, and the prayer
+time lasts at least `MIN_PRAYER` (25 min). C = the run's end − `after_songs` ×
+4 min − 45 s, from the plan alone (an average song length would move the
+intake times already published). The run is `PlanResolver::runAt` (one run
+across midnight, where `blockAt` starts a new block); where the hour stands is
+read from its own items after the last item of another program (by seq), so an
+outage or a plan change mid-hour does not start it over, and a moment its gate
+refused (`failed`) or its time overtook (`skipped:late`) counts as tried — a
+request is tried twice at most (`state()['tries']`). From the presentation on
+the plan reaches only `PRAYER_LEAD` (7 min) ahead — the step returns null and
+`Drafter::draft()` stops — so each reading takes what was approved by then.
+The welcome, opening, presentation, announcement, outro and every reading are
+units: late, they wait behind the hour's own filler (`PrayerHour::filler`:
+prayer music before the prayer time, silence in it, 20 s pieces, in the
+waiting unit's program — never the previous program's song); a reading waits
+at most `READING_WAIT` from when it was first due, then gives its request back.
+A request on the wall is read without its sender; others with first name and
+place. A moderator can prepare opening prayers (`Program\OpeningPrayers`,
 /mod → Programs; not a Catalog write, so no drafts are thrown away): each
 airing takes the oldest waiting — a recording airs as a `contrib` item, a text
 as host `opening` with `context.fixed`, which the script phase voices word for
 word without the model, in the languages filled in — and is marked aired at
 commit; the welcome names who prays (`opening_by`).
+
+People's own words are read out by `HostWriter::reading()`, never by the
+model: a short lead-in from `Templates::leadIn()` (pools per case and
+language; `n`, the reading's place among the channel's readings, makes
+neighbours differ) and the text, in the text's own language only (the
+check's `languages`, else the sender's app language) — never translated.
+**Open Doors** (`Program\OpenDoors`): a job (`opendoors`: fetch → translate,
+hourly, in the runner's budget, never in the publish phase) keeps Open Doors
+Deutschland's daily request for persecuted Christians (`OPENDOORS_FEED_URL`,
+RSS parsed without network or entities; `off` turns it off) and its English
+translation in the kv store. A prayer hour adds it once per run as a request
+of the station's own identity (`Identities::station()`, listed nowhere in
+/mod), dated to the run's start so it is read first: German as published,
+English translated, on the wall with `source` and `texts`, never counted as a
+listener's (program setting `prayer.opendoors`).
 
 A **preaching program** (program setting `format: 'preaching'`,
 `Drafter::addPreaching`) airs preachings — sermons on YouTube, library kind
@@ -455,30 +493,45 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 
 "A test is earned by a risk." Server: `npm run test:php` (enoch-style harness,
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
-generator's timing invariants, the PHP→fixture contract, identity, submissions
-(request blocks, late approvals, the queue sweep, intake times, the prayer wall,
-typed prayers aired or given back, praying along), deleting an account
+generator's timing invariants, the PHP→fixture contract (a prayer hour's
+files too), identity, submissions (request blocks, late approvals, the queue
+sweep, intake times, the prayer wall, typed prayers read out word for word or
+given back, one taken off the wall never read, listeners' prayers: consent,
+limits, never on the wall; praying along), the host never praying
+(`host.php`: the rule in the prompt, the guard, every template and lead-in,
+lead-ins that change, readings voiced once and outside the daily cap),
+deleting an account
 (`erasure.php`: aliases and the words, a voiced draft never airs, a committed
 request blocked with minute files byte for byte, an aired recording and the
-day files, a shared prayer break, others' breaks that react to it or quote
-its voice, another listener's request kept in place, the lock, a script
+day files, a request read next to another listener's, a listener's prayers
+(a written one planned, a spoken one on air), others' breaks that react to it
+or quote its voice, another listener's request kept in place, the lock, a script
 finished after its break was forgotten, guards, the sweep, the nodes'
 `forget`), reports (`reports.php`: names against the word list, wall reports
 and their auto-hide — new devices and a kept request excluded —, the
 moderators' decisions, voice reports, purges), the prayer hour walked hour
-by hour (`prayerhour.php`: the running order, the rolling reading, repeats,
-the empty hour, intake to C, midnight, outages, last-minute and repeated plan
-changes, nobody listening, bursts, a short hour, the fallback rule, opening
-prayers), preaching programs (`preaching.php`: the running order, a
+by hour (`prayerhour.php`: the running order, songs then prayer music, the
+presentation word for word and its cutoff, listeners' prayers read and played
+with their gaps, the encouragement, the outro without a blessing, intake for
+prayers only from the committed announcement, the wall as it is read, a late
+reading's short wait and its two tries, the empty hour, midnight, outages,
+last-minute and repeated plan changes, nobody listening, bursts, a short
+hour, the fallback rule, opening prayers, the settings migration), Open Doors
+(`opendoors.php`: the feed read safely, one translation, a feed down, both
+hours of a day, the station's identity), preaching programs (`preaching.php`: the running order, a
 suggestion first and never twice, what no longer fits, intake and the queue,
 the length limits, the library by link, the migration), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys, passphrase,
 realtime client, CDN fallback, theme, the phone carousel's fit, the prayer wall's
-day, "Praying now" and the silent-prayer pick, the pulse's voice reactions; jsdom:
-the stage's prayer views, the prayer sheet's wall box and the rules on the
-first post, the install sheet's single-use prompt; the store apps: platform
+day, "On air now", the page of requests and the station's translated one, a
+request shown from its reading on, the pulse's voice reactions; jsdom: the
+stage's prayer view (buttons by the minute file, the count, the page, a
+reading, a listener's prayer as theirs), the Pray sheet (recorder first,
+written instead, both endpoints, the yes never ticked in advance), our audio
+not starting a clip over in its quiet, the prayer sheet's wall box and the
+rules on the first post, the install sheet's single-use prompt; the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background
 signal only in the apps, the entry script for iOS updates, reminder plans
@@ -503,13 +556,14 @@ second device, song/prayer/recording through moderation, /mod gate, library,
 pull from air, a rejection explained and overruled in /mod, the welcome dialog
 (language and theme, once; `fakeYouTube()` pre-dismisses it for every other
 test), an install link after the welcome, the theme following the device until Profile picks one, the pinned
-phone player and the tiles unfolding, a prayer on the prayer wall (anonymous),
+phone player and the tiles unfolding, a prayer on the prayer wall (anonymous;
+a second listener prays along, the sender sees the count),
 no sideways scroll and the stage uncovered in both themes, chat between two
 listeners, the program read cross-origin from
 the stand-in CDN (CSP included) and from the site when the CDN is down, a
 prayer hour on a channel of its own (prayer music on the stage, a request from
-the stage onto the wall without its sender, praying along, the sender's count,
-no sideways scroll), a preaching program on a channel of its own (the
+the stage counted but not shown before it is read out, no Pray button before
+the prayer time, no sideways scroll), a preaching program on a channel of its own (the
 library's preaching on air as its video, named a preaching; the fourth tile's
 suggestion through the check; the tile closed on a music program), a stand-in
 store-app shell (no install offer, the background stops the radio, failing
