@@ -14,10 +14,10 @@ Keep this file in step with the code and with the privacy policy
 | App ID / package | `de.schaefchens.apps.archeradio` (permanent) |
 | Name | Arche Radio |
 | Subtitle (30) | en: Christian community radio · de: Christliches Community-Radio |
-| Category | Music (secondary: Lifestyle) |
+| Category | Music & Audio (Play) · Music (App Store; secondary: Lifestyle) |
 | Devices | iPhone only (runs on iPad in compatibility mode); Android phones |
 | Privacy policy | https://radio.schaefchens.de/datenschutz |
-| Account deletion (Google) | https://radio.schaefchens.de/konto-loeschen |
+| Account deletion (Google) | https://radio.schaefchens.de/delete-account (= /konto-loeschen) |
 | Terms / community rules | https://radio.schaefchens.de/regeln |
 | Support | https://radio.schaefchens.de/about · app.support@schaefchens.de |
 | Copyright | © Christoph Scharf (Schäfchens) |
@@ -47,9 +47,10 @@ Hörerinnen und Hörern aus aller Welt – live.
 > • Prayer hours every morning and evening, and preaching programs.
 > • Community rooms: write with other listeners while you listen.
 > • Program reminders: a notification when a program you like begins.
-> • In English and German. No sign-up, no advertising, no tracking.
+> • In English and German. No sign-up, no tracking, and no ads of our own.
 >
-> The music plays through YouTube's official player; keep the app open while
+> The music plays through YouTube's official player, where YouTube may show
+> its own ads; keep the app open while
 > you listen. Our host is an AI voice. Arche Radio is a non-commercial project
 > of Schäfchens.
 
@@ -67,9 +68,10 @@ Hörerinnen und Hörern aus aller Welt – live.
 > • Gebetsstunden jeden Morgen und Abend, dazu Predigtsendungen.
 > • Community-Räume: Schreib mit anderen, während ihr zuhört.
 > • Sendungs-Erinnerungen: eine Mitteilung, wenn eine Sendung beginnt, die du magst.
-> • Auf Deutsch und Englisch. Ohne Anmeldung, ohne Werbung, ohne Tracking.
+> • Auf Deutsch und Englisch. Ohne Anmeldung, ohne Tracking und ohne eigene Werbung.
 >
-> Die Musik läuft über den offiziellen Player von YouTube; lass die App beim
+> Die Musik läuft über den offiziellen Player von YouTube, wo YouTube eigene
+> Werbung zeigen kann; lass die App beim
 > Zuhören geöffnet. Unser Host ist eine KI-Stimme. Arche Radio ist ein
 > nicht-kommerzielles Projekt von Schäfchens.
 
@@ -115,6 +117,21 @@ logs, advertising data.
 - **Encrypted in transit**: yes. **Deletion**: yes, in the app (Profile ›
   Delete account) and at https://radio.schaefchens.de/konto-loeschen.
 - **Account creation**: yes — an anonymous device id, optionally a passphrase.
+
+## Google Play: what was entered (2026-10-04)
+
+Play Console app id 4972697494700123670 (account "Christoph Scharf", personal).
+Default listing en-US, translation de-DE; short descriptions "Christian
+community radio: worship, prayers and stories from listeners, live" / "Christliches
+Community-Radio: Lobpreis, Gebete und Geschichten, live". Graphics: the icon
+from `native/assets/icon-only.svg`, the feature graphic from the light scenery
+and logo, screenshots of the live site at 1080×1920 (song thumbnails hidden) —
+all labelled AI-generated, as the art is. Ads: none of our own (YouTube's ads inside its player are not
+an ad SDK). Sign-in: none needed (/mod is staff-only). Target age 16–17 and
+18+. IARC: Everyone / PEGI 3 / USK 0, "Users interact". Data safety as below,
+account creation "Other" (anonymous device account, optional 12 words).
+Upload key: `~/keys/arche-radio-upload.keystore` (alias `arche`), password in
+`app/android/keystore.properties` — back both up off this Mac.
 
 ## Age rating
 
