@@ -55,6 +55,9 @@ export interface WallEntry {
   at: number;
   /** In a prayer hour: when its reading begins — shown from then on. */
   from?: number;
+  /** The sender's first name and place, as they gave them — none when they stayed anonymous. */
+  name?: string;
+  place?: string;
   /** The station's own request (Open Doors' daily one): who it is from. */
   source?: string;
   /** Its translation, for the station's own request. */

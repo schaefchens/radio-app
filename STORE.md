@@ -43,7 +43,7 @@ Hörerinnen und Hörern aus aller Welt – live.
 > • Your voice on air: request a song, suggest a preaching, record a story, a
 >   testimony or a greeting, or send a prayer request — our host reads it out
 >   and invites everyone to pray.
-> • The prayer wall: pray along with other listeners' requests, anonymously.
+> • The prayer wall: pray along with other listeners' requests.
 > • Prayer hours every morning and evening, where listeners pray for one
 >   another — spoken or written — and preaching programs.
 > • Community rooms: write with other listeners while you listen.
@@ -65,7 +65,7 @@ Hörerinnen und Hörern aus aller Welt – live.
 > • Deine Stimme auf Sendung: Wünsch dir einen Song, empfiehl eine Predigt,
 >   nimm eine Geschichte, ein Zeugnis oder einen Gruß auf oder schick ein
 >   Gebetsanliegen – unser Host liest es vor und lädt alle zum Mitbeten ein.
-> • Die Gebetswand: Bete anonym für die Anliegen anderer mit.
+> • Die Gebetswand: Bete für die Anliegen anderer mit.
 > • Gebetsstunden jeden Morgen und Abend, in denen Hörerinnen und Hörer
 >   füreinander beten – gesprochen oder geschrieben –, dazu Predigtsendungen.
 > • Community-Räume: Schreib mit anderen, während ihr zuhört.

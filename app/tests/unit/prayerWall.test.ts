@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WallEntry } from '@arche/shared';
-import { WALL_PAGE_MS, entryText, prayingFirst, wallPage } from '@/lib/prayerWall';
+import { WALL_PAGE_MS, entryBy, entryText, prayingFirst, wallPage } from '@/lib/prayerWall';
 
 const wall: WallEntry[] = [
   { id: 'pa', text: 'For my mother.', at: 3 },
@@ -27,6 +27,13 @@ describe('the prayer wall', () => {
     // Few enough for one page: all of them, the same list.
     expect(wallPage(wall, t, 3)).toBe(wall);
     expect(wallPage([], t, 3)).toEqual([]);
+  });
+
+  it('says whose a request is: the first name and place given, the station\'s source — nothing for one who stayed anonymous', () => {
+    expect(entryBy({ id: 'p1', text: 'x', at: 1, name: 'Ruth', place: 'Lagos' })).toBe('Ruth · Lagos');
+    expect(entryBy({ id: 'p2', text: 'x', at: 1, name: 'Ruth' })).toBe('Ruth');
+    expect(entryBy({ id: 'p3', text: 'x', at: 1, source: 'Open Doors · Nigeria' })).toBe('Open Doors · Nigeria');
+    expect(entryBy(wall[0]!)).toBe('');
   });
 
   it('the station\'s own request comes in the listener\'s language when it was translated', () => {

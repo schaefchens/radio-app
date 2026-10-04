@@ -15,8 +15,8 @@ final class Templates
 {
     /**
      * A few of each, so the host does not say the same words before every
-     * prayer. Without a first name ({who} is '') the anonymous pool: leaving
-     * the name empty is how a sender stays anonymous, on the wall or not.
+     * prayer. Without a first name ({who} is '') the anonymous pool: the
+     * sender ticked "Stay anonymous", and the form sent neither.
      * {who}: first name and place; {where}: a country.
      */
     private const LEADS = [

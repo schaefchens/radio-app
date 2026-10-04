@@ -5,7 +5,7 @@ import { useRadio } from '@/store/radio';
 import { useSheets } from '@/store/sheets';
 import { reactVoice } from '@/lib/radio';
 import { dayKey } from '@/lib/format';
-import { entryText } from '@/lib/prayerWall';
+import { entryBy, entryText } from '@/lib/prayerWall';
 import { useServerNow } from './useServerNow';
 import { usePrayingWall } from './usePrayingWall';
 import { useRotation, WALL_ROTATE_MS } from './useRotation';
@@ -20,9 +20,10 @@ import { reportWallEntry } from '@/lib/reports';
  * the player): one prayer request at a time, set like a verse, the next one
  * every 15 s (the phone shows it in the carousel); while one of them is read
  * out, that one, "On air now". Requests come from live.json: typed,
- * approved, and shown only with the sender's yes; anonymous, the text and
- * the day (in a prayer hour, once it is read out). The station's own request
- * (Open Doors') says whose it is.
+ * approved, and shown only with the sender's yes (in a prayer hour, every one
+ * once it is read out); the text, the day and whose it is — the first name
+ * and place the sender gave, the station's source for its own (Open Doors'),
+ * nothing for one who stayed anonymous.
  */
 export function DesktopPrayerWall({ onMore }: { onMore: () => void }) {
   const { t } = useTranslation();
@@ -72,11 +73,12 @@ export function PrayerEntry({ entry, praying = false, onActivity }: { entry: Wal
   const now = useServerNow(60_000);
   const key = dayKey(entry.at, now);
   const day = key ? t(`wall.${key}`) : new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long' }).format(entry.at);
+  const by = entryBy(entry);
   return (
     <div className="quote feed-message prayer-entry">
       <div className="message-copy">
         <time dateTime={new Date(entry.at).toISOString()}>{day}</time>
-        {entry.source && <span className="wall-source">{entry.source}</span>}
+        {by && <span className="wall-source">{by}</span>}
         {praying && <span className="praying-badge">{t('wall.prayingNow')}</span>}
         <p>{entryText(entry, lang)}</p>
       </div>

@@ -21,8 +21,8 @@ function shape(mixed $actual, mixed $fixture, string $path, array $maps): void
             foreach ($a as $k => $v) shape($v, $sample, "$path.$k", $maps);
             return;
         }
-        // Keys only some files carry: a prayer hour's wall and count, the station's own request.
-        $missing = array_diff(array_keys($f), array_keys($a), ['collected', 'from', 'source', 'texts']);
+        // Keys only some files carry: a prayer hour's wall and count, the station's own request, a sender's name.
+        $missing = array_diff(array_keys($f), array_keys($a), ['collected', 'from', 'source', 'texts', 'name', 'place']);
         $extra = array_diff(array_keys($a), array_keys($f));
         check(!$missing, "$path lacks " . implode(',', $missing));
         check(!$extra, "$path has unexpected " . implode(',', $extra));
@@ -37,6 +37,14 @@ function shape(mixed $actual, mixed $fixture, string $path, array $maps): void
             if (is_object($v) && isset($v->type)) {
                 foreach ($fixture as $candidate) if (is_object($candidate) && ($candidate->type ?? null) === $v->type) $sample = $candidate;
                 check($sample !== null && ($sample->type ?? null) === $v->type, "$path[$i] type {$v->type} is in the fixture");
+            } elseif (is_object($v)) {
+                // Others against the first that has all its keys (a wall entry with a name, the station's own).
+                foreach ($fixture as $candidate) {
+                    if (is_object($candidate) && !array_diff(array_keys(get_object_vars($v)), array_keys(get_object_vars($candidate)))) {
+                        $sample = $candidate;
+                        break;
+                    }
+                }
             }
             shape($v, $sample, "$path[$i]", $maps);
         }
@@ -94,6 +102,7 @@ test('contract: generated program files match shared/fixtures', function () {
     $live = json_decode((string) file_get_contents($app->publicPath('program/main/live.json')));
     shape($live, fixture('live.json'), 'live', []);
     eq(count($live->wall), 1, 'a wall entry was compared');
+    eq([$live->wall[0]->name ?? null, $live->wall[0]->place ?? null], ['Ruth', 'Lagos'], 'with the first name and place its sender gave');
     $channels = json_decode((string) file_get_contents($app->publicPath('program/channels.json')));
     shape($channels, fixture('channels.json'), 'channels', []);
     check(is_string($channels->channels[0]->evergreen), 'evergreen pointer');

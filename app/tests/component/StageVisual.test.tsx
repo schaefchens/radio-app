@@ -75,6 +75,17 @@ describe('the stage in a prayer hour', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
+  it('whose a request is: the first name and place its sender gave — nothing for one who stayed anonymous', () => {
+    const ruth: WallEntry = { id: 'pr', text: 'Please pray for my son.', at: 6, name: 'Ruth', place: 'Lagos' };
+    const { unmount } = render(<StageVisual engine={stage(silence, 'silence', { wall: [ruth, exams], submissions: {} })} />);
+    expect(screen.getByText('Ruth · Lagos')).toBeTruthy();
+    expect(screen.getByText(exams.text).previousElementSibling).toBeNull();
+    unmount();
+    // Read out now: the same line above it.
+    render(<StageVisual engine={stage(reading, 'host', { wall: [ruth], praying: ['pr'], hostText: 'Ruth from Lagos asks for prayer: Please pray for my son.' })} />);
+    expect(screen.getByText('Ruth · Lagos')).toBeTruthy();
+  });
+
   it('Open Doors\' request says whose it is, translated for English listeners', () => {
     render(<StageVisual engine={stage(silence, 'silence', { wall: [openDoors], submissions: {} })} />);
     expect(screen.getByText('Open Doors · Nigeria')).toBeTruthy();

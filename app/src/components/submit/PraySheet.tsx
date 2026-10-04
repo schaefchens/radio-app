@@ -9,7 +9,7 @@ import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
 import { useRecorder } from './useRecorder';
 import { RecorderPanel } from './RecordSheet';
-import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
+import { Done, NameOrAnonymous, PrivacyNote } from './VideoRequestSheet';
 import { RulesCheckbox } from '@/components/common/RulesConsent';
 import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
 
@@ -20,8 +20,9 @@ const LIMIT_S = 60;
  * A listener's own prayer in a prayer hour's prayer time, for the requests
  * read out: spoken first (the recorder — played on air as it is) or written
  * ("Type it instead" — read out word for word in the host's voice). With
- * first name and place, and the yes to air it, never ticked in advance; the
- * community rules before the first post; the Art. 9 note above Send.
+ * first name and place unless the sender stays anonymous, and the yes to air
+ * it, never ticked in advance; the community rules before the first post;
+ * the Art. 9 note above Send.
  */
 export function PraySheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -33,14 +34,17 @@ export function PraySheet({ open, onClose }: { open: boolean; onClose: () => voi
   const [text, setText] = useState('');
   const [name, setName] = useState(identity?.name ?? '');
   const [place, setPlace] = useState('');
+  // Kept for the next prayer: one who chose to stay anonymous is not named by surprise.
+  const [anonymous, setAnonymous] = useState(false);
   const [consent, setConsent] = useState(false);
   const rulesNeeded = useRulesNeeded();
   const [rulesTicked, setRulesTicked] = useState(false);
   const rec = useRecorder();
 
   const submit = useSubmit(async () => {
+    const who = anonymous ? { name: '', place: '' } : { name, place };
     if (written) {
-      await api('/submissions/intercession', { body: { channel, text, name, place, lang, consent_air: consent } });
+      await api('/submissions/intercession', { body: { channel, text, ...who, lang, consent_air: consent } });
       return;
     }
     if (!rec.blob) throw new Error('no recording');
@@ -48,8 +52,8 @@ export function PraySheet({ open, onClose }: { open: boolean; onClose: () => voi
     const form = new FormData();
     form.set('channel', channel);
     form.set('type', 'intercession');
-    form.set('name', name);
-    form.set('place', place);
+    form.set('name', who.name);
+    form.set('place', who.place);
     form.set('lang', lang);
     form.set('consent_air', consent ? '1' : '');
     form.set('audio', mp3, 'prayer.mp3');
@@ -69,7 +73,7 @@ export function PraySheet({ open, onClose }: { open: boolean; onClose: () => voi
     }
   };
 
-  const ready = written ? text.trim().length >= 5 : rec.blob !== null && !rec.recording;
+  const ready = (written ? text.trim().length >= 5 : rec.blob !== null && !rec.recording) && (anonymous || name.trim() !== '');
   return (
     <BottomSheet open={open} onClose={close} title={t('pray.title')}>
       <BottomSheetBody>
@@ -101,7 +105,16 @@ export function PraySheet({ open, onClose }: { open: boolean; onClose: () => voi
             >
               {written ? t('prayerForm.record') : t('prayerForm.type')}
             </button>
-            <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
+            <NameOrAnonymous
+              anonymous={anonymous}
+              setAnonymous={setAnonymous}
+              label={t('pray.anonymous')}
+              hint={t('pray.nameHint')}
+              name={name}
+              place={place}
+              setName={setName}
+              setPlace={setPlace}
+            />
             <label className="flex items-start gap-2 text-sm text-ink-muted">
               <input type="checkbox" className="mt-1" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
               {t('pray.consent')}

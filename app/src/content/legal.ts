@@ -213,19 +213,21 @@ const de = (host: string): StationTexts => ({
         'Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Gebetsanliegen, Gebete, Zeugnisse und Geschichten können Ihre religiöse ' +
         'Überzeugung oder Angaben zur Gesundheit erkennen lassen; mit dem Absenden willigen Sie ausdrücklich ein, dass ' +
         'wir diese Angaben dafür verarbeiten (Art. 9 Abs. 2 lit. a DSGVO).\n' +
-        'Von Ihnen nennen wir auf Sendung nur Vorname und Ort – und nur, wenn Sie sie angeben: Lassen Sie den Namen ' +
-        'leer, bleiben Sie anonym. Ein geschriebenes Gebetsanliegen lesen wir Wort für Wort vor, und die App zeigt den ' +
-        'Text dabei an. Es erscheint nach der Freigabe zusätzlich an der Gebetswand der App, wenn Sie das eigens ' +
-        'ankreuzen (das Kästchen ist nicht vorausgewählt): ohne Namen und Ort, nur der Text und der Tag. Die Wand zeigt ' +
-        'die neuesten Anliegen; Ihres bleibt dort, bis neuere es verdrängen, eine Moderatorin bzw. ein Moderator es ' +
-        'abnimmt oder wir es nach 90 Tagen löschen. Während es auf Sendung vorgelesen wird, zeigt die App es an der ' +
-        'Wand als das, was gerade im Radio läuft. Ein abgenommenes Anliegen lesen wir nicht mehr vor.\n' +
+        'Von Ihnen nennen wir auf Sendung nur Vorname und Ort, die Sie angeben. Bei Gebetsanliegen und Gebeten können ' +
+        'Sie „Anonym bleiben“ ankreuzen; dann fragen wir beides nicht ab und nennen keinen Namen. Ein geschriebenes ' +
+        'Gebetsanliegen lesen wir Wort für Wort vor, und die App zeigt den Text dabei an. Es erscheint nach der Freigabe ' +
+        'zusätzlich an der Gebetswand der App, wenn Sie das eigens ankreuzen (das Kästchen ist nicht vorausgewählt): ' +
+        'der Text, der Tag und – wenn Sie nicht anonym bleiben – Ihr Vorname und Ort. Die Wand zeigt die neuesten ' +
+        'Anliegen; Ihres bleibt dort, bis neuere es verdrängen, eine Moderatorin bzw. ein Moderator es abnimmt oder wir ' +
+        'es nach 90 Tagen löschen. Während es auf Sendung vorgelesen wird, zeigt die App es an der Wand als das, was ' +
+        'gerade im Radio läuft. Ein abgenommenes Anliegen lesen wir nicht mehr vor.\n' +
         'In einer Gebetsstunde zeigt die Wand die Anliegen dieser Stunde: jedes ab dem Moment, in dem es vorgelesen ' +
-        'wird, bis die Stunde endet, ohne Namen und Ort – angekreuzt oder nicht; das Kästchen entscheidet dort, ob Ihr ' +
-        'Anliegen danach an der Gebetswand stehen bleibt. Ein Gebet, das Sie in ihrer Gebetszeit schicken, lesen wir ' +
-        'Wort für Wort vor, mit Ihrem Vornamen und Ort, wenn Sie sie angeben; ein gesprochenes senden wir so, wie Sie es ' +
-        'aufgenommen haben. Gebete erscheinen nicht an der Gebetswand und werden nicht wiederholt. Die ' +
-        'Programmübersicht des Tages nennt bei Gebeten und Gebetsanliegen keine Namen.\n' +
+        'wird, bis die Stunde endet – angekreuzt oder nicht, und wie überall mit Vorname und Ort, wenn Sie nicht anonym ' +
+        'bleiben; das Kästchen entscheidet dort, ob Ihr Anliegen danach an der Gebetswand stehen bleibt. Ein Gebet, das ' +
+        'Sie in ihrer Gebetszeit schicken, lesen wir Wort für Wort vor, mit Ihrem Vornamen und Ort, wenn Sie nicht ' +
+        'anonym bleiben; ein gesprochenes senden wir so, wie Sie es aufgenommen haben. Gebete erscheinen nicht an der ' +
+        'Gebetswand und werden nicht wiederholt. Die Programmübersicht des Tages nennt bei Gebeten und Gebetsanliegen ' +
+        'keine Namen.\n' +
         'Tippen Sie bei einem Anliegen an der Wand auf 🙏 („Ich habe mitgebetet“), sendet die App das mit ihrer ' +
         'nächsten Meldung. Damit jedes Gerät nur einmal zählt, speichern wir einen Wert, der aus Ihrer Gerätekennung ' +
         'und dem Anliegen mit einem geheimen Schlüssel gebildet ist und sich weder mit Ihren anderen Angaben noch mit ' +
@@ -479,17 +481,19 @@ const en = (host: string): StationTexts => ({
         'id, to check and air it. The legal basis is your consent (Art. 6(1)(a) GDPR). Prayer requests, prayers, testimonies ' +
         'and stories can reveal religious beliefs or health information; by sending, you explicitly consent to our ' +
         'processing them for this purpose (Art. 9(2)(a) GDPR).\n' +
-        'On air we name you only by your first name and place — and only if you give them: leave the name empty to ' +
-        'stay anonymous. A typed prayer request is read out word for word, and the app shows the text meanwhile. It ' +
-        'also appears on the app’s prayer wall after approval if you tick that box (it is not ticked in advance): ' +
-        'without your name and place, just the text and the day. The wall shows the newest requests; yours stays there ' +
-        'until newer ones push it out, a moderator takes it down or we delete it after 90 days. While it is read out on ' +
-        'air, the app marks it on the wall as the one on air now. A request taken down is no longer read out.\n' +
+        'On air we name you only by the first name and place you give. For prayer requests and prayers you can tick ' +
+        '“Stay anonymous”; then we ask for neither and name nobody. A typed prayer request is read out word for word, ' +
+        'and the app shows the text meanwhile. It also appears on the app’s prayer wall after approval if you tick ' +
+        'that box (it is not ticked in advance): the text, the day and — unless you stay anonymous — your first name ' +
+        'and place. The wall shows the newest requests; yours stays there until newer ones push it out, a moderator ' +
+        'takes it down or we delete it after 90 days. While it is read out on air, the app marks it on the wall as the ' +
+        'one on air now. A request taken down is no longer read out.\n' +
         'In a prayer hour the wall shows that hour\'s requests: each one from the moment it is read out until the hour ' +
-        'ends, without name and place — ticked or not; there the box decides whether your request stays on the prayer ' +
-        'wall afterwards. A prayer you send in its prayer time is read out word for word, with your first name and place ' +
-        'if you give them; a spoken one is aired as you recorded it. Prayers do not appear on the prayer wall and are ' +
-        'never replayed. The day\'s program list names nobody for prayers and prayer requests.\n' +
+        'ends — ticked or not, and as everywhere with your first name and place unless you stay anonymous; there the ' +
+        'box decides whether your request stays on the prayer wall afterwards. A prayer you send in its prayer time is ' +
+        'read out word for word, with your first name and place unless you stay anonymous; a spoken one is aired as ' +
+        'you recorded it. Prayers do not appear on the prayer wall and are never replayed. The day\'s program list ' +
+        'names nobody for prayers and prayer requests.\n' +
         'When you tap 🙏 (“I prayed”) on a request on the wall, the app sends it with its next report. So that each ' +
         'device counts once, we store a value derived from your device id and the request with a secret key, which ' +
         'cannot be linked to your other data or to your other prayers; by tapping you explicitly consent to our ' +

@@ -8,8 +8,9 @@ import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { RULES_VERSION } from '@/content/rules';
 
-const WALL = 'Also show my request on the prayer wall, without my name, so others can pray with me.';
-const AFTER = 'Keep my request on the prayer wall after the prayer hour too, without my name, so others can go on praying with me.';
+const WALL = 'Also show my request on the prayer wall, so others can pray with me.';
+const AFTER = 'Keep my request on the prayer wall after the prayer hour too, so others can go on praying with me.';
+const ANONYMOUS = 'Stay anonymous: no name, on air or on the prayer wall';
 const prayerHour: ProgramRef = {
   id: 'prayer',
   title: { en: 'Prayer Hour', de: 'Gebetsstunde' },
@@ -39,6 +40,7 @@ describe('the prayer request sheet', () => {
     expect((within(dialog()).getByLabelText(WALL) as HTMLInputElement).checked).toBe(false);
 
     fireEvent.change(within(dialog()).getByLabelText('Your prayer request'), { target: { value: 'Please pray for my sister.' } });
+    fireEvent.change(within(dialog()).getByLabelText('Your first name'), { target: { value: 'Ruth' } });
     fireEvent.click(within(dialog()).getByLabelText(WALL));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Send' }));
     // The sheet stays mounted when it closes (it is only moved away).
@@ -51,16 +53,33 @@ describe('the prayer request sheet', () => {
     expect((within(dialog()).getByLabelText('Your prayer request') as HTMLTextAreaElement).value).toBe('');
   });
 
-  it('says that the name is read out when given — empty, the request stays anonymous', () => {
+  it('named by default — first name and place with what happens to them; "Stay anonymous" hides both and sends neither, a first name is needed otherwise', async () => {
     useSettings.setState({ lang: 'en', rules: RULES_VERSION });
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ submission: { id: 'abc' } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
     render(
       <MemoryRouter>
         <PrayerSheet open onClose={() => undefined} onRecord={() => undefined} />
       </MemoryRouter>,
     );
     const dialog = screen.getByRole('dialog', { hidden: true });
-    expect(within(dialog).getByText(/Leave your name empty to stay anonymous/)).toBeTruthy();
     expect(within(dialog).queryByText(/In this prayer hour/)).toBeNull();
+    const anonymous = within(dialog).getByLabelText(ANONYMOUS) as HTMLInputElement;
+    expect(anonymous.checked).toBe(false);
+    expect(within(dialog).getByText('Your first name and place are read out with your request and shown with it on the prayer wall.')).toBeTruthy();
+    fireEvent.change(within(dialog).getByLabelText('Your prayer request'), { target: { value: 'Please pray for my sister.' } });
+    const send = within(dialog).getByRole('button', { name: 'Send' }) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    fireEvent.change(within(dialog).getByLabelText('Your first name'), { target: { value: 'Ruth' } });
+    fireEvent.change(within(dialog).getByLabelText(/Where are you from/), { target: { value: 'Lagos' } });
+    expect(send.disabled).toBe(false);
+    fireEvent.click(anonymous);
+    expect(within(dialog).queryByLabelText('Your first name')).toBeNull();
+    expect(within(dialog).queryByText(/Your first name and place are read out/)).toBeNull();
+    fireEvent.click(send);
+    await within(dialog).findByText(/Thank you!/);
+    const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({ text: 'Please pray for my sister.', name: '', place: '' });
   });
 
   it('in a prayer hour: every request goes on the hour\'s wall once read out — the box is for the wall after the hour, never ticked in advance', async () => {
@@ -74,15 +93,16 @@ describe('the prayer request sheet', () => {
       </MemoryRouter>,
     );
     const dialog = screen.getByRole('dialog', { hidden: true });
-    expect(within(dialog).getByText(/In this prayer hour every request is shown on the prayer wall, without a name/)).toBeTruthy();
+    expect(within(dialog).getByText(/In this prayer hour every request is shown on the prayer wall from when it is read out/)).toBeTruthy();
     expect(within(dialog).queryByLabelText(WALL)).toBeNull();
     const after = within(dialog).getByLabelText(AFTER) as HTMLInputElement;
     expect(after.checked).toBe(false);
     fireEvent.change(within(dialog).getByLabelText('Your prayer request'), { target: { value: 'Please pray for my sister.' } });
+    fireEvent.change(within(dialog).getByLabelText('Your first name'), { target: { value: 'Ruth' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
     await within(dialog).findByText(/Thank you!/);
     const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
-    expect(JSON.parse(String(init.body))).toMatchObject({ channel: 'main', consent_air: false });
+    expect(JSON.parse(String(init.body))).toMatchObject({ channel: 'main', name: 'Ruth', consent_air: false });
   });
 
   it('the first post asks for the community rules: Send waits for the tick, the next post does not ask', async () => {
@@ -95,6 +115,7 @@ describe('the prayer request sheet', () => {
     );
     const dialog = screen.getByRole('dialog', { hidden: true });
     fireEvent.change(within(dialog).getByLabelText('Your prayer request'), { target: { value: 'Please pray for my sister.' } });
+    fireEvent.click(within(dialog).getByLabelText(ANONYMOUS));
     const send = within(dialog).getByRole('button', { name: 'Send' }) as HTMLButtonElement;
     expect(send.disabled).toBe(true);
     fireEvent.click(within(dialog).getByLabelText(/I accept the community rules/));

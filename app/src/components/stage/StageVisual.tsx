@@ -5,7 +5,7 @@ import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
 import { useSheets } from '@/store/sheets';
 import { countryName } from '@/lib/format';
-import { entryText, wallPage } from '@/lib/prayerWall';
+import { entryBy, entryText, wallPage } from '@/lib/prayerWall';
 import { visibleVoices, visibleWall } from '@/lib/blocking';
 import { useBlocks } from '@/store/blocks';
 import { useServerNow } from '@/components/home/useServerNow';
@@ -164,10 +164,7 @@ function PrayerView({
       {page.length > 0 ? (
         <div className="stage-wall-page">
           {page.map((e) => (
-            <div key={e.id} className="stage-wall-entry animate-fly-in">
-              {e.source && <p className="stage-wall-source">{e.source}</p>}
-              <p className="stage-wall-text">{entryText(e, lang)}</p>
-            </div>
+            <WallCard key={e.id} entry={e} lang={lang} className="animate-fly-in" />
           ))}
         </div>
       ) : (
@@ -189,11 +186,19 @@ function OnAir({ entries, label, lang }: { entries: WallEntry[]; label: string; 
     <div className="stage-prayer animate-fly-in">
       <p className="eyebrow">{label}</p>
       {entries.slice(0, 2).map((e) => (
-        <div key={e.id} className="stage-wall-entry">
-          {e.source && <p className="stage-wall-source">{e.source}</p>}
-          <p className="stage-wall-text">{entryText(e, lang)}</p>
-        </div>
+        <WallCard key={e.id} entry={e} lang={lang} />
       ))}
+    </div>
+  );
+}
+
+/** One request on the stage: whose it is (when the sender said), then the text. */
+function WallCard({ entry, lang, className }: { entry: WallEntry; lang: Lang; className?: string }) {
+  const by = entryBy(entry);
+  return (
+    <div className={clsx('stage-wall-entry', className)}>
+      {by && <p className="stage-wall-source">{by}</p>}
+      <p className="stage-wall-text">{entryText(entry, lang)}</p>
     </div>
   );
 }

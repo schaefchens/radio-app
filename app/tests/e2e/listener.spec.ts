@@ -144,7 +144,7 @@ test('a prayer request is checked, accepted and shown on the prayer wall; a list
   const sheet = await openSheet(page, /Share a prayer request/, 'Share a prayer request');
   const text = `Please pray for my sister's recovery (${Date.now() % 100_000}).`;
   await sheet.getByLabel('Your prayer request').fill(text);
-  await sheet.getByLabel('Also show my request on the prayer wall, without my name, so others can pray with me.').check();
+  await sheet.getByLabel('Also show my request on the prayer wall, so others can pray with me.').check();
   await sheet.getByLabel('Your first name').fill('Ruth');
   await sheet.getByLabel(/Where are you from/).fill('Lagos');
   await sheet.getByRole('button', { name: 'Send' }).click();
@@ -164,15 +164,17 @@ test('a prayer request is checked, accepted and shown on the prayer wall; a list
       { timeout: 90_000, intervals: [3000] },
     )
     .toBe(true);
-  // Anonymous: the wall carries the text and the time, never the name or place.
+  // Whose it is: the first name and place its sender gave (nobody ticked "Stay anonymous").
   const entry = (await liveFile())?.wall.find((e) => e.text === text);
-  expect(Object.keys(entry ?? {}).sort()).toEqual(['at', 'id', 'text']);
+  expect(Object.keys(entry ?? {}).sort()).toEqual(['at', 'id', 'name', 'place', 'text']);
+  expect([entry?.name, entry?.place]).toEqual(['Ruth', 'Lagos']);
   expect((await liveFile())?.voices.some((v) => v.text === text)).toBe(false);
   await page.keyboard.press('Escape');
   // The card shows one request at a time; "More" lists the whole wall.
   const wall = page.getByRole('region', { name: 'Prayer wall' });
   await wall.getByRole('button', { name: /More/ }).click({ timeout: 45_000 });
   await expect(page.getByRole('dialog', { name: 'Prayer wall' }).getByText(text)).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByRole('dialog', { name: 'Prayer wall' }).locator('.prayer-entry', { hasText: text }).getByText('Ruth · Lagos')).toBeVisible();
 
   // A second listener prays along from the wall; the pulse carries it.
   const friend = await listener(browser);

@@ -305,8 +305,8 @@ final class HostWriter
      * A listener's prayer request or prayer, read out exactly as written: a
      * short lead-in (never the one the reading before had) and the text, in
      * the text's own language only — never translated. With the first name
-     * and place the sender gave; without a name, anonymous: leaving it empty
-     * is how a sender stays anonymous (the wall never shows names).
+     * and place the sender gave, as the wall shows them; without, anonymous
+     * (the sender ticked "Stay anonymous", and the form sent neither).
      * Gone, or taken off the wall since it was planned: nothing to say, and
      * the break fails (its request waits again; a hidden one is never taken).
      *

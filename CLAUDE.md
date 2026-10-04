@@ -155,38 +155,40 @@ Typed prayer requests are not a block: up to three (at most `READ_CHARS`
 together) are read out word for word, each by a host `reading`
 (`HostWriter::reading()`: a short lead-in that changes from one reading to the
 next, then the text in its own language only, no model; with the sender's
-first name and place, none given: anonymous), and then the host's `prayer`
-break invites everyone to pray for them. A reading carries its request's id
-as `prayer_ids` (never `prayers`: the script phase stores the writer's
-context, whose `prayers` are the texts, over the drafted one). Committed, it marks the request with its
-start; dropped or discarded, it gives it back to the queue. A request taken
-off the wall is not read out any more (`Timeline::dropRepeatsOf` gives it back,
-`takePrayers` skips it). Each counts 20 s in the queue that closes intake
-(`Timing::PRAYER_EACH`).
+first name and place unless they stayed anonymous), and then the host's
+`prayer` break invites everyone to pray for them. A reading carries its
+request's id as `prayer_ids` (never `prayers`: the script phase stores the
+writer's context, whose `prayers` are the texts, over the drafted one).
+Committed, it marks the request with its start; dropped or discarded, it gives
+it back to the queue. A request taken off the wall is not read out any more
+(`Timeline::dropRepeatsOf` gives it back, `takePrayers` skips it). Each counts
+20 s in the queue that closes intake (`Timing::PRAYER_EACH`).
 
 The **prayer wall** (`Submissions::wall`, `live.json.wall`) shows typed prayer
 requests that are approved, scheduled or aired — only with the sender's own
-tick (never pre-ticked: Art. 9 needs a clear yes), anonymous (text and time,
-no name or place), the newest 30 — while a prayer hour is on air, every one
-of that hour's requests as it is read out, ticked or not (the form says so;
-there the tick keeps it on the wall after the hour), up to 60: each carries
-`from` (its reading's start), and the engine shows it from then on, for
-everyone at once; during the collection `live.json.collected` counts what
-came in (`Submissions::onWall($s, $prayerHour)`). In live.json, not
-the minute files, so a moderator's takedown (/mod → Review → Prayer wall,
-`submissions.hidden`) applies at once; a request taken down is no longer read
-out either (`Timeline::dropRepeatsOf` drops its planned reading and gives it
-back). Praying along and reports follow what a wall shows
-(`Submissions::shownOnWall`). Community voices are
-chat highlights only. 🙏 on a wall request (a `voices` reaction `p…`/`pray` in
-the pulse, never a request of its own) is praying along
-(`Submissions::prayAlong`): once per device and request — `prayed_along.who`
-is an HMAC of both, so it joins neither presence nor the device's other
-prayers — and capped per address (`PRAY_ALONG_PER_IP_HOUR`). The rows go as
-soon as no wall can show the request; the number (`submissions.prayed_count`)
-stays, shown to the sender only (Profile) and as the hour's total in the
-outro. The pulse keys voice reactions by voice *and* kind (a ❤️ after a 🙏
-used to replace it).
+tick (never pre-ticked: Art. 9 needs a clear yes), with text, time and the
+first name and place the sender gave — none for one who ticked "Stay
+anonymous" (then the form sends neither; named is the default, and among many
+requests a name helps listeners find their way) — the newest 30; while a
+prayer hour is on air, every one of that hour's requests as it is read out,
+ticked or not (the form says so; there the tick keeps it on the wall after the
+hour), up to 60: each carries `from` (its reading's start), and the engine
+shows it from then on, for everyone at once; during the collection
+`live.json.collected` counts what came in
+(`Submissions::onWall($s, $prayerHour)`). In live.json, not the minute files,
+so a moderator's takedown (/mod → Review → Prayer wall, `submissions.hidden`)
+applies at once; a request taken down is no longer read out either
+(`Timeline::dropRepeatsOf` drops its planned reading and gives it back).
+Praying along and reports follow what a wall shows
+(`Submissions::shownOnWall`). Community voices are chat highlights
+only. 🙏 on a wall request (a `voices` reaction `p…`/`pray` in the pulse, never
+a request of its own) is praying along (`Submissions::prayAlong`): once per
+device and request — `prayed_along.who` is an HMAC of both, so it joins
+neither presence nor the device's other prayers — and capped per address
+(`PRAY_ALONG_PER_IP_HOUR`). The rows go as soon as no wall can show the
+request; the number (`submissions.prayed_count`) stays, shown to the sender
+only (Profile) and as the hour's total in the outro. The pulse keys voice
+reactions by voice *and* kind (a ❤️ after a 🙏 used to replace it).
 
 The **prayer hour** (`Program\PrayerHour`; program setting `format: 'prayer'`,
 types `prayer` and `intercession`, never a channel's fallback) is where the
@@ -224,10 +226,11 @@ units: late, they wait behind the hour's own filler (`PrayerHour::filler`:
 prayer music before the prayer time, silence in it, 20 s pieces, in the
 waiting unit's program — never the previous program's song); a reading waits
 at most `READING_WAIT` from when it was first due, then gives its request back.
-Requests and prayers are read with the first name and place their senders
-gave; without a name, anonymously — leaving it empty is how to stay
-anonymous (station decision, 2026-10-04: an earlier rule read wall requests
-without their names). A moderator can prepare opening prayers (`Program\OpeningPrayers`,
+Requests and prayers are read, and shown on a wall, with the first name and
+place their senders gave; whoever ticks "Stay anonymous" in the form gives
+neither (`NameOrAnonymous`; station decision 2026-10-04, replacing a rule
+that read and showed wall requests without names). A moderator can prepare
+opening prayers (`Program\OpeningPrayers`,
 /mod → Programs; not a Catalog write, so no drafts are thrown away): each
 airing takes the oldest waiting — a recording airs as a `contrib` item, a text
 as host `opening` with `context.fixed`, which the script phase voices word for
@@ -533,8 +536,10 @@ day, "On air now", the page of requests and the station's translated one, a
 request shown from its reading on, the pulse's voice reactions; jsdom: the
 stage's prayer view (buttons by the minute file, the count, the page, a
 reading, a listener's prayer as theirs), the Pray sheet (recorder first,
-written instead, both endpoints, the yes never ticked in advance), our audio
-not starting a clip over in its quiet, the prayer sheet's wall box and the
+written instead, both endpoints, the yes never ticked in advance, staying
+anonymous), our audio not starting a clip over in its quiet, the prayer
+sheet's wall box (and in a prayer hour, the wall after it), "Stay anonymous"
+hiding name and place, and the
 rules on the first post, the install sheet's single-use prompt; the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background
@@ -560,8 +565,8 @@ second device, song/prayer/recording through moderation, /mod gate, library,
 pull from air, a rejection explained and overruled in /mod, the welcome dialog
 (language and theme, once; `fakeYouTube()` pre-dismisses it for every other
 test), an install link after the welcome, the theme following the device until Profile picks one, the pinned
-phone player and the tiles unfolding, a prayer on the prayer wall (anonymous;
-a second listener prays along, the sender sees the count),
+phone player and the tiles unfolding, a prayer on the prayer wall (with its
+sender's first name and place; a second listener prays along, the sender sees the count),
 no sideways scroll and the stage uncovered in both themes, chat between two
 listeners, the program read cross-origin from
 the stand-in CDN (CSP included) and from the site when the CDN is down, a

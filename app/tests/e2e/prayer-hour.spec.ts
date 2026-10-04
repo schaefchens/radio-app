@@ -138,7 +138,7 @@ test('a prayer hour: over prayer music the stage invites requests and counts the
   const text = `Please pray for my father's healing (${Date.now() % 100_000}).`;
   await sheet.getByLabel('Your prayer request').fill(text);
   await expect(sheet.getByText(/In this prayer hour every request is shown on the prayer wall/)).toBeVisible();
-  await sheet.getByLabel('Keep my request on the prayer wall after the prayer hour too, without my name, so others can go on praying with me.').check();
+  await sheet.getByLabel('Keep my request on the prayer wall after the prayer hour too, so others can go on praying with me.').check();
   await sheet.getByLabel('Your first name').fill('Ruth');
   await sheet.getByLabel(/Where are you from/).fill('Lagos');
   await sheet.getByRole('button', { name: 'Send' }).click();

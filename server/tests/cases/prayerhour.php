@@ -212,7 +212,7 @@ test('prayer hour: with no request at all the prayer time still opens, and the h
     check(in_array('outro', $labels, true), 'and the outro');
 });
 
-test('prayer hour: every request appears on the hour\'s wall when it is read out, ticked or not, without a name; read with the name given, or anonymously; after the hour only the ticked one stays', function () {
+test('prayer hour: every request appears on the hour\'s wall when it is read out, ticked or not; read and shown with the name given, or anonymously; after the hour only the ticked one stays', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $p = prayerHour($app, 735);
@@ -252,8 +252,10 @@ test('prayer hour: every request appears on the hour\'s wall when it is read out
     eq([isset($wall['p' . $shown]), isset($wall['p' . $private]), isset($wall['p' . $anon])], [true, true, true], 'every request of the hour, ticked or not');
     foreach (['shown' => $shown, 'private' => $private, 'anon' => $anon] as $k => $public) {
         eq($wall['p' . $public]['from'] ?? null, $read[$k]['start_ms'], "from the start of its reading: the app waits for it ($k)");
-        eq(array_keys($wall['p' . $public]), ['id', 'text', 'at', 'from'], "text, day and that moment — no name, no place ($k)");
+        eq(array_keys($wall['p' . $public]), $k === 'anon' ? ['id', 'text', 'at', 'from'] : ['id', 'text', 'at', 'from', 'name', 'place'],
+            "text, day, that moment and the first name and place given — none for one who stayed anonymous ($k)");
     }
+    eq([$wall['p' . $private]['name'] ?? null, $wall['p' . $private]['place'] ?? null], ['Private', 'Bonn'], 'whose it is, as its sender gave it');
     check($app->submissions()->prayAlong($private, 'd-' . str_repeat('c', 30)), 'one without the tick can be prayed along with while the hour shows it');
 
     // After the hour, the usual wall again: the newest 30 with their senders' yes, the hour's among them.

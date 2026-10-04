@@ -149,6 +149,44 @@ export function NamePlace({ name, place, setName, setPlace }: { name: string; pl
 }
 
 /**
+ * For prayers and prayer requests: "Stay anonymous", and while it is not
+ * ticked, first name and place with what happens to them. Named is the
+ * station's default; staying anonymous is a choice the sender makes here,
+ * not an empty field they may overlook — the sheet then sends neither.
+ */
+export function NameOrAnonymous({
+  anonymous,
+  setAnonymous,
+  label,
+  hint,
+  ...fields
+}: {
+  anonymous: boolean;
+  setAnonymous: (v: boolean) => void;
+  label: string;
+  hint: string;
+  name: string;
+  place: string;
+  setName: (v: string) => void;
+  setPlace: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="flex items-start gap-2 text-sm text-ink-muted">
+        <input type="checkbox" className="mt-1" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+        {label}
+      </label>
+      {!anonymous && (
+        <div>
+          <NamePlace {...fields} />
+          <p className="mt-1 text-xs text-ink-faint">{hint}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * What sending means, right above the button: submissions can reveal faith or
  * health (Art. 9 GDPR), so the consent has to be explicit and informed.
  */

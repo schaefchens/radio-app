@@ -6,7 +6,7 @@ import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
-import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
+import { Done, NameOrAnonymous, PrivacyNote } from './VideoRequestSheet';
 import { RulesCheckbox } from '@/components/common/RulesConsent';
 import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
 
@@ -21,9 +21,13 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
   const [text, setText] = useState('');
   const [name, setName] = useState(identity?.name ?? '');
   const [place, setPlace] = useState('');
+  // Kept for the next request: one who chose to stay anonymous is not named by surprise.
+  const [anonymous, setAnonymous] = useState(false);
   // Showing a prayer request to everyone needs a clear yes: never pre-ticked.
   const [share, setShare] = useState(false);
-  const submit = useSubmit(() => api('/submissions/prayer', { body: { channel, text, name, place, lang, consent_air: share } }));
+  const submit = useSubmit(() =>
+    api('/submissions/prayer', { body: { channel, text, name: anonymous ? '' : name, place: anonymous ? '' : place, lang, consent_air: share } }),
+  );
   // The community rules, once per device before the first post.
   const rulesNeeded = useRulesNeeded();
   const [rulesTicked, setRulesTicked] = useState(false);
@@ -56,7 +60,16 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
               <p className="mt-1 text-xs text-ink-faint">{t('prayerForm.textHint')}</p>
               {prayerHour && <p className="mt-1 text-xs text-ink-faint">{t('prayerForm.hourHint')}</p>}
             </div>
-            <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
+            <NameOrAnonymous
+              anonymous={anonymous}
+              setAnonymous={setAnonymous}
+              label={t('prayerForm.anonymous')}
+              hint={t('prayerForm.nameHint')}
+              name={name}
+              place={place}
+              setName={setName}
+              setPlace={setPlace}
+            />
             <label className="flex items-start gap-2 text-sm text-ink-muted">
               <input type="checkbox" className="mt-1" checked={share} onChange={(e) => setShare(e.target.checked)} />
               {prayerHour ? t('prayerForm.showOnWallAfter') : t('prayerForm.showOnWall')}
@@ -65,7 +78,11 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
             {rulesNeeded && <RulesCheckbox checked={rulesTicked} onChange={setRulesTicked} />}
             <PrivacyNote />
             <div className="flex gap-2">
-              <button type="submit" className="btn-primary flex-1" disabled={text.trim().length < 5 || submit.busy || (rulesNeeded && !rulesTicked)}>
+              <button
+                type="submit"
+                className="btn-primary flex-1"
+                disabled={text.trim().length < 5 || (!anonymous && name.trim() === '') || submit.busy || (rulesNeeded && !rulesTicked)}
+              >
                 {submit.busy ? t('common.loading') : t('submit.send')}
               </button>
               <button type="button" className="btn-ghost" onClick={onRecord}>

@@ -140,12 +140,14 @@
   },
   "prayerForm": {
     "text": "Dein Gebetsanliegen",
-    "textHint": "Es wird auf Sendung Wort für Wort vorgelesen – mit deinem Vornamen und Ort, wenn du sie angibst. Lass den Namen leer, wenn du anonym bleiben möchtest.",
-    "hourHint": "In dieser Gebetsstunde steht jedes Anliegen ab dem Vorlesen bis zum Ende der Stunde an der Gebetswand, ohne Namen.",
+    "textHint": "Es wird auf Sendung Wort für Wort vorgelesen.",
+    "hourHint": "In dieser Gebetsstunde steht jedes Anliegen ab dem Vorlesen bis zum Ende der Stunde an der Gebetswand.",
+    "anonymous": "Anonym bleiben: kein Name, weder auf Sendung noch an der Gebetswand",
+    "nameHint": "Dein Vorname und Ort werden mit deinem Anliegen vorgelesen und an der Gebetswand dazu angezeigt.",
     "record": "Lieber aufnehmen",
     "type": "Lieber schreiben",
-    "showOnWall": "Zeig mein Anliegen auch an der Gebetswand, ohne meinen Namen, damit andere mit mir beten.",
-    "showOnWallAfter": "Lass mein Anliegen auch nach der Gebetsstunde an der Gebetswand stehen, ohne meinen Namen, damit andere weiter mit mir beten."
+    "showOnWall": "Zeig mein Anliegen auch an der Gebetswand, damit andere mit mir beten.",
+    "showOnWallAfter": "Lass mein Anliegen auch nach der Gebetsstunde an der Gebetswand stehen, damit andere weiter mit mir beten."
   },
   "record": {
     "kind": "Was möchtest du teilen?",
@@ -915,9 +917,11 @@
   },
   "pray": {
     "title": "Für die Anliegen beten",
-    "introSpoken": "Sprich dein Gebet für die Anliegen, die du gehört hast. Es wird so gesendet, wie du es aufnimmst, mit deinem Vornamen und Ort, wenn du sie angibst.",
-    "introWritten": "Schreib dein Gebet für die Anliegen, die du gehört hast. Es wird auf Sendung Wort für Wort vorgelesen, mit deinem Vornamen und Ort, wenn du sie angibst.",
+    "introSpoken": "Sprich dein Gebet für die Anliegen, die du gehört hast. Es wird so gesendet, wie du es aufnimmst.",
+    "introWritten": "Schreib dein Gebet für die Anliegen, die du gehört hast. Es wird auf Sendung Wort für Wort vorgelesen.",
     "text": "Dein Gebet",
-    "consent": "Ich bin einverstanden, dass mein Gebet auf Arche Radio gesendet wird, Wort für Wort, mit meinem Vornamen und Ort, wenn ich sie angebe."
+    "anonymous": "Anonym bleiben: kein Name auf Sendung",
+    "nameHint": "Dein Vorname und Ort werden mit deinem Gebet genannt.",
+    "consent": "Ich bin einverstanden, dass mein Gebet auf Arche Radio gesendet wird, Wort für Wort."
   }
 }

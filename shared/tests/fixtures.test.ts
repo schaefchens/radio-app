@@ -68,11 +68,16 @@ describe('program file fixtures', () => {
       source: 'Open Doors · Nigeria',
       texts: { en: 'Armed fighters killed the wife of Pastor Josiah. Let us pray that Jesus comforts him.' },
     });
+    // A listener's with the first name and place they gave; one who stayed anonymous has neither.
     expect(live?.wall[1]).toEqual({
       id: 'pk3v9q2m7x4tb',
       text: 'Please pray for my mother, she has surgery on Friday.',
       at: 1790189940000,
+      from: 1790190000000,
+      name: 'Ruth',
+      place: 'Lagos',
     });
+    expect(Object.keys(live?.wall[2] ?? {})).toEqual(['id', 'text', 'at']);
     expect(live?.blocked).toEqual(['i7kq2s']);
     expect(live?.collected).toBe(3);
 

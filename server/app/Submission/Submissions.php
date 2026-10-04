@@ -802,9 +802,11 @@ final class Submissions
 
     /**
      * The prayer wall: typed prayer requests the sender agreed to show,
-     * accepted and not taken down by a moderator, newest first. Text and day
-     * only — no name, no place: a prayer can reveal faith or health (Art. 9
-     * GDPR), and the wall is readable by anyone who fetches live.json.
+     * accepted and not taken down by a moderator, newest first. Text, day and
+     * the first name and place the sender gave — whoever chose to stay
+     * anonymous sent neither (the forms ask; a prayer can reveal faith or
+     * health, Art. 9 GDPR, and the wall is readable by anyone who fetches
+     * live.json). A place without a name is not shown, as it is not read.
      * The id is the one community voices used for prayers ('p' + public id),
      * so the app's reactions on a wall entry keep their shape.
      *
@@ -816,13 +818,13 @@ final class Submissions
      * yes. A request of the station's own (Open Doors) says so (`source`) and
      * may carry its translation (`texts`).
      *
-     * @return list<array{id:string,text:string,at:int,from?:int,source?:string,texts?:array<string,string>}>
+     * @return list<array{id:string,text:string,at:int,from?:int,name?:string,place?:string,source?:string,texts?:array<string,string>}>
      */
     public function wall(string $channel, int $limit = 30): array
     {
         $hour = $this->hourOnAir($channel);
         $rows = $this->app->store()->all(
-            "SELECT s.public_id, s.text, s.created, s.aired_at, s.place, s.meta FROM submissions s JOIN channels c ON c.id = s.channel_id
+            "SELECT s.public_id, s.text, s.created, s.aired_at, s.name, s.place, s.meta FROM submissions s JOIN channels c ON c.id = s.channel_id
              WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.hidden = 0 AND "
             . ($hour !== null
                 ? "s.status IN ('scheduled', 'aired') AND s.aired_at IS NOT NULL AND s.aired_at <= ? AND s.program_id = ? AND s.created >= ?
@@ -837,6 +839,9 @@ final class Submissions
             if (($meta['source'] ?? '') === 'opendoors') {
                 $entry['source'] = 'Open Doors' . (trim((string) $r['place']) !== '' ? ' · ' . trim((string) $r['place']) : '');
                 if (trim((string) ($meta['text_en'] ?? '')) !== '') $entry['texts'] = ['en' => trim((string) $meta['text_en'])];
+            } elseif (trim((string) $r['name']) !== '') {
+                $entry['name'] = trim((string) $r['name']);
+                if (trim((string) $r['place']) !== '') $entry['place'] = trim((string) $r['place']);
             }
             return $entry;
         }, $rows);

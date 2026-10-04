@@ -19,7 +19,8 @@ vi.mock('@/components/submit/useRecorder', () => ({
 }));
 vi.mock('@/lib/recordingEncoder', () => ({ toMp3: async () => ({ mp3: new Blob(['mp3'], { type: 'audio/mpeg' }), ms: 20_000 }) }));
 
-const CONSENT = 'I agree that my prayer is aired on Arche Radio, word for word, with my first name and place if I give them.';
+const CONSENT = 'I agree that my prayer is aired on Arche Radio, word for word.';
+const ANONYMOUS = 'Stay anonymous: no name on air';
 
 function sheet(open = true) {
   return (
@@ -38,7 +39,7 @@ describe('the Pray sheet', () => {
   useSettings.setState({ lang: 'en', rules: RULES_VERSION });
   useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main' } }));
 
-  it('opens on the recorder; written instead, the prayer goes to be read out word for word — only with the yes to air it', async () => {
+  it('opens on the recorder; written instead, the prayer goes to be read out word for word with first name and place — only with the yes to air it', async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ submission: { id: 'abc' } }), { status: 200 }));
     vi.stubGlobal('fetch', fetch);
     render(sheet());
@@ -48,6 +49,9 @@ describe('the Pray sheet', () => {
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Type it instead' }));
     fireEvent.change(within(dialog()).getByLabelText('Your prayer'), { target: { value: 'Lord, be with Maria and her mother.' } });
     const send = within(dialog()).getByRole('button', { name: 'Send' }) as HTMLButtonElement;
+    expect(within(dialog()).getByText('Your first name and place are named with your prayer.')).toBeTruthy();
+    fireEvent.change(within(dialog()).getByLabelText('Your first name'), { target: { value: 'Tom' } });
+    fireEvent.change(within(dialog()).getByLabelText(/Where are you from/), { target: { value: 'Berlin' } });
     expect(send.disabled).toBe(true);
     const consent = within(dialog()).getByLabelText(CONSENT) as HTMLInputElement;
     expect(consent.checked).toBe(false);
@@ -56,26 +60,46 @@ describe('the Pray sheet', () => {
     await within(dialog()).findByText(/Thank you!/);
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/submissions/intercession');
-    expect(JSON.parse(String(init.body))).toMatchObject({ channel: 'main', text: 'Lord, be with Maria and her mother.', lang: 'en', consent_air: true });
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      channel: 'main', text: 'Lord, be with Maria and her mother.', name: 'Tom', place: 'Berlin', lang: 'en', consent_air: true,
+    });
   });
 
-  it('a spoken prayer goes up as an MP3 of the prayer time; the next one must be agreed to again', async () => {
+  it('without a first name Send waits — unless the sender chooses to stay anonymous', () => {
+    recorder.current = { blob: new Blob(['webm'], { type: 'audio/webm' }) };
+    render(sheet());
+    const dialog = screen.getByRole('dialog', { hidden: true });
+    fireEvent.click(within(dialog).getByLabelText(CONSENT));
+    const send = within(dialog).getByRole('button', { name: 'Send' }) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    fireEvent.click(within(dialog).getByLabelText(ANONYMOUS));
+    expect(send.disabled).toBe(false);
+  });
+
+  it('a spoken prayer goes up as an MP3 of the prayer time — anonymous: without name and place; the next one must be agreed to again', async () => {
     recorder.current = { blob: new Blob(['webm'], { type: 'audio/webm' }), preview: 'blob:x' };
     const fetch = vi.fn(async () => new Response(JSON.stringify({ submission: { id: 'abc' } }), { status: 200 }));
     vi.stubGlobal('fetch', fetch);
     const { rerender } = render(sheet());
     const dialog = () => screen.getByRole('dialog', { hidden: true });
+    fireEvent.change(within(dialog()).getByLabelText('Your first name'), { target: { value: 'Jonas' } });
+    fireEvent.click(within(dialog()).getByLabelText(ANONYMOUS));
+    // Staying anonymous hides name and place: nothing of them is sent.
+    expect(within(dialog()).queryByLabelText('Your first name')).toBeNull();
     fireEvent.click(within(dialog()).getByLabelText(CONSENT));
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Send' }));
     const done = await within(dialog()).findByText(/Thank you!/);
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     const form = init.body as FormData;
     expect([url, form.get('type'), form.get('consent_air'), form.get('channel')]).toEqual(['/api/submissions/audio', 'intercession', '1', 'main']);
+    expect([form.get('name'), form.get('place')]).toEqual(['', '']);
     expect(form.get('audio')).toBeInstanceOf(Blob);
     fireEvent.click(within(done.parentElement!).getByRole('button', { name: 'Close' }));
     rerender(sheet(false));
     rerender(sheet(true));
     expect((within(dialog()).getByLabelText(CONSENT) as HTMLInputElement).checked).toBe(false);
+    // The choice to stay anonymous is kept: the next prayer does not name its sender by surprise.
+    expect((within(dialog()).getByLabelText(ANONYMOUS) as HTMLInputElement).checked).toBe(true);
   });
 
   it('the first post asks for the community rules', () => {
@@ -83,6 +107,7 @@ describe('the Pray sheet', () => {
     recorder.current = { blob: new Blob(['webm'], { type: 'audio/webm' }) };
     render(sheet());
     const dialog = screen.getByRole('dialog', { hidden: true });
+    fireEvent.click(within(dialog).getByLabelText(ANONYMOUS));
     fireEvent.click(within(dialog).getByLabelText(CONSENT));
     const send = within(dialog).getByRole('button', { name: 'Send' }) as HTMLButtonElement;
     expect(send.disabled).toBe(true);

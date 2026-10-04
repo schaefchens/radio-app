@@ -73,6 +73,8 @@ export function parseWallEntry(v: unknown): WallEntry | null {
     text: v.text,
     at: isNum(v.at) ? v.at : 0,
     ...(isNum(v.from) ? { from: v.from } : {}),
+    ...(isStr(v.name) && v.name !== '' ? { name: v.name } : {}),
+    ...(isStr(v.place) && v.place !== '' ? { place: v.place } : {}),
     ...(isStr(v.source) && v.source !== '' ? { source: v.source } : {}),
     ...(Object.keys(texts).length ? { texts } : {}),
   };

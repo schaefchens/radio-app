@@ -16,7 +16,7 @@
       "source": "Open Doors · Nigeria",
       "texts": { "en": "Armed fighters killed the wife of Pastor Josiah. Let us pray that Jesus comforts him." }
     },
-    { "id": "pk3v9q2m7x4tb", "text": "Please pray for my mother, she has surgery on Friday.", "at": 1790189940000 },
+    { "id": "pk3v9q2m7x4tb", "text": "Please pray for my mother, she has surgery on Friday.", "at": 1790189940000, "from": 1790190000000, "name": "Ruth", "place": "Lagos" },
     { "id": "pa8r2w5n1c6yd", "text": "Bitte betet für unsere Gemeinde und für Frieden in unserer Stadt.", "at": 1790186400000 }
   ],
   "blocked": ["i7kq2s"],

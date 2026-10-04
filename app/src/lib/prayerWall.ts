@@ -27,6 +27,17 @@ export function wallPage(wall: WallEntry[], t: number, size: number): WallEntry[
   return [...wall, ...wall].slice(start, start + size);
 }
 
+/**
+ * Whose a request is, as the wall says it: the station's source (Open
+ * Doors'), or the first name and place its sender gave — '' for one who
+ * stayed anonymous. Among many requests it helps to know whose is whose.
+ */
+export function entryBy(entry: WallEntry): string {
+  if (entry.source) return entry.source;
+  if (!entry.name) return '';
+  return entry.place ? `${entry.name} · ${entry.place}` : entry.name;
+}
+
 /** A request's text in the listener's language: the station's own (Open Doors') comes translated. */
 export function entryText(entry: WallEntry, lang: Lang): string {
   return entry.texts?.[lang] ?? entry.text;

@@ -23,7 +23,7 @@ function prayerRow(Arche\App $app, array $channel, array $fields = []): string
     return $publicId;
 }
 
-test('wall: accepted typed prayers shown with consent, anonymous, newest first, per channel', function () {
+test('wall: accepted typed prayers shown with consent, newest first, per channel — with the first name and place given, none for one who stayed anonymous', function () {
     $app = TestKit::app();
     $main = TestKit::main($app);
     $other = $app->catalog()->saveChannel(null, ['slug' => 'night', 'name_en' => 'Night', 'name_de' => 'Nacht'], 'test');
@@ -31,6 +31,10 @@ test('wall: accepted typed prayers shown with consent, anonymous, newest first, 
     $approved = prayerRow($app, $main, ['created' => $t - 300]);
     $scheduled = prayerRow($app, $main, ['status' => 'scheduled', 'created' => $t - 200]);
     $aired = prayerRow($app, $main, ['status' => 'aired', 'created' => $t - 100, 'text' => 'Pray for my mother in hospital.']);
+    // Stayed anonymous: the form sent neither; a place on its own (an older app) is not shown either, as it is not read.
+    $anon = prayerRow($app, $main, ['created' => $t - 50, 'name' => '', 'place' => '']);
+    $placeOnly = prayerRow($app, $main, ['created' => $t - 40, 'name' => '', 'place' => 'Lagos']);
+    $noPlace = prayerRow($app, $main, ['created' => $t - 30, 'name' => 'Ruth', 'place' => '']);
     foreach (['received', 'checking', 'review', 'rejected', 'missed'] as $status) prayerRow($app, $main, ['status' => $status]);
     prayerRow($app, $main, ['consent_air' => 0]);
     prayerRow($app, $main, ['hidden' => 1]);
@@ -38,19 +42,20 @@ test('wall: accepted typed prayers shown with consent, anonymous, newest first, 
     prayerRow($app, $main, ['type' => 'song', 'mode' => '', 'yt_id' => 'AbCdEfGhIjK', 'text' => '']);
     $elsewhere = prayerRow($app, $other);
 
-    $wall = $app->submissions()->wall('main');
-    eq(array_column($wall, 'id'), ['p' . $aired, 'p' . $scheduled, 'p' . $approved], 'approved, scheduled and aired only, newest first');
-    eq($wall[0], ['id' => 'p' . $aired, 'text' => 'Pray for my mother in hospital.', 'at' => ($t - 100) * 1000], 'text and day only');
-    foreach ($wall as $e) eq(array_keys($e), ['id', 'text', 'at'], 'no name, no place');
-    check(!str_contains((string) json_encode($wall), 'Ruth') && !str_contains((string) json_encode($wall), 'Lagos'), 'the sender is not named anywhere');
+    $wall = array_column($app->submissions()->wall('main'), null, 'id');
+    eq(array_keys($wall), ['p' . $noPlace, 'p' . $placeOnly, 'p' . $anon, 'p' . $aired, 'p' . $scheduled, 'p' . $approved], 'approved, scheduled and aired only, newest first');
+    eq($wall['p' . $aired], ['id' => 'p' . $aired, 'text' => 'Pray for my mother in hospital.', 'at' => ($t - 100) * 1000, 'name' => 'Ruth', 'place' => 'Lagos'],
+        'text, day and the first name and place its sender gave');
+    eq(array_keys($wall['p' . $noPlace]), ['id', 'text', 'at', 'name'], 'a name without a place');
+    eq([array_keys($wall['p' . $anon]), array_keys($wall['p' . $placeOnly])], [['id', 'text', 'at'], ['id', 'text', 'at']], 'one who stayed anonymous: no name, no place');
     eq(array_column($app->submissions()->wall('night'), 'id'), ['p' . $elsewhere], 'each channel its own wall');
-    eq(array_column($app->submissions()->wall('main', 2), 'id'), ['p' . $aired, 'p' . $scheduled], 'the newest $limit');
+    eq(array_column($app->submissions()->wall('main', 2), 'id'), ['p' . $noPlace, 'p' . $placeOnly], 'the newest $limit');
     for ($i = 0; $i < 30; $i++) prayerRow($app, $main, ['created' => $t - 1000 - $i]);
     eq(count($app->submissions()->wall('main')), 30, 'at most 30 by default');
 
     $app->publisher()->publishLive($main);
     $live = json_decode((string) file_get_contents($app->publicPath('program/main/live.json')), true);
-    eq(array_slice(array_column($live['wall'], 'id'), 0, 3), ['p' . $aired, 'p' . $scheduled, 'p' . $approved], 'published in live.json');
+    eq(array_slice(array_column($live['wall'], 'id'), 0, 3), ['p' . $noPlace, 'p' . $placeOnly, 'p' . $anon], 'published in live.json');
 });
 
 test('wall: community voices carry chat highlights only, no prayers', function () {

@@ -663,7 +663,7 @@
   border-color: rgb(var(--accent));
   background: rgb(var(--surface) / var(--surface-a));
 }
-/* The station's own request (Open Doors'): whose it is. */
+/* Whose a request is: the sender's first name and place, or the station's source (Open Doors'). */
 .wall-source {
   grid-column: 1 / -1;
   justify-self: start;
