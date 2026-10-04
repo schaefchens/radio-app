@@ -1,4 +1,4 @@
-import type { Lang, SubmissionState, SubmissionType } from './constants.ts';
+import type { Lang, SubmissionState, SubmissionType, VideoFormat } from './constants.ts';
 
 /**
  * The static program files: written by server/app/Program/*, read by the PWA.
@@ -28,12 +28,13 @@ export interface ProgramRef {
   /** Submission types this program accepts at all (the minute file says
    *  whether each is currently open). */
   allowed: SubmissionType[];
-  /** 'prayer': a prayer hour with its running order; 'preaching': preachings
-   *  with songs between them; 'music' otherwise. */
+  /** 'prayer': a prayer hour with its running order; a video format
+   *  (preaching, testimony, mission, film): its videos with songs between
+   *  them; 'music' otherwise. */
   format: ProgramFormat;
 }
 
-export type ProgramFormat = 'music' | 'prayer' | 'preaching';
+export type ProgramFormat = 'music' | 'prayer' | VideoFormat;
 
 export interface Voice {
   id: string;
@@ -77,15 +78,16 @@ interface ItemBase {
 
 export interface SongItem extends ItemBase {
   type: 'song';
-  /** 'preaching': a sermon from YouTube in a preaching program. It plays
-   *  exactly like a song — an app that does not know the kind plays it as
-   *  one — and is named a preaching on screen. */
-  kind: 'song' | 'preaching';
+  /** A video format's kind (a preaching, a testimony, a mission video, a
+   *  film from YouTube in a program of that format). It plays exactly like a
+   *  song — an app that does not know the kind plays it as one — and is named
+   *  by its kind on screen. */
+  kind: 'song' | VideoFormat;
   yt: string;
   title: string;
   artist: string;
   thumb: string | null;
-  /** Set for a listener request (or a suggested preaching) with its sender's
+  /** Set for a listener request (or a suggested video) with its sender's
    *  first name; null for any other song, and for one whose sender stayed anonymous. */
   request: { name: string; place: string } | null;
   /** Audio to play instead when the video will not play here (region block,
@@ -98,8 +100,8 @@ export interface SongItem extends ItemBase {
  *  words); after requests read out, `prayer` invites everyone to pray — the
  *  host never prays itself. opening (a moderator's prepared prayer), present,
  *  prayertime, encourage (and invite, in hours planned before) belong to a
- *  prayer hour; preaching introduces the preaching that follows in a
- *  preaching program. */
+ *  prayer hour; preaching, testimony, mission and film introduce the video
+ *  of that kind that follows in a program of its format. */
 export type HostKind =
   | 'intro'
   | 'break'
@@ -110,6 +112,9 @@ export type HostKind =
   | 'opening'
   | 'invite'
   | 'preaching'
+  | 'testimony'
+  | 'mission'
+  | 'film'
   | 'reading'
   | 'intercession'
   | 'present'

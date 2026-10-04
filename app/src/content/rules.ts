@@ -21,7 +21,8 @@ const de: Block[] = [
     h: 'Wofür diese Regeln gelten',
     p:
       'Für alles, was Sie bei Arche Radio beitragen – in der App und auf radio.schaefchens.de: Nachrichten und ' +
-      'Anzeigenamen in den Community-Räumen, Songwünsche, Predigtvorschläge, Sprachaufnahmen und Gebetsanliegen. Vor ' +
+      'Anzeigenamen in den Community-Räumen, Songwünsche, Videovorschläge (Predigten, Glaubenszeugnisse, Missionsvideos, ' +
+      'Filme), Sprachaufnahmen und Gebetsanliegen. Vor ' +
       'Ihrem ersten Beitrag stimmen Sie ihnen zu; zum Zuhören brauchen Sie nichts davon.',
   },
   {
@@ -66,7 +67,8 @@ const de: Block[] = [
   {
     h: 'YouTube',
     p:
-      'Musik und Predigten spielt Arche Radio über die YouTube-API-Dienste ab. Mit der Nutzung stimmen Sie auch den ' +
+      'Musik, Predigten, Glaubenszeugnisse, Missionsvideos und Filme spielt Arche Radio über die YouTube-API-Dienste ab. ' +
+      'Mit der Nutzung stimmen Sie auch den ' +
       'Nutzungsbedingungen von YouTube zu: https://www.youtube.com/t/terms',
   },
   {
@@ -86,7 +88,8 @@ const en: Block[] = [
     h: 'What these rules cover',
     p:
       'Everything you contribute to Arche Radio — in the app and on radio.schaefchens.de: messages and display names ' +
-      'in the community rooms, song requests, preaching suggestions, voice recordings and prayer requests. You agree ' +
+      'in the community rooms, song requests, video suggestions (preachings, testimonies, mission videos, films), voice ' +
+      'recordings and prayer requests. You agree ' +
       'to them before your first contribution; listening needs none of this.',
   },
   {
@@ -127,7 +130,8 @@ const en: Block[] = [
   {
     h: 'YouTube',
     p:
-      'Arche Radio plays music and preachings through the YouTube API Services. By using it you also agree to the ' +
+      'Arche Radio plays music, preachings, testimonies, mission videos and films through the YouTube API Services. ' +
+      'By using it you also agree to the ' +
       'YouTube Terms of Service: https://www.youtube.com/t/terms',
   },
   {

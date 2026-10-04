@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Program;
 
 use Arche\App;
+use Arche\Submission\Submissions;
 
 /**
  * open / closing / closed for each submission type, as a minute file tells the
@@ -62,20 +63,20 @@ final class SubmissionWindow
 
     /**
      * Every submission is judged by the text model (Claude or OpenAI); song
-     * requests and preaching suggestions also need the YouTube check,
-     * recordings OpenAI's transcription. Without them a submission could only
-     * fail closed, so it is not offered.
+     * requests and suggested videos also need the YouTube check, recordings
+     * OpenAI's transcription. Without them a submission could only fail
+     * closed, so it is not offered.
      */
     public static function featureOn(App $app, string $type): bool
     {
         $c = $app->config;
         if ($c->stubAi()) return true;
         if ($c->textProvider() === '') return false;
-        return match ($type) {
-            'song', 'preaching' => $app->youtube()->configured(),
-            'prayer' => true,
+        return match (true) {
+            in_array($type, Submissions::VIDEO_TYPES, true) => $app->youtube()->configured(),
+            $type === 'prayer' => true,
             // Read out in the host's voice, or a recording to transcribe.
-            'intercession' => $app->hostBreaks()->available() && $c->openaiKey() !== '',
+            $type === 'intercession' => $app->hostBreaks()->available() && $c->openaiKey() !== '',
             default => $c->openaiKey() !== '',
         };
     }

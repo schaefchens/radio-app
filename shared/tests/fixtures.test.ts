@@ -36,10 +36,15 @@ describe('program file fixtures', () => {
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
     expect(slot!.programs.worship?.format).toBe('music');
     expect(slot!.programs.sermon?.format).toBe('preaching');
+    expect(slot!.programs.outreach).toMatchObject({ format: 'mission', allowed: ['mission', 'testimony_video', 'film'] });
     expect(slot!.items.filter((i) => i.type === 'song').map((i) => i.type === 'song' && [i.kind, i.request?.name])).toEqual([
       ['song', 'Jenny'],
       ['preaching', 'Samuel'],
+      ['testimony', 'Grace'],
+      ['film', undefined],
     ]);
+    // A film runs two hours: nothing about an item's length is capped.
+    expect(slot!.items.find((i) => i.type === 'song' && i.kind === 'film')?.dur).toBe(7_200_000);
     const host = slot!.items.find((i) => i.type === 'host');
     expect(host?.type === 'host' && host.prayers).toEqual(['pk3v9q2m7x4tb']);
     // A listener's request read out word for word: one language, the request on the wall it is.
@@ -114,7 +119,7 @@ describe('program file fixtures', () => {
     const slot = parseSlotFile({ ...raw, programs: { worship }, items: [host, { ...host, id: 'k2', kind: 'invite' }, { ...host, id: 'k3', kind: 'hymn' }] });
     expect(slot?.programs.worship?.format).toBe('music');
     expect(slot?.items.map((i) => (i.type === 'host' ? [i.kind, i.prayers] : null))).toEqual([['break', []], ['invite', []], ['break', []]]);
-    const kinds = ['reading', 'intercession', 'present', 'prayertime', 'encourage'];
+    const kinds = ['reading', 'intercession', 'present', 'prayertime', 'encourage', 'preaching', 'testimony', 'mission', 'film'];
     const start = Number(raw.items[1]!.start);
     const newer = parseSlotFile({ ...raw, items: kinds.map((kind, i) => ({ ...host, id: `n${i}`, start: start + i * 30_000, kind })) });
     expect(newer?.items.map((i) => i.type === 'host' && i.kind)).toEqual(kinds);
@@ -126,10 +131,24 @@ describe('program file fixtures', () => {
     const slot = parseSlotFile({
       ...raw,
       programs: { worship: { ...raw.programs.worship!, format: 'concert' } },
-      items: [song, { ...song, id: 'k2', kind: 'audiobook' }, { ...song, id: 'k3', kind: 'preaching' }],
+      items: [song, { ...song, id: 'k2', kind: 'audiobook' }, ...['preaching', 'testimony', 'mission', 'film'].map((kind, i) => ({ ...song, id: `v${i}`, kind }))],
     });
     expect(slot?.programs.worship?.format).toBe('music');
-    expect(slot?.items.map((i) => i.type === 'song' && i.kind)).toEqual(['song', 'song', 'preaching']);
+    expect(slot?.items.map((i) => i.type === 'song' && i.kind)).toEqual(['song', 'song', 'preaching', 'testimony', 'mission', 'film']);
+    const formats = ['testimony', 'mission', 'film'].map((format) => parseSlotFile({ ...raw, programs: { worship: { ...raw.programs.worship!, format } } })?.programs.worship?.format);
+    expect(formats).toEqual(['testimony', 'mission', 'film']);
+  });
+
+  it('a video program\'s suggestion types are kept, in the minute file and in what it allows; unknown ones dropped', () => {
+    const raw = load('slot.json') as { programs: Record<string, Record<string, unknown>> };
+    const slot = parseSlotFile({
+      ...raw,
+      current: 'outreach',
+      submissions: { mission: 'open', testimony_video: 'closing', film: 'closed', video: 'open' },
+      programs: { outreach: { ...raw.programs.outreach!, allowed: ['mission', 'testimony_video', 'film', 'documentary'] } },
+    });
+    expect(slot?.submissions).toEqual({ mission: 'open', testimony_video: 'closing', film: 'closed' });
+    expect(slot?.programs.outreach?.allowed).toEqual(['mission', 'testimony_video', 'film']);
   });
 
   it('rejects unknown versions and drops unknown item types', () => {

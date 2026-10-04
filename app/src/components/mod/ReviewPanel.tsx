@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { Lang } from '@arche/shared';
+import { isVideoSubmissionType, type Lang } from '@arche/shared';
 import { api } from '@/lib/api';
 import { deviceHeaders } from '@/lib/device';
 import { clockDuration, localDate, localTime } from '@/lib/format';
@@ -118,8 +118,8 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
     }
   };
   const when = (ms: number): string => `${localDate(ms, lang)} ${localTime(ms, lang)}`;
-  // A song's dedication, a preaching's word on why: the host reads them, so they can be left out.
-  const withMessage = (item.type === 'song' || item.type === 'preaching') && item.message.trim() !== '';
+  // A song's dedication, a suggested video's word on why: the host reads them, so they can be left out.
+  const withMessage = (item.type === 'song' || isVideoSubmissionType(item.type)) && item.message.trim() !== '';
   const approveButtons = (label: string): React.ReactNode => (
     <>
       <button type="button" className="btn-primary" disabled={busy} onClick={() => void decide('approve')}>

@@ -11,9 +11,12 @@ use Arche\Submission\Submissions;
 /**
  * Automatic moderation, as a job with one outside call per phase:
  *
- *   song, preaching  start → youtube (Data API checks) → judge (Claude)
+ *   song, video      start → youtube (Data API checks) → judge (Claude)
  *   audio            start → transcribe (OpenAI) → judge
  *   prayer           start → judge
+ *
+ * (A video: a preaching, testimony, mission video or film suggested for a
+ * video program — Submissions::SUGGESTION_TYPES.)
  *
  * Two stages in one verdict: the baseline (safety, legality, Christian
  * relevance) and the per-program fit (the program's type, themes and moods).
@@ -23,6 +26,20 @@ use Arche\Submission\Submissions;
  */
 final class Moderator
 {
+    /**
+     * How long a listener's link may be, in seconds, when the env sets no
+     * `<TYPE>_MIN_SECONDS` / `<TYPE>_MAX_SECONDS`: a missing key must never
+     * read as 0, which would refuse every video as too long.
+     */
+    private const VIDEO_LIMITS = [
+        'song' => [60, 720],
+        'preaching' => [300, 5400],
+        'testimony_video' => [120, 3600],
+        'mission' => [180, 5400],
+        // A film runs two hours and more.
+        'film' => [300, 10800],
+    ];
+
     public function __construct(private App $app) {}
 
     /** @param array<string,mixed> $job */
@@ -82,6 +99,8 @@ final class Moderator
             $meta['youtube'] = [
                 'title' => $title, 'artist' => $artist, 'channel' => $v['channel'], 'duration_ms' => $v['duration_ms'],
                 'description' => mb_substr($v['description'], 0, 800), 'tags' => array_slice($v['tags'], 0, 12),
+                // A testimony, a mission video or a film keeps it whole (Submissions::graduateVideo()).
+                'full_title' => mb_substr($v['title'], 0, 200),
             ];
             $this->app->store()->update('submissions', ['meta' => json_encode($meta, JSON_UNESCAPED_UNICODE)], 'id = ?', [$sub['id']]);
         }
@@ -99,10 +118,9 @@ final class Moderator
     }
 
     /**
-     * Why a video cannot be a request (or, $type 'preaching', a preaching
-     * suggestion), one code per failed check. too_long and too_short are the
-     * station's rules (a moderator may overrule them); the rest mean the
-     * embed would not play.
+     * Why a video cannot be a request (or, by $type, a suggested video), one
+     * code per failed check. too_long and too_short are the station's rules
+     * (a moderator may overrule them); the rest mean the embed would not play.
      *
      * @param array<string,mixed> $v YouTube::video()
      * @return list<string>
@@ -115,9 +133,8 @@ final class Moderator
         if (!$v['public']) $out[] = 'not_public';
         if ($v['live']) $out[] = 'live';
         if ($v['age_restricted']) $out[] = 'age_restricted';
-        [$min, $max] = $type === 'preaching'
-            ? [$c->int('PREACHING_MIN_SECONDS', 300), $c->int('PREACHING_MAX_SECONDS', 5400)]
-            : [$c->int('SONG_MIN_SECONDS', 60), $c->int('SONG_MAX_SECONDS', 720)];
+        $key = isset(self::VIDEO_LIMITS[$type]) ? $type : 'song';
+        [$min, $max] = [$c->int(strtoupper($key) . '_MIN_SECONDS', self::VIDEO_LIMITS[$key][0]), $c->int(strtoupper($key) . '_MAX_SECONDS', self::VIDEO_LIMITS[$key][1])];
         if ($v['duration_ms'] < $min * 1000) $out[] = 'too_short';
         if ($v['duration_ms'] > $max * 1000) $out[] = 'too_long';
         if (!YouTube::playableIn($v, $c->list('SUBMISSION_MARKETS'))) $out[] = 'region';
@@ -131,7 +148,9 @@ final class Moderator
         $id = (int) $sub['id'];
         $c = $this->app->config;
         $moderationCalls = 0;
-        foreach (['moderate_song', 'moderate_preaching', 'moderate_audio', 'moderate_prayer', 'moderate_intercession'] as $k) $moderationCalls += $this->app->usage()->callsToday('text:' . $k);
+        // Every kind of check counts — built from the types, so a new one cannot slip past the cap.
+        $kinds = ['moderate_audio', 'moderate_prayer', 'moderate_intercession', ...array_map(fn(string $t): string => 'moderate_' . $t, Submissions::VIDEO_TYPES)];
+        foreach ($kinds as $k) $moderationCalls += $this->app->usage()->callsToday('text:' . $k);
         if ($moderationCalls >= $c->int('MODERATION_MAX_PER_DAY', 300)) {
             $subs->reject($id, 'not_accepted', ['error' => 'daily_cap'], 'moderator');
             return;
@@ -271,13 +290,18 @@ final class Moderator
         return (int) $store->value("SELECT COUNT(*) FROM highlights WHERE status = 'candidate'") > 0 ? 'start' : null;
     }
 
-    /** @return array<string,mixed> */
+    /** A video for each type, inside its length limits. @return array<string,mixed> */
     private function stubVideo(string $id, string $type): array
     {
-        $preaching = $type === 'preaching';
-        return ['ok' => true, 'error' => '', 'id' => $id,
-            'title' => $preaching ? 'Stub Preacher - Stub Sermon' : 'Stub Artist - Stub Song (Official Video)', 'channel' => $preaching ? 'Stub Church' : 'Stub Artist',
-            'description' => '', 'tags' => [$preaching ? 'sermon' : 'worship'], 'duration_ms' => $preaching ? 1_800_000 : 240_000, 'embeddable' => true, 'public' => true,
+        [$title, $channel, $tag, $ms] = match ($type) {
+            'preaching' => ['Stub Preacher - Stub Sermon', 'Stub Church', 'sermon', 1_800_000],
+            'testimony_video' => ['Stub Witness - My Story of Faith', 'Stub Stories', 'testimony', 600_000],
+            'mission' => ['Stub Mission - Report from the Field', 'Stub Mission', 'mission', 1_200_000],
+            'film' => ['Stub Film (Full Movie)', 'Stub Studio', 'film', 6_000_000],
+            default => ['Stub Artist - Stub Song (Official Video)', 'Stub Artist', 'worship', 240_000],
+        };
+        return ['ok' => true, 'error' => '', 'id' => $id, 'title' => $title, 'channel' => $channel,
+            'description' => '', 'tags' => [$tag], 'duration_ms' => $ms, 'embeddable' => true, 'public' => true,
             'live' => false, 'age_restricted' => false, 'blocked' => [], 'allowed' => null];
     }
 }

@@ -41,9 +41,19 @@ test('host: no text that airs without the model prays', function () {
     $hour = ['format' => 'prayer hour', 'program' => ['title' => ['en' => 'Prayer Hour', 'de' => 'Gebetsstunde']], 'time_of_day_de' => 'Abend', 'after' => ['en' => 'Night', 'de' => 'Nacht']];
     $requests = [['on_wall' => false, 'name' => 'Ana', 'place' => 'Porto', 'text' => 'x'], ['on_wall' => true, 'text' => 'y']];
     $cases = [];
-    foreach (['intro', 'break', 'announce', 'contrib', 'outro', 'preaching', 'invite', 'opening'] as $kind) {
+    foreach (['intro', 'break', 'announce', 'contrib', 'outro', 'preaching', 'testimony', 'mission', 'film', 'invite', 'opening'] as $kind) {
         $cases["$kind"] = Templates::texts($kind, ['program' => $program, 'next' => ['title' => 'Song', 'artist' => 'Band']]);
         $cases["$kind, prayer hour"] = Templates::texts($kind, $hour + ['opening_by' => 'Maria']);
+    }
+    // A video program's videos: introduced by an intro, a break or their own
+    // moment, or announced as a listener's suggestion — named or anonymous.
+    foreach (['preaching', 'testimony', 'mission', 'film'] as $video) {
+        $next = ['kind' => $video, 'title' => 'Hope', 'by' => 'Grace Chapel'];
+        foreach (['intro', 'break', $video] as $kind) $cases["$kind before a $video"] = Templates::texts($kind, ['program' => $program, 'next' => $next]);
+        foreach (['Ana', ''] as $name) {
+            $cases["a $video suggested by '$name'"] = Templates::texts('announce',
+                ['program' => $program, 'next' => $next, 'request' => ['type' => $video, 'name' => $name, 'place' => 'Porto', 'message' => '']]);
+        }
     }
     foreach ([1, 3] as $n) $cases["prayer, $n requests read"] = Templates::texts('prayer', ['program' => $program, 'requests' => $n]);
     foreach (['open', 'read', 'new', 'again', 'general'] as $phase) {

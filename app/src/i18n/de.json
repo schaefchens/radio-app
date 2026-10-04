@@ -47,6 +47,9 @@
   "nowPlaying": {
     "eyebrow": "Läuft gerade",
     "preaching": "Predigt",
+    "testimony": "Glaubenszeugnis",
+    "mission": "Mission",
+    "film": "Film",
     "requestedBy": "Gewünscht von {{name}}",
     "requestedByFrom": "Gewünscht von {{name}} aus {{place}}",
     "suggestedBy": "Empfohlen von {{name}}",
@@ -106,8 +109,20 @@
       "subtitle": "Unsere Gemeinde betet mit dir."
     },
     "preaching": {
-      "title": "Predigt vorschlagen",
-      "subtitle": "Welche Predigt hat dich bewegt?"
+      "title": "Predigt vorschlagen"
+    },
+    "testimony_video": {
+      "title": "Glaubenszeugnis vorschlagen"
+    },
+    "mission": {
+      "title": "Missionsvideo vorschlagen"
+    },
+    "film": {
+      "title": "Film vorschlagen"
+    },
+    "video": {
+      "title": "Video vorschlagen",
+      "subtitle": "Predigt, Zeugnis, Mission oder Film"
     },
     "closing": "Letzte Chance",
     "closed": "Für diese Sendung geschlossen",
@@ -134,10 +149,22 @@
     "invalid": "Das sieht nicht nach einem YouTube-Link aus.",
     "nameHint": "Dein Vorname und Ort werden mit deinem Wunsch auf Sendung genannt."
   },
-  "preachingForm": {
+  "videoForm": {
+    "kind": "Was möchtest du vorschlagen?",
+    "kinds": {
+      "preaching": "Predigt",
+      "testimony": "Zeugnis",
+      "mission": "Mission",
+      "film": "Film"
+    },
+    "hints": {
+      "preaching": "Füge einen Link zu einer christlichen Predigt oder Andacht auf YouTube ein (5 bis 90 Minuten).",
+      "testimony": "Füge einen Link zu einem Glaubenszeugnis auf YouTube ein: Menschen erzählen, was Gott in ihrem Leben getan hat (2 bis 60 Minuten).",
+      "mission": "Füge einen Link zu einem Missionsvideo auf YouTube ein: ein Bericht vom Missionsfeld, eine Straßenpredigt oder eine Missionsdoku (3 bis 90 Minuten).",
+      "film": "Füge einen Link zu einem christlichen Film auf YouTube ein, vom Filmstudio oder einem offiziellen Kanal (5 Minuten bis 3 Stunden)."
+    },
     "url": "YouTube-Link",
-    "urlHint": "Füge einen Link zu einer christlichen Predigt oder Andacht auf YouTube ein (5 bis 90 Minuten).",
-    "message": "Warum empfiehlst du sie? (optional)",
+    "message": "Warum empfiehlst du dieses Video? (optional)",
     "messageHint": "Die Moderation liest es vielleicht vor.",
     "nameHint": "Dein Vorname und Ort werden mit deinem Vorschlag auf Sendung genannt."
   },
@@ -438,18 +465,24 @@
         "all": "Alle",
         "song": "Lieder",
         "preaching": "Predigten",
+        "testimony": "Glaubenszeugnisse",
+        "mission": "Missionsvideos",
+        "film": "Filme",
         "jingle": "Jingles",
         "contrib": "Aufnahmen",
         "bed": "Hintergrundmusik"
       },
-      "addVideo": "Lied oder Predigt hinzufügen",
+      "addVideo": "Lied oder Video hinzufügen",
       "addKind": "Art",
       "addKindSong": "Lied",
       "addKindPreaching": "Predigt",
+      "addKindTestimony": "Glaubenszeugnis",
+      "addKindMission": "Missionsvideo",
+      "addKindFilm": "Film",
       "url": "YouTube-Link",
       "lookup": "Nachschlagen",
       "existing": "Schon in der Bibliothek",
-      "badDuration": "Das Video ist für diese Art zu kurz oder zu lang: Lieder 30 Sekunden bis 30 Minuten, Predigten 1 Minute bis 3 Stunden.",
+      "badDuration": "Das Video ist für diese Art zu kurz oder zu lang: Lieder 30 Sekunden bis 30 Minuten, Predigten, Glaubenszeugnisse und Missionsvideos 1 Minute bis 3 Stunden, Filme 1 Minute bis 4 Stunden.",
       "notEmbeddable": "Nicht einbettbar – kann in der App nicht laufen.",
       "notPlayable": "In einer der Hauptregionen gesperrt.",
       "duration": "Dauer",
@@ -457,7 +490,13 @@
       "titleField": "Titel",
       "artist": "Interpret",
       "preacher": "Predigt von",
-      "preachingHint": "Predigten laufen nur in Predigtsendungen (Sendungen → Format), mit Liedern dazwischen.",
+      "witness": "Person oder Kanal",
+      "ministry": "Missionswerk oder Kanal",
+      "studio": "Studio oder Kanal",
+      "preachingHint": "Aus der Bibliothek laufen Predigten nur in Predigtsendungen (Sendungen → Format), mit Liedern dazwischen.",
+      "testimonyHint": "Aus der Bibliothek laufen Glaubenszeugnisse nur in Zeugnissendungen (Sendungen → Format), mit Liedern dazwischen.",
+      "missionHint": "Aus der Bibliothek laufen Missionsvideos nur in Missionssendungen (Sendungen → Format), mit Liedern dazwischen.",
+      "filmHint": "Aus der Bibliothek laufen Filme nur in Filmsendungen (Sendungen → Format), deren Block länger ist als der Film. Füge Filme nur vom Filmstudio oder einem offiziellen Kanal hinzu.",
       "themes": "Themen",
       "moods": "Stimmungen",
       "tagsHint": "Mit Komma getrennt, z. B. worship, hope",
@@ -482,7 +521,7 @@
         "submission": "Hörerwunsch",
         "suggestion": "Hörervorschlag"
       },
-      "noYoutube": "YOUTUBE_API_KEY ist auf dem Server nicht gesetzt – es können keine Lieder und Predigten hinzugefügt werden.",
+      "noYoutube": "YOUTUBE_API_KEY ist auf dem Server nicht gesetzt – es können keine Lieder und Videos hinzugefügt werden.",
       "lookupFirst": "Füge einen YouTube-Link ein und schlag ihn zuerst nach.",
       "addedOk": "Zur Bibliothek hinzugefügt.",
       "none": "Keine passenden Einträge.",
@@ -534,6 +573,9 @@
       "format": "Format",
       "formatMusic": "Musik, mit Moderation zwischen den Liedern",
       "formatPreaching": "Predigt, mit Liedern zwischen den Predigten",
+      "formatTestimony": "Glaubenszeugnisse, mit Liedern dazwischen",
+      "formatMission": "Mission, mit Liedern zwischen den Videos",
+      "formatFilm": "Film, mit Liedern zwischen den Filmen",
       "formatPrayer": "Gebetsstunde",
       "prayer": {
         "heading": "Gebetsstunde",
@@ -550,11 +592,13 @@
         "notFallback": "Eine Gebetsstunde kann nicht das Ersatzprogramm eines Kanals sein: Ihr Ablauf braucht ein Ende.",
         "opendoors": "Zuerst das tägliche Gebetsanliegen von Open Doors für verfolgte Christen vorlesen (Deutsch wie veröffentlicht, übersetzt für englische Hörer)"
       },
-      "preaching": {
-        "heading": "Predigtsendung",
-        "order": "Begrüßung → eine Predigt → Lieder → die nächste Predigt, wenn sie noch in die Sendung passt → … → Abschluss. Vorschläge von Hörerinnen und Hörern kommen zuerst, dann die Predigten aus der Bibliothek, eine nach der anderen; keine läuft zweimal innerhalb von sechs Stunden. Passt keine Predigt mehr, laufen bis zum Ende Lieder.",
-        "songsBetween": "Lieder zwischen zwei Predigten",
-        "intakeHint": "Eine vorgeschlagene Predigt füllt die Warteschlange mit ihrer ganzen Länge: Für eine lange Sendung „Schließen, wenn die Warteschlange … Minuten hat“ erhöhen. Passt sie vor dem Ende nicht mehr, bleibt sie in der Bibliothek für eine spätere Predigtsendung."
+      "video": {
+        "heading": "Videos und Lieder",
+        "order": "Begrüßung → ein Video → Lieder → das nächste Video, wenn es noch in die Sendung passt → … → Abschluss. Vorschläge von Hörerinnen und Hörern kommen zuerst (jede Art, die die Sendung annimmt), dann die Videos der eigenen Art der Sendung aus der Bibliothek, eines nach dem anderen; keines läuft zweimal innerhalb von sechs Stunden. Passt kein Video mehr, laufen bis zum Ende Lieder.",
+        "songsBetween": "Lieder zwischen zwei Videos",
+        "intakeHint": "Ein vorgeschlagenes Video füllt die Warteschlange mit seiner ganzen Länge: Für eine lange Sendung „Schließen, wenn die Warteschlange … Minuten hat“ erhöhen (bis 180). Passt es vor dem Ende nicht mehr hinein, kommt es in die Bibliothek für eine spätere Sendung seiner Art.",
+        "allowedHint": "Die eigene Art der Sendung ist schon angekreuzt. Kreuze weitere an, um auch sie anzunehmen: Jeder Vorschlag läuft als seine eigene Art und wird wie ein Wunsch angesagt.",
+        "filmHint": "Ein Film läuft nur, wenn er hineinpasst: Mach den Block der Sendung länger als ihre Filme (ein Film von 2 Stunden braucht etwa 2 Stunden und 5 Minuten)."
       },
       "opening": {
         "heading": "Eröffnungsgebete",
@@ -658,6 +702,9 @@
         "greeting": "Gruß",
         "prayer": "Gebetsanliegen",
         "preaching": "Predigtvorschlag",
+        "testimony_video": "Glaubenszeugnis-Vorschlag",
+        "mission": "Missionsvideo-Vorschlag",
+        "film": "Filmvorschlag",
         "intercession": "Gebet (Gebetszeit)"
       },
       "statuses": {
@@ -711,7 +758,7 @@
       "listenerSaw": "angezeigt wurde: {{reason}}",
       "overrule": "Trotzdem freigeben",
       "withoutMessage": "Ohne Nachricht freigeben",
-      "overruleHint": "Ein Lied oder eine Predigt kommt in die Bibliothek; solange die Sendung noch läuft, geht die Einsendung auch auf Sendung.",
+      "overruleHint": "Ein Lied oder Video kommt in die Bibliothek; solange die Sendung noch läuft, geht die Einsendung auch auf Sendung.",
       "blockers": {
         "recording_deleted": "Abgelehnte Aufnahmen werden sofort gelöscht (Datenschutzerklärung) und können nicht mehr freigegeben werden.",
         "video_unplayable": "YouTube spielt dieses Video im eingebetteten Player nicht ab; es kann nicht gesendet werden.",

@@ -270,17 +270,27 @@ a deploy.
   translation made once a day by the text model; on the wall it says "Open
   Doors". A feed that is down keeps yesterday's request; one older than two
   days is not read.
-- **Preaching program**: add sermons in /mod → Library → "Add a song or a
-  preaching" (kind Preaching, 1 minute – 3 hours), create a program with the
-  format "Preaching" (/mod → Programs) and put it into a plan. It runs intro →
-  a preaching → N songs (default 2) → the next preaching if one still fits →
-  … → outro; no preaching twice within six hours. While it is on air,
-  listeners suggest one with the fourth tile ("Suggest a preaching", 5–90
-  minutes: `PREACHING_MIN_SECONDS`, `PREACHING_MAX_SECONDS`); approved, it airs
-  at the next preaching, announced by name, and joins the library. A waiting
-  suggestion fills the queue with its whole length, so for a long program
-  raise "Close when the queue holds … minutes". Only a preaching program
-  takes suggestions; elsewhere the tile says "Not part of this program".
+- **Video programs** — preaching, testimonies, mission, films: add their
+  videos in /mod → Library → "Add a song or a video" (kind Preaching,
+  Testimony, Mission video or Film; 1 minute – 3 hours, a film up to 4 hours),
+  create a program with that format (/mod → Programs) and put it into a plan.
+  It runs intro → a video of its kind → N songs (default 2) → the next video
+  if one still fits → … → outro; none twice within six hours. While it is on
+  air, listeners suggest videos with the fourth tile ("Suggest a video"): the
+  sheet offers the kinds the program takes — its own is ticked when you pick
+  the format; tick others too (a mission program may take testimonies). The
+  lengths a listener may send: `PREACHING_MIN/MAX_SECONDS` (5–90 min),
+  `TESTIMONY_VIDEO_MIN/MAX_SECONDS` (2–60), `MISSION_MIN/MAX_SECONDS` (3–90),
+  `FILM_MIN/MAX_SECONDS` (5 min – 3 h). Approved, a suggestion airs at the next
+  video, announced by name, and joins the library. A waiting suggestion fills
+  the queue with its whole length, so for a long program raise "Close when the
+  queue holds … minutes"; one that can no longer fit goes to the library at
+  once. A film plays only when it fits: make a film program's block longer
+  than its films (a 2-hour film needs about 2 h 05), and add films only from
+  their studio or an official channel (the check refuses re-uploads). A
+  testimony program can also take listeners' own recorded testimonies (tick
+  "A testimony"). Only a video program takes suggested videos; elsewhere the
+  tile says "Not part of this program".
 - **Themes**: Kids Ark (light) and Storm Ark (dark), following the device
   until a listener picks one (welcome dialog, Profile). The design they
   implement is `concept-files/theme-preview.html`; the scenery lives in

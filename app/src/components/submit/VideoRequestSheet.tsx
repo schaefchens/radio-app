@@ -1,6 +1,8 @@
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import clsx from 'clsx';
+import { VIDEO_FORMATS, VIDEO_SUBMISSIONS, isVideoFormat, type SubmissionState, type VideoFormat } from '@arche/shared';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { api } from '@/lib/api';
 import { useSession } from '@/store/session';
@@ -21,22 +23,39 @@ interface Preview {
   error: string | null;
 }
 
-/** What a listener hands in as a YouTube link. */
-export type VideoKind = 'song' | 'preaching';
+/** What a listener hands in as a YouTube link: a song request, or a video suggested for a video program. */
+export type RequestKind = 'song' | 'video';
+
+const taken = (s: SubmissionState | undefined): boolean => s === 'open' || s === 'closing';
 
 /**
- * A song request, or a preaching suggested for a preaching program: the same
- * form — a YouTube link, a word for the host, name and place or "Stay
- * anonymous" — with its own texts and endpoint.
+ * A song request, or a video suggested for a program of preachings,
+ * testimonies, mission videos or films: the same form — a YouTube link, a word
+ * for the host, name and place or "Stay anonymous" — with its own texts and
+ * endpoint. The video form first asks which kind, like the recording sheet:
+ * only the kinds the minute file lists as open can be picked.
  */
-export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; open: boolean; onClose: () => void }) {
+export function VideoRequestSheet({ kind, open, onClose }: { kind: RequestKind; open: boolean; onClose: () => void }) {
   const uid = useId();
   const { t } = useTranslation();
-  const form = kind === 'song' ? 'songForm' : 'preachingForm';
+  const texts = kind === 'song' ? 'songForm' : 'videoForm';
   const identity = useSession((s) => s.identity);
   const consent = useSettings((s) => s.consent);
   const lang = useSettings((s) => s.lang);
   const channel = useRadio((s) => s.engine.channel);
+  const submissions = useRadio((s) => s.engine.submissions);
+  const format = useRadio((s) => s.engine.program?.format);
+  // The kind the listener picked, or was shown when they began pasting a
+  // link: it is never switched under them — a sermon link silently turned
+  // into a mission suggestion would go through the wrong check.
+  const [chosen, setChosen] = useState<VideoFormat | null>(null);
+  const takes = (f: VideoFormat): boolean => taken(submissions[VIDEO_SUBMISSIONS[f]]);
+  const own = isVideoFormat(format) ? format : null;
+  // Untouched, the form follows the program: its own kind when that is open,
+  // else the first open one (a mission program that also takes testimonies
+  // opens on "Mission", not on the kind that comes first in the list).
+  const video: VideoFormat = chosen ?? (own && takes(own) ? own : (VIDEO_FORMATS.find(takes) ?? own ?? 'preaching'));
+  const videoOpen = kind === 'song' || takes(video);
   const [url, setUrl] = useState('');
   const [message, setMessage] = useState('');
   const [name, setName] = useState(identity?.name ?? '');
@@ -72,16 +91,21 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
   }, [id, consent, t]);
 
   const submit = useSubmit(() =>
-    api(`/submissions/${kind}`, { body: { channel, url, message, name: anonymous ? '' : name, place: anonymous ? '' : place, lang } }),
+    api(`/submissions/${kind}`, {
+      body: { ...(kind === 'video' ? { type: VIDEO_SUBMISSIONS[video] } : {}), channel, url, message, name: anonymous ? '' : name, place: anonymous ? '' : place, lang },
+    }),
   );
   // The community rules, once per device before the first post.
   const rulesNeeded = useRulesNeeded();
   const [rulesTicked, setRulesTicked] = useState(false);
   const close = (): void => {
     onClose();
+    // A kind chosen for a program that has moved on is not kept for the next one.
+    if (chosen !== null && !takes(chosen)) setChosen(null);
     if (submit.done) {
       setUrl('');
       setMessage('');
+      setChosen(null);
       submit.reset();
     }
   };
@@ -100,10 +124,57 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
               void submit.run();
             }}
           >
+            {kind === 'video' && (
+              <div>
+                <p className="label" id={`${uid}-kind`}>
+                  {t('videoForm.kind')}
+                </p>
+                <div className="grid grid-cols-2 gap-2" role="group" aria-labelledby={`${uid}-kind`}>
+                  {VIDEO_FORMATS.map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      aria-pressed={video === f}
+                      disabled={!takes(f) || submit.busy}
+                      onClick={() => {
+                        setChosen(f);
+                        // An error from the kind before ("closed") is not this one's.
+                        if (submit.error) submit.reset();
+                      }}
+                      className={clsx(
+                        'min-w-0 break-words rounded-xl border px-3 py-2 text-sm',
+                        video === f ? 'border-accent-fill bg-accent-fill/20 text-ink' : 'border-line/30 text-ink-muted',
+                        !takes(f) && 'opacity-40',
+                      )}
+                    >
+                      {t(`videoForm.kinds.${f}`)}
+                    </button>
+                  ))}
+                </div>
+                {/* The kind in use closed while the listener filled the form in: it stays, and Send waits. */}
+                <p className="mt-1 text-xs text-heart" aria-live="polite">
+                  {videoOpen ? '' : submissions[VIDEO_SUBMISSIONS[video]] === 'closed' ? t('submit.closed') : t('submit.notNow')}
+                </p>
+              </div>
+            )}
             <div>
-              <label className="label" htmlFor={`${uid}-url`}>{t(`${form}.url`)}</label>
-              <input id={`${uid}-url`} className="field" inputMode="url" autoComplete="off" placeholder="https://youtu.be/…" value={url} onChange={(e) => setUrl(e.target.value)} />
-              <p className="mt-1 text-xs text-ink-faint">{url && !id ? t('songForm.invalid') : t(`${form}.urlHint`)}</p>
+              <label className="label" htmlFor={`${uid}-url`}>{t(`${texts}.url`)}</label>
+              <input
+                id={`${uid}-url`}
+                className="field"
+                inputMode="url"
+                autoComplete="off"
+                placeholder="https://youtu.be/…"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  // Pasting a link makes the kind shown the listener's choice.
+                  if (kind === 'video' && chosen === null) setChosen(video);
+                }}
+              />
+              <p className="mt-1 text-xs text-ink-faint">
+                {url && !id ? t('songForm.invalid') : kind === 'song' ? t('songForm.urlHint') : t(`videoForm.hints.${video}`)}
+              </p>
             </div>
             {preview && (
               <div className="card-inset flex items-center gap-3 p-2">
@@ -116,15 +187,15 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
             )}
             {previewError && <p className="text-sm text-heart">{previewError}</p>}
             <div>
-              <label className="label" htmlFor={`${uid}-msg`}>{t(`${form}.message`)}</label>
+              <label className="label" htmlFor={`${uid}-msg`}>{t(`${texts}.message`)}</label>
               <textarea id={`${uid}-msg`} className="field min-h-[80px]" maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} />
-              <p className="mt-1 text-xs text-ink-faint">{t(`${form}.messageHint`)}</p>
+              <p className="mt-1 text-xs text-ink-faint">{t(`${texts}.messageHint`)}</p>
             </div>
             <NameOrAnonymous
               anonymous={anonymous}
               setAnonymous={setAnonymous}
               label={t('submit.anonymous')}
-              hint={t(`${form}.nameHint`)}
+              hint={t(`${texts}.nameHint`)}
               name={name}
               place={place}
               setName={setName}
@@ -136,7 +207,7 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
             <button
               type="submit"
               className="btn-primary"
-              disabled={!id || !!previewError || (!anonymous && name.trim() === '') || submit.busy || (rulesNeeded && !rulesTicked)}
+              disabled={!id || !!previewError || !videoOpen || (!anonymous && name.trim() === '') || submit.busy || (rulesNeeded && !rulesTicked)}
             >
               {submit.busy ? t('common.loading') : t('submit.send')}
             </button>

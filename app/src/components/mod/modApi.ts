@@ -1,4 +1,4 @@
-import type { ProgramFormat } from '@arche/shared';
+import type { ProgramFormat, VideoFormat } from '@arche/shared';
 import { api, ApiError } from '@/lib/api';
 import { errorText } from '@/i18n';
 import i18n from '@/i18n';
@@ -48,6 +48,7 @@ export interface ProgramSettings {
     /** Open Doors' daily prayer request, read first. */
     opendoors: boolean;
   };
+  /** Songs between two videos — for every video format, not only preaching (the group keeps its first name). */
   preaching: { songs_between: number };
 }
 
@@ -73,7 +74,7 @@ export interface ModChannel {
 export interface Overview {
   me: { id: string; role: string };
   channels: (ModChannel & { programs: ModProgram[] })[];
-  library: { songs: number; preachings: number; jingles: number };
+  library: { songs: number; preachings: number; testimonies: number; missions: number; films: number; jingles: number };
   review: number;
   reports: number;
   /** Prayer wall requests listeners reported, waiting for a decision. */
@@ -84,7 +85,7 @@ export interface Overview {
 
 export interface LibraryItem {
   id: number;
-  kind: 'song' | 'preaching' | 'jingle' | 'contrib' | 'bed';
+  kind: 'song' | VideoFormat | 'jingle' | 'contrib' | 'bed';
   yt_id: string | null;
   audio: string | null;
   title: string;

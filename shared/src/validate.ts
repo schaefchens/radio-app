@@ -1,4 +1,4 @@
-import { LANGS, SUBMISSION_STATES, SUBMISSION_TYPES, type SubmissionState, type SubmissionType } from './constants.ts';
+import { LANGS, SUBMISSION_STATES, SUBMISSION_TYPES, isVideoFormat, type SubmissionState, type SubmissionType } from './constants.ts';
 import type {
   ChannelInfo,
   ChannelsFile,
@@ -98,7 +98,7 @@ export function parseProgramRef(v: unknown): ProgramRef | null {
     color: str(v.color) || '#2f7bff',
     stage: stage(v.stage),
     allowed: arr(v.allowed).filter(isSubmissionType),
-    format: v.format === 'prayer' || v.format === 'preaching' ? v.format : 'music',
+    format: v.format === 'prayer' || isVideoFormat(v.format) ? v.format : 'music',
   };
 }
 
@@ -112,6 +112,9 @@ const HOST_KINDS: HostKind[] = [
   'opening',
   'invite',
   'preaching',
+  'testimony',
+  'mission',
+  'film',
   'reading',
   'intercession',
   'present',
@@ -130,8 +133,9 @@ export function parseItem(v: unknown): TimelineItem | null {
       return {
         ...base,
         type: 'song',
-        // An older generator's song item has no kind: a song.
-        kind: v.kind === 'preaching' ? 'preaching' : 'song',
+        // An older generator's song item has no kind, a newer one's may have
+        // a kind we do not know: either way a song.
+        kind: isVideoFormat(v.kind) ? v.kind : 'song',
         yt: v.yt,
         title: str(v.title),
         artist: str(v.artist),

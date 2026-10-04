@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Program;
 
 use Arche\App;
+use Arche\Plan\Catalog;
 use Arche\Support\Files;
 
 /**
@@ -111,10 +112,10 @@ final class Publisher
         ];
         $p = $it['payload'];
         return match ($it['type']) {
-            // A preaching is a song item of its own kind: an app that does not
-            // know the kind plays it as the video it is.
+            // A video of a video program is a song item of its own kind: an app
+            // that does not know the kind plays it as the video it is.
             'song' => $base + [
-                'kind' => ($p['kind'] ?? 'song') === 'preaching' ? 'preaching' : 'song',
+                'kind' => Catalog::isVideoFormat($p['kind'] ?? 'song') ? $p['kind'] : 'song',
                 'yt' => (string) ($p['yt'] ?? ''),
                 'title' => (string) ($p['title'] ?? ''),
                 'artist' => (string) ($p['artist'] ?? ''),

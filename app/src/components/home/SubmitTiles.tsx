@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { SubmissionState, SubmissionType } from '@arche/shared';
+import { VIDEO_SUBMISSION_TYPES, type SubmissionState, type SubmissionType } from '@arche/shared';
 import { useRadio } from '@/store/radio';
 import { useSheets } from '@/store/sheets';
 import { VideoRequestSheet } from '@/components/submit/VideoRequestSheet';
@@ -9,7 +9,7 @@ import { RecordSheet } from '@/components/submit/RecordSheet';
 import { PraySheet } from '@/components/submit/PraySheet';
 import { BookIcon, MicIcon, MusicIcon, PrayIcon } from '@/components/common/icons';
 
-type Tile = 'song' | 'story' | 'prayer' | 'preaching';
+type Tile = 'song' | 'story' | 'prayer' | 'video';
 
 /** The submission sheets, mounted once, on Home (AppShell); a prayer hour's Pray sheet opens from the stage. */
 export function SubmitSheets() {
@@ -20,7 +20,7 @@ export function SubmitSheets() {
   return (
     <>
       <VideoRequestSheet kind="song" open={open === 'song'} onClose={close} />
-      <VideoRequestSheet kind="preaching" open={open === 'preaching'} onClose={close} />
+      <VideoRequestSheet kind="video" open={open === 'video'} onClose={close} />
       <PrayerSheet open={open === 'prayer'} onClose={close} onRecord={() => show('record', 'prayer')} />
       <RecordSheet open={open === 'record'} onClose={close} initialKind={recordKind} />
       <PraySheet open={open === 'pray'} onClose={close} />
@@ -30,16 +30,17 @@ export function SubmitSheets() {
 
 /**
  * The four tiles of the design; each follows what the program on air
- * accepts (the fourth, a preaching, only a preaching program — the chat is
- * in the menu). `beforeOpen` lets the phone dock turn a first tap on a folded
- * tile into "unfold" (it returns true when it took the tap).
+ * accepts (the fourth, a video — a preaching, a testimony, a mission video or
+ * a film —, only a program of such a format; the chat is in the menu).
+ * `beforeOpen` lets the phone dock turn a first tap on a folded tile into
+ * "unfold" (it returns true when it took the tap).
  */
 export function SubmitTiles({ beforeOpen }: { beforeOpen?: () => boolean }) {
   const { t } = useTranslation();
   const submissions = useRadio((s) => s.engine.submissions);
   const show = useSheets((s) => s.show);
 
-  const stateOf = (types: SubmissionType[]): SubmissionState | 'off' => {
+  const stateOf = (types: readonly SubmissionType[]): SubmissionState | 'off' => {
     const states = types.map((ty) => submissions[ty]).filter((s): s is SubmissionState => !!s);
     if (states.includes('open')) return 'open';
     if (states.includes('closing')) return 'closing';
@@ -49,7 +50,8 @@ export function SubmitTiles({ beforeOpen }: { beforeOpen?: () => boolean }) {
     { id: 'song', state: stateOf(['song']), icon: <MusicIcon />, tone: 'purple', open: () => show('song') },
     { id: 'story', state: stateOf(['story', 'testimony', 'greeting']), icon: <MicIcon />, tone: 'green', open: () => show('record', 'story') },
     { id: 'prayer', state: stateOf(['prayer']), icon: <PrayIcon />, tone: 'blue', open: () => show('prayer') },
-    { id: 'preaching', state: stateOf(['preaching']), icon: <BookIcon />, tone: 'gold', open: () => show('preaching') },
+    // Open when any kind of video is: the sheet's picker offers the ones that are.
+    { id: 'video', state: stateOf(VIDEO_SUBMISSION_TYPES), icon: <BookIcon />, tone: 'gold', open: () => show('video') },
   ];
 
   return (

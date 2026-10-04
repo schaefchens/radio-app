@@ -36,6 +36,11 @@ export const VIDEOS = [
   // Preachings: one the preaching spec curates, one a listener suggests.
   song('e2ePreach01', 'Pastor Ruth Adeyemi - The Prodigal Son', 'Grace Chapel', 'PT12M00S'),
   song('e2ePreach02', 'Pastor Samuel Okoro - Hope in the Storm', 'Hope Church', 'PT9M30S'),
+  // A mission program's own video (long enough for the spec to catch it on
+  // air: it plays once per channel within six hours), and a testimony a
+  // listener suggests there.
+  song('e2eMission1', 'Wells for Kibera - Mission Report', 'Hope Without Borders', 'PT25M00S'),
+  song('e2eTestim01', 'From the Streets to Hope - My Testimony', 'Grace Stories', 'PT8M10S'),
 ];
 
 export const LIBRARY_IDS = VIDEOS.filter((v) => v.id.startsWith('e2eSong')).map((v) => v.id);

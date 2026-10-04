@@ -58,7 +58,7 @@ function sermonLabels(Arche\App $app, int $programId): array
         if ($it['program_id'] !== $programId) continue;
         $out[] = match (true) {
             $it['type'] === 'host' => $it['payload']['kind'] === 'preaching' ? 'introduce' : (string) $it['payload']['kind'],
-            Drafter::isPreaching($it) => $it['submission_id'] !== null ? 'suggested' : 'preaching',
+            Drafter::isVideo($it, 'preaching') => $it['submission_id'] !== null ? 'suggested' : 'preaching',
             default => (string) $it['type'],
         };
     }
@@ -90,14 +90,14 @@ test('preaching: the program opens with a preaching its intro introduces, puts s
     $run = array_values(array_filter(TestKit::committed($app), fn($i) => $i['program_id'] === (int) $p['id']));
     [$intro, $preaching, $after] = $run;
     $ctx = hostContext($app, $intro);
-    eq([$ctx['next']['kind'] ?? '', $ctx['next']['title'] ?? '', $ctx['next']['preacher'] ?? '', $ctx['next_uid'] ?? ''],
+    eq([$ctx['next']['kind'] ?? '', $ctx['next']['title'] ?? '', $ctx['next']['by'] ?? '', $ctx['next_uid'] ?? ''],
         ['preaching', 'Sermon 1', 'Pastor 1', $preaching['uid']], 'the intro knows the preaching, and is pinned to it');
     eq(hostContext($app, $after)['previous']['kind'] ?? '', 'preaching', 'the host after it knows it was a preaching');
     $introduce = $run[array_search('introduce', sermonLabels($app, (int) $p['id']), true)];
     eq(hostContext($app, $introduce)['next']['title'] ?? '', 'Sermon 2', 'the second is introduced by the host');
     $end = strtotime('2026-09-23T11:40:00Z') * 1000; // 13:40 in Berlin
     foreach ($run as $it) {
-        if (Drafter::isPreaching($it)) check($it['start_ms'] + $it['dur_ms'] <= $end + Arche\Program\Timing::SOFT_OVERRUN, 'every preaching ends within its program');
+        if (Drafter::isVideo($it, 'preaching')) check($it['start_ms'] + $it['dur_ms'] <= $end + Arche\Program\Timing::SOFT_OVERRUN, 'every preaching ends within its program');
     }
 
     $slot = json_decode((string) file_get_contents($app->publicPath(Arche\Program\Timing::slotPath('main', $preaching['start_ms'] + 60_000))), true);
@@ -161,18 +161,19 @@ test('preaching: only a preaching program takes suggestions — elsewhere the ty
     eq($cat->saveProgram((int) $p['id'], (int) $ch['id'], ['settings' => ['format' => 'music']], 'test')['allowed'], ['song'], 'back to music, the type goes');
 });
 
-test('preaching: a suggestion too long for the time left waits; when its program ends it stays in the library for a later one', function () {
+test('preaching: a suggestion too long for the time left goes to the library at once, for a later program, and holds no intake', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     preachings($app, [20]);
     $p = preachingProgram($app, 12 * 60, 45, ['max_queue_min' => 60]);
     ticks($app, 2);
+    // 30 minutes, with about 25 left after the program's own preaching: it could never fit.
     $sub = $app->submissions()->submitPreaching(listener($app), TestKit::main($app), ['url' => 'https://youtu.be/PreachLong1', 'name' => 'Ben']);
     runJobs($app);
-    eq($app->submissions()->byPublicId($sub['id'])['status'], 'approved', 'approved');
-    ticks($app, 55);
     $row = $app->submissions()->byPublicId($sub['id']) ?? [];
-    eq($app->submissions()->publicView($row)['status'], 'library', 'it may play in a later program');
+    eq($app->submissions()->publicView($row)['status'], 'library', 'checked, it may play in a later program');
+    eq($app->submissions()->queuedAirtime((int) TestKit::main($app)['id'], (int) $p['id']), 0, 'and keeps no intake closed meanwhile');
+    ticks($app, 55);
     check(!array_filter(TestKit::committed($app), fn($i) => $i['submission_id'] === (int) $row['id']), 'nothing of it aired');
     eq(array_count_values(sermonLabels($app, (int) $p['id']))['preaching'] ?? 0, 1, 'the program\'s own preaching aired, then songs');
 });
@@ -226,7 +227,7 @@ test('preaching: a database from before preachings keeps its library and takes t
     // The library as version 7 left it: its kinds without preachings.
     $sql = (string) $store->value("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'library_items'");
     $store->db->exec('DROP TABLE library_items');
-    $store->db->exec(str_replace(", 'preaching'", '', $sql));
+    $store->db->exec(str_replace([", 'preaching'", ", 'testimony'", ", 'mission'", ", 'film'"], '', $sql));
     check(refuses(fn() => preachings($app, [30])), 'version 7 knows no preachings');
     [$song] = TestKit::songs($app, 1);
     $store->query('UPDATE library_items SET plays = 7 WHERE id = ?', [$song]);
@@ -240,7 +241,7 @@ test('preaching: a database from before preachings keeps its library and takes t
 });
 
 test('preaching: without the text model the host still introduces a preaching, and a suggestion by name — never as a song', function () {
-    $next = ['kind' => 'preaching', 'title' => 'The Prodigal Son', 'preacher' => 'Pastor Ruth'];
+    $next = ['kind' => 'preaching', 'title' => 'The Prodigal Son', 'by' => 'Pastor Ruth'];
     $t = Templates::texts('preaching', ['next' => $next]);
     check(str_contains($t['en'], 'preaching: “The Prodigal Son” by Pastor Ruth'), 'en: ' . $t['en']);
     check(str_contains($t['de'], 'Predigt: „The Prodigal Son“ von Pastor Ruth'), 'de: ' . $t['de']);

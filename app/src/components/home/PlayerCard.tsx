@@ -110,10 +110,12 @@ function TrackRow() {
   let start = 0;
   let dur = 0;
   let icon = <NavLiveIcon />;
-  const preaching = item?.type === 'song' && item.kind === 'preaching';
+  // A video of a video program (a preaching, a testimony, a mission video, a
+  // film) is named by its kind — never "Now playing" like a song.
+  const video = item?.type === 'song' && item.kind !== 'song' ? item.kind : null;
   if (item?.type === 'song') {
     ({ title, artist: subtitle, thumb, yt, start, dur } = item);
-    icon = preaching ? <BookIcon /> : <MusicIcon />;
+    icon = video ? <BookIcon /> : <MusicIcon />;
   } else if (engine.evergreen) {
     ({ title, artist: subtitle, thumb, yt, start, dur } = engine.evergreen);
     icon = <MusicIcon />;
@@ -154,7 +156,7 @@ function TrackRow() {
         {/* The fallback loop says so: this is not the live program. */}
         <span className="eyebrow">
           <LevelsIcon />
-          <span>{engine.mode === 'evergreen' ? t('stage.evergreen') : preaching ? t('nowPlaying.preaching') : t('nowPlaying.eyebrow')}</span>
+          <span>{engine.mode === 'evergreen' ? t('stage.evergreen') : video ? t(`nowPlaying.${video}`) : t('nowPlaying.eyebrow')}</span>
         </span>
         <strong>
           {yt ? (
@@ -170,7 +172,7 @@ function TrackRow() {
           {request && (
             <span className="track-request">
               {' · '}
-              {preaching
+              {video
                 ? request.place
                   ? t('nowPlaying.suggestedByFrom', { name: request.name, place: request.place })
                   : t('nowPlaying.suggestedBy', { name: request.name })

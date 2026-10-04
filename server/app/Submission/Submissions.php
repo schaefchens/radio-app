@@ -7,6 +7,7 @@ use Arche\ApiError;
 use Arche\App;
 use Arche\Audio\Mp3;
 use Arche\Library\YouTube;
+use Arche\Plan\Catalog;
 use Arche\Program\PrayerHour;
 use Arche\Program\SubmissionWindow;
 use Arche\Program\Timing;
@@ -14,13 +15,14 @@ use Arche\Support\Files;
 use Arche\Support\Ids;
 
 /**
- * Listener submissions: song requests, preaching suggestions (a YouTube link,
- * like a song request; only a preaching program takes them), recorded
- * stories/testimonies/greetings/prayers, and typed prayer requests.
+ * Listener submissions: song requests, video suggestions (a YouTube link, like
+ * a song request — a preaching, a testimony, a mission video or a film; only
+ * a video program takes them), recorded stories/testimonies/greetings/
+ * prayers, and typed prayer requests.
  *
  *   received → checking → approved → scheduled → aired
  *                       ↘ review (human, only if enabled) ↘ rejected
- *                                  ↘ library (a song or preaching too late for its program)
+ *                                  ↘ library (a song or video too late for its program)
  *                                  ↘ missed (anything else too late for it)
  *
  * A listener can only submit to the program on air now, and only while the
@@ -36,13 +38,28 @@ use Arche\Support\Ids;
 final class Submissions
 {
     public const REASONS = ['not_program_fit', 'not_suitable', 'not_accepted'];
-    /** Handed in as a YouTube link; approved, they join the library (a preaching as kind `preaching`). */
-    public const VIDEO_TYPES = ['song', 'preaching'];
+    /** Handed in as a YouTube link; approved, they join the library as the kind libraryKind() names. */
+    public const VIDEO_TYPES = ['song', 'preaching', 'testimony_video', 'mission', 'film'];
+    /** A video program's suggestions (the video sheet): Catalog::VIDEO_FORMATS' types. */
+    public const SUGGESTION_TYPES = ['preaching', 'testimony_video', 'mission', 'film'];
     private const AUDIO_TYPES = ['story', 'testimony', 'greeting', 'prayer', 'intercession'];
     /** Prayers a listener sends in a prayer hour's prayer time, written or spoken, aired as they are. */
     public const INTERCESSION = 'intercession';
 
     public function __construct(private App $app) {}
+
+    /** The library kind a video submission joins as, and airs as: 'song', or its video format. */
+    public static function libraryKind(string $type): string
+    {
+        $format = array_search($type, Catalog::VIDEO_FORMATS, true);
+        return is_string($format) ? $format : 'song';
+    }
+
+    /** `?, ?, …` for an IN list of $values, bound as text. @param list<string> $values */
+    private static function marks(array $values): string
+    {
+        return implode(', ', array_fill(0, count($values), '?'));
+    }
 
     /** @return array<string,mixed>|null */
     public function get(int $id): ?array
@@ -106,12 +123,31 @@ final class Submissions
      */
     public function submitSong(array $identity, array $channel, array $in): array
     {
-        return $this->submitVideo($identity, $channel, $in, 'song', 3, 8);
+        return $this->submitLink($identity, $channel, $in, 'song', 'song', 3, 8);
     }
 
     /**
-     * A preaching suggestion: a sermon or devotion on YouTube, with an
-     * optional word on why (the host may read it, like a dedication).
+     * A video suggested for a video program — `type` one of SUGGESTION_TYPES:
+     * a preaching, a testimony (`testimony_video`; `testimony` is a recorded
+     * one), a mission video or a film on YouTube, with an optional word on
+     * why (the host may read it, like a dedication). One rate limit for all
+     * of them: a listener could otherwise send four times as many.
+     *
+     * @param array<string,mixed> $identity
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $in type, url, message, name, place, lang
+     * @return array<string,mixed> public view
+     */
+    public function submitSuggestion(array $identity, array $channel, array $in): array
+    {
+        $type = (string) ($in['type'] ?? '');
+        if (!in_array($type, self::SUGGESTION_TYPES, true)) throw new ApiError(422, 'bad_type');
+        return $this->submitLink($identity, $channel, $in, $type, 'video', 2, 4);
+    }
+
+    /**
+     * A preaching suggestion from an app loaded before the video sheet, which
+     * still posts to /submissions/preaching.
      *
      * @param array<string,mixed> $identity
      * @param array<string,mixed> $channel
@@ -120,7 +156,7 @@ final class Submissions
      */
     public function submitPreaching(array $identity, array $channel, array $in): array
     {
-        return $this->submitVideo($identity, $channel, $in, 'preaching', 2, 4);
+        return $this->submitSuggestion($identity, $channel, ['type' => 'preaching'] + $in);
     }
 
     /**
@@ -129,13 +165,13 @@ final class Submissions
      * @param array<string,mixed> $in
      * @return array<string,mixed>
      */
-    private function submitVideo(array $identity, array $channel, array $in, string $type, int $perHour, int $perDay): array
+    private function submitLink(array $identity, array $channel, array $in, string $type, string $bucket, int $perHour, int $perDay): array
     {
         if ($identity['banned']) throw new ApiError(403, 'banned');
         $ytId = YouTube::parseId((string) ($in['url'] ?? ''));
         if ($ytId === null) throw new ApiError(422, 'invalid_youtube_url');
         ['program' => $program, 'block' => $block] = $this->openProgram($channel, $type);
-        $this->limit($identity, $type, $perHour, $perDay);
+        $this->limit($identity, $bucket, $perHour, $perDay);
         $message = self::text($in['message'] ?? '', 200);
         $name = self::text($in['name'] ?? '', 30);
         $place = self::text($in['place'] ?? '', 40);
@@ -281,9 +317,9 @@ final class Submissions
     // --- decisions ------------------------------------------------------------------
 
     /**
-     * Approve. Songs and preachings graduate into the library at once (tags
+     * Approve. Songs and videos graduate into the library at once (tags
      * only); a recording is published to /media only now. Too late for its
-     * program, a song or preaching still graduates and may play in a later
+     * program, a song or video still graduates and may play in a later
      * program (the selection picks it like any other); anything else missed
      * its moment.
      *
@@ -352,8 +388,9 @@ final class Submissions
     }
 
     /**
-     * A song request becomes a library song, a preaching suggestion a library
-     * preaching. A video already in the library stays what it is there.
+     * A song request becomes a library song, a suggested video a library item
+     * of its kind (libraryKind()). A video already in the library stays what
+     * it is there (its suggestion still airs as what it was suggested as).
      *
      * @param array<string,mixed> $sub @param array<string,mixed> $meta @param array<string,mixed> $verdict
      */
@@ -364,11 +401,19 @@ final class Submissions
         if ($existing !== null) return (int) $existing['id'];
         $now = $this->app->clock->now();
         $v = $meta['youtube'] ?? [];
+        $kind = self::libraryKind((string) $sub['type']);
+        // "Artist - Title" works for songs and most sermons. A testimony, a
+        // mission video or a film is titled "My story | … | Name": split, the
+        // host would read out half a title — it keeps the whole, and the
+        // channel says better who it is from.
+        $split = in_array($kind, ['song', 'preaching'], true);
+        $title = $split ? (string) ($v['title'] ?? '') : (string) ($v['full_title'] ?? $v['title'] ?? '');
+        $by = $split ? (string) ($v['artist'] ?? '') : (string) ($v['channel'] ?? $v['artist'] ?? '');
         return $this->app->store()->insert('library_items', [
-            'kind' => $sub['type'] === 'preaching' ? 'preaching' : 'song',
+            'kind' => $kind,
             'yt_id' => $sub['yt_id'],
-            'title' => mb_substr((string) ($v['title'] ?? $sub['yt_id']), 0, 120),
-            'artist' => mb_substr((string) ($v['artist'] ?? ''), 0, 120),
+            'title' => mb_substr($title !== '' ? $title : (string) $sub['yt_id'], 0, 120),
+            'artist' => mb_substr($by, 0, 120),
             'thumb' => $this->app->media()->cacheThumb((string) $sub['yt_id']),
             'duration_ms' => (int) ($v['duration_ms'] ?? 0) ?: 240_000,
             'languages' => json_encode(array_values(array_intersect(['en', 'de'], (array) ($verdict['languages'] ?? [])))),
@@ -465,8 +510,8 @@ final class Submissions
 
     /**
      * Approved songs and recordings waiting for this program, longest-waiting
-     * first. Text prayers go through takePrayers(), preachings through
-     * waitingPreachings(), a prayer hour's requests and prayers through
+     * first. Text prayers go through takePrayers(), suggested videos through
+     * waitingVideos(), a prayer hour's requests and prayers through
      * takeNext().
      *
      * @param array<string,mixed> $channel
@@ -477,25 +522,27 @@ final class Submissions
     {
         return $this->app->store()->all(
             "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved'
-             AND NOT (type = 'prayer' AND mode = 'text') AND type NOT IN ('preaching', 'intercession') ORDER BY created, id LIMIT ?",
-            [(int) $channel['id'], (int) $program['id'], $limit],
+             AND NOT (type = 'prayer' AND mode = 'text') AND type NOT IN (" . self::marks(self::SUGGESTION_TYPES) . ", 'intercession')
+             ORDER BY created, id LIMIT ?",
+            [(int) $channel['id'], (int) $program['id'], ...self::SUGGESTION_TYPES, $limit],
         );
     }
 
     /**
-     * Approved preaching suggestions waiting for this program, longest-waiting
-     * first: a preaching program airs them before its own selection.
+     * Approved video suggestions waiting for this program, of any kind it
+     * took, longest-waiting first: a video program airs them before its own
+     * selection.
      *
      * @param array<string,mixed> $channel
      * @param array<string,mixed> $program
      * @return list<array<string,mixed>>
      */
-    public function waitingPreachings(array $channel, array $program, int $limit): array
+    public function waitingVideos(array $channel, array $program, int $limit): array
     {
         return $this->app->store()->all(
-            "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved' AND type = 'preaching'
-             ORDER BY created, id LIMIT ?",
-            [(int) $channel['id'], (int) $program['id'], $limit],
+            "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved'
+             AND type IN (" . self::marks(self::SUGGESTION_TYPES) . ') ORDER BY created, id LIMIT ?',
+            [(int) $channel['id'], (int) $program['id'], ...self::SUGGESTION_TYPES, $limit],
         );
     }
 
@@ -509,6 +556,12 @@ final class Submissions
     public function markMissed(int $id): void
     {
         $this->app->store()->update('submissions', ['status' => 'missed', 'updated' => $this->app->clock->now()], "id = ? AND status = 'approved'", [$id]);
+    }
+
+    /** It will not air in its program, but its video stays in the library's selection (a duplicate suggestion). */
+    public function shelve(int $id): void
+    {
+        $this->app->store()->update('submissions', ['status' => 'library', 'updated' => $this->app->clock->now()], "id = ? AND status = 'approved'", [$id]);
     }
 
     /**
@@ -532,7 +585,14 @@ final class Submissions
     /**
      * Whether the plan can still place $sub inside its program: a block with
      * less than MIN_SONG left takes nothing new. A program that continues past
-     * midnight (tomorrow starts with it) keeps its requests.
+     * midnight (tomorrow starts with it) keeps its requests — its whole run
+     * counts (PlanResolver::runAt).
+     *
+     * A suggested video waits for its program's video slot, and plays whole:
+     * when the program is no video program any more, or the video is longer
+     * than what is left after the plan, that never comes — waiting for it as
+     * "approved", it would only keep intake closed (a film of two hours fills
+     * the queue). It goes to the library instead.
      *
      * @param array<string,mixed> $sub
      */
@@ -540,20 +600,27 @@ final class Submissions
     {
         $channel = $this->app->catalog()->channel((int) $sub['channel_id']);
         if ($channel === null) return false;
+        $program = $this->app->catalog()->program((int) $sub['program_id']);
+        $suggestion = in_array($sub['type'], self::SUGGESTION_TYPES, true);
+        if ($suggestion && !Catalog::isVideoFormat($program['settings']['format'] ?? null)) return false;
         $end = (int) $sub['window_end'];
-        $block = $this->app->resolver()->blockAt($channel, $end - 1);
-        if ($block['program_id'] === (int) $sub['program_id']) {
-            $program = $this->app->catalog()->program((int) $sub['program_id']);
+        $run = $this->app->resolver()->runAt($channel, $end - 1);
+        if ($run['program_id'] === (int) $sub['program_id']) {
             // A prayer hour reads and plays what listeners sent until its outro, planned PRAYER_LEAD ahead.
             if (PrayerHour::applies($program)) {
                 return $this->app->prayerHour()->closingAt($channel, $program, $end - 1) - self::airtime($sub) >= $this->reach((int) $channel['id'], Timing::PRAYER_LEAD);
             }
-            $end = max($end, $block['end']);
+            $end = max($end, $run['end']);
         }
-        return $end - Timing::MIN_SONG >= $this->reach((int) $channel['id']);
+        $reach = $this->reach((int) $channel['id']);
+        if ($suggestion) {
+            $meta = json_decode((string) $sub['meta'], true) ?: [];
+            if ((int) ($meta['youtube']['duration_ms'] ?? 0) > $end + Timing::SOFT_OVERRUN - $reach) return false;
+        }
+        return $end - Timing::MIN_SONG >= $reach;
     }
 
-    /** A song or preaching too late for its program stays in the library's selection; anything else had its one chance. @param array<string,mixed> $sub */
+    /** A song or video too late for its program stays in the library's selection; anything else had its one chance. @param array<string,mixed> $sub */
     private static function lateStatus(array $sub): string
     {
         return in_array($sub['type'], self::VIDEO_TYPES, true) ? 'library' : 'missed';
@@ -734,9 +801,9 @@ final class Submissions
     }
 
     /**
-     * Library ids of the songs and preachings that requests and suggestions
-     * are still waiting to play (approved, or in the plan and not yet on
-     * air). The selection leaves them to their requests.
+     * Library ids of the songs and videos that requests and suggestions are
+     * still waiting to play (approved, or in the plan and not yet on air).
+     * The selection leaves them to their requests.
      *
      * @return array<int,true>
      */
@@ -744,9 +811,9 @@ final class Submissions
     {
         $out = [];
         foreach ($this->app->store()->all(
-            "SELECT library_id FROM submissions WHERE channel_id = ? AND type IN ('song', 'preaching') AND library_id IS NOT NULL
+            'SELECT library_id FROM submissions WHERE channel_id = ? AND type IN (' . self::marks(self::VIDEO_TYPES) . ") AND library_id IS NOT NULL
              AND (status = 'approved' OR (status = 'scheduled' AND (aired_at IS NULL OR aired_at > ?)))",
-            [$channelId, $this->app->clock->nowMs()],
+            [$channelId, ...self::VIDEO_TYPES, $this->app->clock->nowMs()],
         ) as $r) {
             $out[(int) $r['library_id']] = true;
         }
@@ -757,11 +824,12 @@ final class Submissions
     public function queuedAirtime(int $channelId, int $programId): int
     {
         $store = $this->app->store();
-        // A waiting preaching promises its whole length.
+        // A waiting video promises its whole length.
         $songs = (int) $store->value(
-            "SELECT COALESCE(SUM(l.duration_ms), 0) FROM submissions s JOIN library_items l ON l.id = s.library_id
-             WHERE s.channel_id = ? AND s.program_id = ? AND s.type IN ('song', 'preaching') AND (s.status = 'approved' OR (s.status = 'scheduled' AND (s.aired_at IS NULL OR s.aired_at > ?)))",
-            [$channelId, $programId, $this->app->clock->nowMs()],
+            'SELECT COALESCE(SUM(l.duration_ms), 0) FROM submissions s JOIN library_items l ON l.id = s.library_id
+             WHERE s.channel_id = ? AND s.program_id = ? AND s.type IN (' . self::marks(self::VIDEO_TYPES) . ")
+             AND (s.status = 'approved' OR (s.status = 'scheduled' AND (s.aired_at IS NULL OR s.aired_at > ?)))",
+            [$channelId, $programId, ...self::VIDEO_TYPES, $this->app->clock->nowMs()],
         );
         $audio = (int) $store->value(
             "SELECT COALESCE(SUM(audio_ms), 0) FROM submissions WHERE channel_id = ? AND program_id = ? AND mode = 'audio'

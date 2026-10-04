@@ -45,7 +45,7 @@ const de = (host: string): StationTexts => ({
       h: 'Musik, Moderation, Gemeinschaft',
       p:
         'Die Musik kommt von YouTube: Lobpreis-Songs, ausgewählt von unserem Team und gewünscht von Hörerinnen und ' +
-        `Hörern; in Predigtsendungen laufen dazu Predigten. Zwischen den Songs spricht ${host}, unser Host, auf Deutsch ` +
+        `Hörern; in Predigt-, Zeugnis-, Missions- und Filmsendungen laufen dazu Predigten, Glaubenszeugnisse, Videos aus der Mission und christliche Filme. Zwischen den Songs spricht ${host}, unser Host, auf Deutsch ` +
         'und Englisch – über das, was gerade läuft, über eure Wünsche und Gebetsanliegen.',
     },
     {
@@ -58,7 +58,7 @@ const de = (host: string): StationTexts => ({
     {
       h: 'Mitmachen',
       p:
-        'Wünsch dir einen Song, empfiehl eine Predigt, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als ' +
+        'Wünsch dir einen Song, empfiehl ein Video – eine Predigt, ein Glaubenszeugnis, ein Missionsvideo oder einen Film –, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als ' +
         `Sprachaufnahme, oder schick uns ein Gebetsanliegen – ${host} liest es auf Sendung vor und lädt alle ein, dafür zu beten. In den Community-Räumen kannst du mit anderen ` +
         'Hörerinnen und Hörern schreiben. Arche Radio braucht keine Anmeldung – keine E-Mail, kein Passwort; wer möchte, ' +
         'nimmt seine Identität mit einer Passphrase aus 12 Wörtern auf ein anderes Gerät mit. Arche Radio gibt es im ' +
@@ -95,7 +95,7 @@ const de = (host: string): StationTexts => ({
       p:
         'Die Inhalte dieser App werden mit Sorgfalt erstellt. Für Richtigkeit, Vollständigkeit und Aktualität kann ' +
         'keine Gewähr übernommen werden. Beiträge von Hörerinnen und Hörern geben deren eigene Sicht wieder. Die ' +
-        'Musikvideos und Predigten werden über den YouTube-Player eingebunden; für ihre Inhalte sind die jeweiligen Rechteinhaber ' +
+        'Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos und Filme – werden über den YouTube-Player eingebunden; für ihre Inhalte sind die jeweiligen Rechteinhaber ' +
         'verantwortlich. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich; zum Zeitpunkt der ' +
         'Verlinkung waren keine Rechtsverstöße erkennbar.',
     },
@@ -189,12 +189,12 @@ const de = (host: string): StationTexts => ({
     {
       h: 'YouTube',
       p:
-        'Die Musikvideos und Predigten sind im erweiterten Datenschutzmodus (youtube-nocookie.com) eingebunden, einem Dienst der ' +
+        'Die Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos und Filme – sind im erweiterten Datenschutzmodus (youtube-nocookie.com) eingebunden, einem Dienst der ' +
         'Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Der Player wird erst geladen, wenn Sie ' +
         '„Tap to join live“ antippen – vorher baut die App keine Verbindung zu Google auf. Mit dem Antippen willigen ' +
         'Sie ein, dass Google Ihre IP-Adresse, Angaben zu Ihrem Gerät und die abgespielten Videos verarbeitet und ' +
         'Informationen auf Ihrem Gerät speichern kann (Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG). Dasselbe gilt ' +
-        'für die Vorschau eines gewünschten Songs oder einer vorgeschlagenen Predigt. Google kann Daten in die USA übermitteln; Google LLC ist unter dem ' +
+        'für die Vorschau eines gewünschten Songs oder eines vorgeschlagenen Videos. Google kann Daten in die USA übermitteln; Google LLC ist unter dem ' +
         'EU-US Data Privacy Framework zertifiziert. Sie können die Einwilligung jederzeit unten unter ' +
         '„Datenschutz-Einstellungen“ widerrufen.\n' +
         'Arche Radio nutzt die YouTube-API-Dienste: den eingebetteten Player und, auf unserem Server, die YouTube Data ' +
@@ -203,12 +203,12 @@ const de = (host: string): StationTexts => ({
         '(https://www.youtube.com/t/terms) und die Datenschutzerklärung von Google (https://policies.google.com/privacy).',
     },
     {
-      h: 'Einsendungen: Songwünsche, Predigtvorschläge, Aufnahmen, Gebetsanliegen, Gebete',
+      h: 'Einsendungen: Songwünsche, Videovorschläge, Aufnahmen, Gebetsanliegen, Gebete',
       p:
-        'Wenn Sie einen Song wünschen, eine Predigt vorschlagen, eine Sprachaufnahme einsenden, ein Gebetsanliegen ' +
+        'Wenn Sie einen Song wünschen, ein Video vorschlagen (eine Predigt, ein Glaubenszeugnis, ein Missionsvideo oder einen Film), eine Sprachaufnahme einsenden, ein Gebetsanliegen ' +
         'schicken oder in der Gebetszeit einer Gebetsstunde ein Gebet sprechen oder schreiben, verarbeiten wir Ihre ' +
         'Angaben (Vorname, Ort, Ihren Text bzw. Ihre Aufnahme, bei Songwünschen und ' +
-        'Predigtvorschlägen den Link und eine Widmung bzw. Ihre Begründung) ' +
+        'Videovorschlägen den Link und eine Widmung bzw. Ihre Begründung) ' +
         'zusammen mit Ihrer Gerätekennung, um den Beitrag zu prüfen und zu senden. Rechtsgrundlage ist Ihre ' +
         'Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Gebetsanliegen, Gebete, Zeugnisse und Geschichten können Ihre religiöse ' +
         'Überzeugung oder Angaben zur Gesundheit erkennen lassen; mit dem Absenden willigen Sie ausdrücklich ein, dass ' +
@@ -236,8 +236,8 @@ const de = (host: string): StationTexts => ({
         'steht; nur die Zahl bleibt beim Anliegen und wird mit ihm gelöscht. Die Zahl sieht nur, wer das Anliegen ' +
         'geschickt hat; am Ende einer Gebetsstunde kann der Host sagen, wie oft insgesamt mitgebetet wurde.\n' +
         'Aufnahmen werden erst nach der Freigabe ' +
-        'veröffentlicht und nur wiederholt, wenn Sie dem zugestimmt haben. Ein gewünschter Song oder eine ' +
-        'vorgeschlagene Predigt kann in unsere Auswahl aufgenommen werden – ohne Ihren Namen und ohne Ihre Widmung ' +
+        'veröffentlicht und nur wiederholt, wenn Sie dem zugestimmt haben. Ein gewünschter Song oder ein ' +
+        'vorgeschlagenes Video kann in unsere Auswahl aufgenommen werden – ohne Ihren Namen und ohne Ihre Widmung ' +
         'bzw. Begründung.\n' +
         'Abgelehnte Aufnahmen löschen wir sofort, ebenso Aufnahmen, die nicht mehr gesendet werden können; alle übrigen ' +
         'Einsendungen nach 90 Tagen. Aufnahmen, die Sie zur ' +
@@ -253,7 +253,7 @@ const de = (host: string): StationTexts => ({
         'nutzen wir die Programmierschnittstelle der OpenAI Ireland Limited, 1st Floor, The Liffey Trust Centre, ' +
         '117–126 Sheriff Street Upper, Dublin 1, D01 YC43, Irland, die in unserem Auftrag tätig ist. Dabei ' +
         'übermitteln wir Ihren eingesandten Text bzw. Ihre Aufnahme und deren Abschrift, Vorname und Ort, bei ' +
-        'Songwünschen und Predigtvorschlägen die Widmung bzw. Begründung und – für die Auswahl der Community-Stimmen – ' +
+        'Songwünschen und Videovorschlägen die Widmung bzw. Begründung und – für die Auswahl der Community-Stimmen – ' +
         'die betreffenden Chat-Nachrichten. ' +
         'Nach Angaben von OpenAI werden über die Schnittstelle übermittelte Daten nicht zum Training verwendet und bis ' +
         'zu 30 Tage zur Missbrauchserkennung gespeichert. Dabei können Daten in die USA übermittelt werden; ' +
@@ -332,8 +332,9 @@ const en = (host: string): StationTexts => ({
     {
       h: 'Music, a host, a community',
       p:
-        'The music comes from YouTube: worship songs chosen by our team and requested by listeners; preaching ' +
-        `programs add preachings. Between the songs ${host}, our host, speaks in English and German — about what is ` +
+        'The music comes from YouTube: worship songs chosen by our team and requested by listeners; preaching, ' +
+        'testimony, mission and film programs add preachings, testimonies, videos from the mission field and Christian ' +
+        `films. Between the songs ${host}, our host, speaks in English and German — about what is ` +
         'playing, your requests and your prayer requests.',
     },
     {
@@ -345,7 +346,7 @@ const en = (host: string): StationTexts => ({
     {
       h: 'Take part',
       p:
-        'Request a song, suggest a preaching, share your story, a testimony or a greeting as a voice recording, or send a prayer request — ' +
+        'Request a song, suggest a video — a preaching, a testimony, a mission video or a film —, share your story, a testimony or a greeting as a voice recording, or send a prayer request — ' +
         `${host} reads it out on air and invites everyone to pray for it. In the community rooms you can write with other listeners. Arche Radio needs no ` +
         'sign-up — no email, no password; if you like, a passphrase of 12 words takes your identity to another device. ' +
         'Arche Radio runs in the browser and as an app for iPhone and Android.',
@@ -377,7 +378,7 @@ const en = (host: string): StationTexts => ({
       h: 'Liability for content and links',
       p:
         'The content of this app is compiled with care. No guarantee can be given for accuracy, completeness or ' +
-        "timeliness. Listeners' contributions express their own views. The music videos and preachings are embedded through the " +
+        "timeliness. Listeners' contributions express their own views. The videos (music, preachings, testimonies, mission videos and films) are embedded through the " +
         'YouTube player; their rights holders are responsible for their content. The operators of linked external ' +
         'sites are responsible for their content; no legal violations were apparent at the time of linking.',
     },
@@ -459,11 +460,11 @@ const en = (host: string): StationTexts => ({
     {
       h: 'YouTube',
       p:
-        'The music videos and preachings are embedded in privacy-enhanced mode (youtube-nocookie.com), a service of Google Ireland ' +
+        'The videos (music, preachings, testimonies, mission videos and films) are embedded in privacy-enhanced mode (youtube-nocookie.com), a service of Google Ireland ' +
         'Limited, Gordon House, Barrow Street, Dublin 4, Ireland. The player loads only when you tap “Tap to join ' +
         'live” — before that, the app makes no connection to Google. By tapping you consent that Google processes ' +
         'your IP address, information about your device and the videos played, and may store information on your ' +
-        'device (Art. 6(1)(a) GDPR, § 25(1) TDDDG). The same applies to the preview of a requested song or a suggested preaching. Google may ' +
+        'device (Art. 6(1)(a) GDPR, § 25(1) TDDDG). The same applies to the preview of a requested song or a suggested video. Google may ' +
         'transfer data to the USA; Google LLC is certified under the EU-US Data Privacy Framework. You can withdraw ' +
         'your consent at any time under “Privacy settings” below.\n' +
         'Arche Radio uses the YouTube API Services: the embedded player and, on our server, the YouTube Data API, to ' +
@@ -472,11 +473,11 @@ const en = (host: string): StationTexts => ({
         'Policy (https://policies.google.com/privacy) apply.',
     },
     {
-      h: 'Submissions: song requests, preaching suggestions, recordings, prayer requests, prayers',
+      h: 'Submissions: song requests, video suggestions, recordings, prayer requests, prayers',
       p:
-        'When you request a song, suggest a preaching, send a voice recording or a prayer request, or speak or write a ' +
+        'When you request a song, suggest a video (a preaching, a testimony, a mission video or a film), send a voice recording or a prayer request, or speak or write a ' +
         'prayer in a prayer hour\'s prayer time, we process what you ' +
-        'give us (first name, place, your text or recording, for a song request or a preaching suggestion the link and ' +
+        'give us (first name, place, your text or recording, for a song request or a video suggestion the link and ' +
         'a dedication or your reason) together with your device ' +
         'id, to check and air it. The legal basis is your consent (Art. 6(1)(a) GDPR). Prayer requests, prayers, testimonies ' +
         'and stories can reveal religious beliefs or health information; by sending, you explicitly consent to our ' +
@@ -501,7 +502,7 @@ const en = (host: string): StationTexts => ({
         'only the number stays with the request and is deleted with it. Only the person who sent the request sees ' +
         'the number; at the end of a prayer hour the host may say how often listeners prayed along.\n' +
         'Recordings are published only after approval and replayed only with your ' +
-        'consent. A requested song or a suggested preaching may join our selection — without your name and without ' +
+        'consent. A requested song or a suggested video may join our selection — without your name and without ' +
         'your dedication or reason.\n' +
         'We delete rejected recordings immediately, and recordings that can no longer be aired; all other submissions ' +
         'after 90 days. Recordings you allowed ' +
@@ -515,7 +516,7 @@ const en = (host: string): StationTexts => ({
         'to transcribe recordings we use the API of OpenAI ' +
         'Ireland Limited, 1st Floor, The Liffey Trust Centre, 117–126 Sheriff Street Upper, Dublin 1, D01 YC43, ' +
         'Ireland, on our behalf. We send your text or recording and its transcript, first name and place, for song ' +
-        'requests and preaching suggestions the dedication or reason and — to select community voices — the chat ' +
+        'requests and video suggestions the dedication or reason and — to select community voices — the chat ' +
         'messages concerned. According to ' +
         'OpenAI, data sent through the API is not used for training and is stored for up to 30 days to detect abuse. ' +
         "Data may be transferred to the USA on the basis of the EU Commission's standard contractual clauses. Legal " +

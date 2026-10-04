@@ -24,6 +24,15 @@
       "stage": { "mode": "ambient", "image": null, "tagline": { "en": "", "de": "" } },
       "allowed": ["preaching"],
       "format": "preaching"
+    },
+    "outreach": {
+      "id": "outreach",
+      "title": { "en": "Into All the World", "de": "In alle Welt" },
+      "subtitle": { "en": "Reports from the mission field", "de": "Berichte aus der Mission" },
+      "color": "#2e8b57",
+      "stage": { "mode": "ambient", "image": null, "tagline": { "en": "", "de": "" } },
+      "allowed": ["mission", "testimony_video", "film"],
+      "format": "mission"
     }
   },
   "items": [
@@ -104,6 +113,34 @@
       "text": { "en": "A prayer request: Please pray for my mother, she has surgery on Friday." },
       "voices": [],
       "prayers": ["pk3v9q2m7x4tb"]
+    },
+    {
+      "id": "i7kq2x",
+      "type": "song",
+      "start": 1790193110400,
+      "dur": 600000,
+      "p": "outreach",
+      "kind": "testimony",
+      "yt": "WitnessVid1",
+      "title": "From the Streets to Hope",
+      "artist": "Grace Stories",
+      "thumb": "/media/thumbs/WitnessVid1.jpg",
+      "request": { "name": "Grace", "place": "Lagos" },
+      "fallback": null
+    },
+    {
+      "id": "i7kq2y",
+      "type": "song",
+      "start": 1790193710400,
+      "dur": 7200000,
+      "p": "outreach",
+      "kind": "film",
+      "yt": "FilmVideo01",
+      "title": "A Light in the Valley",
+      "artist": "Hope Pictures",
+      "thumb": "/media/thumbs/FilmVideo01.jpg",
+      "request": null,
+      "fallback": null
     }
   ]
 }

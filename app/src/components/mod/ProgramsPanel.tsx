@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { VIDEO_SUBMISSION_TYPES, isVideoFormat, isVideoSubmissionType, type SubmissionType } from '@arche/shared';
 import { api } from '@/lib/api';
 import { useApi } from './useApi';
 import { useModChannelId, useOverview } from './overview';
@@ -9,9 +10,10 @@ import { ChannelSelect } from './ChannelSelect';
 import { OpeningPrayers } from './OpeningPrayers';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { submissionLabel } from '@/i18n';
+import { allowedForFormat } from './programFormat';
 
-/** Preachings only in a preaching program: the server drops the type anywhere else. */
-const TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching'] as const;
+/** Suggested videos only in a video program: the server drops their types anywhere else. */
+const TYPES: readonly SubmissionType[] = ['song', 'story', 'testimony', 'greeting', 'prayer', ...VIDEO_SUBMISSION_TYPES];
 
 const DEFAULT_SETTINGS: ProgramSettings = {
   host: { enabled: true, every_songs: 3, intro: true, outro: true },
@@ -123,14 +125,9 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
   const set = <K extends keyof Draft>(k: K, v: Draft[K]): void => setD((x) => ({ ...x, [k]: v }));
   const setS = (patch: Partial<ProgramSettings>): void => setD((x) => ({ ...x, settings: { ...x.settings, ...patch } }));
   const prayer = d.settings.format === 'prayer';
-  const preaching = d.settings.format === 'preaching';
-  // A preaching program takes preachings from the start; any other drops them.
+  const video = isVideoFormat(d.settings.format);
   const setFormat = (format: ProgramSettings['format']): void =>
-    setD((x) => ({
-      ...x,
-      allowed: format === 'preaching' ? [...x.allowed.filter((a) => a !== 'preaching'), 'preaching'] : x.allowed.filter((a) => a !== 'preaching'),
-      settings: { ...x.settings, format },
-    }));
+    setD((x) => ({ ...x, allowed: allowedForFormat(x.allowed, x.settings.format, format), settings: { ...x.settings, format } }));
   const setP = (patch: Partial<ProgramSettings['prayer']>): void => setS({ prayer: { ...d.settings.prayer, ...patch } });
   const setC = (patch: Partial<ProgramSettings['prayer']['collect']>): void => setP({ collect: { ...d.settings.prayer.collect, ...patch } });
   const beds = useApi<{ items: LibraryItem[] }>(prayer ? '/mod/library?kind=bed&limit=100' : null);
@@ -235,6 +232,9 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
         <select className="field" value={d.settings.format} onChange={(e) => setFormat(e.target.value as ProgramSettings['format'])}>
           <option value="music">{t('mod.programs.formatMusic')}</option>
           <option value="preaching">{t('mod.programs.formatPreaching')}</option>
+          <option value="testimony">{t('mod.programs.formatTestimony')}</option>
+          <option value="mission">{t('mod.programs.formatMission')}</option>
+          <option value="film">{t('mod.programs.formatFilm')}</option>
           <option value="prayer">{t('mod.programs.formatPrayer')}</option>
         </select>
       </Field>
@@ -245,7 +245,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           <p className="text-sm text-ink-muted">{t('mod.programs.prayer.onlyPrayer')}</p>
         ) : (
           <div className="flex flex-wrap gap-4">
-            {TYPES.filter((type) => type !== 'preaching' || preaching).map((type) => (
+            {TYPES.filter((type) => !isVideoSubmissionType(type) || video).map((type) => (
               <Check
                 key={type}
                 label={submissionLabel(type)}
@@ -255,6 +255,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
             ))}
           </div>
         )}
+        {video && <p className="mt-1 text-xs text-ink-faint">{t('mod.programs.video.allowedHint')}</p>}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t('mod.programs.themes')} hint={t('mod.library.tagsHint')}>
@@ -304,16 +305,18 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
         {prayer && <p className="text-xs text-ink-faint">{t('mod.programs.prayer.intakeHint')}</p>}
       </div>
 
-      {preaching && (
+      {video && (
         <div className="card-inset flex flex-col gap-3 p-3">
-          <p className="label">{t('mod.programs.preaching.heading')}</p>
-          <p className="text-sm text-ink-muted">{t('mod.programs.preaching.order')}</p>
+          <p className="label">{t('mod.programs.video.heading')}</p>
+          <p className="text-sm text-ink-muted">{t('mod.programs.video.order')}</p>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label={t('mod.programs.preaching.songsBetween')}>
+            {/* Every video format's: the settings group keeps the name it had when preaching was the only one. */}
+            <Field label={t('mod.programs.video.songsBetween')}>
               <input type="number" min={0} max={10} className="field" value={d.settings.preaching.songs_between} onChange={(e) => setS({ preaching: { songs_between: num(e.target.value) } })} />
             </Field>
           </div>
-          <p className="text-xs text-ink-faint">{t('mod.programs.preaching.intakeHint')}</p>
+          <p className="text-xs text-ink-faint">{t('mod.programs.video.intakeHint')}</p>
+          {d.settings.format === 'film' && <p className="text-xs text-ink-faint">{t('mod.programs.video.filmHint')}</p>}
         </div>
       )}
 

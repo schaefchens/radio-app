@@ -52,7 +52,8 @@ final class StubText implements TextModel
                 'en' => ['text' => 'You are listening to ARCHE. Stay with us for more worship.'],
                 'de' => ['text' => 'Ihr hört ARCHE. Bleibt dran für mehr Lobpreis.'],
             ],
-            $kind === 'moderate_song', $kind === 'moderate_preaching', $kind === 'moderate_audio', $kind === 'moderate_prayer', $kind === 'moderate_intercession' => [
+            $kind === 'moderate_song', $kind === 'moderate_preaching', $kind === 'moderate_testimony_video', $kind === 'moderate_mission',
+            $kind === 'moderate_film', $kind === 'moderate_audio', $kind === 'moderate_prayer', $kind === 'moderate_intercession' => [
                 'safe' => true,
                 'christian' => true,
                 'program_fit' => true,

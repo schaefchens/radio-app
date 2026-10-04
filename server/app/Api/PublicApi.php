@@ -189,6 +189,14 @@ final class PublicApi
         return ['submission' => $this->c->app->submissions()->submitSong($i, $this->c->channel(), $this->c->req->json())];
     }
 
+    /** A video suggested for a video program: a preaching, testimony, mission video or film (`type`). */
+    public function submitVideo(): array
+    {
+        $i = $this->c->requireIdentity();
+        return ['submission' => $this->c->app->submissions()->submitSuggestion($i, $this->c->channel(), $this->c->req->json())];
+    }
+
+    /** An app loaded before the video sheet still suggests a preaching here. */
     public function submitPreaching(): array
     {
         $i = $this->c->requireIdentity();

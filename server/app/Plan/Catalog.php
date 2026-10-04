@@ -16,9 +16,16 @@ use Arche\App;
  */
 final class Catalog
 {
-    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching', 'intercession'];
+    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching', 'testimony_video', 'mission', 'film', 'intercession'];
     public const STAGE_MODES = ['image', 'ambient', 'flyins'];
-    public const FORMATS = ['music', 'prayer', 'preaching'];
+    public const FORMATS = ['music', 'prayer', 'preaching', 'testimony', 'mission', 'film'];
+    /**
+     * The video programs: each plays videos of the library kind of its name
+     * (on air a song item of that kind, introduced by the host moment of that
+     * name), and listeners suggest them with the submission type here. Not
+     * `testimony` for a testimony: that type is a listener's own recording.
+     */
+    public const VIDEO_FORMATS = ['preaching' => 'preaching', 'testimony' => 'testimony_video', 'mission' => 'mission', 'film' => 'film'];
 
     /** @var array<string,mixed> */
     public const PROGRAM_DEFAULTS = [
@@ -33,9 +40,9 @@ final class Catalog
         // Approved-but-unaired queue beyond this much airtime closes intake.
         'max_queue_min' => 30,
         'replay_contrib' => false,
-        // 'prayer': the prayer hour's running order (Program\PrayerHour);
-        // 'preaching': preachings with songs between them (Drafter) — instead
-        // of music with the host between songs.
+        // 'prayer': the prayer hour's running order (Program\PrayerHour); a
+        // video format (VIDEO_FORMATS): its videos with songs between them
+        // (Drafter) — instead of music with the host between songs.
         'format' => 'music',
         'prayer' => [
             // The collection, while listeners send their requests: N songs,
@@ -48,8 +55,11 @@ final class Catalog
             // Open Doors' daily prayer request for persecuted Christians, read first.
             'opendoors' => true,
         ],
+        // Every video format's, under the name of the first one: renamed, a
+        // moderator's value would be lost to a /mod tab opened before the
+        // deploy, or to a request served while the deploy uploads.
         'preaching' => [
-            // Regular songs after a preaching before the next one may start.
+            // Regular songs after a video before the next one may start.
             'songs_between' => 2,
         ],
     ];
@@ -58,6 +68,12 @@ final class Catalog
     private array $programCache = [];
 
     public function __construct(private App $app) {}
+
+    /** A program format that plays videos (VIDEO_FORMATS). */
+    public static function isVideoFormat(mixed $format): bool
+    {
+        return is_string($format) && isset(self::VIDEO_FORMATS[$format]);
+    }
 
     public function version(): int
     {
@@ -221,11 +237,11 @@ final class Catalog
                 throw new ApiError(422, 'prayer_fallback');
             }
         } else {
-            // Only a preaching program plays preachings, only a prayer hour
-            // has a prayer time: sent to any other, they would wait for a
-            // moment that never comes.
+            // Only a video program plays suggested videos (any of the four
+            // kinds it allows), only a prayer hour has a prayer time: sent to
+            // any other, they would wait for a moment that never comes.
             $allowed = isset($row['allowed']) ? (array) json_decode($row['allowed'], true) : ($id !== null ? ($this->program($id)['allowed'] ?? []) : []);
-            $drop = $format === 'preaching' ? ['intercession'] : ['preaching', 'intercession'];
+            $drop = self::isVideoFormat($format) ? ['intercession'] : [...array_values(self::VIDEO_FORMATS), 'intercession'];
             if (array_intersect($allowed, $drop)) $row['allowed'] = json_encode(array_values(array_diff($allowed, $drop)));
         }
 

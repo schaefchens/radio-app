@@ -515,9 +515,9 @@ export class RadioEngine {
   }
 
   private maintain(item: TimelineItem, now: number): void {
-    // A preaching runs most of an hour: the tiles (intake closes before its
-    // program ends) and what comes next follow each minute file, not only
-    // the start of the next item.
+    // A video of a video program can run most of an hour — a film two: the
+    // tiles (intake closes before its program ends) and what comes next
+    // follow each minute file, not only the start of the next item.
     if ((this.timeline.slotAt(now)?.t ?? -1) !== this.contextT) {
       this.state = { ...this.state, ...this.contextFor(item, now) };
       this.emit();

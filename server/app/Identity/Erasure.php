@@ -6,6 +6,7 @@ namespace Arche\Identity;
 use Arche\ApiError;
 use Arche\App;
 use Arche\Presence\Presence;
+use Arche\Submission\Submissions;
 use Arche\Support\Files;
 
 /**
@@ -245,7 +246,7 @@ final class Erasure
     {
         $aired = [];
         foreach ($subs as $s) {
-            if ($s['type'] !== 'song' && $s['type'] !== 'preaching' && $s['aired_at'] !== null) $aired[(int) $s['channel_id']][] = (int) $s['aired_at'];
+            if (!in_array($s['type'], Submissions::VIDEO_TYPES, true) && $s['aired_at'] !== null) $aired[(int) $s['channel_id']][] = (int) $s['aired_at'];
         }
         foreach ($aired as $channelId => $starts) {
             $channel = $this->app->catalog()->channel($channelId);

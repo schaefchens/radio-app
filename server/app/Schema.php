@@ -530,6 +530,46 @@ final class Schema
             INSERT INTO kv(key, value) VALUES('plan_version', '1')
               ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT);
             SQL,
+            // 11 — testimonies, mission videos and films in the library (kinds
+            // `testimony`, `mission`, `film`: videos their programs play like
+            // a song, as a preaching program its preachings). The CHECK is
+            // rebuilt as in 5 and 8. No new plan version: nothing planned
+            // changes, and a new one would throw away host breaks already voiced.
+            <<<'SQL'
+            CREATE TABLE library_items_new (
+              id INTEGER PRIMARY KEY,
+              kind TEXT NOT NULL DEFAULT 'song' CHECK (kind IN ('song', 'jingle', 'contrib', 'bed', 'preaching', 'testimony', 'mission', 'film')),
+              yt_id TEXT,
+              audio TEXT,
+              title TEXT NOT NULL,
+              artist TEXT NOT NULL DEFAULT '',
+              thumb TEXT,
+              duration_ms INTEGER NOT NULL,
+              languages TEXT NOT NULL DEFAULT '[]',
+              themes TEXT NOT NULL DEFAULT '[]',
+              moods TEXT NOT NULL DEFAULT '[]',
+              program_ids TEXT NOT NULL DEFAULT '[]',
+              channel_ids TEXT NOT NULL DEFAULT '[]',
+              source TEXT NOT NULL DEFAULT 'curated',
+              submission_id INTEGER,
+              meta TEXT NOT NULL DEFAULT '{}',
+              active INTEGER NOT NULL DEFAULT 1,
+              plays INTEGER NOT NULL DEFAULT 0,
+              last_played INTEGER,
+              trend_score REAL NOT NULL DEFAULT 0,
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            INSERT INTO library_items_new (id, kind, yt_id, audio, title, artist, thumb, duration_ms, languages, themes, moods,
+              program_ids, channel_ids, source, submission_id, meta, active, plays, last_played, trend_score, created, updated)
+            SELECT id, kind, yt_id, audio, title, artist, thumb, duration_ms, languages, themes, moods,
+              program_ids, channel_ids, source, submission_id, meta, active, plays, last_played, trend_score, created, updated
+            FROM library_items;
+            DROP TABLE library_items;
+            ALTER TABLE library_items_new RENAME TO library_items;
+            CREATE UNIQUE INDEX library_yt ON library_items(yt_id) WHERE yt_id IS NOT NULL;
+            CREATE INDEX library_kind_active ON library_items(kind, active);
+            SQL,
         ];
     }
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { SUBMISSION_TYPES, VIDEO_FORMATS, isVideoSubmissionType } from '@arche/shared';
 import en from '@/i18n/en.json';
 import de from '@/i18n/de.json';
 
@@ -34,5 +35,30 @@ describe('i18n', () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  // Keys built at runtime (`nowPlaying.${kind}`, `submit.${type}.title` …) escape
+  // the literal check above: a missing one shows its raw name on screen.
+  it('every key built from a list of kinds, types or tiles exists', () => {
+    const all = new Set(keys(en));
+    const built = [
+      ...VIDEO_FORMATS.flatMap((f) => [`nowPlaying.${f}`, `videoForm.kinds.${f}`, `videoForm.hints.${f}`, `mod.library.kind.${f}`]),
+      ...SUBMISSION_TYPES.flatMap((type) => [
+        // submissionLabel: what the forms call it, a recording by its kind.
+        type === 'song' || type === 'prayer' || isVideoSubmissionType(type) ? `submit.${type}.title` : `record.${type}`,
+        `mod.review.types.${type}`,
+      ]),
+      ...['song', 'story', 'prayer', 'video'].flatMap((tile) => [`submit.${tile}.title`, `submit.${tile}.subtitle`]),
+      'submit.video.title',
+      'songForm.url',
+      'songForm.message',
+      'songForm.messageHint',
+      'songForm.nameHint',
+      'videoForm.url',
+      'videoForm.message',
+      'videoForm.messageHint',
+      'videoForm.nameHint',
+    ];
+    expect(built.filter((k) => !all.has(k))).toEqual([]);
   });
 });

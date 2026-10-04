@@ -35,6 +35,7 @@ final class Routes
         $r->add('POST', '/setup/admin', $p('setupAdmin'));
         $r->add('GET', '/submissions', $p('mySubmissions'));
         $r->add('POST', '/submissions/song', $p('submitSong'));
+        $r->add('POST', '/submissions/video', $p('submitVideo'));
         $r->add('POST', '/submissions/preaching', $p('submitPreaching'));
         $r->add('POST', '/submissions/audio', $p('submitAudio'));
         $r->add('POST', '/submissions/prayer', $p('submitPrayer'));

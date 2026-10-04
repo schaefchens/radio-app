@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Host;
 
 use Arche\App;
+use Arche\Plan\Catalog;
 use Arche\Program\Drafter;
 use Arche\Program\PrayerHour;
 use Arche\Program\SubmissionWindow;
@@ -66,10 +67,10 @@ final class HostWriter
             'next' => $this->songRef($next),
             'next_uid' => '',
         ];
-        // Only a break that names the next song (or introduces the preaching
-        // after it) pins it: the committer drops the break if anything else
-        // ends up following it.
-        if (in_array($hb['kind'], ['break', 'intro', 'preaching'], true) && $ctx['next'] !== null) $ctx['next_uid'] = (string) $next['uid'];
+        // Only a break that names the next song (or introduces the video after
+        // it — a video program's own moment, named after its kind) pins it:
+        // the committer drops the break if anything else ends up following it.
+        if (in_array($hb['kind'], ['break', 'intro', ...array_keys(Catalog::VIDEO_FORMATS)], true) && $ctx['next'] !== null) $ctx['next_uid'] = (string) $next['uid'];
 
         if ($hb['kind'] === 'outro' && $item !== null) {
             $block = $this->app->resolver()->blockAt($channel, (int) $item['block_end']);
@@ -80,9 +81,11 @@ final class HostWriter
         $sid = (int) ($hb['context']['submission_id'] ?? 0);
         if ($sid > 0 && ($sub = $this->app->submissions()->get($sid)) !== null) {
             if (in_array($sub['type'], Submissions::VIDEO_TYPES, true)) {
-                // A preaching suggestion is announced like a request; the preaching itself is "next".
+                // A suggested video is announced like a request, by its kind
+                // ('preaching', 'testimony', 'mission', 'film'); the video itself is "next".
+                $kind = Submissions::libraryKind((string) $sub['type']);
                 $ctx['request'] = ['name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message']]
-                    + ($sub['type'] === 'preaching' ? ['type' => 'preaching'] : []);
+                    + ($kind !== 'song' ? ['type' => $kind] : []);
             } else {
                 $meta = json_decode((string) $sub['meta'], true) ?: [];
                 $ctx['contribution'] = [
@@ -378,9 +381,12 @@ final class HostWriter
         Facts and honesty:
         - You are an AI host. Never claim to be human or invent personal experiences.
         - Say nothing about a song or artist beyond the title and artist you are given, and nothing
-          about a preaching beyond its title and preacher — never what it says or teaches.
-        - An item of the kind "preaching" (in "previous", "next" or a request) is a preaching: speak
-          of it as a preaching, never as a song.
+          about a video beyond its title and who it is from ("by") — never what it says, teaches or
+          shows.
+        - An item of the kind "preaching", "testimony", "mission" or "film" (in "previous", "next" or
+          a request) is a video, never a song: a preaching; a testimony, in which someone tells
+          their own story of faith (not a listener's recording — that comes as a "contribution"); a
+          report from Christian mission; a Christian film. Speak of it as what it is.
         - Name a listener only by the first name and place given — nothing else about them. No
           name given: they stay anonymous; never guess or describe who they are.
         - Quote or reference Scripture only when you are certain of it; paraphrase rather than
@@ -390,17 +396,18 @@ final class HostWriter
           ("heute Abend"), never a clock time.
 
         The moment ("kind"):
-        - intro: open the program named in the data; when "next" is a preaching, introduce it too.
+        - intro: open the program named in the data; when "next" is a video, introduce it too.
         - break: between songs; you may pick up the last song or the program's theme in a
-          sentence, and may name the next song — when "next" is a preaching, introduce it. You may
+          sentence, and may name the next song — when "next" is a video, introduce it. You may
           briefly mention one community voice.
         - announce: a listener requested the next song — say whose request it is (first name and
           place, when given) and pass on their dedication warmly, when there is one. With
-          "request.type": "preaching" the listener suggested the preaching that follows ("next"):
-          say who suggested it, pass on their word on why when there is one, and introduce the
-          preaching by its title and preacher.
-        - preaching: in a preaching program, introduce the preaching that follows ("next": its
-          title and preacher) and invite everyone to listen.
+          "request.type" ("preaching", "testimony", "mission" or "film") the listener suggested the
+          video that follows ("next"): say who suggested it, pass on their word on why when there is
+          one, and introduce it by its title and who it is from.
+        - preaching, testimony, mission, film: in a program of that kind, introduce the video that
+          follows ("next": its title and who it is from) and invite everyone to listen — to a film,
+          to watch along in the app.
         - contrib: introduce a listener's recording (story, testimony, greeting or prayer request).
         - prayer: listeners' prayer requests ("requests": how many) were just read out word for
           word, right before you: invite everyone to pray for them — where they are, or with the
@@ -437,10 +444,11 @@ final class HostWriter
           requests in a few words and invite listeners to pray for them, or invite everyone to
           pray in the quiet.
 
-        previous_request, when given, is a listener's request, preaching suggestion or recording that
-        aired shortly before this moment. Begin with one warm sentence that reacts to it — a thought
-        on the song, or a kind word to the listener (for a suggested preaching, thanks for the
-        suggestion) or to the one they dedicated it to — instead of retelling the announcement.
+        previous_request, when given, is a listener's request, suggested video ("… suggestion") or
+        recording that aired shortly before this moment. Begin with one warm sentence that reacts to
+        it — a thought on the song, or a kind word to the listener (for a suggested video, thanks
+        for the suggestion) or to the one they dedicated it to — instead of retelling the
+        announcement.
         Name the listener or the song ("Jenny's request"), never "that was": another song may have
         played in between. Then carry on with this moment.
 
@@ -465,26 +473,28 @@ final class HostWriter
         if ($sub['type'] === 'song') {
             return ['kind' => 'song request', 'name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message'], 'song' => $this->songRef($item)];
         }
-        if ($sub['type'] === 'preaching') {
-            return ['kind' => 'preaching suggestion', 'name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message'], 'preaching' => $this->songRef($item)];
+        if (in_array($sub['type'], Submissions::SUGGESTION_TYPES, true)) {
+            $kind = Submissions::libraryKind((string) $sub['type']);
+            return ['kind' => "$kind suggestion", 'name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message'], $kind => $this->songRef($item)];
         }
         $meta = json_decode((string) $sub['meta'], true) ?: [];
         return ['kind' => $sub['type'], 'name' => $sub['name'], 'place' => $sub['place'], 'summary' => (string) ($meta['host_context'] ?? '')];
     }
 
     /**
-     * The song an item plays, or the preaching — which the host must never
-     * call a song.
+     * The song an item plays, or the video of a video program — which the
+     * host must never call a song — with who it is from (`by`: a preacher, a
+     * person, a ministry, a studio or their channel).
      *
      * @param array<string,mixed>|null $item
-     * @return array{title:string,artist:string}|array{kind:string,title:string,preacher:string}|null
+     * @return array{title:string,artist:string}|array{kind:string,title:string,by:string}|null
      */
     private function songRef(?array $item): ?array
     {
         if ($item === null || $item['type'] !== 'song') return null;
         $title = (string) ($item['payload']['title'] ?? '');
         $artist = (string) ($item['payload']['artist'] ?? '');
-        return Drafter::isPreaching($item) ? ['kind' => 'preaching', 'title' => $title, 'preacher' => $artist] : ['title' => $title, 'artist' => $artist];
+        return Drafter::isVideo($item) ? ['kind' => (string) $item['payload']['kind'], 'title' => $title, 'by' => $artist] : ['title' => $title, 'artist' => $artist];
     }
 
     /** @param array<string,mixed> $channel */

@@ -50,6 +50,29 @@ final class Policy
         or promises of blessing or healing in return for money. A church's own donation or
         livestream links in the description are uploader's text like a music video's.
 
+        Three more kinds of video come the same way, for programs of their kind, with the same
+        video data and the listener's word on why; judge each as what its type says:
+        - A testimony (type "testimony_video") is a video in which someone tells their own story of
+          faith: how they came to faith, or how God carried them through illness, addiction, loss
+          or a crisis. (Type "testimony" is something else: a listener's own recording, with a
+          transcript.) Approve only what is clearly such a story — not a sermon, a music video, a
+          worship set, a talk show or news. Hard chapters (addiction, abuse, crime, illness, loss)
+          are welcome when told with care. It is not suitable when it is presented for shock or
+          sensation, or offers healing or blessing in return for money.
+        - A mission video (type "mission") comes from Christian mission: a report from the field,
+          street preaching or evangelism, church planting, Bible translation, help given in Jesus'
+          name, or a documentary about it. It is not suitable when it shows contempt for the people
+          it reaches or for other faiths (street preaching that shouts at, mocks or condemns
+          passers-by), when it shows people in need without dignity or puts children on show, or
+          when it is mainly an appeal for money; a ministry's donation links in the description are
+          uploader's text.
+        - A film (type "film") is a Christian feature film, short film, Bible film, an episode of a
+          Christian series or a documentary, with a clearly Christian story or message, suitable
+          for all ages: no graphic violence, horror or sexual content, nothing known as for adults
+          only. Approve a film only from its studio, its distributor or a ministry that offers it:
+          a full commercial film uploaded by an unrelated channel is most likely unlicensed and not
+          suitable. A trailer, a sermon or a music video is not a film.
+
         A prayer (type "intercession") is a listener's own prayer, written ("prayer") or recorded
         ("transcript"), sent in a prayer hour's prayer time in answer to the prayer requests read
         out on air. It airs word for word (or as recorded) with their first name and place.
@@ -59,19 +82,20 @@ final class Policy
         only is fine; the rules above on other people's personal data still apply.
 
         christian: the content must be Christian — worship, gospel, hymns, Christian artists, faith,
-        prayer, testimony, preaching, encouragement grounded in faith. Secular songs are not
-        suitable even when pleasant. A denomination, a minority doctrinal position, a style of
-        preaching or a musical style (rap, metal, classical, children's songs) is never a reason to
-        refuse. Hard subjects — grief, doubt, illness, sin and repentance — are welcome when handled
-        with care.
+        prayer, testimony, preaching, mission, Christian films, encouragement grounded in faith.
+        Secular songs are not suitable even when pleasant. A denomination, a minority doctrinal
+        position, a style of preaching or evangelism or a musical style (rap, metal, classical,
+        children's songs) is never a reason to refuse. Hard subjects — grief, doubt, illness, sin
+        and repentance — are welcome when handled with care.
 
         program_fit: the submission suits the program on air (title, description, format, themes and
         moods in the data) and its type is one the program allows. A loud party song does not fit a
-        quiet prayer hour; a preaching suggestion that is not a preaching does not fit a preaching
-        program.
+        quiet prayer hour. A video program may take other kinds of video than its own format (a
+        mission program may take testimonies): judge each as what its type says — a suggestion
+        that is not what its type says (a music video sent as a testimony) does not fit.
 
-        message_ok (songs and preachings): the listener's dedication or word on why will be read on
-        air. It must be kind, suitable for all ages, free of other people's personal data, and make
+        message_ok (songs and suggested videos): the listener's dedication or word on why will be
+        read on air. It must be kind, suitable for all ages, free of other people's personal data, and make
         sense. No message → true. For other types set message_ok to true unless the listener's name
         or place is abusive.
 

@@ -56,7 +56,11 @@ final class ModApi
         return [
             'me' => Identities::publicView($this->me),
             'channels' => $channels,
-            'library' => ['songs' => $app->library()->count('song'), 'preachings' => $app->library()->count('preaching'), 'jingles' => $app->library()->count('jingle')],
+            'library' => [
+                'songs' => $app->library()->count('song'), 'preachings' => $app->library()->count('preaching'),
+                'testimonies' => $app->library()->count('testimony'), 'missions' => $app->library()->count('mission'),
+                'films' => $app->library()->count('film'), 'jingles' => $app->library()->count('jingle'),
+            ],
             'review' => (int) $app->store()->value("SELECT COUNT(*) FROM submissions WHERE status = 'review'"),
             'reports' => (int) $app->store()->value("SELECT COUNT(*) FROM chat_reports WHERE status = 'open'"),
             // Wall requests listeners reported (Moderation\Reports): decided in Review → Prayer wall.
@@ -128,12 +132,13 @@ final class ModApi
         return ['video' => $this->c->app->library()->lookup((string) $this->c->req->input('url', ''))];
     }
 
-    /** A song, or with `kind: preaching` a preaching, by its YouTube link. */
+    /** A song, or with `kind` a video of a video program (Library::VIDEO_KINDS), by its YouTube link. */
     public function libraryAdd(): array
     {
         $this->mod();
         $in = $this->c->req->json();
-        $kind = ($in['kind'] ?? 'song') === 'preaching' ? 'preaching' : 'song';
+        // An unknown kind is refused (bad_kind), never quietly added as a song.
+        $kind = (string) ($in['kind'] ?? 'song');
         return ['item' => $this->c->app->library()->addVideo($kind, (string) ($in['url'] ?? ''), $in, $this->actor())];
     }
 

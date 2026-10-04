@@ -7,7 +7,7 @@ use Arche\App;
 
 /**
  * Gap-fill: which library song plays next when no request is waiting (and,
- * in a preaching program, which preaching).
+ * in a video program, which of its videos).
  *
  * Weighted toward the program's themes and moods and toward what listeners
  * have been reacting to (trend score), with enough randomness that the same
@@ -26,10 +26,10 @@ final class Selector
         [0, 0],
     ];
     /**
-     * A preaching's repeat window in ms, strictest first. Never again within
-     * six hours: a preaching heard twice in one program is worse than songs.
+     * A video's repeat window in ms, strictest first. Never again within six
+     * hours: a preaching or a film twice in one program is worse than songs.
      */
-    private const PREACHING_REPEAT = [7 * 86_400_000, 86_400_000, 6 * 3_600_000];
+    private const VIDEO_REPEAT = [7 * 86_400_000, 86_400_000, 6 * 3_600_000];
 
     /** @var \Closure(int,int):int */
     private \Closure $rand;
@@ -70,21 +70,22 @@ final class Selector
     }
 
     /**
-     * A preaching from the library for a preaching program, at most $maxMs
-     * long, or null (songs fill instead). Every preaching takes its turn: of
-     * those outside the repeat window (strictest first), the third longest
-     * unheard, weighted like songs (themes, moods, trend).
+     * A video of $kind (a video format: preaching, testimony, mission, film)
+     * from the library for a video program, at most $maxMs long, or null
+     * (songs fill instead). Every video takes its turn: of those outside the
+     * repeat window (strictest first), the third longest unheard, weighted
+     * like songs (themes, moods, trend).
      *
      * @param array<string,mixed> $channel
      * @param array<string,mixed> $program decoded program
      * @return array<string,mixed>|null library item
      */
-    public function preaching(array $channel, array $program, int $atMs, int $maxMs): ?array
+    public function video(array $channel, array $program, string $kind, int $atMs, int $maxMs): ?array
     {
         $cid = (int) $channel['id'];
-        $candidates = $this->unrequested($cid, $this->app->library()->candidates($cid, (int) $program['id'], $maxMs, 'preaching'));
+        $candidates = $this->unrequested($cid, $this->app->library()->candidates($cid, (int) $program['id'], $maxMs, $kind));
         if (!$candidates) return null;
-        foreach (self::PREACHING_REPEAT as $window) {
+        foreach (self::VIDEO_REPEAT as $window) {
             $recent = $window > 0 ? $this->app->timeline()->recentLibraryIds($cid, $atMs - $window) : [];
             $pool = array_values(array_filter($candidates, fn(array $c): bool => !isset($recent[$c['id']])));
             if (!$pool) continue;
@@ -96,7 +97,7 @@ final class Selector
 
     /**
      * Without what requests are waiting to play: a requested song (or a
-     * suggested preaching) is in the library from its approval on, while its
+     * suggested video) is in the library from its approval on, while its
      * request waits its turn — picked meanwhile, it aired twice in a row, the
      * host announcing the request right after the song itself.
      *

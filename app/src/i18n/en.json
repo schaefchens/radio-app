@@ -47,6 +47,9 @@
   "nowPlaying": {
     "eyebrow": "Now playing",
     "preaching": "Preaching",
+    "testimony": "Testimony",
+    "mission": "Mission",
+    "film": "Film",
     "requestedBy": "Requested by {{name}}",
     "requestedByFrom": "Requested by {{name}} from {{place}}",
     "suggestedBy": "Suggested by {{name}}",
@@ -106,8 +109,20 @@
       "subtitle": "Our listeners pray with you."
     },
     "preaching": {
-      "title": "Suggest a preaching",
-      "subtitle": "Which preaching moved you?"
+      "title": "Suggest a preaching"
+    },
+    "testimony_video": {
+      "title": "Suggest a testimony video"
+    },
+    "mission": {
+      "title": "Suggest a mission video"
+    },
+    "film": {
+      "title": "Suggest a film"
+    },
+    "video": {
+      "title": "Suggest a video",
+      "subtitle": "Preaching, testimony, mission or film"
     },
     "closing": "Last chance",
     "closed": "Closed for this program",
@@ -134,9 +149,21 @@
     "invalid": "That doesn't look like a YouTube link.",
     "nameHint": "Your first name and place are named on air with your request."
   },
-  "preachingForm": {
+  "videoForm": {
+    "kind": "What would you like to suggest?",
+    "kinds": {
+      "preaching": "Preaching",
+      "testimony": "Testimony",
+      "mission": "Mission",
+      "film": "Film"
+    },
+    "hints": {
+      "preaching": "Paste a link to a Christian preaching or devotion on YouTube (5 to 90 minutes).",
+      "testimony": "Paste a link to a testimony on YouTube: someone tells what God has done in their life (2 to 60 minutes).",
+      "mission": "Paste a link to a mission video on YouTube: a report from the mission field, street preaching or a mission documentary (3 to 90 minutes).",
+      "film": "Paste a link to a Christian film on YouTube, from its studio or an official channel (5 minutes to 3 hours)."
+    },
     "url": "YouTube link",
-    "urlHint": "Paste a link to a Christian preaching or devotion on YouTube (5 to 90 minutes).",
     "message": "Why do you recommend it? (optional)",
     "messageHint": "The host may read it on air.",
     "nameHint": "Your first name and place are named on air with your suggestion."
@@ -438,18 +465,24 @@
         "all": "All",
         "song": "Songs",
         "preaching": "Preachings",
+        "testimony": "Testimonies",
+        "mission": "Mission videos",
+        "film": "Films",
         "jingle": "Jingles",
         "contrib": "Recordings",
         "bed": "Background music"
       },
-      "addVideo": "Add a song or a preaching",
+      "addVideo": "Add a song or a video",
       "addKind": "Kind",
       "addKindSong": "Song",
       "addKindPreaching": "Preaching",
+      "addKindTestimony": "Testimony",
+      "addKindMission": "Mission video",
+      "addKindFilm": "Film",
       "url": "YouTube link",
       "lookup": "Look up",
       "existing": "Already in the library",
-      "badDuration": "This video is too short or too long for its kind: songs 30 seconds to 30 minutes, preachings 1 minute to 3 hours.",
+      "badDuration": "This video is too short or too long for its kind: songs 30 seconds to 30 minutes, preachings, testimonies and mission videos 1 minute to 3 hours, films 1 minute to 4 hours.",
       "notEmbeddable": "Not embeddable — cannot be played in the app.",
       "notPlayable": "Blocked in one of the main regions.",
       "duration": "Duration",
@@ -457,7 +490,13 @@
       "titleField": "Title",
       "artist": "Artist",
       "preacher": "Preacher",
-      "preachingHint": "Preachings play only in preaching programs (Programs → Format), with songs between them.",
+      "witness": "Person or channel",
+      "ministry": "Ministry or channel",
+      "studio": "Studio or channel",
+      "preachingHint": "From the library, preachings play only in preaching programs (Programs → Format), with songs between them.",
+      "testimonyHint": "From the library, testimonies play only in testimony programs (Programs → Format), with songs between them.",
+      "missionHint": "From the library, mission videos play only in mission programs (Programs → Format), with songs between them.",
+      "filmHint": "From the library, films play only in film programs (Programs → Format) whose block is longer than the film. Add films from their studio or an official channel only.",
       "themes": "Themes",
       "moods": "Moods",
       "tagsHint": "Comma-separated, e.g. worship, hope",
@@ -482,7 +521,7 @@
         "submission": "listener request",
         "suggestion": "listener suggestion"
       },
-      "noYoutube": "YOUTUBE_API_KEY is not configured on the server — songs and preachings cannot be added.",
+      "noYoutube": "YOUTUBE_API_KEY is not configured on the server — songs and videos cannot be added.",
       "lookupFirst": "Paste a YouTube link and look it up first.",
       "addedOk": "Added to the library.",
       "none": "No items match.",
@@ -534,6 +573,9 @@
       "format": "Format",
       "formatMusic": "Music, with the host between songs",
       "formatPreaching": "Preaching, with songs between the preachings",
+      "formatTestimony": "Testimonies, with songs between them",
+      "formatMission": "Mission, with songs between the videos",
+      "formatFilm": "Film, with songs between the films",
       "formatPrayer": "Prayer hour",
       "prayer": {
         "heading": "Prayer hour",
@@ -550,11 +592,13 @@
         "notFallback": "A prayer hour cannot be a channel's fallback program: its running order needs an end.",
         "opendoors": "Read Open Doors' daily prayer request for persecuted Christians first (German as published, translated for English listeners)"
       },
-      "preaching": {
-        "heading": "Preaching program",
-        "order": "Intro → a preaching → songs → the next preaching, if one still fits into the program → … → outro. Listeners' suggestions come first, then the library's preachings, each in turn; none plays twice within six hours. When no preaching fits any more, songs play to the end.",
-        "songsBetween": "Songs between two preachings",
-        "intakeHint": "A suggested preaching fills the queue with its whole length: for a long program, raise “Close when the queue holds … minutes”. One that no longer fits before the end stays in the library for a later preaching program."
+      "video": {
+        "heading": "Videos and songs",
+        "order": "Intro → a video → songs → the next video, if one still fits into the program → … → outro. Listeners' suggestions come first (any kind the program takes), then the library's videos of the program's own kind, each in turn; none plays twice within six hours. When no video fits any more, songs play to the end.",
+        "songsBetween": "Songs between two videos",
+        "intakeHint": "A suggested video fills the queue with its whole length: for a long program, raise “Close when the queue holds … minutes” (up to 180). One that can no longer fit before the end goes to the library for a later program of its kind.",
+        "allowedHint": "The program's own kind is ticked for you. Tick others to take them too: each airs as its own kind, announced like a request.",
+        "filmHint": "A film plays only when it fits: make the program's block longer than its films (a 2-hour film needs about 2 hours 5 minutes)."
       },
       "opening": {
         "heading": "Opening prayers",
@@ -658,6 +702,9 @@
         "greeting": "Greeting",
         "prayer": "Prayer request",
         "preaching": "Preaching suggestion",
+        "testimony_video": "Testimony video suggestion",
+        "mission": "Mission video suggestion",
+        "film": "Film suggestion",
         "intercession": "Prayer (prayer time)"
       },
       "statuses": {
@@ -711,7 +758,7 @@
       "listenerSaw": "the listener was told: {{reason}}",
       "overrule": "Approve anyway",
       "withoutMessage": "Approve without the message",
-      "overruleHint": "A song or preaching joins the library; while its program is still on, the submission also goes on air.",
+      "overruleHint": "A song or video joins the library; while its program is still on, the submission also goes on air.",
       "blockers": {
         "recording_deleted": "Rejected recordings are deleted at once (privacy policy), so this one cannot be approved any more.",
         "video_unplayable": "YouTube does not play this video in the embedded player, so it cannot air.",

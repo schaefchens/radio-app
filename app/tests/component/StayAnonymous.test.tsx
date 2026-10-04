@@ -31,9 +31,10 @@ afterEach(() => vi.unstubAllGlobals());
 // Whoever ticks "Stay anonymous" must not be named on air: the sheet sends neither name nor place.
 describe('"Stay anonymous" on every submission form', () => {
   useSettings.setState({ lang: 'en', rules: RULES_VERSION });
-  useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main' } }));
+  // The video sheet sends only a kind the minute file lists as open.
+  useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main', submissions: { song: 'open', preaching: 'open' } } }));
 
-  for (const kind of ['song', 'preaching'] as const) {
+  for (const kind of ['song', 'video'] as const) {
     it(`a ${kind}: Send waits for a first name or the box; ticked, neither name nor place goes up`, async () => {
       const call = sent();
       render(
@@ -54,7 +55,12 @@ describe('"Stay anonymous" on every submission form', () => {
       await within(dialog).findByText(/Thank you!/);
       const [url, init] = call();
       expect(url).toBe(`/api/submissions/${kind}`);
-      expect(JSON.parse(String(init.body))).toMatchObject({ url: 'https://youtu.be/AbCdEfGhIjK', name: '', place: '' });
+      expect(JSON.parse(String(init.body))).toMatchObject({
+        url: 'https://youtu.be/AbCdEfGhIjK',
+        name: '',
+        place: '',
+        ...(kind === 'video' ? { type: 'preaching' } : {}),
+      });
     });
   }
 

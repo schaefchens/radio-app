@@ -10,8 +10,9 @@ use Arche\Plan\Catalog;
 
 /**
  * The content pool the generator fills airtime from: curated songs and
- * preachings (added by moderators in /mod), graduated submissions (approved
- * requests and preaching suggestions enter here automatically) and jingles.
+ * videos — preachings, testimonies, mission videos, films (added by
+ * moderators in /mod) —, graduated submissions (approved requests and video
+ * suggestions enter here automatically) and jingles.
  * Only tags carry over from a submission — a dedication belongs to one
  * airing, never to the song.
  */
@@ -21,8 +22,14 @@ final class Library
     /** Background music: long enough to carry a moment, short enough for the 8 MB upload at ~128 kbps. */
     public const BED_MIN_MS = 20_000;
     public const BED_MAX_MS = 600_000;
-    /** What a moderator adds from YouTube, and how long it may be (ms). */
-    private const VIDEO_KINDS = ['song' => [30_000, 30 * 60_000], 'preaching' => [60_000, 3 * 3_600_000]];
+    /** What a moderator adds from YouTube, and how long it may be (ms): a film runs two hours and more. */
+    public const VIDEO_KINDS = [
+        'song' => [30_000, 30 * 60_000],
+        'preaching' => [60_000, 3 * 3_600_000],
+        'testimony' => [60_000, 3 * 3_600_000],
+        'mission' => [60_000, 3 * 3_600_000],
+        'film' => [60_000, 4 * 3_600_000],
+    ];
 
     public function __construct(private App $app) {}
 
@@ -120,11 +127,12 @@ final class Library
     }
 
     /**
-     * Add a curated song or preaching (for a preaching, `artist` is the
-     * preacher). The server re-checks YouTube itself; nothing from the form
-     * is trusted beyond title/artist/tags.
+     * Add a curated song or video (for a preaching, `artist` is the preacher;
+     * for a testimony, a mission video or a film, who it is from). The server
+     * re-checks YouTube itself; nothing from the form is trusted beyond
+     * title/artist/tags.
      *
-     * @param string $kind 'song' | 'preaching'
+     * @param string $kind a key of VIDEO_KINDS
      * @param array<string,mixed> $attrs
      * @return array<string,mixed>
      */
@@ -155,7 +163,7 @@ final class Library
             'created' => $now,
             'updated' => $now,
         ]);
-        $this->app->store()->audit($actor, $kind === 'preaching' ? 'Library add preaching' : 'Library add', $info['id'] . ' ' . $info['title']);
+        $this->app->store()->audit($actor, 'Library add' . ($kind === 'song' ? '' : " $kind"), $info['id'] . ' ' . $info['title']);
         return $this->get($id) ?? throw new \LogicException('insert vanished');
     }
 
@@ -264,9 +272,9 @@ final class Library
     }
 
     /**
-     * Songs (or preachings) the Selector may consider for a program.
+     * Songs (or a video program's videos) the Selector may consider for a program.
      *
-     * @param string $kind 'song' | 'preaching'
+     * @param string $kind 'song' or a video format
      * @return list<array<string,mixed>>
      */
     public function candidates(int $channelId, int $programId, int $maxMs, string $kind = 'song'): array

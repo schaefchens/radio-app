@@ -1,6 +1,8 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import clsx from 'clsx';
+import { isVideoFormat, type VideoFormat } from '@arche/shared';
 import { api } from '@/lib/api';
 import { clockDuration } from '@/lib/format';
 import { useApi } from './useApi';
@@ -9,9 +11,28 @@ import { modError, VOICES, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { BookIcon, MusicIcon } from '@/components/common/icons';
 
-type Kind = '' | 'song' | 'preaching' | 'jingle' | 'contrib' | 'bed';
+type Kind = '' | 'song' | VideoFormat | 'jingle' | 'contrib' | 'bed';
 /** What a moderator adds by its YouTube link. */
-type VideoKind = 'song' | 'preaching';
+type AddKind = 'song' | VideoFormat;
+
+/** Who a video is by, as its kind says it: a song's artist, a preaching's preacher, the channel of the rest. */
+function byLabel(t: TFunction, kind: string): string {
+  switch (kind) {
+    case 'preaching':
+      return t('mod.library.preacher');
+    case 'testimony':
+      return t('mod.library.witness');
+    case 'mission':
+      return t('mod.library.ministry');
+    case 'film':
+      return t('mod.library.studio');
+    default:
+      return t('mod.library.artist');
+  }
+}
+
+/** The "by" a lookup suggests: the title's artist for songs and preachings; for the rest the channel — such titles ("My Testimony | … | Name") split badly. */
+const byOf = (kind: AddKind, v: VideoLookup): string => (kind === 'song' || kind === 'preaching' ? v.artist : v.channel);
 
 export function LibraryPanel() {
   const { t } = useTranslation();
@@ -48,6 +69,9 @@ export function LibraryPanel() {
               <option value="">{t('mod.library.kind.all')}</option>
               <option value="song">{t('mod.library.kind.song')}</option>
               <option value="preaching">{t('mod.library.kind.preaching')}</option>
+              <option value="testimony">{t('mod.library.kind.testimony')}</option>
+              <option value="mission">{t('mod.library.kind.mission')}</option>
+              <option value="film">{t('mod.library.kind.film')}</option>
               <option value="jingle">{t('mod.library.kind.jingle')}</option>
               <option value="contrib">{t('mod.library.kind.contrib')}</option>
               <option value="bed">{t('mod.library.kind.bed')}</option>
@@ -79,10 +103,10 @@ export function LibraryPanel() {
   );
 }
 
-/** A song, or a preaching for the preaching programs, by its YouTube link. */
+/** A song, or a video for the video programs (a preaching, a testimony, a mission video, a film), by its YouTube link. */
 function AddVideo({ onAdded }: { onAdded: () => void }) {
   const { t } = useTranslation();
-  const [kind, setKind] = useState<VideoKind>('song');
+  const [kind, setKind] = useState<AddKind>('song');
   const [url, setUrl] = useState('');
   const [video, setVideo] = useState<VideoLookup | null>(null);
   const [title, setTitle] = useState('');
@@ -99,7 +123,7 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
       const r = await api<{ video: VideoLookup }>('/mod/library/lookup', { body: { url } });
       setVideo(r.video);
       setTitle(r.video.title);
-      setArtist(r.video.artist);
+      setArtist(byOf(kind, r.video));
     } catch (e) {
       setError(modError(e));
     } finally {
@@ -133,9 +157,22 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
           void lookup();
         }}
       >
-        <select className="field w-auto" value={kind} onChange={(e) => setKind(e.target.value as VideoKind)} aria-label={t('mod.library.addKind')}>
+        <select
+          className="field w-auto"
+          value={kind}
+          onChange={(e) => {
+            const next = e.target.value as AddKind;
+            // A "by" still as the lookup suggested it follows the kind; one the moderator typed stays.
+            if (video && artist === byOf(kind, video)) setArtist(byOf(next, video));
+            setKind(next);
+          }}
+          aria-label={t('mod.library.addKind')}
+        >
           <option value="song">{t('mod.library.addKindSong')}</option>
           <option value="preaching">{t('mod.library.addKindPreaching')}</option>
+          <option value="testimony">{t('mod.library.addKindTestimony')}</option>
+          <option value="mission">{t('mod.library.addKindMission')}</option>
+          <option value="film">{t('mod.library.addKindFilm')}</option>
         </select>
         <input className="field min-w-0 flex-1" inputMode="url" placeholder="https://youtu.be/…" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t('mod.library.url')} />
         <button type="submit" className="btn-ghost" disabled={busy || url.trim() === ''}>
@@ -158,11 +195,14 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
             <Field label={t('mod.library.titleField')}>
               <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
             </Field>
-            <Field label={kind === 'preaching' ? t('mod.library.preacher') : t('mod.library.artist')}>
+            <Field label={byLabel(t, kind)}>
               <input className="field" value={artist} onChange={(e) => setArtist(e.target.value)} />
             </Field>
           </div>
           {kind === 'preaching' && <p className="text-xs text-ink-faint">{t('mod.library.preachingHint')}</p>}
+          {kind === 'testimony' && <p className="text-xs text-ink-faint">{t('mod.library.testimonyHint')}</p>}
+          {kind === 'mission' && <p className="text-xs text-ink-faint">{t('mod.library.missionHint')}</p>}
+          {kind === 'film' && <p className="text-xs text-ink-faint">{t('mod.library.filmHint')}</p>}
           <AttrsEditor value={attrs} onChange={setAttrs} />
           <button type="button" className="btn-primary self-start" disabled={!usable || busy} onClick={() => void add()}>
             {t('mod.library.add')}
@@ -258,7 +298,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
     <li className={clsx('card-inset flex flex-col gap-3 p-3', !active && 'opacity-60')}>
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-soft text-ink-muted">
-          {item.thumb ? <img src={item.thumb} alt="" className="h-full w-full object-cover" /> : item.kind === 'preaching' ? <BookIcon /> : <MusicIcon />}
+          {item.thumb ? <img src={item.thumb} alt="" className="h-full w-full object-cover" /> : isVideoFormat(item.kind) ? <BookIcon /> : <MusicIcon />}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">{item.title}</p>
@@ -272,7 +312,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
             <Pill tone={active ? 'good' : 'default'}>{active ? t('mod.common.active') : t('mod.common.inactive')}</Pill>
             <Pill>{t(`mod.library.kind.${item.kind}`)}</Pill>
             {item.kind === 'song' && <Pill>{item.source === 'submission' ? t('mod.library.source.submission') : t('mod.library.source.curated')}</Pill>}
-            {item.kind === 'preaching' && <Pill>{item.source === 'submission' ? t('mod.library.source.suggestion') : t('mod.library.source.curated')}</Pill>}
+            {isVideoFormat(item.kind) && <Pill>{item.source === 'submission' ? t('mod.library.source.suggestion') : t('mod.library.source.curated')}</Pill>}
             <Pill>
               {t('mod.library.plays')} {item.plays}
             </Pill>
@@ -304,7 +344,7 @@ function LibraryRow({ item, onChanged }: { item: LibraryItem; onChanged: (text: 
             <Field label={t('mod.library.titleField')}>
               <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
             </Field>
-            <Field label={item.kind === 'preaching' ? t('mod.library.preacher') : t('mod.library.artist')}>
+            <Field label={byLabel(t, item.kind)}>
               <input className="field" value={artist} onChange={(e) => setArtist(e.target.value)} />
             </Field>
           </div>
