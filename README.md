@@ -222,11 +222,13 @@ a deploy.
   check) and approves it anyway where it can still air.
 - **Prayer requests** in a music program are read out word for word between
   songs (up to three, at most 600 characters together), each after a short
-  lead-in — by first name and place, or without a name if it is on the wall —
-  and the host then invites everyone to pray. The host never prays itself.
+  lead-in — with the first name and place the sender gave, or anonymously
+  without a name — and the host then invites everyone to pray. The host never
+  prays itself.
 - **Prayer wall**: typed prayer requests whose senders ticked "show on the
   prayer wall" appear there once approved, without name or place (the newest
-  30). /mod → Review → Prayer wall takes one down, or puts it back, at once;
+  30). During a prayer hour it shows every request of that hour from its
+  reading until the hour ends, ticked or not; the tick keeps it there after. /mod → Review → Prayer wall takes one down, or puts it back, at once;
   one taken down is no longer read out.
 - **Prayer hour**: a program with the format "Prayer hour" (/mod → Programs)
   is where the listeners pray; the host never does. It runs: welcome → a

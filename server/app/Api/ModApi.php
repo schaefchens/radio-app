@@ -396,15 +396,18 @@ final class ModApi
     {
         $this->mod();
         $subs = $this->c->app->submissions();
+        $prayerHour = "(CASE WHEN json_valid(p.settings) THEN json_extract(p.settings, '$.format') END) = 'prayer'";
         [$where, $order] = match ((string) ($this->c->req->query['status'] ?? 'review')) {
             'rejected' => ["s.status = 'rejected'", 's.updated DESC'],
             // Reported ones first: they wait for a decision.
-            'wall' => ["s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.status IN ('approved', 'scheduled', 'aired')", 'reports > 0 DESC, s.created DESC, s.id DESC'],
+            // A prayer hour's requests are on its wall, ticked or not.
+            'wall' => ["s.type = 'prayer' AND s.mode = 'text' AND (s.consent_air = 1 OR $prayerHour) AND s.status IN ('approved', 'scheduled', 'aired')",
+                'reports > 0 DESC, s.created DESC, s.id DESC'],
             'all' => ['1 = 1', 's.created DESC'],
             default => ["s.status = 'review'", 's.created'],
         };
         $rows = $this->c->app->store()->all(
-            "SELECT s.*, p.title_en AS program_title,
+            "SELECT s.*, p.title_en AS program_title, $prayerHour AS of_prayer_hour,
                (SELECT COUNT(*) FROM wall_reports r WHERE r.submission_id = s.id AND r.status = 'open') AS reports
              FROM submissions s LEFT JOIN programs p ON p.id = s.program_id
              WHERE $where ORDER BY $order LIMIT 100",
@@ -420,6 +423,8 @@ final class ModApi
                 'status' => $s['status'], 'reason' => $s['reason'], 'updated' => (int) $s['updated'] * 1000,
                 'blocker' => $s['status'] === 'rejected' ? $subs->overruleBlocker($s) : null,
                 'hidden' => (bool) $s['hidden'], 'consentAir' => (bool) $s['consent_air'],
+                // On a wall at all: with the box ticked, or as a prayer hour's request (on that hour's wall).
+                'wall' => $s['type'] === 'prayer' && $s['mode'] === 'text' && ((bool) $s['consent_air'] || (bool) $s['of_prayer_hour']),
                 // Open reports from listeners, and who took it down: a moderator, or enough reports.
                 'reports' => (int) $s['reports'], 'hiddenBy' => match ((int) $s['hidden']) { 1 => 'moderator', 2 => 'reports', default => null },
                 'prayedWith' => (int) $s['prayed_count'],

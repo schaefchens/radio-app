@@ -125,8 +125,9 @@ function TrackRow() {
     ({ start, dur } = item);
     icon = <MicIcon />;
   } else if (item?.type === 'contrib') {
-    title = t('nowPlaying.contrib', { name: item.name });
-    subtitle = item.place;
+    // Without a name the sender stays anonymous: no " shares", and no place on its own.
+    title = item.name ? t('nowPlaying.contrib', { name: item.name }) : t('nowPlaying.contribAnon');
+    subtitle = item.name ? item.place : '';
     ({ start, dur } = item);
     icon = <MicIcon />;
   } else if (item?.type === 'bed') {

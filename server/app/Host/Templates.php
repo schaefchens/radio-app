@@ -15,8 +15,8 @@ final class Templates
 {
     /**
      * A few of each, so the host does not say the same words before every
-     * prayer. A request on the prayer wall (or one without a name) never gets
-     * a name: the wall shows it anonymously, and name and text must not meet.
+     * prayer. Without a first name ({who} is '') the anonymous pool: leaving
+     * the name empty is how a sender stays anonymous, on the wall or not.
      * {who}: first name and place; {where}: a country.
      */
     private const LEADS = [
@@ -32,9 +32,9 @@ final class Templates
             'en' => ['{who} asks for prayer:', 'A prayer request from {who}:', '{who} writes:', '{who} asks us to pray:'],
             'de' => ['{who} bittet um Gebet:', 'Ein Gebetsanliegen von {who}:', '{who} schreibt:', '{who} bittet uns um Gebet:'],
         ],
-        'wall' => [
-            'en' => ['A prayer request:', 'Someone asks for prayer:', 'From our prayer wall:', 'Another request:', 'Someone writes:'],
-            'de' => ['Ein Gebetsanliegen:', 'Jemand bittet um Gebet:', 'Von unserer Gebetswand:', 'Ein weiteres Anliegen:', 'Jemand schreibt:'],
+        'request_anon' => [
+            'en' => ['A prayer request:', 'Someone asks for prayer:', 'Another request:', 'Someone writes:', 'Someone asks us to pray:'],
+            'de' => ['Ein Gebetsanliegen:', 'Jemand bittet um Gebet:', 'Ein weiteres Anliegen:', 'Jemand schreibt:', 'Jemand bittet uns um Gebet:'],
         ],
         'opendoors' => [
             'en' => ['A prayer request from Open Doors for persecuted Christians in {where}:', 'Open Doors asks us to pray for persecuted Christians in {where}:'],
@@ -49,7 +49,7 @@ final class Templates
     /** The $n-th lead-in of its kind: neighbours ($n, $n + 1) never share one. */
     public static function leadIn(string $case, string $lang, int $n, string $who = '', string $where = ''): string
     {
-        $pools = self::LEADS[$case] ?? self::LEADS['wall'];
+        $pools = self::LEADS[$case] ?? self::LEADS['request_anon'];
         $pool = $pools[$lang] ?? $pools['en'];
         return strtr($pool[abs($n) % count($pool)], ['{who}' => $who, '{where}' => $where]);
     }
@@ -159,8 +159,8 @@ final class Templates
         $intake = (array) ($c['intake'] ?? []);
         $prayersOpen = in_array($intake['prayers'] ?? 'closed', ['open', 'closing'], true);
         $requests = (array) ($c['prayers'] ?? []);
-        $names = array_values(array_filter(array_map(fn($r) => empty($r['on_wall']) ? trim((string) ($r['name'] ?? '')) : '', $requests)));
-        $wall = count(array_filter($requests, fn($r) => !empty($r['on_wall']))) > 0;
+        $names = array_values(array_filter(array_map(fn($r) => trim((string) ($r['name'] ?? '')), $requests)));
+        $wall = count(array_filter($requests, fn($r) => !empty($r['on_wall']) && trim((string) ($r['name'] ?? '')) === '')) > 0;
         $list = fn(array $n, string $and) => count($n) > 1 ? implode(', ', array_slice($n, 0, -1)) . " $and " . end($n) : ($n[0] ?? '');
         $by = trim((string) ($c['opening_by'] ?? ''));
         return match ($kind) {

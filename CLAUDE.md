@@ -154,11 +154,11 @@ before a program ends ("last chance" from 25).
 Typed prayer requests are not a block: up to three (at most `READ_CHARS`
 together) are read out word for word, each by a host `reading`
 (`HostWriter::reading()`: a short lead-in that changes from one reading to the
-next, then the text in its own language only, no model; a request on the wall
-without its sender), and then the host's `prayer` break invites everyone to
-pray for them. A reading carries its request's id as `prayer_ids` (never
-`prayers`: the script phase stores the writer's context, whose `prayers` are
-the texts, over the drafted one). Committed, it marks the request with its
+next, then the text in its own language only, no model; with the sender's
+first name and place, none given: anonymous), and then the host's `prayer`
+break invites everyone to pray for them. A reading carries its request's id
+as `prayer_ids` (never `prayers`: the script phase stores the writer's
+context, whose `prayers` are the texts, over the drafted one). Committed, it marks the request with its
 start; dropped or discarded, it gives it back to the queue. A request taken
 off the wall is not read out any more (`Timeline::dropRepeatsOf` gives it back,
 `takePrayers` skips it). Each counts 20 s in the queue that closes intake
@@ -167,10 +167,12 @@ off the wall is not read out any more (`Timeline::dropRepeatsOf` gives it back,
 The **prayer wall** (`Submissions::wall`, `live.json.wall`) shows typed prayer
 requests that are approved, scheduled or aired — only with the sender's own
 tick (never pre-ticked: Art. 9 needs a clear yes), anonymous (text and time,
-no name or place), the newest 30 — while a prayer hour is on air, that hour's
-requests as they are read out (up to 60): each carries `from` (its reading's
-start), and the engine shows it from then on, for everyone at once; during
-the collection `live.json.collected` counts what came in. In live.json, not
+no name or place), the newest 30 — while a prayer hour is on air, every one
+of that hour's requests as it is read out, ticked or not (the form says so;
+there the tick keeps it on the wall after the hour), up to 60: each carries
+`from` (its reading's start), and the engine shows it from then on, for
+everyone at once; during the collection `live.json.collected` counts what
+came in (`Submissions::onWall($s, $prayerHour)`). In live.json, not
 the minute files, so a moderator's takedown (/mod → Review → Prayer wall,
 `submissions.hidden`) applies at once; a request taken down is no longer read
 out either (`Timeline::dropRepeatsOf` drops its planned reading and gives it
@@ -222,8 +224,10 @@ units: late, they wait behind the hour's own filler (`PrayerHour::filler`:
 prayer music before the prayer time, silence in it, 20 s pieces, in the
 waiting unit's program — never the previous program's song); a reading waits
 at most `READING_WAIT` from when it was first due, then gives its request back.
-A request on the wall is read without its sender; others with first name and
-place. A moderator can prepare opening prayers (`Program\OpeningPrayers`,
+Requests and prayers are read with the first name and place their senders
+gave; without a name, anonymously — leaving it empty is how to stay
+anonymous (station decision, 2026-10-04: an earlier rule read wall requests
+without their names). A moderator can prepare opening prayers (`Program\OpeningPrayers`,
 /mod → Programs; not a Catalog write, so no drafts are thrown away): each
 airing takes the oldest waiting — a recording airs as a `contrib` item, a text
 as host `opening` with `context.fixed`, which the script phase voices word for

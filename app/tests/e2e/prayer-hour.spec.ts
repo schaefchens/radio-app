@@ -131,12 +131,14 @@ test('a prayer hour: over prayer music the stage invites requests and counts the
   await expect(stage.getByRole('button', { name: /Pray$/ })).toHaveCount(0);
   expect(await sender.evaluate(() => document.querySelector('[class*="z-[35]"]')?.getAttribute('aria-hidden'))).toBe('true');
 
-  // A request from the stage, with the wall box ticked.
+  // A request from the stage. In a prayer hour every request reaches the hour's wall when it is read out:
+  // the box keeps it on the wall after the hour.
   await share.click();
   const sheet = sender.getByRole('dialog', { name: 'Share a prayer request' });
   const text = `Please pray for my father's healing (${Date.now() % 100_000}).`;
   await sheet.getByLabel('Your prayer request').fill(text);
-  await sheet.getByLabel('Also show my request on the prayer wall, without my name, so others can pray with me.').check();
+  await expect(sheet.getByText(/In this prayer hour every request is shown on the prayer wall/)).toBeVisible();
+  await sheet.getByLabel('Keep my request on the prayer wall after the prayer hour too, without my name, so others can go on praying with me.').check();
   await sheet.getByLabel('Your first name').fill('Ruth');
   await sheet.getByLabel(/Where are you from/).fill('Lagos');
   await sheet.getByRole('button', { name: 'Send' }).click();

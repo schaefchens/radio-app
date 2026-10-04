@@ -52,15 +52,15 @@ test('host: no text that airs without the model prays', function () {
     foreach ($cases as $what => $texts) {
         foreach (['en', 'de'] as $l) check(!HostWriter::prays((string) ($texts[$l] ?? '')), "$what ($l): " . ($texts[$l] ?? ''));
     }
-    foreach (['prayer', 'prayer_anon', 'request', 'wall', 'opendoors', 'opendoors_anywhere'] as $case) {
+    foreach (['prayer', 'prayer_anon', 'request', 'request_anon', 'opendoors', 'opendoors_anywhere'] as $case) {
         for ($n = 0; $n < 6; $n++) {
             foreach (['en', 'de'] as $l) check(!HostWriter::prays(Templates::leadIn($case, $l, $n, 'Tom from Berlin', 'Nigeria')), "lead-in $case $n ($l)");
         }
     }
 });
 
-test('host: lead-ins change from one reading to the next, and one before a request on the wall names nobody', function () {
-    foreach (['prayer', 'prayer_anon', 'request', 'wall', 'opendoors'] as $case) {
+test('host: lead-ins change from one reading to the next, and one for a sender without a name names nobody', function () {
+    foreach (['prayer', 'prayer_anon', 'request', 'request_anon', 'opendoors'] as $case) {
         foreach (['en', 'de'] as $l) {
             for ($n = 0; $n < 12; $n++) {
                 check(Templates::leadIn($case, $l, $n, 'Tom', 'Nigeria') !== Templates::leadIn($case, $l, $n + 1, 'Tom', 'Nigeria'), "$case $l: $n and the next differ");
@@ -68,7 +68,9 @@ test('host: lead-ins change from one reading to the next, and one before a reque
         }
     }
     for ($n = 0; $n < 10; $n++) {
-        foreach (['en', 'de'] as $l) check(!str_contains(Templates::leadIn('wall', $l, $n, 'Tom from Berlin'), 'Tom'), "the wall's lead-in $n ($l) has no name");
+        foreach (['en', 'de'] as $l) {
+            foreach (['prayer_anon', 'request_anon'] as $case) check(!str_contains(Templates::leadIn($case, $l, $n, 'Tom from Berlin'), 'Tom'), "the anonymous lead-in $case $n ($l) has no name");
+        }
     }
     eq([Templates::who('Tom', 'Berlin', 'de'), Templates::who('Tom', '', 'en'), Templates::who('', 'Berlin', 'en')], ['Tom aus Berlin', 'Tom', ''], 'first name and place as the host says them');
 });

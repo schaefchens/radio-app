@@ -16,6 +16,8 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
   const identity = useSession((s) => s.identity);
   const lang = useSettings((s) => s.lang);
   const channel = useRadio((s) => s.engine.channel);
+  // A prayer hour shows every request on its wall once it is read out; the box decides the wall after the hour.
+  const prayerHour = useRadio((s) => s.engine.program?.format === 'prayer');
   const [text, setText] = useState('');
   const [name, setName] = useState(identity?.name ?? '');
   const [place, setPlace] = useState('');
@@ -52,11 +54,12 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
               <label className="label" htmlFor={`${uid}-text`}>{t('prayerForm.text')}</label>
               <textarea id={`${uid}-text`} className="field min-h-[120px]" maxLength={400} value={text} onChange={(e) => setText(e.target.value)} />
               <p className="mt-1 text-xs text-ink-faint">{t('prayerForm.textHint')}</p>
+              {prayerHour && <p className="mt-1 text-xs text-ink-faint">{t('prayerForm.hourHint')}</p>}
             </div>
             <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
             <label className="flex items-start gap-2 text-sm text-ink-muted">
               <input type="checkbox" className="mt-1" checked={share} onChange={(e) => setShare(e.target.checked)} />
-              {t('prayerForm.showOnWall')}
+              {prayerHour ? t('prayerForm.showOnWallAfter') : t('prayerForm.showOnWall')}
             </label>
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
             {rulesNeeded && <RulesCheckbox checked={rulesTicked} onChange={setRulesTicked} />}

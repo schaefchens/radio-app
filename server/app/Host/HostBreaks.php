@@ -242,7 +242,7 @@ final class HostBreaks
         $refs = [];
         foreach ($ids as $id) {
             $sub = $this->app->submissions()->get($id);
-            if ($sub !== null && Submissions::onWall($sub)) $refs[] = 'p' . $sub['public_id'];
+            if ($sub !== null && Submissions::onWall($sub, $this->inPrayerHour($hb))) $refs[] = 'p' . $sub['public_id'];
         }
         return $refs;
     }

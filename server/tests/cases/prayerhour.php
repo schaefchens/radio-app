@@ -136,7 +136,7 @@ test('prayer hour: welcome, collection, the requests read word for word, the pra
         $reading = $run[$at[0]];
         eq($reading['label'], $m <= 18 ? 'reading:read' : 'reading:new', "minute $m: " . ($m <= 18 ? 'in the presentation' : 'in the prayer time'));
         $text = (string) $reading['item']['payload']['text']['en'];
-        check(str_ends_with($text, " Please pray for Name$m's family.") && !str_contains($text, 'Bonn'), "word for word, without its sender (it is on the wall): $text");
+        check(str_ends_with($text, " Please pray for Name$m's family.") && str_contains($text, "Name$m from Bonn"), "word for word, with the first name and place given: $text");
         check($reading['item']['start_ms'] - (TestKit::T0 + $m * 60_000) <= 10 * 60_000, "minute $m airs within about seven to ten minutes");
         eq($app->submissions()->byPublicId($public)['status'], 'aired', "minute $m is marked aired");
     }
@@ -212,16 +212,18 @@ test('prayer hour: with no request at all the prayer time still opens, and the h
     check(in_array('outro', $labels, true), 'and the outro');
 });
 
-test('prayer hour: a request appears on the wall only when it is read out, without its sender; one not on the wall is read with first name and place', function () {
+test('prayer hour: every request appears on the hour\'s wall when it is read out, ticked or not, without a name; read with the name given, or anonymously; after the hour only the ticked one stays', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     $p = prayerHour($app, 735);
-    $shown = $private = '';
+    $shown = $private = $anon = '';
     $seen = [];
     for ($m = 0; $m < 40; $m++) {
         if ($m === 16) {
             $shown = prayFor($app, 'Shown', true);
             $private = prayFor($app, 'Private', false);
+            // Who wants to stay anonymous leaves the name empty.
+            $anon = $app->submissions()->submitPrayer(listener($app), TestKit::main($app), ['text' => 'Please pray for my brother.', 'name' => '', 'place' => 'Bonn'])['id'];
         }
         $app->tick()->run('test');
         $wall = $app->submissions()->wall('main');
@@ -229,28 +231,36 @@ test('prayer hour: a request appears on the wall only when it is read out, witho
         TestKit::clock($app)->advance(60_000);
     }
     $run = runOf($app, (int) $p['id']);
-    $idShown = (int) $app->submissions()->byPublicId($shown)['id'];
-    $idPrivate = (int) $app->submissions()->byPublicId($private)['id'];
-    $readShown = $run[airedIn($run, $idShown)[0]]['item'];
-    $readPrivate = $run[airedIn($run, $idPrivate)[0]]['item'];
-    check(!str_contains((string) $readShown['payload']['text']['en'], 'Bonn'), 'the wall\'s request is read without its sender');
-    check(str_contains((string) $readPrivate['payload']['text']['en'], 'Private from Bonn'), 'the other one with first name and place');
-    eq($readShown['payload']['prayers'], ['p' . $shown], 'the app marks the wall\'s request as the one on air');
-    eq($readPrivate['payload']['prayers'], [], 'and never one that is not on the wall');
-    eq($seen[17], [[], 2], 'during the collection the wall stays empty, and only the number of requests shows');
+    $read = [];
+    foreach (['shown' => $shown, 'private' => $private, 'anon' => $anon] as $k => $public) {
+        $read[$k] = $run[airedIn($run, (int) $app->submissions()->byPublicId($public)['id'])[0]]['item'];
+    }
+    check(str_contains((string) $read['shown']['payload']['text']['en'], 'Shown from Bonn'), 'read with the first name and place given, though it is on the wall');
+    check(str_contains((string) $read['private']['payload']['text']['en'], 'Private from Bonn'), 'and the one without the tick too');
+    $anonText = (string) $read['anon']['payload']['text']['en'];
+    check(str_ends_with($anonText, ' Please pray for my brother.') && !str_contains($anonText, 'Bonn'), "no name given: read anonymously, the place left out too: $anonText");
+    foreach (['shown' => $shown, 'private' => $private, 'anon' => $anon] as $k => $public) {
+        eq($read[$k]['payload']['prayers'], ['p' . $public], "the app marks it as the one on air ($k)");
+    }
+    eq($seen[17], [[], 3], 'during the collection the wall stays empty, and only the number of requests shows');
     $from = null;
     foreach ($seen as $m => [$ids]) {
         if ($ids !== [] && $from === null) $from = $m;
     }
-    check($from !== null && $seen[$from][0] === ['p' . $shown], 'once its reading is fixed, the wall shows it — and never the one without a tick');
-    $entry = array_values(array_filter($app->submissions()->wall('main'), fn($e) => $e['id'] === 'p' . $shown))[0] ?? [];
-    eq($entry['from'] ?? null, $readShown['start_ms'], 'from the start of its reading: the app waits for it');
-    eq(array_keys($entry), ['id', 'text', 'at', 'from'], 'text, day and that moment — no name, no place');
+    check($from !== null, 'once a reading is fixed, the wall shows it');
+    $wall = array_column($app->submissions()->wall('main'), null, 'id');
+    eq([isset($wall['p' . $shown]), isset($wall['p' . $private]), isset($wall['p' . $anon])], [true, true, true], 'every request of the hour, ticked or not');
+    foreach (['shown' => $shown, 'private' => $private, 'anon' => $anon] as $k => $public) {
+        eq($wall['p' . $public]['from'] ?? null, $read[$k]['start_ms'], "from the start of its reading: the app waits for it ($k)");
+        eq(array_keys($wall['p' . $public]), ['id', 'text', 'at', 'from'], "text, day and that moment — no name, no place ($k)");
+    }
+    check($app->submissions()->prayAlong($private, 'd-' . str_repeat('c', 30)), 'one without the tick can be prayed along with while the hour shows it');
 
-    // After the hour, the usual wall again: the newest 30, the hour's among them, from the start.
+    // After the hour, the usual wall again: the newest 30 with their senders' yes, the hour's among them.
     ticks($app, 50);
     $after = array_column($app->submissions()->wall('main'), null, 'id');
-    check(isset($after['p' . $shown]) && !isset($after['p' . $shown]['from']), 'after the hour the usual wall');
+    check(isset($after['p' . $shown]) && !isset($after['p' . $shown]['from']), 'after the hour the usual wall, with the ticked one');
+    check(!isset($after['p' . $private]) && !isset($after['p' . $anon]), 'the others leave with the hour');
     eq($app->submissions()->collected('main'), null, 'and no number of the hour');
 });
 

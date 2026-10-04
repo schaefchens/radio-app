@@ -61,7 +61,8 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
         )}
         {engine.mode === 'contrib' && item?.type === 'contrib' && (
           <div className="max-w-lg animate-fly-in">
-            <p className="eyebrow mb-2">{item.name}{item.place ? ` · ${item.place}` : ''}</p>
+            {/* No name: the sender stays anonymous, so no stray "· place" either. */}
+            {item.name && <p className="eyebrow mb-2">{item.name}{item.place ? ` · ${item.place}` : ''}</p>}
             <p className="text-lg font-medium leading-snug text-ink drop-shadow sm:text-2xl">
               {item.caption[lang] ?? item.caption.en ?? ''}
             </p>

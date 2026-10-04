@@ -167,8 +167,8 @@ test('submissions: typed prayer requests are read out word for word, then the ho
     $idShown = (int) $app->submissions()->byPublicId($shown['id'])['id'];
     $idNamed = (int) $app->submissions()->byPublicId($named['id'])['id'];
     $wallText = (string) ($byId[$idShown]['payload']['text']['en'] ?? '');
-    check(str_ends_with($wallText, ' Please pray for my mother in hospital.') && !str_contains($wallText, 'Maria'),
-        'the wall\'s request word for word, without its sender (the wall shows it anonymously): ' . $wallText);
+    check(str_ends_with($wallText, ' Please pray for my mother in hospital.') && str_contains($wallText, 'Maria from Germany'),
+        'the wall\'s request word for word, with the first name and place its sender gave (the wall itself shows none): ' . $wallText);
     eq(array_keys($byId[$idShown]['payload']['text']), ['en'], 'in the language it was written in only (the stub check says English)');
     $namedText = (string) ($byId[$idNamed]['payload']['text']['en'] ?? '');
     check(str_contains($namedText, 'Tom from Berlin') && str_ends_with($namedText, ' Pray for my new job, please.'), 'the other one with first name and place: ' . $namedText);

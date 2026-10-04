@@ -34,6 +34,8 @@ interface ReviewItem {
   blocker: 'recording_deleted' | 'video_unplayable' | 'not_rejected' | null;
   /** The sender agreed to show it (prayer requests: on the prayer wall). */
   consentAir: boolean;
+  /** On a prayer wall at all: ticked, or a prayer hour's request (on that hour's wall, ticked or not). */
+  wall: boolean;
   /** Off the prayer wall (a moderator's decision, or enough listeners' reports). */
   hidden: boolean;
   /** Open reports from listeners (prayer wall requests). */
@@ -161,7 +163,7 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
         </div>
       )}
       {item.text && <p className="text-sm">{item.text}</p>}
-      {item.type === 'prayer' && item.mode === 'text' && item.consentAir && ON_WALL.includes(item.status) && (
+      {item.wall && ON_WALL.includes(item.status) && (
         <WallControl item={item} onDone={onDone} />
       )}
       {item.mode === 'audio' && item.status === 'review' && <Recording id={item.id} />}
@@ -200,7 +202,7 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
   );
 }
 
-/** The sender said yes to the prayer wall: shown there unless taken down. */
+/** On a prayer wall (its sender's yes, or a prayer hour's): shown there unless taken down. */
 function WallControl({ item, onDone }: { item: ReviewItem; onDone: (text: string, tone?: 'ok' | 'error') => void }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);

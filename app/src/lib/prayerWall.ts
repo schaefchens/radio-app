@@ -17,13 +17,14 @@ export function prayingFirst(wall: WallEntry[], praying: readonly string[]): Wal
 /**
  * The requests the stage shows in the prayer time at server time `t`: a page
  * of `size`, turned by the clock, so every listener sees the same ones —
- * what there is to pray for, not one request picked for them.
+ * what there is to pray for, not one request picked for them. Every page is
+ * full, wrapping round the end: cut into fixed pages, four requests showed
+ * three, then one alone.
  */
 export function wallPage(wall: WallEntry[], t: number, size: number): WallEntry[] {
   if (wall.length <= size) return wall;
-  const pages = Math.ceil(wall.length / size);
-  const page = Math.floor(t / WALL_PAGE_MS) % pages;
-  return wall.slice(page * size, page * size + size);
+  const start = (Math.floor(t / WALL_PAGE_MS) * size) % wall.length;
+  return [...wall, ...wall].slice(start, start + size);
 }
 
 /** A request's text in the listener's language: the station's own (Open Doors') comes translated. */

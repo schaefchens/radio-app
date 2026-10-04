@@ -123,11 +123,8 @@ final class HostWriter
 
     /**
      * What a moment of the prayer hour needs besides the usual: which part of
-     * the running order it is, the requests (one on the prayer wall without
-     * its sender: the wall is anonymous, and the host saying the name while
-     * the app marks it "Praying now" would undo that — the model cannot say
-     * what it is not given), how long listeners have to send requests, and
-     * what the hour prayed for.
+     * the running order it is, how long listeners have to send requests and
+     * prayers, and what the hour prayed for.
      *
      * @param array<string,mixed> $ctx
      * @param array<string,mixed> $hb
@@ -210,16 +207,15 @@ final class HostWriter
     }
 
     /**
-     * A request as the host may speak of it: on the wall without its sender.
+     * A request as the host may speak of it: with the first name and place
+     * its sender gave (none given: anonymous), and whether it is on the wall.
      *
      * @param array<string,mixed> $p submission row
      * @return array<string,mixed>
      */
     private function request(array $p): array
     {
-        return Submissions::onWall($p)
-            ? ['on_wall' => true, 'text' => (string) $p['text']]
-            : ['on_wall' => false, 'name' => (string) $p['name'], 'place' => (string) $p['place'], 'text' => (string) $p['text']];
+        return ['on_wall' => Submissions::onWall($p, true), 'name' => (string) $p['name'], 'place' => (string) $p['place'], 'text' => (string) $p['text']];
     }
 
     /**
@@ -308,8 +304,9 @@ final class HostWriter
     /**
      * A listener's prayer request or prayer, read out exactly as written: a
      * short lead-in (never the one the reading before had) and the text, in
-     * the text's own language only — never translated. A request on the
-     * prayer wall is read without its sender: the wall shows it anonymously.
+     * the text's own language only — never translated. With the first name
+     * and place the sender gave; without a name, anonymous: leaving it empty
+     * is how a sender stays anonymous (the wall never shows names).
      * Gone, or taken off the wall since it was planned: nothing to say, and
      * the break fails (its request waits again; a hidden one is never taken).
      *
@@ -337,11 +334,7 @@ final class HostWriter
         }
         $lang = $this->readingLang($sub);
         $who = Templates::who((string) $sub['name'], (string) $sub['place'], $lang);
-        $case = match (true) {
-            $hb['kind'] === 'intercession' => $who !== '' ? 'prayer' : 'prayer_anon',
-            $who === '' || Submissions::onWall($sub) => 'wall',
-            default => 'request',
-        };
+        $case = $hb['kind'] === 'intercession' ? ($who !== '' ? 'prayer' : 'prayer_anon') : ($who !== '' ? 'request' : 'request_anon');
         return [$lang => Templates::leadIn($case, $lang, $n, $who) . ' ' . $text];
     }
 
@@ -388,9 +381,8 @@ final class HostWriter
           about a preaching beyond its title and preacher — never what it says or teaches.
         - An item of the kind "preaching" (in "previous", "next" or a request) is a preaching: speak
           of it as a preaching, never as a song.
-        - Name a listener only by the first name and place given — nothing else about them.
-          Never name the sender of a request marked "on_wall": it is shown on the prayer wall
-          anonymously; speak of "a request on our prayer wall".
+        - Name a listener only by the first name and place given — nothing else about them. No
+          name given: they stay anonymous; never guess or describe who they are.
         - Quote or reference Scripture only when you are certain of it; paraphrase rather than
           misquote. Stay broadly Christian and ecumenical: no denominational disputes, no politics.
         - The English version is heard worldwide: do not mention the time of day, the season or
@@ -431,8 +423,8 @@ final class HostWriter
           from Open Doors for persecuted Christians). Do not read or retell them yourself.
         - prayertime: the requests have been read: the prayer time begins. Invite everyone to pray
           for them — and, as "intake.prayers" allows, to send their own prayer with the "Pray"
-          button, spoken or written: written ones are read out with their first name, spoken
-          ones are played. New requests are still welcome while "intake.requests" allows. With
+          button, spoken or written: written ones are read out word for word, spoken ones are
+          played. New requests are still welcome while "intake.requests" allows. With
           "requests": 0, invite listeners to share a request or to pray for what is on their
           heart. Up to 70 words.
         - encourage: it has been quiet for a while: encourage everyone to pray for the requests on

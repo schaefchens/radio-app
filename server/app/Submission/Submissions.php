@@ -808,12 +808,13 @@ final class Submissions
      * The id is the one community voices used for prayers ('p' + public id),
      * so the app's reactions on a wall entry keep their shape.
      *
-     * While a prayer hour is on air, its wall: the requests sent to it as
-     * they are read out — each from the start of its reading (`from`, which
-     * the app waits for: live.json is fetched every half minute), up to 60.
-     * Then the newest 30 of all programs again, with the hour's on top. A
-     * request of the station's own (Open Doors) says so (`source`) and may
-     * carry its translation (`texts`).
+     * While a prayer hour is on air, its wall: every request sent to it — the
+     * box or not: the form says so in a prayer hour — as it is read out, each
+     * from the start of its reading (`from`, which the app waits for:
+     * live.json is fetched every half minute), up to 60. Then the newest 30
+     * of all programs again, the hour's among them only with their senders'
+     * yes. A request of the station's own (Open Doors) says so (`source`) and
+     * may carry its translation (`texts`).
      *
      * @return list<array{id:string,text:string,at:int,from?:int,source?:string,texts?:array<string,string>}>
      */
@@ -822,11 +823,11 @@ final class Submissions
         $hour = $this->hourOnAir($channel);
         $rows = $this->app->store()->all(
             "SELECT s.public_id, s.text, s.created, s.aired_at, s.place, s.meta FROM submissions s JOIN channels c ON c.id = s.channel_id
-             WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.hidden = 0 AND "
+             WHERE c.slug = ? AND s.type = 'prayer' AND s.mode = 'text' AND s.hidden = 0 AND "
             . ($hour !== null
                 ? "s.status IN ('scheduled', 'aired') AND s.aired_at IS NOT NULL AND s.aired_at <= ? AND s.program_id = ? AND s.created >= ?
                    ORDER BY s.aired_at DESC, s.id DESC LIMIT 60"
-                : "s.status IN ('approved', 'scheduled', 'aired') ORDER BY s.created DESC, s.id DESC LIMIT ?"),
+                : "s.consent_air = 1 AND s.status IN ('approved', 'scheduled', 'aired') ORDER BY s.created DESC, s.id DESC LIMIT ?"),
             $hour !== null ? [$channel, $this->app->clock->nowMs() + Timing::LEAD, $hour['program_id'], intdiv($hour['start'], 1000)] : [$channel, $limit],
         );
         return array_map(function (array $r) use ($hour): array {
@@ -861,20 +862,22 @@ final class Submissions
     }
 
     /**
-     * Whether a wall may show this request now: on the wall (a typed prayer,
-     * its sender's yes, not taken down), accepted — and in a prayer hour on
-     * air, once it is read out. Only then can it be prayed along with or
-     * reported.
+     * Whether a wall shows this request now: the prayer hour on air shows
+     * every request of the hour once it is read out; any other wall (the
+     * global one) only an accepted one its sender ticked. Only then can it be
+     * prayed along with or reported.
      *
      * @param array<string,mixed> $s
      */
     public function shownOnWall(array $s): bool
     {
-        if (!self::onWall($s) || !in_array($s['status'], ['approved', 'scheduled', 'aired'], true)) return false;
+        if (!self::onWall($s, true) || !in_array($s['status'], ['approved', 'scheduled', 'aired'], true)) return false;
         $channel = $this->app->catalog()->channel((int) $s['channel_id']);
         $hour = $channel !== null ? $this->hourOnAir((string) $channel['slug']) : null;
-        if ($hour === null || (int) $s['program_id'] !== $hour['program_id'] || (int) $s['created'] < intdiv($hour['start'], 1000)) return true;
-        return $s['aired_at'] !== null && (int) $s['aired_at'] <= $this->app->clock->nowMs() + Timing::LEAD;
+        if ($hour !== null && (int) $s['program_id'] === $hour['program_id'] && (int) $s['created'] >= intdiv($hour['start'], 1000)) {
+            return $s['aired_at'] !== null && (int) $s['aired_at'] <= $this->app->clock->nowMs() + Timing::LEAD;
+        }
+        return self::onWall($s);
     }
 
     /** The prayer hour on air on this channel now, as its run. @return array{start:int,end:int,program_id:int}|null */
@@ -940,10 +943,17 @@ final class Submissions
         return $store->query("DELETE FROM prayed_along WHERE submission_id NOT IN (SELECT id FROM submissions WHERE public_id IN ($marks))", $keep)->rowCount();
     }
 
-    /** Whether a wall may show this submission: a typed prayer, its sender's yes, not taken down. @param array<string,mixed> $s */
-    public static function onWall(array $s): bool
+    /**
+     * Whether a wall may show this submission: a typed prayer request, not
+     * taken down — in a prayer hour ($prayerHour: its wall shows every request
+     * of the hour while it is on air) any; on the global wall only with its
+     * sender's yes (the box, never ticked in advance).
+     *
+     * @param array<string,mixed> $s
+     */
+    public static function onWall(array $s, bool $prayerHour = false): bool
     {
-        return $s['type'] === 'prayer' && $s['mode'] === 'text' && (int) $s['consent_air'] === 1 && (int) ($s['hidden'] ?? 0) === 0;
+        return $s['type'] === 'prayer' && $s['mode'] === 'text' && (int) ($s['hidden'] ?? 0) === 0 && ($prayerHour || (int) $s['consent_air'] === 1);
     }
 
     /**

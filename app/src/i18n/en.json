@@ -57,7 +57,8 @@
     "openYouTube": "Open {{title}} on YouTube",
     "position": "{{elapsed}} of {{duration}}",
     "bed": "Prayer music",
-    "readBy": "Read out word for word by {{name}}, our AI host"
+    "readBy": "Read out word for word by {{name}}, our AI host",
+    "contribAnon": "Someone shares"
   },
   "host": {
     "idle": "{{name}} will be back between the songs.",
@@ -139,10 +140,12 @@
   },
   "prayerForm": {
     "text": "Your prayer request",
-    "textHint": "It is read out on air word for word — with your first name and place, or without your name if it is on the prayer wall.",
+    "textHint": "It is read out on air word for word, with your first name and place if you give them. Leave your name empty to stay anonymous.",
+    "hourHint": "In this prayer hour every request is shown on the prayer wall, without a name, from when it is read out until the hour ends.",
     "record": "Record it instead",
     "type": "Type it instead",
-    "showOnWall": "Also show my request on the prayer wall, without my name, so others can pray with me."
+    "showOnWall": "Also show my request on the prayer wall, without my name, so others can pray with me.",
+    "showOnWallAfter": "Keep my request on the prayer wall after the prayer hour too, without my name, so others can go on praying with me."
   },
   "record": {
     "kind": "What would you like to share?",
@@ -912,9 +915,9 @@
   },
   "pray": {
     "title": "Pray for the requests",
-    "introSpoken": "Speak your prayer for the requests you heard. It is played on air as you recorded it, with your first name and place.",
-    "introWritten": "Write your prayer for the requests you heard. The host reads it out on air word for word, with your first name and place.",
+    "introSpoken": "Speak your prayer for the requests you heard. It is played on air as you recorded it, with your first name and place if you give them.",
+    "introWritten": "Write your prayer for the requests you heard. It is read out on air word for word, with your first name and place if you give them.",
     "text": "Your prayer",
-    "consent": "I agree that my prayer is aired on Arche Radio, word for word, with my first name and place."
+    "consent": "I agree that my prayer is aired on Arche Radio, word for word, with my first name and place if I give them."
   }
 }

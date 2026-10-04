@@ -57,7 +57,8 @@
     "openYouTube": "{{title}} auf YouTube öffnen",
     "position": "{{elapsed}} von {{duration}}",
     "bed": "Gebetsmusik",
-    "readBy": "Wort für Wort vorgelesen von {{name}}, unserer KI-Moderation"
+    "readBy": "Wort für Wort vorgelesen von {{name}}, unserer KI-Moderation",
+    "contribAnon": "Jemand erzählt"
   },
   "host": {
     "idle": "{{name}} meldet sich zwischen den Liedern wieder.",
@@ -139,10 +140,12 @@
   },
   "prayerForm": {
     "text": "Dein Gebetsanliegen",
-    "textHint": "Es wird auf Sendung Wort für Wort vorgelesen – mit deinem Vornamen und Ort, oder ohne Namen, wenn es an der Gebetswand steht.",
+    "textHint": "Es wird auf Sendung Wort für Wort vorgelesen – mit deinem Vornamen und Ort, wenn du sie angibst. Lass den Namen leer, wenn du anonym bleiben möchtest.",
+    "hourHint": "In dieser Gebetsstunde steht jedes Anliegen ab dem Vorlesen bis zum Ende der Stunde an der Gebetswand, ohne Namen.",
     "record": "Lieber aufnehmen",
     "type": "Lieber schreiben",
-    "showOnWall": "Zeig mein Anliegen auch an der Gebetswand, ohne meinen Namen, damit andere mit mir beten."
+    "showOnWall": "Zeig mein Anliegen auch an der Gebetswand, ohne meinen Namen, damit andere mit mir beten.",
+    "showOnWallAfter": "Lass mein Anliegen auch nach der Gebetsstunde an der Gebetswand stehen, ohne meinen Namen, damit andere weiter mit mir beten."
   },
   "record": {
     "kind": "Was möchtest du teilen?",
@@ -912,9 +915,9 @@
   },
   "pray": {
     "title": "Für die Anliegen beten",
-    "introSpoken": "Sprich dein Gebet für die Anliegen, die du gehört hast. Es wird so gesendet, wie du es aufnimmst, mit deinem Vornamen und Ort.",
-    "introWritten": "Schreib dein Gebet für die Anliegen, die du gehört hast. Die Moderation liest es auf Sendung Wort für Wort vor, mit deinem Vornamen und Ort.",
+    "introSpoken": "Sprich dein Gebet für die Anliegen, die du gehört hast. Es wird so gesendet, wie du es aufnimmst, mit deinem Vornamen und Ort, wenn du sie angibst.",
+    "introWritten": "Schreib dein Gebet für die Anliegen, die du gehört hast. Es wird auf Sendung Wort für Wort vorgelesen, mit deinem Vornamen und Ort, wenn du sie angibst.",
     "text": "Dein Gebet",
-    "consent": "Ich bin einverstanden, dass mein Gebet auf Arche Radio gesendet wird, Wort für Wort, mit meinem Vornamen und Ort."
+    "consent": "Ich bin einverstanden, dass mein Gebet auf Arche Radio gesendet wird, Wort für Wort, mit meinem Vornamen und Ort, wenn ich sie angebe."
   }
 }

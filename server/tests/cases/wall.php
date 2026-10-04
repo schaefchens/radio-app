@@ -94,9 +94,9 @@ test('wall: a moderator takes a prayer off the wall and puts it back; listeners 
 
     [$st, $d] = modGet($app, '/api/mod/review', ['status' => 'wall'], $h);
     eq([$st, array_column($d['items'], 'id')], [200, [$sub['id']]], 'the wall list shows it although hidden, not the one without consent');
-    eq([$d['items'][0]['hidden'], $d['items'][0]['consentAir']], [true, true], 'with its wall state');
+    eq([$d['items'][0]['hidden'], $d['items'][0]['consentAir'], $d['items'][0]['wall']], [true, true, true], 'with its wall state');
     $all = array_column(modGet($app, '/api/mod/review', ['status' => 'all'], $h)[1]['items'], null, 'id');
-    eq([$all[$noConsent]['hidden'], $all[$noConsent]['consentAir']], [false, false], 'every review item says both');
+    eq([$all[$noConsent]['hidden'], $all[$noConsent]['consentAir'], $all[$noConsent]['wall']], [false, false, false], 'every review item says all three');
 
     [$st, $d] = call($app, 'POST', "/api/mod/review/{$sub['id']}/wall", ['hidden' => false], $h);
     eq([$st, $d], [200, ['ok' => true, 'hidden' => false]], 'put back');
@@ -144,21 +144,25 @@ test('wall: while a prayer hour is on air it shows that hour\'s requests as they
     eq($ids(), [], 'the hour begins with an empty wall of its own');
     $mine = prayFor($app, 'Hour');
     $app->runner()->runUntilBudget();
-    $notShown = prayFor($app, 'Private', false);
+    $notTicked = prayFor($app, 'Private', false);
     $app->runner()->runUntilBudget();
-    unset($notShown);
     eq([$ids(), $app->submissions()->collected('main')], [[], 2], 'sent, approved, not yet read: counted, not shown');
     check(!$app->submissions()->prayAlong($mine, 'd-' . str_repeat('a', 30)), 'nobody can pray along with what the wall does not show yet');
     ticks($app, 15);
-    eq($ids(), ['p' . $mine], 'read out: its own requests, shown with their senders\' yes');
+    eq($ids(), ['p' . $notTicked, 'p' . $mine], 'read out: every request of the hour, ticked or not, the latest reading first');
+    check($app->submissions()->prayAlong($notTicked, 'd-' . str_repeat('a', 30)), 'and each can be prayed along with');
+    [, $d] = modGet($app, '/api/mod/review', ['status' => 'wall'], modHeaders($app));
+    $listed = array_column($d['items'], null, 'id');
+    eq([$listed[$notTicked]['wall'] ?? null, $listed[$notTicked]['consentAir'] ?? null], [true, false], 'the moderators see it on the wall, though not ticked, and can take it down');
     // Already read out (approved ones the hour cannot reach any more would be missed at its end).
     for ($i = 0; $i < 40; $i++) prayerRow($app, $main, ['program_id' => (int) $p['id'], 'status' => 'aired', 'aired_at' => $app->clock->nowMs() - 1_000 - $i,
         'created' => intdiv(TestKit::T0, 1000) + 15 * 60 + $i]);
-    eq(count($app->submissions()->wall('main')), 41, 'more than the usual 30: the hour\'s requests, up to 60');
+    eq(count($app->submissions()->wall('main')), 42, 'more than the usual 30: the hour\'s requests, up to 60');
     ticks($app, 60);
     eq(count($ids()), 30, 'after the hour the newest 30 of all programs');
     eq($ids()[0], 'p' . $mine, 'with the hour\'s newest on top');
     check(!in_array('p' . $older, $ids(), true), 'pushing the older ones out');
+    check(!in_array('p' . $notTicked, $ids(), true), 'and without the one its sender did not tick');
 });
 
 test('praying along: 🙏 on a wall request counts once per device, only for a request a wall may show; who prayed is forgotten, the number stays', function () {

@@ -20,9 +20,10 @@ describe('the prayer wall', () => {
   it('in the prayer time every listener sees the same few requests, page by page, and every request comes round', () => {
     const t = 1_790_160_000_000;
     expect(wallPage(wall, t, 2)).toEqual(wallPage(wall, t + 1000, 2));
-    expect(wallPage(wall, t, 2).length).toBeLessThanOrEqual(2);
-    const seen = new Set(Array.from({ length: 4 }, (_, i) => wallPage(wall, t + i * WALL_PAGE_MS, 2).map((e) => e.id)).flat());
-    expect(seen).toEqual(new Set(['pa', 'pb', 'pc']));
+    const pages = Array.from({ length: 4 }, (_, i) => wallPage(wall, t + i * WALL_PAGE_MS, 2).map((e) => e.id));
+    // Always a full page, wrapping round the end — never one request alone.
+    for (const page of pages) expect(new Set(page).size).toBe(2);
+    expect(new Set(pages.flat())).toEqual(new Set(['pa', 'pb', 'pc']));
     // Few enough for one page: all of them, the same list.
     expect(wallPage(wall, t, 3)).toBe(wall);
     expect(wallPage([], t, 3)).toEqual([]);

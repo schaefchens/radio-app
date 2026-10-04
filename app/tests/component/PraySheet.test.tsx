@@ -19,7 +19,7 @@ vi.mock('@/components/submit/useRecorder', () => ({
 }));
 vi.mock('@/lib/recordingEncoder', () => ({ toMp3: async () => ({ mp3: new Blob(['mp3'], { type: 'audio/mpeg' }), ms: 20_000 }) }));
 
-const CONSENT = 'I agree that my prayer is aired on Arche Radio, word for word, with my first name and place.';
+const CONSENT = 'I agree that my prayer is aired on Arche Radio, word for word, with my first name and place if I give them.';
 
 function sheet(open = true) {
   return (
