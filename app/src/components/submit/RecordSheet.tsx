@@ -7,12 +7,15 @@ import { api } from '@/lib/api';
 import { describeMicError, micConstraints, pickMicMime } from '@/lib/micRecord';
 import { toMp3 } from '@/lib/recordingEncoder';
 import { setRadioMuted } from '@/lib/radio';
+import { isNative } from '@/lib/native';
 import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
 import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
 import { MicIcon } from '@/components/common/icons';
+import { RulesCheckbox } from '@/components/common/RulesConsent';
+import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
 
 type Kind = 'story' | 'testimony' | 'greeting' | 'prayer';
 const LIMIT_S: Record<Kind, number> = { story: 90, testimony: 90, greeting: 60, prayer: 90 };
@@ -34,6 +37,9 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
   const [place, setPlace] = useState('');
   const [consentAir, setConsentAir] = useState(false);
   const [consentReplay, setConsentReplay] = useState(false);
+  // The community rules, once per device before the first post.
+  const rulesNeeded = useRulesNeeded();
+  const [rulesTicked, setRulesTicked] = useState(false);
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [blob, setBlob] = useState<Blob | null>(null);
@@ -74,7 +80,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
       stream.current = await navigator.mediaDevices.getUserMedia(micConstraints());
     } catch (e) {
       const denied = e instanceof DOMException && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
-      setMicError(denied ? t('record.micDenied') : describeMicError(e));
+      setMicError(denied ? (isNative() ? t('record.micDeniedApp') : t('record.micDenied')) : describeMicError(e));
       return;
     }
     const mime = pickMicMime();
@@ -183,8 +189,17 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
               {t('submit.consentReplay')}
             </label>
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
+            {rulesNeeded && <RulesCheckbox checked={rulesTicked} onChange={setRulesTicked} />}
             <PrivacyNote />
-            <button type="button" className="btn-primary" disabled={!blob || !consentAir || submit.busy || recording} onClick={() => void submit.run()}>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={!blob || !consentAir || submit.busy || recording || (rulesNeeded && !rulesTicked)}
+              onClick={() => {
+                if (rulesNeeded) acceptRules();
+                void submit.run();
+              }}
+            >
               {submit.busy ? t('record.preparing') : t('submit.send')}
             </button>
           </div>

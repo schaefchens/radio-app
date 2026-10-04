@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import type { ChatMessage, Lang } from '@arche/shared';
@@ -7,10 +7,17 @@ import { realtime } from '@/lib/realtime/client';
 import { countryName, localTime } from '@/lib/format';
 import { FlagIcon, HeartIcon } from '@/components/common/icons';
 import { ConfirmButton } from '@/components/mod/ui';
+import { tapHaptic } from '@/lib/haptics';
+import { visibleMessages } from '@/lib/blocking';
+import { blockAuthor } from '@/lib/reports';
+import { useBlocks } from '@/store/blocks';
 
 export function MessageList() {
   const { t } = useTranslation();
-  const messages = useChat((s) => s.messages);
+  const all = useChat((s) => s.messages);
+  const blocked = useBlocks((s) => s.users);
+  // Nothing from people this listener blocked.
+  const messages = useMemo(() => visibleMessages(all, blocked), [all, blocked]);
   const end = useRef<HTMLDivElement>(null);
 
   // Follow the conversation to the newest message — unless the listener has
@@ -60,7 +67,10 @@ function MessageRow({ msg }: { msg: ChatMessage }) {
               type="button"
               aria-label={t('chat.like')}
               disabled={mine || liked}
-              onClick={() => realtime.like(msg.id)}
+              onClick={() => {
+                tapHaptic();
+                realtime.like(msg.id);
+              }}
               className={clsx('inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs', liked ? 'text-heart' : 'text-ink-muted hover:text-heart', mine && 'cursor-default')}
             >
               <HeartIcon size={14} filled={liked} />
@@ -82,6 +92,14 @@ function MessageRow({ msg }: { msg: ChatMessage }) {
                   onConfirm={() => realtime.report(msg.id, 'inappropriate')}
                 />
               ))}
+            {!mine && (
+              <ConfirmButton
+                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs text-ink-faint hover:text-ink"
+                label={t('chat.block')}
+                question={t('chat.blockConfirm', { name: msg.name })}
+                onConfirm={() => void blockAuthor(msg)}
+              />
+            )}
           </div>
         )}
       </div>

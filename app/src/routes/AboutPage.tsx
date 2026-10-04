@@ -1,12 +1,16 @@
-import { Fragment, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { Lang } from '@arche/shared';
-import { stationTexts, type Block } from '@/content/legal';
+import { stationTexts } from '@/content/legal';
+import { rulesText } from '@/content/rules';
 import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { ConfirmButton } from '@/components/mod/ui';
 import { RadioIcon } from '@/components/common/icons';
+import { ShareStationButton } from '@/components/common/ShareStationButton';
+import { clearDeviceData } from '@/lib/deviceData';
+import { Blocks } from '@/components/common/Blocks';
 
 /**
  * The station page behind the logo: what Arche Radio is, the imprint (Impressum)
@@ -14,7 +18,7 @@ import { RadioIcon } from '@/components/common/icons';
  * promise. /impressum and /datenschutz open it at their section — both must
  * be reachable directly and at all times.
  */
-export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' }) {
+export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' | 'regeln' }) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
   const host = useSession((s) => s.channels?.channels.find((c) => c.main)?.host.name ?? 'Hope');
@@ -36,11 +40,13 @@ export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' }
         </div>
         <p className="rounded-xl border border-accent-fill/30 bg-accent-fill/10 px-4 py-3 text-sm leading-relaxed text-ink">{texts.notice}</p>
         <Blocks blocks={texts.about} />
+        <ShareStationButton />
       </section>
 
       <nav className="flex flex-wrap gap-3 px-1 text-sm" aria-label={t('about.legal')}>
         <a href="#impressum" className="text-accent underline">{t('about.imprint')}</a>
         <a href="#datenschutz" className="text-accent underline">{t('about.privacy')}</a>
+        <a href="#regeln" className="text-accent underline">{t('about.rules')}</a>
         <a href="#einstellungen" className="text-accent underline">{t('about.settings')}</a>
       </nav>
 
@@ -56,6 +62,12 @@ export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' }
         <Blocks blocks={texts.privacy} />
       </section>
 
+      <section id="regeln" className="card flex scroll-mt-4 flex-col gap-4 p-5">
+        <h2 className="text-xl font-semibold">{t('about.rules')}</h2>
+        {texts.bindingNote && <p className="text-xs text-ink-faint">{texts.bindingNote}</p>}
+        <Blocks blocks={rulesText(lang)} />
+      </section>
+
       <section id="einstellungen" className="card flex scroll-mt-4 flex-col gap-4 p-5">
         <h2 className="text-xl font-semibold">{t('about.settings')}</h2>
         <PrivacySettings />
@@ -63,46 +75,6 @@ export function AboutPage({ section }: { section?: 'impressum' | 'datenschutz' }
     </div>
   );
 }
-
-function Blocks({ blocks }: { blocks: Block[] }) {
-  return (
-    <div className="flex flex-col gap-4">
-      {blocks.map((b) => (
-        <div key={b.h}>
-          <h3 className="font-semibold text-ink">{b.h}</h3>
-          {b.p.split('\n').map((line, i) => (
-            <p key={i} className="mt-1 text-sm leading-relaxed text-ink-muted">
-              <Linked text={line} />
-            </p>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// A URL runs to the next space or ")"; an address ends at its last domain label.
-const LINK = /(https?:\/\/[^\s)]+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+)/g;
-
-/** URLs and e-mail addresses in a legal text as links (nothing else is markup). */
-function Linked({ text }: { text: string }) {
-  const parts = text.split(LINK);
-  return (
-    <>
-      {parts.map((part, i) => {
-        if (i % 2 === 0) return <Fragment key={i}>{part}</Fragment>;
-        const href = part.startsWith('http') ? part : `mailto:${part}`;
-        return (
-          <a key={i} href={href} className="text-accent underline" target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer">
-            {part}
-          </a>
-        );
-      })}
-    </>
-  );
-}
-
-const DEVICE_KEYS = ['arche.device', 'arche.settings', 'arche.passphrase', 'arche.reactions'];
 
 /** What the privacy policy promises the listener can do here, without writing to anyone. */
 function PrivacySettings() {
@@ -116,14 +88,8 @@ function PrivacySettings() {
     window.location.reload();
   };
 
-  const forget = (): void => {
-    for (const key of DEVICE_KEYS) {
-      try {
-        localStorage.removeItem(key);
-      } catch {
-        /* storage unavailable: nothing to delete */
-      }
-    }
+  const forget = async (): Promise<void> => {
+    await clearDeviceData();
     window.location.assign('/');
   };
 
@@ -139,8 +105,13 @@ function PrivacySettings() {
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <p className="flex-1 text-ink-muted">{t('about.forgetHint')}</p>
-        <ConfirmButton className="btn-ghost text-heart" label={t('about.forget')} question={t('about.forgetConfirm')} onConfirm={forget} />
+        <ConfirmButton className="btn-ghost text-heart" label={t('about.forget')} question={t('about.forgetConfirm')} onConfirm={() => void forget()} />
       </div>
+      <p className="text-ink-muted">
+        <Link to="/konto-loeschen" className="text-accent underline">
+          {t('about.deleteAccount')} →
+        </Link>
+      </p>
     </div>
   );
 }

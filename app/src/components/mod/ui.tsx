@@ -46,15 +46,22 @@ export function ConfirmButton({
   onConfirm,
   className = 'btn-ghost',
   disabled,
+  onAsking,
 }: {
   label: React.ReactNode;
   question: string;
   onConfirm: () => void;
   className?: string;
   disabled?: boolean;
+  /** The question opened or closed (a rotating feed waits while it is open). */
+  onAsking?: (asking: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [asking, setAsking] = useState(false);
+  const [asking, setAskingState] = useState(false);
+  const setAsking = (v: boolean): void => {
+    setAskingState(v);
+    onAsking?.(v);
+  };
   if (!asking) {
     return (
       <button type="button" className={className} disabled={disabled} onClick={() => setAsking(true)}>

@@ -1,0 +1,3 @@
+/* Die Fragen des Systems, bevor Mikrofon oder Kamera benutzt werden (Info.plist). */
+"NSMicrophoneUsageDescription" = "Arche Radio nutzt das Mikrofon nur, während du eine Geschichte, einen Gruß oder ein Gebet für das Radio aufnimmst.";
+"NSCameraUsageDescription" = "Moderatoren können ein Foto für eine Sendung oder ein Kanalbild aufnehmen. Für nichts anderes nutzt Arche Radio die Kamera.";

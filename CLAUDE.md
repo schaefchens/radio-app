@@ -63,6 +63,7 @@ voiced (a tick or two; the cron runs every minute).
 | `server/` | PHP 8.5, namespace `Arche\`: generator, API, jobs, moderation, realtime control | Hetzner Webhosting S (`/_arche/…` + `/api`, `/cron.php`) |
 | `server/public/` | the web-root files exactly as deployed, incl. every `.htaccess` and `.user.ini` | web root |
 | `app/` | the PWA (React 19, Vite 8, Tailwind v3, zustand, i18next) | web root (`/`, `/assets`) |
+| `app/capacitor.config.ts`, `app/ios/`, `app/android/`, `app/native/` | the store apps: Capacitor 8 shells around the live site, their offline page (`native/www`) and icon sources (`native/assets`) | App Store, Google Play |
 | `realtime/` | Node 24 + `ws` chat/presence/reactions node | Docker: local compose, and Hetzner Cloud nodes |
 | `infra/realtime/` | what a node runs: compose, Caddyfile, systemd unit, cloud-init template | baked into the node snapshot |
 | `scripts/` | deploy (SFTP), assemble, secrets, cron line, host probe, Hetzner setup/snapshot, Bunny zone setup | your Mac |
@@ -248,6 +249,26 @@ Submissions can reveal faith or health (Art. 9 GDPR): the forms say so next
 to Send. The page also carries the promised controls (withdraw YouTube
 consent, delete this device's data).
 
+**Native apps** (`app/capacitor.config.ts`, `app/src/lib/native.ts`). The
+App Store and Play apps are Capacitor 8 shells that load the live site
+(`server.url`), not a copy of it: a copy on `capacitor://localhost` sends
+YouTube no Referer (error 153 on every song), and the API, the CDN fallback
+and the clock all assume one origin. So every deploy reaches the apps at
+once, and the web is always newer than some installed shell: `lib/native.ts`
+alone decides the platform (the bridge Capacitor injects at document start)
+and is the only way to a plugin — `hasPlugin()` first, expect the call to fail
+anyway (an older shell, or an old Android WebView where our CSP blocks
+Capacitor's injected script), keep the web behaviour as the fallback, load
+plugin code only through `import()`. In the apps: the radio leaves when the
+app goes to the background (YouTube's terms; no background audio mode), the
+screen stays on while listening (KeepAwake), the status bar follows the theme,
+Android's back button closes the newest sheet or picker (`lib/backStack.ts`),
+then goes back, then Home, then minimizes. iOS's WKWebView runs no service
+worker (no App-Bound Domains): `pwaUpdate.ts` compares the page's entry
+script instead. Program reminders are local notifications planned from the
+day files (`lib/reminderPlan.ts`, pure; `reminderRunner.ts` carries the plan
+out), phone-only. Store texts and privacy answers: `STORE.md`.
+
 **CDN** (`Cdn\Bunny`, `app/src/lib/cdn.ts`). A BunnyCDN pull zone in front of
 `/program` and `/media`, never pushed to: the edge honours the origin's
 Cache-Control, so immutability and the no-store 404 carry over, and the
@@ -263,6 +284,33 @@ CSP names the zone via `assemble-site.sh --cdn`.
 pepper), rows created lazily. The optional 12-word BIP39 passphrase never
 leaves the device; its seed yields credId + credSecret (Argon2id at claim/login
 only). Login on another device makes that device's row an alias (`canonical_id`).
+Deleting an account (`DELETE /api/me`, Profile and `/konto-loeschen`, also with
+the 12 words from any browser; the app stores require it) is `Identity\Erasure`:
+the identity with its aliases, its submissions and files, the host breaks
+that name it (`HostBreaks::forget`), its voices and reports. Under the publish
+lock or not at all (503 `busy`): what it handed in leaves the program
+(`Timeline::withdraw`) — drafts dropped with their unit, committed items not
+yet over blocked through live.json, every payload scrubbed (dropped rows too),
+`submission_id` nulled (SQLite reuses row ids); published minute files stay.
+Others' breaks name it too: one reacting to its request (`previous_id`) or
+quoting its community voice (`community_by`, both kept from the model) is
+drafted afresh when a draft (`HostBreaks::rewrite`: the other listener's unit
+keeps its place), blocked when committed; its voices leave every payload
+(`Timeline::scrubVoices`). Jobs save only while their break is pending
+(`saveIfPending`); `Erasure::sweep` scrubs what was written back for 15
+minutes; the chat nodes get `forget`.
+
+**Reports and blocking** (`Moderation\Reports`, `app/src/lib/reports.ts`,
+`store/blocks.ts`). Listeners report chat messages (through the room), wall
+requests and community voices (the API); three different reporters known
+for a day (device ids cost nothing) take a wall request down at once
+(`hidden = 2`) until a moderator keeps it — for good — or takes it down
+(/mod › Review › Prayer wall). Blocking someone in a room is per
+device, files a `blocked` report, and hides their messages and voices too —
+published voices carry `by`, a hash of the author's id (`Presence::voiceTag`
+= `lib/blocking.ts voiceTag`). Display names pass the moderators' word list
+(`Moderation\Blocklist`). The community rules (`content/rules.ts`,
+`RULES_VERSION`) are accepted once per device before the first post.
 
 **Realtime** (`Realtime\*`, `realtime/`). Optional by design. PHP signs Ed25519
 join tokens (the node has only the public key); nodes report every 20 s with an
@@ -350,10 +398,33 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   to `vite dev`. The silent unlock MP3 is a `data:` URI (`media-src … data:`);
   WebSockets are `wss:` only. The e2e suite runs against the built app.
 
+- **The store apps load the exact origin.** `server.url` has no path and no
+  trailing slash: Android injects the bridge only into that origin (a
+  redirect to another host loses every plugin), iOS treats only URLs starting
+  with it as the app. Release builds refuse any other URL in the synced
+  config (Xcode build phase, Gradle `preReleaseBuild`): `cap run -l` writes a
+  dev URL there — run `npm run native:sync` before archiving.
+- **Never await a Capacitor plugin object.** It is a Proxy that answers every
+  property, `then` included: a promise resolved with it never settles.
+  `native.ts plugin()` hands out the module instead.
+- **Android's offline page has no plugins** (it is served from
+  `https://localhost`, outside the bridge's origin): the splash hides itself
+  after 3 s. On iOS the bridge reaches every frame's message handler; the CSP's
+  `frame-src` is what keeps other frames out.
+- **@capacitor/local-notifications 8.3+**: `schedule()` asks for permission by
+  itself (so nothing is scheduled unless permission is already granted — a
+  start must never pop the question), and `isExactNotification` defaults to
+  true, which opens Android's alarm settings: always state it. Without
+  "Alarms & reminders" (off by default from Android 14) Android may deliver
+  a reminder up to an hour late — seen on the emulator: due 23:31, shown
+  23:34–23:37. With a reminder on, `ReminderToggle` offers the setting
+  (`allowOnTimeReminders`); exactness is part of each reminder's signature,
+  so all are written again.
 - **Nothing opens over the stage.** An emoji picker or channel list above the
   player's row would sit in front of the YouTube player (z 35, fixed): pickers
   open downward, the channel list is a sheet. A modal (sheet, the welcome
-  `<dialog>`) must `pushOverlay` so the video pauses under it.
+  `<dialog>`) uses `useOverlay` (`lib/backStack.ts`): the video pauses under
+  it, and Android's back button closes it.
 - **No `container-type` above the fixed layers.** Its layout containment makes
   the element the containing block for `position: fixed` — the phone dock and
   scenery would stick to the page instead of the screen (the preview uses
@@ -375,7 +446,15 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
 generator's timing invariants, the PHP→fixture contract, identity, submissions
 (request blocks, late approvals, the queue sweep, intake times, the prayer wall,
-typed prayers aired or given back, praying along), the prayer hour walked hour
+typed prayers aired or given back, praying along), deleting an account
+(`erasure.php`: aliases and the words, a voiced draft never airs, a committed
+request blocked with minute files byte for byte, an aired recording and the
+day files, a shared prayer break, others' breaks that react to it or quote
+its voice, another listener's request kept in place, the lock, a script
+finished after its break was forgotten, guards, the sweep, the nodes'
+`forget`), reports (`reports.php`: names against the word list, wall reports
+and their auto-hide — new devices and a kept request excluded —, the
+moderators' decisions, voice reports, purges), the prayer hour walked hour
 by hour (`prayerhour.php`: the running order, the rolling reading, repeats,
 the empty hour, intake to C, midnight, outages, last-minute and repeated plan
 changes, nobody listening, bursts, a short hour, the fallback rule, opening
@@ -387,8 +466,15 @@ pauses from outside and nothing playing while the listener is out, prayer music'
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys, passphrase,
 realtime client, CDN fallback, theme, the phone carousel's fit, the prayer wall's
 day, "Praying now" and the silent-prayer pick, the pulse's voice reactions; jsdom:
-the stage's prayer views, the prayer sheet's wall box, the install sheet's
-single-use prompt). Shared:
+the stage's prayer views, the prayer sheet's wall box and the rules on the
+first post, the install sheet's single-use prompt; the store apps: platform
+detection against @capacitor/core, plugins an older shell lacks, the status
+bar table, the back stack and sheets closing newest first, the background
+signal only in the apps, the entry script for iOS updates, reminder plans
+(every airing, a run across midnight, DST, the 64 iOS keeps, a moved or
+removed program, stale day files, ids) and the runner's plugin traps; block
+filters and the author mark shared with PHP; every stored key on the delete
+list). Shared:
 fixture parsing. Lint + typecheck gate all.
 
 End to end: `npm run e2e` starts the e2e stack (`scripts/e2e-stack.sh`: project
@@ -414,8 +500,13 @@ prayer hour on a channel of its own (prayer music on the stage, a request from
 the stage onto the wall without its sender, praying along, the sender's count,
 no sideways scroll), a preaching program on a channel of its own (the
 library's preaching on air as its video, named a preaching; the fourth tile's
-suggestion through the check; the tile closed on a music program).
-`npm run e2e:reset` starts over.
+suggestion through the check; the tile closed on a music program), a stand-in
+store-app shell (no install offer, the background stops the radio, failing
+plugins break nothing), deleting an account from Profile and with the 12
+words on `/konto-loeschen`, blocking between two listeners (reported to /mod,
+unblocked in Profile), the rules before the first message, and a wall
+request reported (hidden for the reporter, in front of the moderators, down
+and back by their decision). `npm run e2e:reset` starts over.
 
 The dev and e2e stacks mount `server/app` live and their cron loops tick every
 minute: a half-written change runs there at once (and migrates their
@@ -434,8 +525,10 @@ Comments explain the failure a line prevents. Commits: sentence-case imperative.
 ## Known gaps / later
 
 A custom hostname for the CDN zone, ElevenLabs as the default voice, archive *replay* (slot files
-are kept 48 h; `days/*.json` keep what played), Capacitor apps, phone background
-playback (not possible with YouTube embeds). Pending on the host: the Phase 0.5
+are kept 48 h; `days/*.json` keep what played), phone background
+playback (not possible with YouTube embeds), push notifications (the apps
+have local reminders only), App/Universal Links, the iPad layout in the iOS
+app, a monochrome (themed) Android icon. Pending on the host: the Phase 0.5
 probe (background run length → `TICK_BUDGET`, WAL, directives) and the device
 sync spike on a real iPhone/Android, and there the prayer music (it plays after
 the join tap, fades, goes on across pieces, comes back after the background).

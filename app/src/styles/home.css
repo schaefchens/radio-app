@@ -547,9 +547,15 @@
 }
 .feed-reactions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 5px;
   margin-top: 7px;
+}
+/* The report flag, at the row's start; its question takes the row while open. */
+.feed-reactions .report-slot {
+  margin-right: auto;
 }
 .feed-reaction {
   display: grid;

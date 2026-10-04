@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Lang } from '@arche/shared';
 import { useSettings } from '@/store/settings';
-import { useStage } from '@/store/stage';
+import { useOverlay } from '@/lib/backStack';
 import { THEME, THEMES, useTheme } from '@/lib/theme';
 
 /**
@@ -26,12 +26,10 @@ export function WelcomeDialog() {
     const d = dialog.current;
     if (welcomed || !d) return;
     if (!d.open) d.showModal();
-    // The dialog sits in the top layer, over the YouTube player: the player
-    // must pause while it is open, like under a sheet.
-    const { pushOverlay, popOverlay } = useStage.getState();
-    pushOverlay();
-    return () => popOverlay();
   }, [welcomed]);
+  // The dialog sits in the top layer, over the YouTube player: the player
+  // must pause while it is open, like under a sheet. Back closes it, as × does.
+  useOverlay(!welcomed, () => dialog.current?.close());
 
   if (welcomed) return null;
   return (

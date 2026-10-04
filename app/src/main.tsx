@@ -7,17 +7,20 @@ import './styles/home.css';
 import './styles/welcome.css';
 import './i18n';
 import { App } from './App';
+import { initNative } from './lib/native';
 import { initPwaInstall } from './lib/pwaInstall';
 import { initPwaUpdate } from './lib/pwaUpdate';
-import { lockZoomWhenInstalled } from './lib/platform';
+import { markInstalled } from './lib/platform';
 import { applyTheme } from './lib/theme';
 
+// First: everything after it may ask whether this is a store app.
+initNative();
 applyTheme();
 // Before the service worker registers: registering can make Chrome fire
 // `beforeinstallprompt`, and a listener added after it has missed it.
 initPwaInstall();
 initPwaUpdate();
-lockZoomWhenInstalled();
+markInstalled();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -5,6 +5,7 @@ namespace Arche\Identity;
 
 use Arche\ApiError;
 use Arche\App;
+use Arche\Moderation\Blocklist;
 use Arche\Support\Ids;
 
 /**
@@ -49,8 +50,12 @@ final class Identities
 
     public static function validDevice(string $id, string $secret): bool
     {
-        return (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $id)
-            && (bool) preg_match('/^[0-9a-f]{64}$/', $secret);
+        return self::validDeviceId($id) && (bool) preg_match('/^[0-9a-f]{64}$/', $secret);
+    }
+
+    public static function validDeviceId(string $id): bool
+    {
+        return (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $id);
     }
 
     /** The device's key for presence and reactions — no row needed. */
@@ -159,12 +164,8 @@ final class Identities
      */
     public function login(string $deviceId, string $deviceSecret, string $credId, string $credSecret): array
     {
-        self::checkCredential($credId, $credSecret);
-        $limiter = $this->app->rateLimit();
-        if (!$limiter->hit('login:' . $limiter->ipKey(), 10, 3600)) throw new ApiError(429, 'rate_limited');
+        $root = $this->verifyPassphrase($credId, $credSecret);
         $store = $this->app->store();
-        $root = $store->one('SELECT * FROM identities WHERE cred_key = ?', [$this->mac('cred', $credId)]);
-        if ($root === null || !password_verify($credSecret, (string) $root['cred_hash'])) throw new ApiError(401, 'unknown_passphrase');
         $device = $this->resolve($deviceId, $deviceSecret, true);
         $deviceRow = $store->one('SELECT * FROM identities WHERE device_key = ?', [$this->mac('device', $deviceId)]);
         if ($deviceRow !== null && (int) $deviceRow['id'] !== (int) $root['id']) {
@@ -176,6 +177,22 @@ final class Identities
         unset($device);
         $store->audit('identity', 'Passphrase login', (string) $root['public_id']);
         return $this->get((int) $root['id']) ?? throw new ApiError(500, 'identity_lost');
+    }
+
+    /**
+     * The passphrase identity these credentials open (login, and deleting an
+     * account from any browser), or a 401 — limited per address like a login.
+     *
+     * @return array<string,mixed>
+     */
+    public function verifyPassphrase(string $credId, string $credSecret): array
+    {
+        self::checkCredential($credId, $credSecret);
+        $limiter = $this->app->rateLimit();
+        if (!$limiter->hit('login:' . $limiter->ipKey(), 10, 3600)) throw new ApiError(429, 'rate_limited');
+        $root = $this->app->store()->one('SELECT * FROM identities WHERE cred_key = ?', [$this->mac('cred', $credId)]);
+        if ($root === null || !password_verify($credSecret, (string) $root['cred_hash'])) throw new ApiError(401, 'unknown_passphrase');
+        return $this->canonical($root);
     }
 
     private static function checkCredential(string $credId, string $credSecret): void
@@ -191,8 +208,12 @@ final class Identities
     {
         $set = [];
         if (array_key_exists('name', $fields)) {
-            $name = trim((string) preg_replace('/[\p{C}<>]/u', '', (string) $fields['name']));
+            // Invisible characters out and whitespace runs as one space, as the
+            // chat node treats messages: that is how words slip past a list.
+            $name = trim((string) preg_replace(['/[\p{C}<>]/u', '/\s+/u'], ['', ' '], (string) $fields['name']));
             if (mb_strlen($name) > 30) throw new ApiError(422, 'name_too_long');
+            // Never says which word: that would only teach the way around it.
+            if (Blocklist::matches($this->app->store(), $name)) throw new ApiError(422, 'name_not_allowed');
             $set['display_name'] = $name;
         }
         if (array_key_exists('country', $fields)) {

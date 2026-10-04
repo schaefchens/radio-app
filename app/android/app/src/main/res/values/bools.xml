@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark bar icons over the light chrome; values-night/ turns them light. -->
+    <bool name="lightBars">true</bool>
+</resources>

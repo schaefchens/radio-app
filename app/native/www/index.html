@@ -1,0 +1,163 @@
+<!doctype html>
+<!--
+  The store apps' own page (app/capacitor.config.ts): shown when the station
+  cannot be reached — offline at a cold start, DNS, and on Android an HTTP
+  error of the site. iOS also needs it to start at all.
+
+  It cannot use the app: it is served by the shell (capacitor://localhost on
+  iOS, https://localhost on Android, there without the plugins), so it has
+  its own two languages (navigator.language) and its own two looks
+  (prefers-color-scheme), and only ES5 for the oldest WebView that may show it.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Arche Radio</title>
+    <style>
+      :root {
+        --bg: #f6fbff;
+        --ink: #092d67;
+        --muted: #3d5a85;
+        --accent: #b07a10;
+        --button: #092d67;
+        --button-ink: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #03234a;
+          --ink: #eef6ff;
+          --muted: #a9c3e6;
+          --accent: #ffd06c;
+          --button: #ffd06c;
+          --button-ink: #03234a;
+        }
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom))
+          max(24px, env(safe-area-inset-left));
+        text-align: center;
+      }
+      main {
+        max-width: 360px;
+      }
+      svg {
+        width: 72px;
+        height: 72px;
+        color: var(--accent);
+        overflow: visible;
+      }
+      h1 {
+        margin: 20px 0 8px;
+        font-size: 20px;
+        line-height: 1.3;
+      }
+      p {
+        margin: 0 0 24px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 12px 22px;
+        background: var(--button);
+        color: var(--button-ink);
+        font: inherit;
+        font-weight: 600;
+        font-size: 15px;
+      }
+      button[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="11" r="2" fill="currentColor" stroke="none" />
+        <path d="M12 13v9M8 7a6 6 0 0 0 0 8M16 7a6 6 0 0 1 0 8M5 4a10 10 0 0 0 0 14M19 4a10 10 0 0 1 0 14M2 1a14 14 0 0 0 0 20M22 1a14 14 0 0 1 0 20" />
+      </svg>
+      <h1 id="title">Arche Radio cannot reach the station</h1>
+      <p id="body">Check your internet connection. The app tries again by itself.</p>
+      <button id="retry" type="button">Try again</button>
+    </main>
+    <script>
+      (function () {
+        var LIVE = 'https://radio.schaefchens.de/';
+        // Vite builds the site for Chrome 111 (app/capacitor.config.ts, minWebViewVersion).
+        var MIN_CHROME = 111;
+        var TEXT = {
+          en: {
+            title: 'Arche Radio cannot reach the station',
+            body: 'Check your internet connection. The app tries again by itself.',
+            retry: 'Try again',
+            oldTitle: 'Arche Radio needs a newer Android System WebView',
+            oldBody: 'Update “Android System WebView” in the Play Store, then open Arche Radio again.',
+          },
+          de: {
+            title: 'Arche Radio erreicht den Sender nicht',
+            body: 'Prüfe deine Internetverbindung. Die App versucht es von selbst wieder.',
+            retry: 'Erneut versuchen',
+            oldTitle: 'Arche Radio braucht ein neueres „Android System WebView“',
+            oldBody: 'Aktualisiere „Android System WebView“ im Play Store und öffne Arche Radio dann wieder.',
+          },
+        };
+        var lang = String(navigator.language || '').toLowerCase().indexOf('de') === 0 ? 'de' : 'en';
+        var t = TEXT[lang];
+        document.documentElement.lang = lang;
+        var chrome = /Chrome\/(\d+)/.exec(navigator.userAgent);
+        var outdated = chrome && parseInt(chrome[1], 10) < MIN_CHROME;
+        document.getElementById('title').textContent = outdated ? t.oldTitle : t.title;
+        document.getElementById('body').textContent = outdated ? t.oldBody : t.body;
+        var retry = document.getElementById('retry');
+        retry.textContent = t.retry;
+        if (outdated) {
+          retry.hidden = true;
+          return;
+        }
+
+        function open() {
+          // replace: Android's back button must not lead here again.
+          location.replace(LIVE);
+        }
+
+        // Only when the station answers: a site answering 5xx would otherwise
+        // bring this page back every few seconds. /program allows any origin.
+        var checking = false;
+        function check() {
+          if (checking || document.visibilityState === 'hidden' || typeof fetch !== 'function') return;
+          checking = true;
+          fetch(LIVE + 'program/channels.json', { cache: 'no-store' })
+            .then(function (res) {
+              checking = false;
+              if (res.ok) open();
+            })
+            .catch(function () {
+              checking = false;
+            });
+        }
+
+        retry.addEventListener('click', open);
+        window.addEventListener('online', check);
+        document.addEventListener('visibilitychange', check);
+        setInterval(check, 15000);
+      })();
+    </script>
+  </body>
+</html>

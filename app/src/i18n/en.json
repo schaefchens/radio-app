@@ -63,7 +63,9 @@
   "voices": {
     "title": "Community voices",
     "seeMore": "More",
-    "empty": "No voices yet — join the room and say hello."
+    "empty": "No voices yet — join the room and say hello.",
+    "report": "Report",
+    "reportConfirm": "Report this message? It is hidden for you, and a moderator checks it."
   },
   "reactions": {
     "heart": "Like",
@@ -149,6 +151,7 @@
     "listen": "Listen back",
     "limit": "Up to {{seconds}} seconds",
     "micDenied": "Microphone permission denied. Enable it in your browser settings.",
+    "micDeniedApp": "Arche Radio may not use the microphone yet. Allow it in your phone's settings for Arche Radio.",
     "preparing": "Preparing the recording…",
     "radioMuted": "The radio is muted while you record."
   },
@@ -190,7 +193,10 @@
     "accepts": "Accepts",
     "nothingAccepted": "No submissions in this program.",
     "noDay": "No plan for this day yet.",
-    "weekHint": "Tap a program for details."
+    "weekHint": "Tap a program for details.",
+    "next": "Next: {{when}}",
+    "noneSoon": "Not on the plan in the coming week.",
+    "contribution": "A listener’s contribution"
   },
   "chat": {
     "title": "Community Room",
@@ -219,7 +225,9 @@
     "empty": "Be the first to say something.",
     "error": "Couldn't connect to the room.",
     "bad": "That message could not be sent.",
-    "full": "The rooms are full right now. Try again in a moment."
+    "full": "The rooms are full right now. Try again in a moment.",
+    "block": "Block",
+    "blockConfirm": "Block {{name}}? You will no longer see their messages, and a moderator is told."
   },
   "profile": {
     "title": "Profile",
@@ -256,7 +264,12 @@
     "setupLink": "Set up administration",
     "built": "Built {{time}}",
     "checked": "Checked for updates",
-    "identity": "Your listener id: {{id}}"
+    "identity": "Your listener id: {{id}}",
+    "blocked": {
+      "title": "Blocked in the rooms",
+      "hint": "You do not see their messages and voices on this device.",
+      "unblock": "Unblock"
+    }
   },
   "setup": {
     "title": "Set up Arche Radio",
@@ -308,7 +321,10 @@
     "device_has_other_passphrase": "This device is linked to another passphrase. Log out first.",
     "needs_passphrase": "This needs a passphrase identity.",
     "name_too_long": "That name is too long.",
-    "forbidden": "You are not allowed to do that."
+    "forbidden": "You are not allowed to do that.",
+    "last_admin": "You are the only administrator: make someone else an administrator first.",
+    "busy": "The station is busy for a moment — please try again.",
+    "name_not_allowed": "Please choose a different name."
   },
   "common": {
     "close": "Close",
@@ -320,7 +336,8 @@
     "edit": "Edit",
     "add": "Add",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "cancel": "Cancel"
   },
   "mod": {
     "title": "Moderation",
@@ -692,7 +709,15 @@
         "remove": "Remove from the prayer wall",
         "show": "Show on the prayer wall",
         "removed": "Taken off the prayer wall.",
-        "shown": "Back on the prayer wall."
+        "shown": "Back on the prayer wall.",
+        "byReports": "Taken down by listeners' reports",
+        "reported_one": "Reported once",
+        "reported_other": "Reported {{count}}×",
+        "keep": "Keep on the wall",
+        "takeDown": "Take down",
+        "takeDownBan": "Take down and ban the sender",
+        "banConfirm": "Take it down and ban its sender from the station?",
+        "kept": "Kept on the prayer wall; the reports are answered."
       }
     },
     "chat": {
@@ -708,7 +733,8 @@
       "blocklist": "Blocked words",
       "blocklistHint": "One word or phrase per line; messages containing one are refused.",
       "reporter": "Reported by",
-      "likes": "{{n}} likes"
+      "likes": "{{n}} likes",
+      "voice": "Community voice"
     },
     "users": {
       "search": "Name or listener id",
@@ -754,9 +780,11 @@
     "consentOn": "You agreed to load the music videos from YouTube (Google).",
     "consentOff": "YouTube is not loaded. It loads only when you tap “Tap to join live”.",
     "withdraw": "Withdraw YouTube consent",
-    "forgetHint": "Delete everything Arche Radio keeps on this device: your device id, settings, reactions and passphrase. Submissions you sent then no longer show under “My submissions” here.",
+    "forgetHint": "Delete everything Arche Radio keeps on this device: your device id, settings, reactions, program reminders, passphrase and the program files kept for a weak connection. Submissions you sent then no longer show under “My submissions” here.",
     "forget": "Delete data on this device",
-    "forgetConfirm": "Delete Arche Radio’s data on this device? Without your 12 words your passphrase identity cannot come back."
+    "forgetConfirm": "Delete Arche Radio’s data on this device? Without your 12 words your passphrase identity cannot come back.",
+    "deleteAccount": "Delete your account on our server as well",
+    "rules": "Community rules"
   },
   "theme": {
     "label": "Design",
@@ -787,7 +815,9 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "intro": "Prayer requests from listeners who agreed to share them. Pray along.",
-    "prayingNow": "Praying now"
+    "prayingNow": "Praying now",
+    "report": "Report",
+    "reportConfirm": "Report this prayer request? It is hidden for you, and a moderator checks it."
   },
   "emoji": {
     "hallelujah": "Hallelujah",
@@ -820,5 +850,59 @@
     "start": "Let's get started",
     "later": "You can change language and theme later through Profile.",
     "close": "Close"
+  },
+  "reminders": {
+    "remind": "Remind me",
+    "on": "Reminder on",
+    "offHint": "A notification on this phone {{minutes}} minutes before each airing.",
+    "onHint": "You'll be reminded {{minutes}} minutes before each airing in the coming week — renewed whenever you open Arche Radio.",
+    "deniedIos": "Notifications are off for Arche Radio. Turn them on in Settings › Notifications › Arche Radio.",
+    "deniedAndroid": "Notifications are off for Arche Radio. Turn them on in Settings › Apps › Arche Radio › Notifications.",
+    "failed": "The reminder could not be set. Please try again.",
+    "late": "Without “Alarms & reminders”, Android may deliver reminders late.",
+    "onTime": "Allow on-time reminders",
+    "body": "Begins at {{time}} on {{channel}}.",
+    "channel": "Program reminders",
+    "channelHint": "When a program you chose begins"
+  },
+  "share": {
+    "button": "Share Arche Radio",
+    "title": "Arche Radio",
+    "text": "Christian radio for the whole world: one program, many nations, one family. Listen with me!",
+    "copied": "Link copied"
+  },
+  "account": {
+    "title": "Delete account",
+    "hint": "Deletes your account on our server and everything you sent us, then this device’s data.",
+    "button": "Delete account",
+    "goes": "Deleted at once:",
+    "goesIdentity": "your account: name, country and your passphrase, on every device that uses it",
+    "goesSubmissions": "everything you sent: song requests and suggestions, recordings (also those kept for repeats), prayer requests — off the prayer wall and out of the program, if they have not aired yet",
+    "goesVoices": "your community voices and the reports about your messages",
+    "goesDevice": "Arche Radio’s data on this device",
+    "stays": "Kept for a while, then deleted as well:",
+    "staysText": "what already went out in the program’s published files (up to 48 hours), our backups (up to 7 days), reports you filed (without your name, up to 30 days) and the security log (up to 90 days). Requested songs may stay in the music selection, without your name or dedication.",
+    "staff": "You also lose your moderator role. The last administrator cannot delete their account.",
+    "confirm": "Delete everything",
+    "page": {
+      "title": "Delete your Arche Radio account",
+      "intro": "You can delete your Arche Radio account and everything you sent us at any time — in the app (Profile › Delete account) or here.",
+      "hereTitle": "In this browser",
+      "here": "This browser uses an account on our server. Delete it, with everything sent from it:",
+      "hereNone": "This browser has no account on our server.",
+      "wordsTitle": "With your 12 words",
+      "words": "Do you use a passphrase? Enter its 12 words to delete that account from here — for example when you no longer have the app.",
+      "wordsLabel": "Your 12 words",
+      "neitherTitle": "Without the app and without your words",
+      "neither": "Then we cannot tell which data is yours. A device without a passphrase is deleted automatically 60 days after it was last used, and what you sent after 90 days.",
+      "contact": "Questions:",
+      "done": "Done: the account and everything sent from it are deleted."
+    }
+  },
+  "rules": {
+    "accept": "I accept the community rules: posting from 16, no hate, no harassment — reports are checked within a day.",
+    "read": "Read the rules",
+    "beforeWriting": "Before you write: the community rules.",
+    "acceptAndWrite": "Accept and write"
   }
 }

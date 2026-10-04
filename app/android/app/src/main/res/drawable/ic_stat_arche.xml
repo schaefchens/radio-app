@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The station's mark (app/public/favicon.svg) as the notification icon:
+     Android draws it as a white silhouette, so only its shape matters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="31"
+    android:viewportHeight="31">
+    <!-- The mark spans x -3.1…27.1 and y 0.1…22.9 in its 24-unit grid; centred in a square. -->
+    <group android:translateX="3.5" android:translateY="4">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M12,11m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+        <path
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="1.8"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M12,13v9M8,7a6,6 0,0 0,0 8M16,7a6,6 0,0 1,0 8M5,4a10,10 0,0 0,0 14M19,4a10,10 0,0 1,0 14M2,1a14,14 0,0 0,0 20M22,1a14,14 0,0 1,0 20" />
+    </group>
+</vector>

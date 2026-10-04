@@ -9,6 +9,8 @@ import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
 import { parseYouTubeId } from '@/lib/youtubeUrl';
 import { CheckIcon } from '@/components/common/icons';
+import { RulesCheckbox } from '@/components/common/RulesConsent';
+import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
 
 interface Preview {
   /** The video id this preview belongs to; a stale one is simply not shown. */
@@ -68,6 +70,9 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
   }, [id, consent, t]);
 
   const submit = useSubmit(() => api(`/submissions/${kind}`, { body: { channel, url, message, name, place, lang } }));
+  // The community rules, once per device before the first post.
+  const rulesNeeded = useRulesNeeded();
+  const [rulesTicked, setRulesTicked] = useState(false);
   const close = (): void => {
     onClose();
     if (submit.done) {
@@ -87,6 +92,7 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault();
+              if (rulesNeeded) acceptRules();
               void submit.run();
             }}
           >
@@ -112,8 +118,9 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
             </div>
             <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
+            {rulesNeeded && <RulesCheckbox checked={rulesTicked} onChange={setRulesTicked} />}
             <PrivacyNote />
-            <button type="submit" className="btn-primary" disabled={!id || !!previewError || submit.busy}>
+            <button type="submit" className="btn-primary" disabled={!id || !!previewError || submit.busy || (rulesNeeded && !rulesTicked)}>
               {submit.busy ? t('common.loading') : t('submit.send')}
             </button>
           </form>

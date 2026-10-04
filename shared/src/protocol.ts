@@ -151,6 +151,12 @@ export interface NodeReportResponse {
   bans: string[];
   /** Message ids moderators removed; the node drops them from history. */
   removed: string[];
+  /**
+   * Public ids of accounts their owners deleted in the last hour: their
+   * messages leave every room's history, their connections close and their
+   * still-valid tokens are refused. Missing from older servers.
+   */
+  forget?: string[];
   config: NodeConfig;
   /** Stop accepting new connections; existing ones are told to move. */
   drain: boolean;

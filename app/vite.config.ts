@@ -32,6 +32,9 @@ export default defineConfig({
     // Not 5173: other projects' dev servers tend to sit there.
     port: 5180,
     strictPort: true,
+    // The store apps' native projects: Gradle and Xcode write thousands of
+    // files there while building.
+    watch: { ignored: [path.resolve(__dirname, 'ios/**'), path.resolve(__dirname, 'android/**')] },
     proxy: {
       '/api': { target: BACKEND, changeOrigin: false },
       '/program': { target: BACKEND, changeOrigin: false },

@@ -10,7 +10,9 @@ import { usePrayingWall } from './usePrayingWall';
 import { useRotation, WALL_ROTATE_MS } from './useRotation';
 import { Reactions } from './Reactions';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
-import { PrayIcon } from '@/components/common/icons';
+import { FlagIcon, PrayIcon } from '@/components/common/icons';
+import { ConfirmButton } from '@/components/mod/ui';
+import { reportWallEntry } from '@/lib/reports';
 
 /**
  * The prayer wall on desktop, under the community voices (on a tablet under
@@ -74,8 +76,35 @@ export function PrayerEntry({ entry, praying = false, onActivity }: { entry: Wal
         {praying && <span className="praying-badge">{t('wall.prayingNow')}</span>}
         <p>{entry.text}</p>
       </div>
-      <Reactions markId={`voice:${entry.id}`} variant="prayer" onSend={(kind) => reactVoice(entry.id, kind)} onActivity={onActivity} />
+      <Reactions
+        markId={`voice:${entry.id}`}
+        variant="prayer"
+        onSend={(kind) => reactVoice(entry.id, kind)}
+        onActivity={onActivity}
+        extra={<ReportButton question={t('wall.reportConfirm')} onConfirm={() => reportWallEntry(entry.id)} onAsking={onActivity} />}
+      />
     </div>
+  );
+}
+
+/** A small flag under a wall request or a voice: asks, then hides it here and tells the moderators. */
+export function ReportButton({ question, onConfirm, onAsking }: { question: string; onConfirm: () => void; onAsking?: (asking: boolean) => void }) {
+  const { t } = useTranslation();
+  return (
+    <span className="report-slot">
+      <ConfirmButton
+        className="inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-xs text-ink-faint hover:text-ink"
+        label={
+          <>
+            <FlagIcon size={12} />
+            {t('wall.report')}
+          </>
+        }
+        question={question}
+        onConfirm={onConfirm}
+        onAsking={onAsking}
+      />
+    </span>
   );
 }
 

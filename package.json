@@ -29,7 +29,13 @@
     "cron-command": "bash scripts/cron-command.sh",
     "cdn:setup": "bash scripts/cdn/setup-bunny.sh",
     "realtime:setup": "bash scripts/realtime/setup-hetzner.sh",
-    "realtime:snapshot": "bash scripts/realtime/build-snapshot.sh"
+    "realtime:snapshot": "bash scripts/realtime/build-snapshot.sh",
+    "native:sync": "npm run native:sync --workspace @arche/app",
+    "native:ios": "npm run native:ios --workspace @arche/app",
+    "native:android": "npm run native:android --workspace @arche/app",
+    "native:aab": "npm run native:aab --workspace @arche/app",
+    "native:assets": "npm run native:assets --workspace @arche/app",
+    "native:version": "node scripts/native/version.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

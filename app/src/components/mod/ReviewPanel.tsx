@@ -8,7 +8,7 @@ import { clockDuration, localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
 import { useOverview } from './overview';
 import { modError } from './modApi';
-import { Loading, Notice, Pill, Section } from './ui';
+import { ConfirmButton, Loading, Notice, Pill, Section } from './ui';
 
 type Status = 'received' | 'checking' | 'review' | 'approved' | 'scheduled' | 'aired' | 'library' | 'missed' | 'rejected';
 
@@ -34,8 +34,11 @@ interface ReviewItem {
   blocker: 'recording_deleted' | 'video_unplayable' | 'not_rejected' | null;
   /** The sender agreed to show it (prayer requests: on the prayer wall). */
   consentAir: boolean;
-  /** A moderator took it off the prayer wall. */
+  /** Off the prayer wall (a moderator's decision, or enough listeners' reports). */
   hidden: boolean;
+  /** Open reports from listeners (prayer wall requests). */
+  reports: number;
+  hiddenBy: 'moderator' | 'reports' | null;
 }
 
 const REASONS = ['not_program_fit', 'not_suitable', 'not_accepted'] as const;
@@ -53,7 +56,11 @@ const ON_WALL: Status[] = ['approved', 'scheduled', 'aired'];
 export function ReviewPanel() {
   const { t } = useTranslation();
   // Rejections are what a station without human review mostly has to look at.
-  const [filter, setFilter] = useState<Filter>(() => ((useOverview.getState().data?.review ?? 0) > 0 ? 'review' : 'rejected'));
+  // Reported wall requests come next: listeners wait for an answer within a day.
+  const [filter, setFilter] = useState<Filter>(() => {
+    const o = useOverview.getState().data;
+    return (o?.review ?? 0) > 0 ? 'review' : (o?.wallReports ?? 0) > 0 ? 'wall' : 'rejected';
+  });
   const { data, error, reload } = useApi<{ items: ReviewItem[] }>(`/mod/review?status=${filter}`);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const decided = (text: string, tone: 'ok' | 'error' = 'ok'): void => {
@@ -197,23 +204,46 @@ function ReviewCard({ item, onDone }: { item: ReviewItem; onDone: (text: string,
 function WallControl({ item, onDone }: { item: ReviewItem; onDone: (text: string, tone?: 'ok' | 'error') => void }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
-  const toggle = async (): Promise<void> => {
+  const decide = async (hidden: boolean, ban = false): Promise<void> => {
     setBusy(true);
     try {
-      await api(`/mod/review/${item.id}/wall`, { body: { hidden: !item.hidden } });
-      onDone(t(item.hidden ? 'mod.review.wall.shown' : 'mod.review.wall.removed'));
+      await api(`/mod/review/${item.id}/wall`, { body: { hidden, ban } });
+      onDone(t(hidden ? 'mod.review.wall.removed' : item.reports > 0 ? 'mod.review.wall.kept' : 'mod.review.wall.shown'));
     } catch (e) {
       onDone(modError(e), 'error');
     } finally {
       setBusy(false);
     }
   };
+  // Reported by listeners: keep it, take it down, or take it down and ban its sender.
+  const reported = item.reports > 0 || item.hiddenBy === 'reports';
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Pill tone={item.hidden ? 'default' : 'good'}>{t(item.hidden ? 'mod.review.wall.off' : 'mod.review.wall.on')}</Pill>
-      <button type="button" className={clsx('btn-ghost', !item.hidden && 'text-heart')} disabled={busy} onClick={() => void toggle()}>
-        {t(item.hidden ? 'mod.review.wall.show' : 'mod.review.wall.remove')}
-      </button>
+      <Pill tone={item.hidden ? 'default' : 'good'}>
+        {t(item.hiddenBy === 'reports' ? 'mod.review.wall.byReports' : item.hidden ? 'mod.review.wall.off' : 'mod.review.wall.on')}
+      </Pill>
+      {item.reports > 0 && <Pill tone="warn">{t('mod.review.wall.reported', { count: item.reports })}</Pill>}
+      {reported ? (
+        <>
+          <button type="button" className="btn-ghost" disabled={busy} onClick={() => void decide(false)}>
+            {t('mod.review.wall.keep')}
+          </button>
+          <button type="button" className="btn-ghost text-heart" disabled={busy} onClick={() => void decide(true)}>
+            {t('mod.review.wall.takeDown')}
+          </button>
+          <ConfirmButton
+            className="btn-ghost text-heart"
+            disabled={busy}
+            label={t('mod.review.wall.takeDownBan')}
+            question={t('mod.review.wall.banConfirm')}
+            onConfirm={() => void decide(true, true)}
+          />
+        </>
+      ) : (
+        <button type="button" className={clsx('btn-ghost', !item.hidden && 'text-heart')} disabled={busy} onClick={() => void decide(!item.hidden)}>
+          {t(item.hidden ? 'mod.review.wall.show' : 'mod.review.wall.remove')}
+        </button>
+      )}
     </div>
   );
 }

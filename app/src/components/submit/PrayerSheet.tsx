@@ -7,6 +7,8 @@ import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
 import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
+import { RulesCheckbox } from '@/components/common/RulesConsent';
+import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
 
 export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClose: () => void; onRecord: () => void }) {
   const { t } = useTranslation();
@@ -20,6 +22,9 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
   // Showing a prayer request to everyone needs a clear yes: never pre-ticked.
   const [share, setShare] = useState(false);
   const submit = useSubmit(() => api('/submissions/prayer', { body: { channel, text, name, place, lang, consent_air: share } }));
+  // The community rules, once per device before the first post.
+  const rulesNeeded = useRulesNeeded();
+  const [rulesTicked, setRulesTicked] = useState(false);
   const close = (): void => {
     onClose();
     if (submit.done) {
@@ -39,6 +44,7 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault();
+              if (rulesNeeded) acceptRules();
               void submit.run();
             }}
           >
@@ -53,9 +59,10 @@ export function PrayerSheet({ open, onClose, onRecord }: { open: boolean; onClos
               {t('prayerForm.showOnWall')}
             </label>
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
+            {rulesNeeded && <RulesCheckbox checked={rulesTicked} onChange={setRulesTicked} />}
             <PrivacyNote />
             <div className="flex gap-2">
-              <button type="submit" className="btn-primary flex-1" disabled={text.trim().length < 5 || submit.busy}>
+              <button type="submit" className="btn-primary flex-1" disabled={text.trim().length < 5 || submit.busy || (rulesNeeded && !rulesTicked)}>
                 {submit.busy ? t('common.loading') : t('submit.send')}
               </button>
               <button type="button" className="btn-ghost" onClick={onRecord}>

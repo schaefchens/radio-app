@@ -573,6 +573,21 @@ final class Submissions
     }
 
     /**
+     * A prayer request whose airing went with someone else's deleted account
+     * (a shared prayer break) waits again — also when that break was on air
+     * already ($startMs): it is blocked before its end.
+     */
+    public function giveBack(int $id, ?int $startMs): void
+    {
+        $this->app->store()->update(
+            'submissions',
+            ['status' => 'approved', 'aired_at' => null, 'updated' => $this->app->clock->now()],
+            "id = ? AND (status = 'scheduled' OR (status = 'aired' AND aired_at = ?))",
+            [$id, $startMs ?? -1],
+        );
+    }
+
+    /**
      * Library ids of the songs and preachings that requests and suggestions
      * are still waiting to play (approved, or in the plan and not yet on
      * air). The selection leaves them to their requests.
@@ -746,6 +761,20 @@ final class Submissions
         $changed = $this->app->store()->update('submissions', ['hidden' => $hidden ? 1 : 0, 'updated' => $this->app->clock->now()],
             "public_id = ? AND type = 'prayer' AND mode = 'text'", [$publicId]) === 1;
         if ($changed && $hidden) $this->app->timeline()->dropRepeatsOf((int) ($this->byPublicId($publicId)['id'] ?? 0));
+        return $changed;
+    }
+
+    /**
+     * Enough listeners reported a request on the wall (Moderation\Reports): it
+     * comes off until a moderator decides — `hidden = 2`, so /mod can tell it
+     * from their own takedown. Like setHidden, the repeats planned for it go.
+     *
+     * @return bool whether it was on the wall until now
+     */
+    public function hideByReports(int $id): bool
+    {
+        $changed = $this->app->store()->update('submissions', ['hidden' => 2, 'updated' => $this->app->clock->now()], 'id = ? AND hidden = 0', [$id]) === 1;
+        if ($changed) $this->app->timeline()->dropRepeatsOf($id);
         return $changed;
     }
 

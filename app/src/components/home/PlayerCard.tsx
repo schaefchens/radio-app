@@ -12,6 +12,7 @@ import { StageRegion } from '@/components/stage/StageRegion';
 import { CdnImg } from '@/components/common/CdnImg';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { BookIcon, ChevronIcon, LevelsIcon, MicIcon, MusicIcon, NavLiveIcon, PauseIcon, PlayIcon, UsersIcon } from '@/components/common/icons';
+import { tapHaptic } from '@/lib/haptics';
 
 // A stable empty list: a selector that returns a fresh [] on every call makes
 // the store subscription see a change each render and React bails out.
@@ -213,6 +214,7 @@ function PlayPause() {
       title={t('player.play')}
       onClick={() => {
         // The same tap as the stage's play button, whose note says what it loads.
+        tapHaptic();
         setConsent(true);
         joinRadio();
       }}

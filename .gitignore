@@ -23,3 +23,8 @@ blob-report/
 
 .DS_Store
 *.log
+
+# The Play upload key and its passwords never go into git (app/android/keystore.properties.example).
+app/android/keystore.properties
+*.keystore
+*.jks

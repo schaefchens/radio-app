@@ -11,6 +11,9 @@ import { PassphrasePanel } from '@/components/profile/PassphrasePanel';
 import { MySubmissions } from '@/components/profile/MySubmissions';
 import { ThemePicker } from '@/components/profile/ThemePicker';
 import { ShieldIcon, VolumeIcon } from '@/components/common/icons';
+import { ShareStationButton } from '@/components/common/ShareStationButton';
+import { BlockedList } from '@/components/profile/BlockedList';
+import { DeleteAccountSheet } from '@/components/profile/DeleteAccountSheet';
 
 const IOS = isIOS();
 const WAKE_LOCK = wakeLockSupported();
@@ -27,6 +30,7 @@ export function ProfilePage() {
   const keepAwake = useSettings((s) => s.keepAwake);
   const setKeepAwake = useSettings((s) => s.setKeepAwake);
   const [checked, setChecked] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const built = new Date(__BUILD_TIME__).toLocaleString(i18n.language);
 
   return (
@@ -57,6 +61,8 @@ export function ProfilePage() {
             <h2 className="text-lg font-semibold">{t('profile.passphrase.title')}</h2>
             <PassphrasePanel identity={identity} />
           </section>
+
+          <BlockedList />
 
           {(isModerator(identity) || config?.setupNeeded) && (
             <section className="card flex flex-wrap gap-2 p-4">
@@ -98,6 +104,7 @@ export function ProfilePage() {
               </button>
               {checked && <span className="text-xs text-ink-muted">{t('profile.checked')}</span>}
             </div>
+            <ShareStationButton />
             <div className="flex flex-wrap gap-4 pt-2">
               <Link to="/about" className="text-accent underline">
                 {t('about.open')}
@@ -110,8 +117,17 @@ export function ProfilePage() {
               </Link>
             </div>
           </section>
+
+          <section className="card flex flex-col gap-3 p-4 text-sm">
+            <h2 className="text-lg font-semibold">{t('account.title')}</h2>
+            <p className="text-ink-muted">{t('account.hint')}</p>
+            <button type="button" className="btn-ghost self-start text-heart" onClick={() => setDeleting(true)}>
+              {t('account.button')}
+            </button>
+          </section>
         </div>
       </div>
+      <DeleteAccountSheet open={deleting} onClose={() => setDeleting(false)} />
     </div>
   );
 }

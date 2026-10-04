@@ -1,11 +1,21 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { DayFile, Lang } from '@arche/shared';
+import type { DayFile, DayProgram, Lang } from '@arche/shared';
 import { localTime } from '@/lib/format';
+import { BellIcon } from '@/components/common/icons';
 import { useServerNow } from './useServerNow';
 
+interface Props {
+  day: DayFile | null;
+  compact?: boolean;
+  /** A tap on a program opens its details (the schedule). */
+  onProgram?: (p: DayProgram) => void;
+  /** Programs with a reminder set (store apps): a bell next to the title. */
+  reminded?: ReadonlySet<string>;
+}
+
 /** The plan for one day, as blocks in the listener's local time. */
-export function DayBlocks({ day, compact = false }: { day: DayFile | null; compact?: boolean }) {
+export function DayBlocks({ day, compact = false, onProgram, reminded }: Props) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
   const now = useServerNow(30_000);
@@ -16,6 +26,21 @@ export function DayBlocks({ day, compact = false }: { day: DayFile | null; compa
         const p = day.programs[b.p];
         const current = now >= b.start && now < b.end;
         const past = now >= b.end;
+        const content = (
+          <>
+            <p className="flex min-w-0 items-center gap-1.5 font-semibold" style={{ color: p?.color }}>
+              <span className="truncate">{p?.title[lang] ?? b.p}</span>
+              {reminded?.has(b.p) && (
+                <span className="shrink-0 text-accent" title={t('reminders.on')}>
+                  <BellIcon size={14} filled />
+                  <span className="sr-only">{t('reminders.on')}</span>
+                </span>
+              )}
+            </p>
+            {!compact && p?.subtitle[lang] && <p className="text-sm text-ink-muted">{p.subtitle[lang]}</p>}
+            {!compact && p?.description[lang] && <p className="mt-1 text-xs text-ink-faint">{p.description[lang]}</p>}
+          </>
+        );
         return (
           <li
             key={b.start}
@@ -29,13 +54,13 @@ export function DayBlocks({ day, compact = false }: { day: DayFile | null; compa
               {localTime(b.start, lang)}–{localTime(b.end, lang)}
               {current && <span className="mt-1 block font-semibold text-live">● {t('today.now')}</span>}
             </div>
-            <div className="min-w-0">
-              <p className="truncate font-semibold" style={{ color: p?.color }}>
-                {p?.title[lang] ?? b.p}
-              </p>
-              {!compact && p?.subtitle[lang] && <p className="text-sm text-ink-muted">{p.subtitle[lang]}</p>}
-              {!compact && p?.description[lang] && <p className="mt-1 text-xs text-ink-faint">{p.description[lang]}</p>}
-            </div>
+            {onProgram && p ? (
+              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onProgram(p)}>
+                {content}
+              </button>
+            ) : (
+              <div className="min-w-0">{content}</div>
+            )}
           </li>
         );
       })}

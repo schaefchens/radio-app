@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Storm Ark's base (app/src/lib/theme.ts). -->
+    <color name="chrome">#03234a</color>
+</resources>

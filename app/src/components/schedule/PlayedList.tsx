@@ -20,7 +20,8 @@ export function PlayedList({ day }: { day: DayFile }) {
               {p.thumb ? <CdnImg src={p.thumb} className="h-full w-full object-cover" /> : p.type === 'song' ? <MusicIcon /> : <MicIcon />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{p.title}</p>
+              {/* An empty title: its sender deleted their account. */}
+              <p className="truncate font-medium">{p.title || (p.type === 'song' ? '' : t('schedule.contribution'))}</p>
               <p className="truncate text-xs text-ink-muted">
                 {p.artist}
                 {p.artist && day.programs[p.p] ? ' · ' : ''}

@@ -283,6 +283,148 @@ final class Timeline
         return $n;
     }
 
+    /**
+     * An account deleted by its owner (Identity\Erasure): what it handed in
+     * leaves the program. Its drafts go, with the rest of their unit (a unit
+     * is never split); a shared prayer break gives the other requests back.
+     * Its committed items that have not finished are blocked through
+     * live.json, as pull from air does. Every payload of its — committed,
+     * drafted or dropped earlier: rows are kept a month — loses the name,
+     * place and recording, so the minute files written from now on no longer
+     * carry them; files already written stay as they are (immutable — kept
+     * 48 hours). The rows keep no reference to the deleted submissions:
+     * SQLite reuses row ids, and a stale one would one day point at someone
+     * else's request. Runs under the publish lock.
+     *
+     * @param list<int> $subIds the account's submissions
+     * @param list<int> $breakIds host breaks that name them: its own, and committed ones of others that react to it
+     * @return array{dropped:int,blocked:int,breaks:list<int>} breaks: those of the items withdrawn
+     */
+    public function withdraw(array $subIds, array $breakIds): array
+    {
+        $store = $this->app->store();
+        $now = $this->app->clock->nowMs();
+        $S = $subIds ? implode(',', array_map('intval', $subIds)) : '0';
+        $H = $breakIds ? implode(',', array_map('intval', $breakIds)) : '0';
+        return $store->tx(function () use ($store, $now, $S, $H, $subIds): array {
+            $units = array_values(array_filter(array_column($store->all(
+                "SELECT DISTINCT unit FROM timeline_items WHERE submission_id IN ($S) AND unit IS NOT NULL",
+            ), 'unit')));
+            $inUnits = $units ? ' OR unit IN (' . implode(',', array_fill(0, count($units), '?')) . ')' : '';
+            $rows = array_map([self::class, 'decode'], $store->all(
+                "SELECT * FROM timeline_items WHERE submission_id IN ($S) OR host_break_id IN ($H)$inUnits",
+                $units,
+            ));
+            $dropped = 0;
+            $blocked = 0;
+            $breaks = [];
+            foreach ($rows as $it) {
+                $breaks[] = $it['host_break_id'];
+                if ($it['state'] === 'draft') {
+                    $dropped += $store->update('timeline_items', ['state' => 'dropped'], "id = ? AND state = 'draft'", [$it['id']]);
+                    $this->giveBackOthers($it['host_break_id'], $subIds, null);
+                } elseif ($it['state'] === 'committed' && (int) $it['start_ms'] + $it['dur_ms'] > $now) {
+                    $blocked += $store->update('timeline_items', ['blocked' => 1], 'id = ?', [$it['id']]);
+                    // Prayed for at that airing no more: the others wait again.
+                    $this->giveBackOthers($it['host_break_id'], $subIds, (int) $it['start_ms']);
+                }
+                $store->update('timeline_items', ['payload' => json_encode(self::scrubbed($it['payload'], $it['type']), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)], 'id = ?', [$it['id']]);
+            }
+            $store->query("UPDATE timeline_items SET submission_id = NULL WHERE submission_id IN ($S)");
+            return ['dropped' => $dropped, 'blocked' => $blocked, 'breaks' => array_values(array_unique(array_filter($breaks, fn($b) => $b !== null)))];
+        });
+    }
+
+    /**
+     * A deleted account's recording kept for replays (library kind contrib)
+     * leaves the program like its own items: drafts dropped, committed ones
+     * not yet over blocked, every payload without its name, place and audio,
+     * and no row pointing at the library item any more. Under the publish lock.
+     */
+    public function withdrawReplays(int $libraryId): void
+    {
+        $store = $this->app->store();
+        $now = $this->app->clock->nowMs();
+        $this->dropDraftsOf($libraryId);
+        foreach (array_map([self::class, 'decode'], $store->all('SELECT * FROM timeline_items WHERE library_id = ?', [$libraryId])) as $it) {
+            if ($it['state'] === 'committed' && (int) $it['start_ms'] + $it['dur_ms'] > $now) $store->update('timeline_items', ['blocked' => 1], 'id = ?', [$it['id']]);
+            $store->update('timeline_items', ['payload' => json_encode(self::scrubbed($it['payload'], $it['type']), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)], 'id = ?', [$it['id']]);
+        }
+        $store->query('UPDATE timeline_items SET library_id = NULL WHERE library_id = ?', [$libraryId]);
+    }
+
+    /**
+     * A prayer break's other requests, which no longer air with it, go back
+     * to the queue — also when it is blocked on air (it started at $startMs).
+     *
+     * @param list<int> $erased
+     */
+    private function giveBackOthers(?int $breakId, array $erased, ?int $startMs): void
+    {
+        $hb = $breakId !== null ? $this->app->hostBreaks()->get($breakId) : null;
+        foreach ($hb !== null ? HostBreaks::prayerIds($hb) : [] as $id) {
+            if (!in_array($id, $erased, true)) $this->app->submissions()->giveBack($id, $startMs);
+        }
+    }
+
+    /**
+     * A deleted account's community voices leave the host moments that showed
+     * them (`voices`, copied into the payload at commit): minute files written
+     * from now on no longer carry them.
+     *
+     * @param list<string> $tags their author's marks (Presence::voiceTag)
+     * @param list<string> $uids the voices' ids, for payloads from before the marks
+     */
+    public function scrubVoices(array $tags, array $uids): int
+    {
+        if (!$tags && !$uids) return 0;
+        $store = $this->app->store();
+        // '-' is no mark and no id: an empty list would be no valid IN ().
+        $tags = $tags ?: ['-'];
+        $uids = $uids ?: ['-'];
+        $rows = $store->all(
+            "SELECT id, payload FROM timeline_items WHERE type = 'host' AND json_valid(payload) AND EXISTS (
+               SELECT 1 FROM json_each(timeline_items.payload, '$.voices') v
+               WHERE json_extract(v.value, '$.by') IN (" . implode(',', array_fill(0, count($tags), '?')) . ")
+                  OR json_extract(v.value, '$.id') IN (" . implode(',', array_fill(0, count($uids), '?')) . '))',
+            [...$tags, ...$uids],
+        );
+        foreach ($rows as $r) {
+            $p = json_decode((string) $r['payload'], true);
+            $p['voices'] = array_values(array_filter(
+                (array) $p['voices'],
+                fn($v) => !in_array((string) ($v['by'] ?? ''), $tags, true) && !in_array((string) ($v['id'] ?? ''), $uids, true),
+            ));
+            $store->update('timeline_items', ['payload' => json_encode($p, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)], 'id = ?', [(int) $r['id']]);
+        }
+        return count($rows);
+    }
+
+    /**
+     * A committed payload without what a deleted account handed in: the
+     * request's name and place, a recording and its caption, a host
+     * moment's script and clips.
+     *
+     * @param array<string,mixed> $p
+     * @return array<string,mixed>
+     */
+    private static function scrubbed(array $p, string $type): array
+    {
+        if ($type === 'song') $p['request'] = null;
+        if ($type === 'contrib') {
+            $p['name'] = '';
+            $p['place'] = '';
+            $p['audio'] = '';
+            $p['caption'] = new \stdClass();
+        }
+        if ($type === 'host') {
+            $p['text'] = new \stdClass();
+            $p['audio'] = new \stdClass();
+            $p['prayers'] = [];
+        }
+        return $p;
+    }
+
     /** @return list<array<string,mixed>> songs and contributions that started in [from, to) */
     public function played(int $channelId, int $from, int $to): array
     {

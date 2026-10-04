@@ -23,6 +23,8 @@ final class HostWriter
     private const MAX_CHARS = 700;
     /** A prayer for three requests, or an opening prayer, runs longer — in German past 700. */
     private const MAX_CHARS_PRAYER = 1100;
+    /** Context kept for a deleted account to be found by (Identity\Erasure), not for the script. */
+    private const NOT_FOR_MODEL = ['previous_id', 'community_by'];
 
     public function __construct(private App $app) {}
 
@@ -88,6 +90,8 @@ final class HostWriter
         // to react to.
         if (in_array($hb['kind'], ['announce', 'contrib', 'break', 'outro'], true) && ($before = $this->requestBefore($prev)) !== null) {
             $ctx['previous_request'] = $before;
+            // Whose it is, for a deleted account (Identity\Erasure); never sent to the model.
+            $ctx['previous_id'] = (int) $prev['submission_id'];
         }
         $prayerIds = HostBreaks::prayerIds($hb);
         if ($prayerIds) {
@@ -98,10 +102,10 @@ final class HostWriter
             }
         }
         if ($hb['kind'] === 'break') {
-            $ctx['community'] = array_map(
-                fn($v) => ['name' => $v['name'], 'country' => $v['country'], 'text' => $v['text']],
-                array_slice($this->app->presence()->voices((string) ($channel['slug'] ?? 'main')), 0, 2),
-            );
+            $voices = array_slice($this->app->presence()->voices((string) ($channel['slug'] ?? 'main')), 0, 2);
+            $ctx['community'] = array_map(fn($v) => ['name' => $v['name'], 'country' => $v['country'], 'text' => $v['text']], $voices);
+            // Their authors' marks, for a deleted account; never sent to the model.
+            $ctx['community_by'] = array_column($voices, 'by');
         }
         if (PrayerHour::applies($program)) $this->prayerHour($ctx, $hb, $channel, $program, $item);
         return $ctx;
@@ -215,7 +219,7 @@ final class HostWriter
             ];
         }
         $schema = ['type' => 'object', 'properties' => $props, 'required' => $langs, 'additionalProperties' => false];
-        $user = json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        $user = json_encode(array_diff_key($context, array_flip(self::NOT_FOR_MODEL)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 
         $model = $this->app->text();
         $result = $model->json(

@@ -62,7 +62,7 @@ function compact<T>(items: unknown[], parse: (v: unknown) => T | null): T[] {
 
 export function parseVoice(v: unknown): Voice | null {
   if (!isObj(v) || !isStr(v.id) || !isStr(v.text)) return null;
-  return { id: v.id, name: str(v.name), country: str(v.country), text: v.text, at: isNum(v.at) ? v.at : 0 };
+  return { id: v.id, name: str(v.name), country: str(v.country), text: v.text, at: isNum(v.at) ? v.at : 0, ...(isStr(v.by) && v.by !== '' ? { by: v.by } : {}) };
 }
 
 export function parseWallEntry(v: unknown): WallEntry | null {

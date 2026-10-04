@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { useSettings } from '@/store/settings';
+import { syncSystemBars } from './native';
 import lightTop from '@/assets/theme/light-top.webp';
 import lightBottom from '@/assets/theme/light-bottom.webp';
 import lightBottomMobile from '@/assets/theme/light-bottom-mobile.webp';
@@ -77,6 +78,8 @@ export function applyTheme(): void {
       meta.removeAttribute('media');
       meta.content = THEME[id].color;
     }
+    // The store apps have no browser bar: their status bar's icons follow instead.
+    syncSystemBars(id);
   };
   apply();
   useSettings.subscribe((s, prev) => {

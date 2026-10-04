@@ -63,7 +63,9 @@
   "voices": {
     "title": "Stimmen der Gemeinschaft",
     "seeMore": "Mehr",
-    "empty": "Noch keine Stimmen – komm in den Raum und sag Hallo."
+    "empty": "Noch keine Stimmen – komm in den Raum und sag Hallo.",
+    "report": "Melden",
+    "reportConfirm": "Diese Nachricht melden? Sie wird für dich ausgeblendet, und eine Moderatorin prüft sie."
   },
   "reactions": {
     "heart": "Gefällt mir",
@@ -149,6 +151,7 @@
     "listen": "Anhören",
     "limit": "Bis zu {{seconds}} Sekunden",
     "micDenied": "Mikrofonzugriff verweigert. Erlaube ihn in den Browser-Einstellungen.",
+    "micDeniedApp": "Arche Radio darf das Mikrofon noch nicht benutzen. Erlaube es in den Einstellungen deines Handys für Arche Radio.",
     "preparing": "Aufnahme wird vorbereitet…",
     "radioMuted": "Das Radio ist während der Aufnahme stumm."
   },
@@ -190,7 +193,10 @@
     "accepts": "Nimmt an",
     "nothingAccepted": "In dieser Sendung keine Beiträge.",
     "noDay": "Für diesen Tag gibt es noch keinen Plan.",
-    "weekHint": "Tippe auf eine Sendung für Details."
+    "weekHint": "Tippe auf eine Sendung für Details.",
+    "next": "Nächster Termin: {{when}}",
+    "noneSoon": "In der kommenden Woche nicht im Plan.",
+    "contribution": "Ein Beitrag von Hörerinnen und Hörern"
   },
   "chat": {
     "title": "Gemeinschaftsraum",
@@ -219,7 +225,9 @@
     "empty": "Sei die erste Stimme hier.",
     "error": "Keine Verbindung zum Raum.",
     "bad": "Diese Nachricht konnte nicht gesendet werden.",
-    "full": "Die Räume sind gerade voll. Versuch es gleich noch einmal."
+    "full": "Die Räume sind gerade voll. Versuch es gleich noch einmal.",
+    "block": "Blockieren",
+    "blockConfirm": "{{name}} blockieren? Du siehst ihre Nachrichten dann nicht mehr, und eine Moderatorin erfährt davon."
   },
   "profile": {
     "title": "Profil",
@@ -256,7 +264,12 @@
     "setupLink": "Administration einrichten",
     "built": "Erstellt {{time}}",
     "checked": "Nach Updates gesucht",
-    "identity": "Deine Hörer-ID: {{id}}"
+    "identity": "Deine Hörer-ID: {{id}}",
+    "blocked": {
+      "title": "In den Räumen blockiert",
+      "hint": "Ihre Nachrichten und Stimmen siehst du auf diesem Gerät nicht.",
+      "unblock": "Freigeben"
+    }
   },
   "setup": {
     "title": "Arche Radio einrichten",
@@ -308,7 +321,10 @@
     "device_has_other_passphrase": "Dieses Gerät ist mit einer anderen Passphrase verbunden. Melde dich zuerst ab.",
     "needs_passphrase": "Dafür braucht es eine Passphrase-Identität.",
     "name_too_long": "Der Name ist zu lang.",
-    "forbidden": "Das darfst du nicht."
+    "forbidden": "Das darfst du nicht.",
+    "last_admin": "Das ist das einzige Administratorkonto: Gib zuerst einem anderen Konto die Administratorrolle.",
+    "busy": "Der Sender ist gerade kurz beschäftigt – bitte versuch es gleich noch einmal.",
+    "name_not_allowed": "Bitte wähle einen anderen Namen."
   },
   "common": {
     "close": "Schließen",
@@ -320,7 +336,8 @@
     "edit": "Bearbeiten",
     "add": "Hinzufügen",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "cancel": "Abbrechen"
   },
   "mod": {
     "title": "Moderation",
@@ -692,7 +709,15 @@
         "remove": "Von der Gebetswand nehmen",
         "show": "An der Gebetswand zeigen",
         "removed": "Von der Gebetswand genommen.",
-        "shown": "Wieder an der Gebetswand."
+        "shown": "Wieder an der Gebetswand.",
+        "byReports": "Durch Meldungen abgenommen",
+        "reported_one": "Einmal gemeldet",
+        "reported_other": "{{count}}× gemeldet",
+        "keep": "Auf der Wand lassen",
+        "takeDown": "Abnehmen",
+        "takeDownBan": "Abnehmen und Absender sperren",
+        "banConfirm": "Abnehmen und den Absender für den Sender sperren?",
+        "kept": "Bleibt auf der Gebetswand; die Meldungen sind beantwortet."
       }
     },
     "chat": {
@@ -708,7 +733,8 @@
       "blocklist": "Gesperrte Wörter",
       "blocklistHint": "Ein Wort oder Ausdruck pro Zeile; Nachrichten damit werden abgelehnt.",
       "reporter": "Gemeldet von",
-      "likes": "{{n}} Likes"
+      "likes": "{{n}} Likes",
+      "voice": "Community-Stimme"
     },
     "users": {
       "search": "Name oder Hörer-ID",
@@ -754,9 +780,11 @@
     "consentOn": "Du hast eingewilligt, dass die Musikvideos von YouTube (Google) geladen werden.",
     "consentOff": "YouTube wird nicht geladen – erst, wenn du auf „Tap to join live“ tippst.",
     "withdraw": "YouTube-Einwilligung widerrufen",
-    "forgetHint": "Lösche alles, was Arche Radio auf diesem Gerät speichert: Gerätekennung, Einstellungen, Reaktionen und Passphrase. Deine bisherigen Einsendungen erscheinen dann hier nicht mehr unter „Meine Beiträge“.",
+    "forgetHint": "Lösche alles, was Arche Radio auf diesem Gerät speichert: Gerätekennung, Einstellungen, Reaktionen, Sendungs-Erinnerungen, Passphrase und die für schwache Verbindungen zwischengespeicherten Programmdateien. Deine bisherigen Einsendungen erscheinen dann hier nicht mehr unter „Meine Beiträge“.",
     "forget": "Daten auf diesem Gerät löschen",
-    "forgetConfirm": "Die Daten von Arche Radio auf diesem Gerät löschen? Ohne deine 12 Wörter kommt deine Passphrase-Identität nicht zurück."
+    "forgetConfirm": "Die Daten von Arche Radio auf diesem Gerät löschen? Ohne deine 12 Wörter kommt deine Passphrase-Identität nicht zurück.",
+    "deleteAccount": "Dein Konto auch auf unserem Server löschen",
+    "rules": "Community-Regeln"
   },
   "theme": {
     "label": "Design",
@@ -787,7 +815,9 @@
     "today": "Heute",
     "yesterday": "Gestern",
     "intro": "Gebetsanliegen von Hörerinnen und Hörern, die sie teilen wollten. Betet mit.",
-    "prayingNow": "Wir beten gerade dafür"
+    "prayingNow": "Wir beten gerade dafür",
+    "report": "Melden",
+    "reportConfirm": "Dieses Gebetsanliegen melden? Es wird für dich ausgeblendet, und eine Moderatorin prüft es."
   },
   "emoji": {
     "hallelujah": "Halleluja",
@@ -820,5 +850,59 @@
     "start": "Los geht's",
     "later": "Sprache und Design kannst du später über Profil ändern.",
     "close": "Schließen"
+  },
+  "reminders": {
+    "remind": "Erinnere mich",
+    "on": "Erinnerung an",
+    "offHint": "Eine Mitteilung auf diesem Handy {{minutes}} Minuten vor jeder Sendung.",
+    "onHint": "Du wirst {{minutes}} Minuten vor jeder Sendung der kommenden Woche erinnert – erneuert, sobald du Arche Radio öffnest.",
+    "deniedIos": "Mitteilungen sind für Arche Radio aus. Schalte sie unter Einstellungen › Mitteilungen › Arche Radio ein.",
+    "deniedAndroid": "Benachrichtigungen sind für Arche Radio aus. Schalte sie unter Einstellungen › Apps › Arche Radio › Benachrichtigungen ein.",
+    "failed": "Die Erinnerung ließ sich nicht einrichten. Bitte versuch es noch einmal.",
+    "late": "Ohne „Wecker und Erinnerungen“ kann Android Erinnerungen verspätet zustellen.",
+    "onTime": "Pünktliche Erinnerungen erlauben",
+    "body": "Beginnt um {{time}} Uhr auf {{channel}}.",
+    "channel": "Sendungs-Erinnerungen",
+    "channelHint": "Wenn eine Sendung beginnt, die du gewählt hast"
+  },
+  "share": {
+    "button": "Arche Radio teilen",
+    "title": "Arche Radio",
+    "text": "Christliches Radio für die ganze Welt: ein Programm, viele Nationen, eine Familie. Hör mit mir rein!",
+    "copied": "Link kopiert"
+  },
+  "account": {
+    "title": "Konto löschen",
+    "hint": "Löscht dein Konto auf unserem Server und alles, was du uns geschickt hast, danach die Daten auf diesem Gerät.",
+    "button": "Konto löschen",
+    "goes": "Sofort gelöscht:",
+    "goesIdentity": "dein Konto: Name, Land und deine Passphrase, auf jedem Gerät, das sie nutzt",
+    "goesSubmissions": "alles, was du geschickt hast: Songwünsche und Vorschläge, Aufnahmen (auch die für Wiederholungen aufbewahrten), Gebetsanliegen – von der Gebetswand und aus dem Programm, falls sie noch nicht gesendet wurden",
+    "goesVoices": "deine Community-Stimmen und die Meldungen zu deinen Nachrichten",
+    "goesDevice": "die Daten von Arche Radio auf diesem Gerät",
+    "stays": "Bleibt noch eine Weile, dann wird es ebenfalls gelöscht:",
+    "staysText": "was schon in den veröffentlichten Programmdateien gesendet wurde (bis zu 48 Stunden), unsere Sicherungen (bis zu 7 Tage), Meldungen, die du gemacht hast (ohne deinen Namen, bis zu 30 Tage), und das Sicherheitsprotokoll (bis zu 90 Tage). Gewünschte Songs können in der Musikauswahl bleiben – ohne deinen Namen und deine Widmung.",
+    "staff": "Du verlierst damit auch deine Moderationsrolle. Das letzte Administratorkonto kann nicht gelöscht werden.",
+    "confirm": "Alles löschen",
+    "page": {
+      "title": "Dein Arche-Radio-Konto löschen",
+      "intro": "Du kannst dein Arche-Radio-Konto und alles, was du uns geschickt hast, jederzeit löschen – in der App (Profil › Konto löschen) oder hier.",
+      "hereTitle": "In diesem Browser",
+      "here": "Dieser Browser nutzt ein Konto auf unserem Server. Lösche es, mit allem, was von hier geschickt wurde:",
+      "hereNone": "Dieser Browser hat kein Konto auf unserem Server.",
+      "wordsTitle": "Mit deinen 12 Wörtern",
+      "words": "Nutzt du eine Passphrase? Gib ihre 12 Wörter ein, um dieses Konto von hier aus zu löschen – zum Beispiel, wenn du die App nicht mehr hast.",
+      "wordsLabel": "Deine 12 Wörter",
+      "neitherTitle": "Ohne App und ohne deine Wörter",
+      "neither": "Dann können wir nicht erkennen, welche Daten deine sind. Ein Gerät ohne Passphrase wird 60 Tage nach der letzten Nutzung automatisch gelöscht, Eingesandtes nach 90 Tagen.",
+      "contact": "Fragen:",
+      "done": "Erledigt: Das Konto und alles, was darüber geschickt wurde, ist gelöscht."
+    }
+  },
+  "rules": {
+    "accept": "Ich stimme den Community-Regeln zu: Beiträge ab 16, kein Hass, keine Belästigung – Meldungen werden binnen eines Tages geprüft.",
+    "read": "Regeln lesen",
+    "beforeWriting": "Bevor du schreibst: die Community-Regeln.",
+    "acceptAndWrite": "Zustimmen und schreiben"
   }
 }

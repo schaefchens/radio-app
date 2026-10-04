@@ -99,6 +99,108 @@ final class HostBreaks
         return array_values(array_filter((array) $ids, 'is_int'));
     }
 
+    /**
+     * Host breaks whose context names one of these submissions: the request
+     * a moment announces, a recording it introduces, the prayers it prays
+     * for, the request a prayer hour takes up again.
+     *
+     * @param list<int> $subIds
+     * @return list<int>
+     */
+    public function referencing(array $subIds): array
+    {
+        if (!$subIds) return [];
+        $in = implode(',', array_map('intval', $subIds));
+        return array_map('intval', array_column($this->app->store()->all(
+            "SELECT id FROM host_breaks WHERE json_valid(context) AND (
+               json_extract(context, '$.submission_id') IN ($in) OR json_extract(context, '$.again_id') IN ($in)
+               OR EXISTS (SELECT 1 FROM json_each(host_breaks.context, '$.prayer_ids') j WHERE j.value IN ($in)))",
+        ), 'id'));
+    }
+
+    /** What a script is written from that names listeners (HostWriter::context). */
+    private const PERSONAL = ['request', 'contribution', 'previous_request', 'previous_id', 'prayers', 'community', 'community_by'];
+
+    /**
+     * An account deleted by its owner (Identity\Erasure): these host breaks
+     * forget it — its own, and others' that react to it or were given its
+     * community voice. Cancelled unless they aired (a ready one must not be
+     * committed empty); their clips deleted, here and at the edge; the
+     * script, the clips' addresses and what the script was written from
+     * (names, places, prayer texts, the request before, the voices) emptied.
+     * What a prayer hour reads of its own moments (`phase`) stays.
+     *
+     * @param list<int> $breakIds
+     * @param list<int> $erased the account's submissions
+     */
+    public function forget(array $breakIds, array $erased): int
+    {
+        $n = 0;
+        foreach ($breakIds as $id) {
+            // Cancelled first: a job still voicing it can no longer save a clip (saveIfPending).
+            $this->cancel($id);
+            $this->app->store()->update('host_breaks', ['state' => 'cancelled'], "id = ? AND state = 'ready'", [$id]);
+            $hb = $this->get($id);
+            if ($hb === null) continue;
+            foreach ($hb['audio'] as $url) $this->app->media()->delete(is_string($url) ? $url : null);
+            $ctx = array_diff_key($hb['context'], array_flip(self::PERSONAL));
+            foreach (['submission_id', 'again_id'] as $k) {
+                if (isset($ctx[$k]) && in_array((int) $ctx[$k], $erased, true)) unset($ctx[$k]);
+            }
+            if (isset($ctx['prayer_ids'])) $ctx['prayer_ids'] = array_values(array_filter((array) $ctx['prayer_ids'], fn($p) => !in_array((int) $p, $erased, true)));
+            $this->save($id, [
+                'context' => json_encode($ctx ?: new \stdClass(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'texts' => '{}',
+                'audio' => '{}',
+                'durations' => '{}',
+            ]);
+            $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * A drafted break that reacts to a deleted account's request (or was
+     * written with its voice): a new break takes its place in the plan and is
+     * written afresh, so the unit it belongs to keeps its place — another
+     * listener's announcement is not lost with it. The old one is left to
+     * forget(). Null when it has no draft (committed ones are blocked instead).
+     */
+    public function rewrite(int $id): ?int
+    {
+        $hb = $this->get($id);
+        $row = $this->app->store()->one("SELECT * FROM timeline_items WHERE host_break_id = ? AND state = 'draft' ORDER BY id DESC LIMIT 1", [$id]);
+        if ($hb === null || $row === null) return null;
+        $channel = $this->app->catalog()->channel((int) $hb['channel_id']);
+        $program = $hb['program_id'] !== null ? $this->app->catalog()->program((int) $hb['program_id']) : null;
+        if ($channel === null || $program === null) return null;
+        $new = $this->create($channel, $program, (string) $hb['kind'], \Arche\Program\Timeline::decode($row), array_diff_key($hb['context'], array_flip(self::PERSONAL)));
+        $this->app->store()->update('timeline_items', ['host_break_id' => $new], 'id = ?', [(int) $row['id']]);
+        return $new;
+    }
+
+    /**
+     * A break given a deleted account's community voice whose script does not
+     * use it keeps its script; the voice leaves its context.
+     *
+     * @param callable(array<string,mixed>, ?string): bool $theirs a voice and its author's mark
+     */
+    public function dropVoices(int $id, callable $theirs): void
+    {
+        $hb = $this->get($id);
+        if ($hb === null) return;
+        $ctx = $hb['context'];
+        $voices = array_values((array) ($ctx['community'] ?? []));
+        $tags = array_values((array) ($ctx['community_by'] ?? []));
+        $keep = [];
+        foreach ($voices as $i => $v) {
+            if (!$theirs((array) $v, isset($tags[$i]) ? (string) $tags[$i] : null)) $keep[$i] = true;
+        }
+        $ctx['community'] = array_values(array_intersect_key($voices, $keep));
+        if (isset($ctx['community_by'])) $ctx['community_by'] = array_values(array_intersect_key($tags, $keep));
+        $this->save($id, ['context' => json_encode($ctx, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+    }
+
     /** @param array<string,mixed> $hb */
     public function airDuration(array $hb): int
     {
@@ -161,11 +263,14 @@ final class HostBreaks
             }
             $context = $this->app->hostWriter()->context($hb);
             $written = $this->app->hostWriter()->write($hb, $context);
-            $this->save($hb['id'], [
+            // The model takes seconds: an account deleted meanwhile has had this break forgotten.
+            if (!$this->saveIfPending($hb['id'], [
                 'context' => json_encode($context + $hb['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'texts' => json_encode($written['texts'], JSON_UNESCAPED_UNICODE),
                 'source' => $written['source'],
-            ]);
+            ])) {
+                return null;
+            }
             return 'tts:' . $this->app->config->stationLangs()[0];
         }
 
@@ -181,7 +286,11 @@ final class HostBreaks
                 if (!$check['ok']) throw new \RuntimeException('TTS returned no playable audio');
                 $hb['audio'][$lang] = $url;
                 $hb['durations'][$lang] = $check['ms'];
-                $this->save($hb['id'], ['audio' => json_encode($hb['audio']), 'durations' => json_encode($hb['durations'])]);
+                if (!$this->saveIfPending($hb['id'], ['audio' => json_encode($hb['audio']), 'durations' => json_encode($hb['durations'])])) {
+                    // Forgotten while it was spoken: the clip of the old script goes too.
+                    $this->app->media()->delete($url);
+                    return null;
+                }
             }
             $langs = $this->app->config->stationLangs();
             $i = array_search($lang, $langs, true);
@@ -190,7 +299,7 @@ final class HostBreaks
                 $this->fail($hb, 'no_audio');
                 return null;
             }
-            $this->save($hb['id'], ['state' => 'ready']);
+            $this->saveIfPending($hb['id'], ['state' => 'ready']);
             return null;
         }
         return null;
@@ -230,13 +339,24 @@ final class HostBreaks
     /** @param array<string,mixed> $hb */
     private function fail(array $hb, string $why): void
     {
-        $this->save($hb['id'], ['state' => 'failed', 'source' => 'skipped:' . $why]);
+        $this->saveIfPending($hb['id'], ['state' => 'failed', 'source' => 'skipped:' . $why]);
     }
 
     /** @param array<string,mixed> $set */
     private function save(int $id, array $set): void
     {
         $this->app->store()->update('host_breaks', $set + ['updated' => $this->app->clock->now()], 'id = ?', [$id]);
+    }
+
+    /**
+     * A job's result, unless the break was cancelled meanwhile (a plan change,
+     * a deleted account): one statement, so nothing slips in between.
+     *
+     * @param array<string,mixed> $set
+     */
+    private function saveIfPending(int $id, array $set): bool
+    {
+        return $this->app->store()->update('host_breaks', $set + ['updated' => $this->app->clock->now()], "id = ? AND state = 'pending'", [$id]) === 1;
     }
 
     /** @param array<string,mixed> $hb */

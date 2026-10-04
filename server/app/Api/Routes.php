@@ -28,6 +28,7 @@ final class Routes
         $r->add('POST', '/pulse', $p('pulse'));
         $r->add('GET', '/me', $p('me'));
         $r->add('PATCH', '/me', $p('updateMe'));
+        $r->add('DELETE', '/me', $p('deleteMe'));
         $r->add('POST', '/identity/claim', $p('claim'));
         $r->add('POST', '/identity/login', $p('login'));
         $r->add('GET', '/setup', $p('setupStatus'));
@@ -37,6 +38,8 @@ final class Routes
         $r->add('POST', '/submissions/preaching', $p('submitPreaching'));
         $r->add('POST', '/submissions/audio', $p('submitAudio'));
         $r->add('POST', '/submissions/prayer', $p('submitPrayer'));
+        $r->add('POST', '/wall/{id}/report', $p('reportWall'));
+        $r->add('POST', '/voices/{id}/report', $p('reportVoice'));
         $r->add('POST', '/realtime/wake', $p('wake'));
         $r->add('POST', '/realtime/report', $p('nodeReport'));
 

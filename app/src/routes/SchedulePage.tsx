@@ -11,6 +11,9 @@ import { useDays } from '@/components/schedule/useDays';
 import { PlayedList } from '@/components/schedule/PlayedList';
 import { ProgramSheet } from '@/components/schedule/ProgramSheet';
 import { WeekGrid } from '@/components/schedule/WeekGrid';
+import { dayFacts } from '@/lib/reminderPlan';
+import { remindersAvailable } from '@/lib/reminders';
+import { useReminders } from '@/store/reminders';
 
 const listenerTz = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC';
 
@@ -27,6 +30,7 @@ export function SchedulePage() {
   const [tab, setTab] = useState<'day' | 'week'>('day');
   const [offset, setOffset] = useState(0);
   const [details, setDetails] = useState<DayProgram | null>(null);
+  const reminders = useReminders((s) => s.list);
 
   const tz = channel?.tz ?? 'Europe/Berlin';
   const today = stationDate(now, tz);
@@ -35,6 +39,9 @@ export function SchedulePage() {
   const days = useDays(channelId, dates);
   const selected = addDays(today, offset);
   const day = days[selected];
+  // Programs with a reminder on this channel (store apps), and when the open one begins next.
+  const reminded = new Set(remindersAvailable() ? reminders.filter((r) => r.ch === channelId).map((r) => r.p) : []);
+  const next = details ? (dayFacts(dates, days).starts.find((s) => s.p === details.id && s.start > now)?.start ?? null) : null;
 
   const chipLabel = (d: number, date: string): string => {
     if (d === -1) return t('schedule.yesterday');
@@ -85,15 +92,15 @@ export function SchedulePage() {
             ))}
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div>{day === null ? <p className="card px-4 py-3 text-sm text-ink-muted">{t('schedule.noDay')}</p> : <DayBlocks day={day ?? null} />}</div>
+            <div>{day === null ? <p className="card px-4 py-3 text-sm text-ink-muted">{t('schedule.noDay')}</p> : <DayBlocks day={day ?? null} onProgram={setDetails} reminded={reminded} />}</div>
             {day && offset <= 0 && <PlayedList day={day} />}
           </div>
         </>
       ) : (
-        <WeekGrid days={dates.slice(1).map((d) => days[d])} onProgram={setDetails} />
+        <WeekGrid days={dates.slice(1).map((d) => days[d])} onProgram={setDetails} reminded={reminded} />
       )}
 
-      <ProgramSheet program={details} onClose={() => setDetails(null)} />
+      <ProgramSheet program={details} channel={channelId} next={next} onClose={() => setDetails(null)} />
     </div>
   );
 }

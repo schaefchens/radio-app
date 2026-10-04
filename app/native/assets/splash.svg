@@ -1,0 +1,5 @@
+<!-- The splash: navy (the PWA manifest's background) with the mark; cropped to the screen around its centre. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">
+<rect width="2732" height="2732" fill="#03234a"/>
+<g transform="translate(1126 1136) scale(20)" fill="none" stroke="#ffd06c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="2" fill="#ffd06c" stroke="none"/><path d="M12 13v9M8 7a6 6 0 0 0 0 8M16 7a6 6 0 0 1 0 8M5 4a10 10 0 0 0 0 14M19 4a10 10 0 0 1 0 14M2 1a14 14 0 0 0 0 20M22 1a14 14 0 0 1 0 20"/></g>
+</svg>

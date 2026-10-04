@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ReactionKind } from '@arche/shared';
 import { NO_MARK, useReactions } from '@/store/reactions';
 import { HeartIcon, PrayIcon, SmileIcon } from '@/components/common/icons';
+import { useBackClose } from '@/lib/backStack';
 
 interface Emoji {
   emoji: string;
@@ -39,6 +40,8 @@ interface Props {
   onSend: (kind: ReactionKind) => void;
   /** The picker opened or closed, or a reaction was given (rotating feeds wait). */
   onActivity?: (pickerOpen: boolean) => void;
+  /** At the row's start, on a voice or a prayer: the report flag. */
+  extra?: React.ReactNode;
 }
 
 /**
@@ -46,7 +49,7 @@ interface Props {
  * opens *below* the buttons, unlike the preview's: above them it would sit
  * in front of the YouTube player, which YouTube does not allow.
  */
-export function Reactions({ markId, variant, onSend, onActivity }: Props) {
+export function Reactions({ markId, variant, onSend, onActivity, extra }: Props) {
   const { t } = useTranslation();
   const mark = useReactions((s) => s.marks[markId] ?? NO_MARK);
   const toggle = useReactions((s) => s.toggle);
@@ -77,6 +80,8 @@ export function Reactions({ markId, variant, onSend, onActivity }: Props) {
   useEffect(() => {
     if (open) picker.current?.querySelector('button')?.focus();
   }, [open]);
+  // Android's back button closes the picker before it leaves the page.
+  useBackClose(open, () => close(true));
 
   useEffect(() => {
     if (!open) return;
@@ -148,6 +153,7 @@ export function Reactions({ markId, variant, onSend, onActivity }: Props) {
   return (
     <>
       <div ref={group} className={song ? 'reactions' : 'feed-reactions'} role="group" aria-label={t(song ? 'reactions.song' : 'reactions.message')}>
+        {!song && extra}
         <button type="button" className={buttonClass} data-reaction="heart" aria-pressed={mark.heart} aria-label={t('reactions.heart')} onClick={() => press('heart')}>
           <HeartIcon />
         </button>

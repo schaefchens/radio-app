@@ -83,6 +83,8 @@ export class Hub {
 
   private drainSource: DrainSource | null = null;
   private bans = new Set<string>();
+  /** Accounts deleted by their owners (NodeReportResponse.forget): never back in. */
+  private forgotten = new Set<string>();
   private readonly lastChat = new Map<string, number>();
   private readonly reactLog = new Map<string, number[]>();
   private readonly reported = new Set<string>();
@@ -167,6 +169,8 @@ export class Hub {
     if (!check.ok) return this.reject(client, check.code, CLOSE.auth);
     const token = check.token;
     if (this.bans.has(token.sub)) return this.reject(client, 'banned', CLOSE.banned);
+    // A token minted before the account was deleted is still signed and valid for minutes.
+    if (this.forgotten.has(token.sub)) return this.reject(client, 'auth', CLOSE.auth);
     if (this.connectionCount >= this.maxConnections) return this.reject(client, 'full', CLOSE.tryLater);
 
     const now = this.now();
@@ -348,6 +352,17 @@ export class Hub {
     for (const id of resp.removed) {
       const room = this.rooms.removeMessage(id);
       if (room) for (const member of room.members) member.conn.send({ t: 'removed', msg: id });
+    }
+
+    // Deleted accounts: what they wrote leaves every room, and they leave too.
+    this.forgotten = new Set(resp.forget ?? []);
+    for (const sub of this.forgotten) {
+      for (const { room, ids } of this.rooms.removeBySub(sub)) {
+        for (const member of room.members) for (const id of ids) member.conn.send({ t: 'removed', msg: id });
+      }
+    }
+    for (const client of [...this.clients]) {
+      if (client.token && this.forgotten.has(client.token.sub)) this.reject(client, 'auth', CLOSE.auth);
     }
 
     if (resp.drain) this.startDrain('php');

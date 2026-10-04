@@ -14,6 +14,7 @@ use Arche\Ai\Voice;
 use Arche\Cdn\Bunny;
 use Arche\Host\HostBreaks;
 use Arche\Host\HostWriter;
+use Arche\Identity\Erasure;
 use Arche\Identity\Identities;
 use Arche\Identity\RateLimit;
 use Arche\Jobs\Jobs;
@@ -22,6 +23,7 @@ use Arche\Library\Library;
 use Arche\Library\Media;
 use Arche\Library\YouTube;
 use Arche\Moderation\Moderator;
+use Arche\Moderation\Reports;
 use Arche\Plan\Catalog;
 use Arche\Plan\PlanResolver;
 use Arche\Presence\Presence;
@@ -227,6 +229,11 @@ final class App
         return $this->service('identities', Identities::class, fn() => new Identities($this));
     }
 
+    public function erasure(): Erasure
+    {
+        return $this->service('erasure', Erasure::class, fn() => new Erasure($this));
+    }
+
     public function rateLimit(): RateLimit
     {
         return $this->service('rateLimit', RateLimit::class, fn() => new RateLimit($this));
@@ -240,6 +247,11 @@ final class App
     public function moderator(): Moderator
     {
         return $this->service('moderator', Moderator::class, fn() => new Moderator($this));
+    }
+
+    public function reports(): Reports
+    {
+        return $this->service('reports', Reports::class, fn() => new Reports($this));
     }
 
     public function tokens(): Tokens

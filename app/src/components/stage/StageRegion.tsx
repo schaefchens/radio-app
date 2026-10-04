@@ -6,6 +6,7 @@ import { useRadio } from '@/store/radio';
 import { useSettings } from '@/store/settings';
 import { useStage } from '@/store/stage';
 import { joinRadio, resumeRadio } from '@/lib/radio';
+import { tapHaptic } from '@/lib/haptics';
 import { StageVisual } from './StageVisual';
 import { PlayIcon } from '@/components/common/icons';
 
@@ -17,6 +18,7 @@ import { PlayIcon } from '@/components/common/icons';
 export function StageRegion({ compact = false, flush = false }: { compact?: boolean; flush?: boolean }) {
   const { t } = useTranslation();
   const engine = useRadio((s) => s.engine);
+  const leftInBackground = useRadio((s) => s.leftInBackground);
   const setConsent = useSettings((s) => s.setConsent);
   const setSlot = useStage((s) => s.setSlot);
   const setInView = useStage((s) => s.setInView);
@@ -56,6 +58,7 @@ export function StageRegion({ compact = false, flush = false }: { compact?: bool
   }, [setInView]);
 
   const join = (): void => {
+    tapHaptic();
     setConsent(true);
     joinRadio();
   };
@@ -78,12 +81,17 @@ export function StageRegion({ compact = false, flush = false }: { compact?: bool
             <button type="button" onClick={join} className="play-button" aria-label={t('join.button')} title={t('join.button')}>
               <PlayIcon />
             </button>
-            <p className="stage-subtitle">
-              {t('join.consent')}{' '}
-              <Link to="/datenschutz" className="underline">
-                {t('join.privacy')}
-              </Link>
-            </p>
+            {leftInBackground ? (
+              // The store app went to the background and the radio left: why it is quiet now.
+              <p className="stage-subtitle">{t('join.noVideo')}</p>
+            ) : (
+              <p className="stage-subtitle">
+                {t('join.consent')}{' '}
+                <Link to="/datenschutz" className="underline">
+                  {t('join.privacy')}
+                </Link>
+              </p>
+            )}
           </div>
         )}
       </div>

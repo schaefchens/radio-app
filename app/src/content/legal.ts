@@ -60,8 +60,9 @@ const de = (host: string): StationTexts => ({
       p:
         'Wünsch dir einen Song, empfiehl eine Predigt, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als ' +
         `Sprachaufnahme, oder schick uns ein Gebetsanliegen – ${host} betet auf Sendung dafür. In den Community-Räumen kannst du mit anderen ` +
-        'Hörerinnen und Hörern schreiben. Arche Radio braucht kein Konto; wer möchte, nimmt seine Identität mit einer ' +
-        'Passphrase aus 12 Wörtern auf ein anderes Gerät mit.',
+        'Hörerinnen und Hörern schreiben. Arche Radio braucht keine Anmeldung – keine E-Mail, kein Passwort; wer möchte, ' +
+        'nimmt seine Identität mit einer Passphrase aus 12 Wörtern auf ein anderes Gerät mit. Arche Radio gibt es im ' +
+        'Browser und als App für iPhone und Android.',
     },
     {
       h: 'Ein Projekt von Schäfchens',
@@ -100,8 +101,10 @@ const de = (host: string): StationTexts => ({
     {
       h: 'Das Wichtigste in Kürze',
       p:
-        'Arche Radio funktioniert ohne Konto, ohne Werbung, ohne Analyse- oder Tracking-Dienste und ohne Cookies des ' +
-        'Betreibers. Wir verarbeiten nur, was für das Radio, Ihre Einsendungen und die Community-Räume nötig ist. ' +
+        'Arche Radio funktioniert ohne Anmeldung (keine E-Mail, kein Passwort), ohne Werbung, ohne Analyse- oder ' +
+        'Tracking-Dienste und ohne Cookies des Betreibers. Wir verarbeiten nur, was für das Radio, Ihre Einsendungen ' +
+        'und die Community-Räume nötig ist. Ihr Konto mit allem, was Sie uns geschickt haben, können Sie jederzeit ' +
+        'selbst löschen. ' +
         'Schriftarten liefern wir von unserem eigenen Server aus, Programm, Audiobeiträge und Bilder über das ' +
         'Content-Delivery-Netzwerk BunnyCDN.',
     },
@@ -113,6 +116,23 @@ const de = (host: string): StationTexts => ({
         'der Hoster technisch notwendige Daten (IP-Adresse, Datum und Uhrzeit, aufgerufene Adresse, Browser und ' +
         'Betriebssystem) und löscht sie kurzfristig. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: der sichere ' +
         'Betrieb des Angebots.',
+    },
+    {
+      h: 'Arche Radio als App (App Store, Google Play)',
+      p:
+        'Die Apps für iPhone und Android laden Sie über den App Store der Apple Distribution International Ltd. bzw. ' +
+        'Google Play der Google Ireland Limited; diese verarbeiten dabei Daten in eigener Verantwortung nach ihren ' +
+        'eigenen Bestimmungen. Wir erhalten von ihnen nur zusammengefasste Zahlen (etwa Downloads und Abstürze), ' +
+        'keine Angaben über Sie.\n' +
+        'Die App öffnet radio.schaefchens.de in einem eigenen Fenster: Für sie gilt alles, was diese Erklärung über ' +
+        'die Website sagt, und „Speicher Ihres Browsers“ meint dort den Speicher der App, der mit ihr gelöscht wird. ' +
+        'Die App enthält keine Analyse- oder Werbedienste. Die Android-App schließt ihre Daten von der ' +
+        'Datensicherung und der Übertragung auf ein neues Gerät aus; Ihre Identität nehmen Sie mit Ihrer Passphrase mit.\n' +
+        'Berechtigungen fragt Ihr Telefon erst, wenn Sie die Funktion nutzen: das Mikrofon nur für eine Aufnahme, ' +
+        'die Sie starten (sie bleibt auf dem Gerät, bis Sie sie absenden), die Kamera nur für ein Foto, das ' +
+        'Moderatorinnen und Moderatoren für eine Sendung aufnehmen, Mitteilungen nur für Erinnerungen an Sendungen. ' +
+        'Dass der Bildschirm beim Zuhören an bleibt, regelt die App auf dem Gerät; dabei werden keine Daten ' +
+        'verarbeitet. Jede Berechtigung können Sie in den Einstellungen Ihres Telefons wieder entziehen.',
     },
     {
       h: 'Auslieferung über BunnyCDN',
@@ -131,17 +151,32 @@ const de = (host: string): StationTexts => ({
     {
       h: 'Gerätekennung und Speicherung auf Ihrem Gerät',
       p:
-        'Beim ersten Öffnen legt die App im Speicher Ihres Browsers eine zufällige Gerätekennung samt Geheimnis an ' +
+        'Beim ersten Öffnen legt die App im Speicher Ihres Browsers bzw. der App eine zufällige Gerätekennung samt Geheimnis an ' +
         '(kein Cookie). Damit erkennt der Server Ihr Gerät wieder: für den Status Ihrer Einsendungen, Ihre Reaktionen, ' +
         'den Schutz vor Missbrauch und die Zählung der Zuhörenden. Auf dem Server liegen davon nur Prüfwerte, die mit ' +
         'einem geheimen Schlüssel gebildet sind (HMAC). Lokal speichert die App außerdem Ihre Einstellungen (Sprache, ' +
-        'Lautstärke, Kanal, Design, Ihre YouTube-Einwilligung), welche Reaktionen Sie gegeben haben (damit sie ' +
-        'gedrückt bleiben) und – nur wenn Sie eine anlegen – Ihre Passphrase.\n' +
+        'Lautstärke, Kanal, Design, Ihre YouTube-Einwilligung, Ihre Zustimmung zu den Community-Regeln), welche ' +
+        'Reaktionen Sie gegeben haben (damit sie gedrückt bleiben), wen Sie blockiert und was Sie gemeldet haben ' +
+        '(damit es ausgeblendet bleibt), Ihre Sendungs-Erinnerungen, für schwache Verbindungen Programmdateien und ' +
+        'Audiobeiträge der letzten Tage und – nur wenn Sie eine anlegen – Ihre Passphrase. „Daten auf diesem Gerät ' +
+        'löschen“ in den Datenschutz-Einstellungen entfernt all das.\n' +
         'Das Speichern ist für den von Ihnen genutzten Dienst unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG); ' +
         'Rechtsgrundlage der Verarbeitung ist Art. 6 Abs. 1 lit. f DSGVO. Während Sie zuhören, meldet die App alle ' +
         'zwei Minuten, dass Ihr Gerät dabei ist; diese Einträge löschen wir nach einem Tag, Einträge des ' +
-        'Missbrauchsschutzes (mit gehashter IP-Adresse) nach zwei Tagen, Gerätekennungen ohne Einsendungen und ohne ' +
+        'Missbrauchsschutzes (mit gehashter IP-Adresse) nach zwei Tagen, Fehlercodes des YouTube-Players (welches ' +
+        'Gerät welches Video nicht abspielen konnte) nach 30 Tagen, Gerätekennungen ohne Einsendungen und ohne ' +
         'Passphrase nach 60 Tagen ohne Nutzung.',
+    },
+    {
+      h: 'Erinnerungen an Sendungen (nur in den Apps)',
+      p:
+        'In den Apps können Sie sich an eine Sendung erinnern lassen. Welche Sendungen das sind, speichert die App ' +
+        'nur auf Ihrem Gerät; die Erinnerungen plant das Betriebssystem Ihres Telefons als lokale Mitteilungen ein – ' +
+        'etwa fünf Minuten vor Beginn, jeweils für die kommende Woche und bei jedem Öffnen der App neu. Dafür ' +
+        'übermittelt die App nichts an uns und nutzt keine Push-Dienste von Apple oder Google; die Zeiten stammen aus ' +
+        'dem Sendeplan, den die App ohnehin lädt. Um Erlaubnis für Mitteilungen bittet Ihr Telefon erst, wenn Sie ' +
+        'zum ersten Mal „Erinnere mich“ antippen. „Daten auf diesem Gerät löschen“ entfernt auch alle geplanten ' +
+        'Erinnerungen. Rechtsgrundlage ist § 25 Abs. 2 Nr. 2 TDDDG.',
     },
     {
       h: 'YouTube',
@@ -153,7 +188,11 @@ const de = (host: string): StationTexts => ({
         'Informationen auf Ihrem Gerät speichern kann (Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG). Dasselbe gilt ' +
         'für die Vorschau eines gewünschten Songs oder einer vorgeschlagenen Predigt. Google kann Daten in die USA übermitteln; Google LLC ist unter dem ' +
         'EU-US Data Privacy Framework zertifiziert. Sie können die Einwilligung jederzeit unten unter ' +
-        '„Datenschutz-Einstellungen“ widerrufen. Mehr: https://policies.google.com/privacy',
+        '„Datenschutz-Einstellungen“ widerrufen.\n' +
+        'Arche Radio nutzt die YouTube-API-Dienste: den eingebetteten Player und, auf unserem Server, die YouTube Data ' +
+        'API, an die wir nur Video-Kennungen senden, um Titel, Länge und Abspielbarkeit zu prüfen; Vorschaubilder ' +
+        'liefern wir von unserem eigenen Server aus. Es gelten die Nutzungsbedingungen von YouTube ' +
+        '(https://www.youtube.com/t/terms) und die Datenschutzerklärung von Google (https://policies.google.com/privacy).',
     },
     {
       h: 'Einsendungen: Songwünsche, Predigtvorschläge, Aufnahmen, Gebetsanliegen',
@@ -183,8 +222,9 @@ const de = (host: string): StationTexts => ({
         'vorgeschlagene Predigt kann in unsere Auswahl aufgenommen werden – ohne Ihren Namen und ohne Ihre Widmung ' +
         'bzw. Begründung.\n' +
         'Abgelehnte Aufnahmen löschen wir sofort, alle übrigen Einsendungen nach 90 Tagen. Aufnahmen, die Sie zur ' +
-        'Wiederholung freigegeben haben, bleiben, bis Sie widersprechen. Ihre Einwilligungen können Sie jederzeit ' +
-        `mit Wirkung für die Zukunft per E-Mail an ${CONTACT} widerrufen.`,
+        'Wiederholung freigegeben haben, bleiben, bis Sie widersprechen oder Ihr Konto löschen. Ihre Einwilligungen ' +
+        'können Sie jederzeit mit Wirkung für die Zukunft widerrufen – indem Sie Ihr Konto löschen oder per E-Mail ' +
+        `an ${CONTACT}.`,
     },
     {
       h: 'KI-Dienste (OpenAI)',
@@ -206,19 +246,42 @@ const de = (host: string): StationTexts => ({
       p:
         'Die Räume laufen auf Servern der Hetzner Online GmbH in Deutschland, die wir bei Bedarf starten und bei ' +
         'Inaktivität wieder löschen. Für die Teilnahme verarbeiten wir Ihren Anzeigenamen, Ihr Land (falls angegeben), ' +
-        'Ihre Nachrichten und Reaktionen. Nachrichten liegen nur im Arbeitsspeicher des Raumservers (die letzten 150 ' +
-        'je Raum) und verschwinden mit ihm. Viel geliebte Nachrichten können nach einer automatischen Prüfung bis zu ' +
-        'zwei Stunden als „Stimme der Community“ auf der Startseite erscheinen; wir löschen sie nach sieben Tagen. ' +
-        'Gemeldete Nachrichten sehen unsere Moderatorinnen und Moderatoren; Meldungen löschen wir nach 30 Tagen. ' +
-        'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (die Räume, die Sie nutzen) und lit. f (Schutz vor Missbrauch).',
+        'Ihre Nachrichten und Reaktionen. Anzeigenamen und Nachrichten prüft ein Wortfilter. Nachrichten liegen nur ' +
+        'im Arbeitsspeicher des Raumservers (die letzten 100 je Raum) und verschwinden mit ihm. Viel geliebte ' +
+        'Nachrichten können nach einer automatischen Prüfung bis zu zwei Stunden als „Stimme der Community“ auf der ' +
+        'Startseite erscheinen, mit einem Kennzeichen, das aus der Kennung der Verfasserin bzw. des Verfassers ' +
+        'gebildet ist (damit, wer sie blockiert, auch ihre Stimmen nicht mehr sieht); wir löschen sie nach sieben Tagen.\n' +
+        'Melden Sie eine Nachricht, eine Community-Stimme oder ein Gebetsanliegen, speichern wir den Inhalt, die ' +
+        'Kennung der Verfasserin bzw. des Verfassers (bei Gebetsanliegen das Anliegen) und Ihre Kennung; unsere ' +
+        'Moderatorinnen und Moderatoren prüfen jede Meldung innerhalb eines Tages. Ein Gebetsanliegen, das mehrere ' +
+        'melden, nehmen wir bis zur Prüfung von der Wand. Meldungen löschen wir nach 30 Tagen. Wen Sie blockieren, ' +
+        'speichert nur Ihr Gerät; wir erfahren davon als Meldung. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO ' +
+        '(die Räume, die Sie nutzen) und lit. f (Schutz vor Missbrauch).',
     },
     {
       h: 'Passphrase',
       p:
         'Legen Sie freiwillig eine Passphrase an, erzeugt Ihr Gerät daraus Zugangsdaten; die 12 Wörter verlassen Ihr ' +
         'Gerät nie. Auf dem Server liegt nur ein Prüfwert (Argon2id). So nehmen Sie Ihre Identität auf ein anderes ' +
-        'Gerät mit. Eine Wiederherstellung ist nicht möglich. Identitäten mit Passphrase löschen wir auf Wunsch ' +
-        '(Art. 6 Abs. 1 lit. b DSGVO).',
+        'Gerät mit. Eine Wiederherstellung ist nicht möglich (Art. 6 Abs. 1 lit. b DSGVO). Wie Sie das Konto löschen, ' +
+        'steht im nächsten Abschnitt.',
+    },
+    {
+      h: 'Konto und Daten löschen',
+      p:
+        'Sie können Ihr Konto jederzeit selbst löschen: in der App bzw. auf der Website unter Profil › „Konto ' +
+        'löschen“ oder auf https://radio.schaefchens.de/konto-loeschen – dort auch mit Ihren 12 Wörtern, wenn Sie ' +
+        'die App nicht mehr haben. Sofort gelöscht werden Ihre Identität mit Name, Land und Passphrase auf allen ' +
+        'Geräten, die sie nutzen; alles, was Sie eingesandt haben (auch Aufnahmen für Wiederholungen und Anliegen an ' +
+        'der Gebetswand), auch aus dem geplanten Programm, sofern es noch nicht gesendet wurde; die Moderationstexte ' +
+        'und -aufnahmen, die Sie nennen; Ihre Community-Stimmen und Meldungen über Ihre Beiträge; die Daten Ihres ' +
+        'Geräts bei uns und auf dem Gerät.\n' +
+        'Noch eine Weile bleiben: was schon in den veröffentlichten Programmdateien gesendet wurde (bis zu 48 Stunden), ' +
+        'unsere Sicherungen (bis zu sieben Tage), Meldungen, die Sie selbst gemacht haben (ohne Ihre Kennung, bis zu ' +
+        '30 Tage), und das Sicherheitsprotokoll mit Ihrer Kennung (bis zu 90 Tage). Gewünschte Songs können ohne ' +
+        'Ihren Namen und Ihre Widmung in unserer Auswahl bleiben. Ohne Passphrase und ohne Ihr Gerät können wir ' +
+        'Daten nicht Ihnen zuordnen: Gerätekennungen löschen wir dann 60 Tage nach der letzten Nutzung, ' +
+        'Einsendungen nach 90 Tagen.',
     },
     {
       h: 'Datensicherung',
@@ -228,7 +291,8 @@ const de = (host: string): StationTexts => ({
       h: 'Ihre Rechte',
       p:
         'Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, ' +
-        'Datenübertragbarkeit und Widerspruch sowie das Recht, erteilte Einwilligungen zu widerrufen. Schreiben Sie ' +
+        'Datenübertragbarkeit und Widerspruch sowie das Recht, erteilte Einwilligungen zu widerrufen. Ihr Konto ' +
+        'löschen Sie jederzeit selbst (siehe oben). Schreiben Sie ' +
         `uns dazu an ${CONTACT}. Beschwerden können Sie an die zuständige Aufsichtsbehörde richten: den ` +
         'Landesbeauftragten für den Datenschutz und die Informationsfreiheit Rheinland-Pfalz.',
     },
@@ -263,7 +327,8 @@ const en = (host: string): StationTexts => ({
       p:
         'Request a song, suggest a preaching, share your story, a testimony or a greeting as a voice recording, or send a prayer request — ' +
         `${host} prays for it on air. In the community rooms you can write with other listeners. Arche Radio needs no ` +
-        'account; if you like, a passphrase of 12 words takes your identity to another device.',
+        'sign-up — no email, no password; if you like, a passphrase of 12 words takes your identity to another device. ' +
+        'Arche Radio runs in the browser and as an app for iPhone and Android.',
     },
     {
       h: 'A project of Schäfchens',
@@ -295,9 +360,10 @@ const en = (host: string): StationTexts => ({
     {
       h: 'In short',
       p:
-        'Arche Radio works without an account, without advertising, without analytics or tracking and without cookies of ' +
-        'its own. We process only what the radio, your submissions and the community rooms need. Fonts come from our ' +
-        'own server; the program, audio and images through the content delivery network BunnyCDN.',
+        'Arche Radio works without a sign-up (no email, no password), without advertising, without analytics or ' +
+        'tracking and without cookies of its own. We process only what the radio, your submissions and the community ' +
+        'rooms need. You can delete your account with everything you sent us yourself, at any time. Fonts come from ' +
+        'our own server; the program, audio and images through the content delivery network BunnyCDN.',
     },
     {
       h: 'Hosting and server logs',
@@ -306,6 +372,21 @@ const en = (host: string): StationTexts => ({
         'Gunzenhausen, Germany, on our behalf (Art. 28 GDPR). When you visit, the host processes technically ' +
         'necessary data (IP address, date and time, address requested, browser and operating system) and deletes it ' +
         'shortly afterwards. Legal basis: Art. 6(1)(f) GDPR, the secure operation of the service.',
+    },
+    {
+      h: 'Arche Radio as an app (App Store, Google Play)',
+      p:
+        "You download the apps for iPhone and Android from Apple Distribution International Ltd.'s App Store or " +
+        "Google Ireland Limited's Google Play, which process data under their own responsibility and terms. We only " +
+        'receive aggregated figures from them (such as downloads and crashes), nothing about you.\n' +
+        'The app opens radio.schaefchens.de in a window of its own: everything this policy says about the website ' +
+        "applies to it, and “your browser's storage” means the app's storage there, which is deleted with the app. " +
+        'The app contains no analytics or advertising services. The Android app excludes its data from backups and ' +
+        'from transfers to a new device; your passphrase takes your identity along.\n' +
+        'Your phone asks for permissions only when you use the feature: the microphone only for a recording you start ' +
+        '(it stays on the device until you send it), the camera only for a photo moderators take for a program, ' +
+        'notifications only for program reminders. Keeping the screen on while you listen is handled on the device ' +
+        "and processes no data. You can withdraw any permission in your phone's settings.",
     },
     {
       h: 'Delivery through BunnyCDN',
@@ -323,15 +404,29 @@ const en = (host: string): StationTexts => ({
     {
       h: 'Device id and storage on your device',
       p:
-        "On first start the app stores a random device id with a secret in your browser's storage (not a cookie). It " +
+        "On first start the app stores a random device id with a secret in your browser's or the app's storage (not a cookie). It " +
         'lets the server recognise your device: for the status of your submissions, your reactions, protection ' +
         'against abuse and counting listeners. The server keeps only values derived with a secret key (HMAC). The app ' +
-        'also stores your settings locally (language, volume, channel, theme, your YouTube consent), which reactions ' +
-        'you gave (so they stay pressed) and — only if you create one — your passphrase.\n' +
+        'also stores your settings locally (language, volume, channel, theme, your YouTube consent, your acceptance of ' +
+        'the community rules), which reactions you gave (so they stay pressed), whom you blocked and what you reported ' +
+        '(so it stays hidden), your program reminders, program files and audio of the last few days for a weak ' +
+        'connection and — only if you create one — your passphrase. “Delete data on this device” in the privacy ' +
+        'settings removes all of it.\n' +
         'This storage is strictly necessary for the service you use (§ 25(2) no. 2 TDDDG); the legal basis is ' +
         'Art. 6(1)(f) GDPR. While you listen, the app reports every two minutes that your device is there; we delete ' +
-        'these entries after one day, abuse-protection entries (with a hashed IP address) after two days, and device ' +
-        'ids without submissions or a passphrase after 60 days without use.',
+        'these entries after one day, abuse-protection entries (with a hashed IP address) after two days, error codes ' +
+        "of the YouTube player (which device could not play which video) after 30 days, and device ids without " +
+        'submissions or a passphrase after 60 days without use.',
+    },
+    {
+      h: 'Program reminders (apps only)',
+      p:
+        'In the apps you can ask to be reminded of a program. Which programs you chose is stored only on your device; ' +
+        "your phone's operating system schedules the reminders as local notifications — about five minutes before the " +
+        'start, for the coming week, renewed whenever you open the app. For this the app sends nothing to us and uses ' +
+        'no push service of Apple or Google; the times come from the program plan the app loads anyway. Your phone ' +
+        'asks for permission to show notifications only when you first tap “Remind me”. “Delete data on this device” ' +
+        'also removes all scheduled reminders. Legal basis: § 25(2) no. 2 TDDDG.',
     },
     {
       h: 'YouTube',
@@ -342,7 +437,11 @@ const en = (host: string): StationTexts => ({
         'your IP address, information about your device and the videos played, and may store information on your ' +
         'device (Art. 6(1)(a) GDPR, § 25(1) TDDDG). The same applies to the preview of a requested song or a suggested preaching. Google may ' +
         'transfer data to the USA; Google LLC is certified under the EU-US Data Privacy Framework. You can withdraw ' +
-        'your consent at any time under “Privacy settings” below. More: https://policies.google.com/privacy',
+        'your consent at any time under “Privacy settings” below.\n' +
+        'Arche Radio uses the YouTube API Services: the embedded player and, on our server, the YouTube Data API, to ' +
+        'which we send only video ids to check title, length and whether a video can be played; we serve thumbnails ' +
+        "from our own server. YouTube's Terms of Service (https://www.youtube.com/t/terms) and Google's Privacy " +
+        'Policy (https://policies.google.com/privacy) apply.',
     },
     {
       h: 'Submissions: song requests, preaching suggestions, recordings, prayer requests',
@@ -369,8 +468,8 @@ const en = (host: string): StationTexts => ({
         'consent. A requested song or a suggested preaching may join our selection — without your name and without ' +
         'your dedication or reason.\n' +
         'We delete rejected recordings immediately and all other submissions after 90 days. Recordings you allowed ' +
-        'to be replayed stay until you object. You can withdraw your consent at any time, for the future, by email to ' +
-        `${CONTACT}.`,
+        'to be replayed stay until you object or delete your account. You can withdraw your consent at any time, for ' +
+        `the future — by deleting your account or by email to ${CONTACT}.`,
     },
     {
       h: 'AI services (OpenAI)',
@@ -389,10 +488,15 @@ const en = (host: string): StationTexts => ({
       h: 'Community rooms',
       p:
         'The rooms run on servers of Hetzner Online GmbH in Germany, started when needed and deleted when idle. To take ' +
-        'part we process your display name, your country (if given), your messages and reactions. Messages exist only ' +
-        "in the room server's memory (the last 150 per room) and disappear with it. Much-loved messages may appear, " +
-        'after an automated check, as a “community voice” on the home screen for up to two hours; we delete them after ' +
-        'seven days. Our moderators see reported messages; we delete reports after 30 days. Legal basis: Art. 6(1)(b) ' +
+        'part we process your display name, your country (if given), your messages and reactions. A word filter ' +
+        "checks display names and messages. Messages exist only in the room server's memory (the last 100 per room) " +
+        'and disappear with it. Much-loved messages may appear, after an automated check, as a “community voice” on ' +
+        "the home screen for up to two hours, with a mark derived from their author's id (so that whoever blocked " +
+        'them does not see their voices either); we delete them after seven days.\n' +
+        'When you report a message, a community voice or a prayer request, we store the content, its author\'s id ' +
+        '(for a prayer request, the request) and your id; our moderators check every report within a day. A prayer ' +
+        'request reported by several listeners comes off the wall until it is checked. We delete reports after 30 ' +
+        'days. Whom you block is stored only on your device; we learn of it as a report. Legal basis: Art. 6(1)(b) ' +
         'GDPR (the rooms you use) and (f) (protection against abuse).',
     },
     {
@@ -400,7 +504,22 @@ const en = (host: string): StationTexts => ({
       p:
         'If you choose to create a passphrase, your device derives credentials from it; the 12 words never leave your ' +
         'device. The server keeps only a check value (Argon2id). This lets you take your identity to another device. ' +
-        'It cannot be recovered. We delete identities with a passphrase on request (Art. 6(1)(b) GDPR).',
+        'It cannot be recovered (Art. 6(1)(b) GDPR). How to delete the account: see the next section.',
+    },
+    {
+      h: 'Deleting your account and data',
+      p:
+        'You can delete your account yourself at any time: in the app or on the website under Profile › “Delete ' +
+        'account”, or at https://radio.schaefchens.de/konto-loeschen — there also with your 12 words if you no ' +
+        'longer have the app. Deleted at once: your identity with name, country and passphrase on every device ' +
+        'that uses it; everything you sent (including recordings kept for replays and requests on the prayer ' +
+        "wall), also from the planned program if it has not aired yet; the host's words and recordings that name " +
+        "you; your community voices and reports about your posts; your device's data with us and on the device.\n" +
+        'Kept for a while: what already went out in the published program files (up to 48 hours), our backups (up to ' +
+        'seven days), reports you filed yourself (without your id, up to 30 days) and the security log with your id ' +
+        '(up to 90 days). Requested songs may stay in our selection without your name or dedication. Without your ' +
+        'passphrase and your device we cannot tell which data is yours: device ids are then deleted 60 days after ' +
+        'their last use, submissions after 90 days.',
     },
     {
       h: 'Backups',
@@ -410,7 +529,8 @@ const en = (host: string): StationTexts => ({
       h: 'Your rights',
       p:
         'You have the right of access, rectification, erasure, restriction of processing, data portability and ' +
-        `objection, and the right to withdraw consent. Write to us at ${CONTACT}. You can lodge a complaint with the ` +
+        'objection, and the right to withdraw consent. You can delete your account yourself at any time (see above). ' +
+        `Write to us at ${CONTACT}. You can lodge a complaint with the ` +
         'competent supervisory authority: the State Commissioner for Data Protection and Freedom of Information of ' +
         'Rhineland-Palatinate.',
     },

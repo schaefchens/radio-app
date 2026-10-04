@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { ChevronIcon, CloseIcon } from '@/components/common/icons';
-import { useStage } from '@/store/stage';
+import { useOverlay } from '@/lib/backStack';
 
 /** Drag far enough and let go, and the sheet closes rather than snapping back. */
 const DISMISS_PX = 96;
@@ -90,12 +90,8 @@ export function BottomSheet({ open, onClose, title, onBack, children }: Props) {
   // covers what aria-modal alone doesn't: without it the page behind stays
   // reachable by screen reader and by Tab.
   // An open sheet covers the stage; the floating YouTube player must not play
-  // under it (see store/stage.ts).
-  useEffect(() => {
-    if (!open) return;
-    useStage.getState().pushOverlay();
-    return () => useStage.getState().popOverlay();
-  }, [open]);
+  // under it (see store/stage.ts). Android's back button closes it.
+  useOverlay(open, onClose);
 
   useEffect(() => {
     if (!open || !host) return;

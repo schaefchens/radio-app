@@ -8,6 +8,8 @@ import { NO_MARK, useReactions } from '@/store/reactions';
 import { countryName } from '@/lib/format';
 import { reactVoice } from '@/lib/radio';
 import { silentEntry } from '@/lib/prayerWall';
+import { visibleVoices, visibleWall } from '@/lib/blocking';
+import { useBlocks } from '@/store/blocks';
 import { useServerNow } from '@/components/home/useServerNow';
 import { CdnImg } from '@/components/common/CdnImg';
 import { RadioIcon } from '@/components/common/icons';
@@ -34,7 +36,11 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
   const tagline = program?.stage.tagline[lang] ?? '';
   const hostName = channel?.host.name ?? 'Hope';
   const prayerHour = program?.format === 'prayer';
-  const praying = prayerHour && engine.mode === 'host' ? engine.wall.filter((e) => engine.praying.includes(e.id)) : [];
+  // What this device reported or whose author it blocked stays off the stage too.
+  const blocked = useBlocks((s) => s.users);
+  const hidden = useBlocks((s) => s.hidden);
+  const wall = visibleWall(engine.wall, hidden);
+  const praying = prayerHour && engine.mode === 'host' ? wall.filter((e) => engine.praying.includes(e.id)) : [];
 
   return (
     <div className="absolute inset-0 z-0 select-none">
@@ -58,11 +64,11 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
           <div className="stage-prayer animate-fly-in">
             <p className="eyebrow">{t('nowPlaying.bed')}</p>
             {item.label[lang] && <p className="stage-prayer-title">{item.label[lang]}</p>}
-            {prayerHour && <Collecting wall={engine.wall} share={!compact} />}
+            {prayerHour && <Collecting wall={wall} share={!compact} />}
           </div>
         )}
         {engine.mode === 'silence' && prayerHour && (
-          <SilentPrayer label={item?.type === 'silence' ? item.label[lang] : t('stage.silence')} wall={engine.wall} share={!compact} />
+          <SilentPrayer label={item?.type === 'silence' ? item.label[lang] : t('stage.silence')} wall={wall} share={!compact} />
         )}
         {engine.mode === 'silence' && !prayerHour && (
           <div className="animate-fly-in">
@@ -95,7 +101,7 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
       </div>
 
       {engine.mode === 'host' && program?.stage.mode === 'flyins' && item?.type === 'host' && (
-        <FlyIns voices={item.voices.length ? item.voices : engine.voices.slice(0, 3)} locale={lang} />
+        <FlyIns voices={visibleVoices(item.voices.length ? item.voices : engine.voices.slice(0, 3), blocked, hidden)} locale={lang} />
       )}
     </div>
   );

@@ -5,6 +5,8 @@ import { errorText } from '@/i18n';
 import { guessCountry } from '@/lib/format';
 import { useSession, type IdentityView } from '@/store/session';
 import { CountrySelect } from '@/components/profile/CountrySelect';
+import { RulesCheckbox } from '@/components/common/RulesConsent';
+import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
 
 /** A room needs a name to show next to what you write. */
 export function NameGate() {
@@ -14,12 +16,16 @@ export function NameGate() {
   const [country, setCountry] = useState(guessCountry);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Writing in a room is a post: the community rules first (once per device).
+  const rulesNeeded = useRulesNeeded();
+  const [rulesTicked, setRulesTicked] = useState(false);
 
   const save = async (): Promise<void> => {
     setBusy(true);
     setError(null);
     try {
       const r = await api<{ identity: IdentityView }>('/me', { method: 'PATCH', body: { name: name.trim(), country } });
+      if (rulesNeeded) acceptRules();
       setIdentity(r.identity);
     } catch (e) {
       setError(errorText(e instanceof ApiError ? e.code : 'generic'));
@@ -45,8 +51,9 @@ export function NameGate() {
         <span className="label">{t('profile.country')}</span>
         <CountrySelect value={country} onChange={setCountry} />
       </label>
+      {rulesNeeded && <RulesCheckbox checked={rulesTicked} onChange={setRulesTicked} />}
       {error && <p className="text-sm text-heart">{error}</p>}
-      <button type="submit" className="btn-primary" disabled={busy || name.trim().length < 2}>
+      <button type="submit" className="btn-primary" disabled={busy || name.trim().length < 2 || (rulesNeeded && !rulesTicked)}>
         {t('chat.continue')}
       </button>
     </form>

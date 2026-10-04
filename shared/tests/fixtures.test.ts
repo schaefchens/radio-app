@@ -53,6 +53,8 @@ describe('program file fixtures', () => {
 
     const live = parseLiveFile(load('live.json'));
     expect(live?.voices).toHaveLength(2);
+    // The author's mark, for a listener who blocked them (Presence::voiceTag).
+    expect(live?.voices[0]?.by).toBe('3f9a1c07be52');
     expect(live?.wall).toHaveLength(2);
     expect(live?.wall[0]).toEqual({
       id: 'pk3v9q2m7x4tb',

@@ -123,6 +123,82 @@ use the production zone (the e2e stack has a stand-in on port 8091).
 Live since 2026-09-24: zone `arche-radio` (id 6679436) at
 `https://arche-radio.b-cdn.net`.
 
+## Store apps (iOS, Android)
+
+Capacitor 8 shells around the live site: the app opens
+https://radio.schaefchens.de in a native frame (`app/capacitor.config.ts`), so
+every deploy reaches the apps at once and only native changes need a store
+release. Why it does not ship its own copy, and the rules for code that talks
+to the shell: [CLAUDE.md](CLAUDE.md), "Native apps". Store texts, privacy
+answers and review notes: [STORE.md](STORE.md).
+
+Needs Xcode 26 (iOS) and, for Android, the SDK in `~/Library/Android/sdk` plus
+JDK 21 (`brew install openjdk@21`; `scripts/native/android-env.sh` finds both).
+
+```bash
+npm run native:sync                         # after npm install or a plugin change: copies the config, links the plugins
+npm run native:ios                          # build and run in a simulator (asks which)
+npm run native:android                      # build and run in the emulator / a phone
+npm --workspace @arche/app run native:ios:xcode   # open the Xcode project (archive, signing)
+npm run native:assets                       # icons and splash from app/native/assets/*.svg
+npm run native:version -- 1.1.0             # both stores' version + one shared build number
+npm run native:aab                          # the signed Android App Bundle for Play
+```
+
+Against a local stack instead of the live site:
+`npx cap run ios -l --host localhost --port 5180` (the dev server; Android adds
+`--forwardPorts 5180:5180`), or port 8090 for the e2e stack's production build
+with its CSP. Release builds refuse such a config (a check in the Xcode build
+and in Gradle), so run `npm run native:sync` before archiving.
+
+**First release, Apple**
+
+1. A paid Apple Developer account. In Xcode (`native:ios:xcode`) › App ›
+   Signing & Capabilities, pick the team with automatic signing: it registers
+   the App ID `de.schaefchens.apps.archeradio` and creates the distribution
+   certificate on the first archive.
+2. App Store Connect › New App: iOS, name "Arche Radio", primary language,
+   bundle id, SKU. Fill in what STORE.md lists (privacy URL, App Privacy,
+   age rating, review notes); iPhone only, Mac and Apple Vision availability off.
+3. Product › Archive › Distribute App › App Store Connect; test it in
+   TestFlight (internal testers need no review), then submit.
+
+**First release, Google Play**
+
+1. Create the upload key once (`app/android/keystore.properties.example` says
+   how) and **back it up off this Mac** with its passwords.
+2. Play Console › Create app; the "App content" forms from STORE.md (Data
+   safety, content rating, target audience — not the Families program).
+3. `npm run native:aab`, then upload
+   `app/android/app/build/outputs/bundle/release/app-release.aab` to internal
+   testing (Play App Signing is set up with it). A personal developer account
+   needs a closed test with at least 12 testers for 14 days before production.
+
+**Every release**
+
+- Web changes: `npm run deploy` — nothing to do in the stores.
+- Shell changes (native code, plugins, icons, `capacitor.config.ts`):
+  `npm run native:version -- x.y.z`, `npm run native:sync`, archive and upload
+  in Xcode, `npm run native:aab` and upload; commit "Release the apps x.y.z
+  (build n)". The web part a new shell relies on is deployed first.
+- After changing `realtime/`, rebuild the node snapshot
+  (`npm run realtime:snapshot`): deleted accounts leave the rooms only on
+  nodes that know `forget`.
+
+**On real phones** (simulator and emulator first): starts with the splash,
+never stuck; offline at start → the offline page, which comes back by itself;
+YouTube plays inline (no error 150/153) and the next songs follow without a
+tap; host clips audible with the silent switch on (iPhone); home button or
+lock → silence within a second and the hint on return, Control Center does
+not stop it; the screen stays on while listening; a recording asks for the
+microphone in the phone's language and the radio sounds as before afterwards;
+safe areas (Dynamic Island, home indicator, both themes); Android back closes
+sheets, then goes to Home, then to the background; a program reminder arrives
+about five minutes early and opens its channel (Android: on time only after
+"Allow on-time reminders"; without it, minutes late); share sheet; a vibration on
+reactions; e-mail and "Open on YouTube" leave the app; the update banner after
+a deploy.
+
 ## Operate
 
 - **/mod → Status**: last tick, how far ahead each channel is committed, jobs,
@@ -206,5 +282,7 @@ Everything is an `.env` key (defaults in `server/config/defaults.php`, names in
 | `PULSE_SECONDS` | `120` | presence pulse interval; `0` turns pulses off under load |
 | `MODERATION_HUMAN_REVIEW` | `0` | `1` = uncertain submissions go to /mod → Review |
 | `SUBMISSIONS_PER_IP_HOUR`, `IDENTITIES_PER_IP_DAY` | `60`, `300` | per shared address; raise them for an event on one Wi-Fi |
+| `REPORTS_PER_IP_HOUR` | `60` | listeners' reports (wall requests, community voices) per shared address |
+| `WALL_REPORTS_HIDE` | `3` | different listeners, known for a day, whose reports take a wall request down until a moderator decides (one they kept stays up); `0` = only moderators |
 | `REALTIME_DRIVER` | `off` | `off` (no rooms) · `static` (the local stack sets it) · `hcloud` |
 | `CDN_BASE_URL` | – | the BunnyCDN zone the app reads `/program` and `/media` from; empty or `off` = the site itself |

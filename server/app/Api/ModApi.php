@@ -59,6 +59,8 @@ final class ModApi
             'library' => ['songs' => $app->library()->count('song'), 'preachings' => $app->library()->count('preaching'), 'jingles' => $app->library()->count('jingle')],
             'review' => (int) $app->store()->value("SELECT COUNT(*) FROM submissions WHERE status = 'review'"),
             'reports' => (int) $app->store()->value("SELECT COUNT(*) FROM chat_reports WHERE status = 'open'"),
+            // Wall requests listeners reported (Moderation\Reports): decided in Review → Prayer wall.
+            'wallReports' => (int) $app->store()->value("SELECT COUNT(DISTINCT submission_id) FROM wall_reports WHERE status = 'open'"),
             'highlights' => (int) $app->store()->value("SELECT COUNT(*) FROM highlights WHERE status = 'candidate'"),
             'youtube' => $app->youtube()->configured(),
         ];
@@ -396,12 +398,15 @@ final class ModApi
         $subs = $this->c->app->submissions();
         [$where, $order] = match ((string) ($this->c->req->query['status'] ?? 'review')) {
             'rejected' => ["s.status = 'rejected'", 's.updated DESC'],
-            'wall' => ["s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.status IN ('approved', 'scheduled', 'aired')", 's.created DESC, s.id DESC'],
+            // Reported ones first: they wait for a decision.
+            'wall' => ["s.type = 'prayer' AND s.mode = 'text' AND s.consent_air = 1 AND s.status IN ('approved', 'scheduled', 'aired')", 'reports > 0 DESC, s.created DESC, s.id DESC'],
             'all' => ['1 = 1', 's.created DESC'],
             default => ["s.status = 'review'", 's.created'],
         };
         $rows = $this->c->app->store()->all(
-            "SELECT s.*, p.title_en AS program_title FROM submissions s LEFT JOIN programs p ON p.id = s.program_id
+            "SELECT s.*, p.title_en AS program_title,
+               (SELECT COUNT(*) FROM wall_reports r WHERE r.submission_id = s.id AND r.status = 'open') AS reports
+             FROM submissions s LEFT JOIN programs p ON p.id = s.program_id
              WHERE $where ORDER BY $order LIMIT 100",
         );
         $out = [];
@@ -415,6 +420,8 @@ final class ModApi
                 'status' => $s['status'], 'reason' => $s['reason'], 'updated' => (int) $s['updated'] * 1000,
                 'blocker' => $s['status'] === 'rejected' ? $subs->overruleBlocker($s) : null,
                 'hidden' => (bool) $s['hidden'], 'consentAir' => (bool) $s['consent_air'],
+                // Open reports from listeners, and who took it down: a moderator, or enough reports.
+                'reports' => (int) $s['reports'], 'hiddenBy' => match ((int) $s['hidden']) { 1 => 'moderator', 2 => 'reports', default => null },
                 'prayedWith' => (int) $s['prayed_count'],
             ];
         }
@@ -482,6 +489,12 @@ final class ModApi
         if (!is_bool($hidden)) throw new ApiError(422, 'bad_hidden');
         if (!$app->submissions()->setHidden($publicId, $hidden)) throw new ApiError(404, 'not_found');
         $sub = $app->submissions()->byPublicId($publicId) ?? throw new ApiError(404, 'not_found');
+        // Listeners' reports are answered by the decision: kept (dismissed) or taken down (actioned).
+        $app->store()->query("UPDATE wall_reports SET status = ? WHERE submission_id = ? AND status = 'open'", [$hidden ? 'actioned' : 'dismissed', (int) $sub['id']]);
+        if ($hidden && $this->c->req->input('ban') === true) {
+            $sender = $app->identities()->get((int) $sub['identity_id']);
+            if ($sender !== null) $app->identities()->setBanned((string) $sender['public_id'], true, $this->actor());
+        }
         $channel = $app->catalog()->channel((int) $sub['channel_id']);
         if ($channel !== null) $app->publisher()->publishLive($channel);
         $app->store()->audit($this->actor(), $hidden ? 'Removed from the prayer wall' : 'Shown on the prayer wall', $publicId);
@@ -527,7 +540,11 @@ final class ModApi
     public function reports(): array
     {
         $this->mod();
-        return ['reports' => $this->c->app->store()->all("SELECT * FROM chat_reports WHERE status = 'open' ORDER BY created DESC LIMIT 200")];
+        // A report on a community voice (Moderation\Reports) names its highlight: `voice` says so.
+        return ['reports' => $this->c->app->store()->all(
+            "SELECT r.*, (h.uid IS NOT NULL) AS voice FROM chat_reports r LEFT JOIN highlights h ON h.uid = r.msg
+             WHERE r.status = 'open' ORDER BY r.created DESC LIMIT 200",
+        )];
     }
 
     /** @param array<string,string> $a */
@@ -540,7 +557,11 @@ final class ModApi
         $action = (string) $this->c->req->input('action', 'dismiss');
         if ($action === 'remove' || $action === 'ban') {
             $store->query('INSERT OR IGNORE INTO removed_messages(msg, time) VALUES(?, ?)', [$report['msg'], $app->clock->now()]);
+            $voice = $store->one('SELECT channel FROM highlights WHERE uid = ?', [$report['msg']]);
             $store->query("UPDATE highlights SET status = 'rejected' WHERE uid = ?", [$report['msg']]);
+            // A community voice is in live.json: gone with the next fetch, not the next tick.
+            $channel = $voice !== null ? $app->catalog()->channelBySlug((string) $voice['channel']) : null;
+            if ($channel !== null) $app->publisher()->publishLive($channel);
         }
         if ($action === 'ban' && $report['author'] !== '') $app->identities()->setBanned((string) $report['author'], true, $this->actor());
         $store->query("UPDATE chat_reports SET status = ? WHERE msg = ?", [$action === 'dismiss' ? 'dismissed' : 'actioned', $report['msg']]);

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Kids Ark's base (app/src/lib/theme.ts); values-night/ has Storm Ark's.
+         Behind the bars wherever the page cannot draw under them. -->
+    <color name="chrome">#f6fbff</color>
+    <!-- The splash and the frame before it: the PWA manifest's navy. -->
+    <color name="splash">#03234a</color>
+    <color name="brand">#dda12b</color>
+</resources>

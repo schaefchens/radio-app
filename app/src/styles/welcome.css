@@ -6,7 +6,10 @@
 
 .welcome-dialog {
   width: min(520px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  /* Clear of the status bar and the home indicator: on a small iPhone the
+     close button sat under the clock. */
+  inset-block: var(--safe-top) var(--safe-bottom);
+  max-height: calc(100dvh - 24px - var(--safe-top) - var(--safe-bottom));
   padding: 0;
   overflow: auto;
   border: 1px solid #bfd5e9;

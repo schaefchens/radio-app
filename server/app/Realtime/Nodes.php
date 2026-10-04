@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Realtime;
 
 use Arche\App;
+use Arche\Moderation\Blocklist;
 
 /**
  * The realtime nodes' state, kept in SQLite so a wake poll never costs a
@@ -296,8 +297,11 @@ final class Nodes
         }
         $this->app->trends()->applyVoiceReactions($voiceDeltas);
 
+        // Accounts deleted today: what a node still reports of them is not stored again.
+        $erased = array_flip($this->app->erasure()->erasedSince($now - 86400));
         foreach (array_slice((array) ($report['candidates'] ?? []), 0, 100) as $c) {
             if (!is_array($c) || !isset($c['id'], $c['text'])) continue;
+            if (isset($erased[(string) ($c['sub'] ?? '')])) continue;
             $store->query(
                 'INSERT INTO highlights(uid, channel, lang, sub, name, country, text, likes, status, at, created, updated)
                  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -309,6 +313,7 @@ final class Nodes
         }
         foreach (array_slice((array) ($report['reports'] ?? []), 0, 100) as $r) {
             if (!is_array($r) || !isset($r['msg'], $r['by'])) continue;
+            if (isset($erased[(string) ($r['sub'] ?? '')]) || isset($erased[(string) $r['by']])) continue;
             $store->query(
                 'INSERT OR IGNORE INTO chat_reports(msg, text, author, reporter, reason, status, at, created) VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
                 [mb_substr((string) $r['msg'], 0, 64), mb_substr((string) ($r['text'] ?? ''), 0, 280), mb_substr((string) ($r['sub'] ?? ''), 0, 64),
@@ -321,11 +326,13 @@ final class Nodes
             'ok' => true,
             'bans' => $this->app->identities()->bannedIds(),
             'removed' => $removed,
+            // Accounts deleted in the last hour: out of the rooms, with what they wrote.
+            'forget' => $this->app->erasure()->erasedSince($now - 3600),
             'config' => [
                 'maxMessageLength' => 280,
                 'roomCapacity' => 100,
                 'slowModeMs' => 3000,
-                'blocklist' => array_values(array_map('strval', (array) ($store->get('chat_blocklist') ?? []))),
+                'blocklist' => Blocklist::words($store),
                 'highlightLikes' => 5,
             ],
             'drain' => (bool) ($this->row($slot)['draining'] ?? false),

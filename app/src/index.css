@@ -8,6 +8,14 @@
 /* The themes' tokens (colors, surfaces, the page texture): styles/tokens.css. */
 :root {
   -webkit-tap-highlight-color: transparent;
+  /* The safe areas, in one place. Android's store app writes the
+     --safe-area-inset-* variables (SystemBars, insetsHandling 'css'): 0px
+     where it pads the page itself (WebView < 140), the keyboard's height at
+     the bottom (< 144). Browsers and iOS have env(). */
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
 }
 
 html,
@@ -47,21 +55,17 @@ body {
 }
 
 /* The installed app behaves like an app: a long press on a button, a link
-   or a picture is a press, not a menu to copy or save it. */
-@media (display-mode: standalone) {
-  /* No pinch zoom where touch-action has it (Android); iOS: lockZoomWhenInstalled. */
-  html {
-    touch-action: pan-x pan-y;
-  }
-  button,
-  a,
-  img,
-  [role='button'],
-  [role='tab'] {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
+   or a picture is a press, not a menu to copy or save it. data-standalone
+   (lib/platform.ts), not a display-mode query: the store apps' WebViews
+   report display-mode browser. */
+:root[data-standalone] {
+  /* No pinch zoom where touch-action has it (Android); iOS: markInstalled. */
+  touch-action: pan-x pan-y;
+}
+:root[data-standalone] :is(button, a, img, [role='button'], [role='tab']) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 @layer components {
@@ -103,14 +107,14 @@ body {
 
 @layer utilities {
   .pt-safe {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--safe-top);
   }
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: var(--safe-bottom);
   }
   .px-safe {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
   }
   .tracking-logo {
     letter-spacing: 0.42em;

@@ -102,6 +102,34 @@ final class PublicApi
         return ['identity' => Identities::publicView($this->c->app->identities()->update($i, $fields))];
     }
 
+    /**
+     * Delete my account (the app stores require it in the app; Google also on
+     * the web, /konto-loeschen). Without a body: the calling device's identity,
+     * with every device logged in with its passphrase. With {credId,
+     * credSecret}: that passphrase account, from any browser — for someone who
+     * no longer has the app. Never creates a row; a banned listener may delete
+     * too. `self`: the calling device's own identity went (its local data
+     * should go as well).
+     */
+    public function deleteMe(): array
+    {
+        $app = $this->c->app;
+        $rl = $app->rateLimit();
+        if (!$rl->hit('erase:' . $rl->ipKey(), 10, 3600)) throw new ApiError(429, 'rate_limited');
+        $credId = (string) $this->c->req->input('credId', '');
+        // This device's own data needs its secret, also when it has no account.
+        if ($credId === '' && $this->c->req->header('x-arche-secret') === '') throw new ApiError(401, 'identity_required');
+        $mine = $this->c->identity(false);
+        $root = $credId !== '' ? $app->identities()->verifyPassphrase($credId, (string) $this->c->req->input('credSecret', '')) : $mine;
+        if ($root === null) {
+            // No account on the server: only what this device left in passing.
+            $app->erasure()->forgetDevice($this->c->deviceId());
+            return ['deleted' => false, 'self' => true];
+        }
+        $app->erasure()->erase($root, $mine !== null && (int) $mine['id'] === (int) $root['id'] ? $this->c->deviceId() : '');
+        return ['deleted' => true, 'self' => $mine !== null && (int) $mine['id'] === (int) $root['id']];
+    }
+
     public function claim(): array
     {
         $i = $this->c->requireIdentity();
@@ -178,6 +206,21 @@ final class PublicApi
     {
         $i = $this->c->requireIdentity();
         return ['submission' => $this->c->app->submissions()->submitPrayer($i, $this->c->channel(), $this->c->req->json())];
+    }
+
+    /** @param array<string,string> $a */
+    public function reportWall(array $a): array
+    {
+        $i = $this->c->requireIdentity();
+        return $this->c->app->reports()->reportWall($i, (string) ($a['id'] ?? ''), (string) $this->c->req->input('reason', ''));
+    }
+
+    /** @param array<string,string> $a */
+    public function reportVoice(array $a): array
+    {
+        $i = $this->c->requireIdentity();
+        $this->c->app->reports()->reportVoice($i, (string) ($a['id'] ?? ''), (string) $this->c->req->input('reason', ''));
+        return ['ok' => true];
     }
 
     public function wake(): array

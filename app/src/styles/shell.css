@@ -12,7 +12,7 @@
 .page {
   /* How much of the scenery stays above the pinned player on phones, and how
      far the player reaches up into it (data-dock, set by AppShell). */
-  --header-strip-height: calc(16px + env(safe-area-inset-top));
+  --header-strip-height: calc(16px + var(--safe-top));
   --mobile-hero-height: clamp(180px, 58vw, 320px);
   --dock-overlap: 56px;
   position: relative;
@@ -727,7 +727,7 @@
     padding: 6px 5px;
     border: 1px solid rgb(var(--line));
     border-radius: 15px;
-    margin-bottom: calc(12px + env(safe-area-inset-bottom));
+    margin-bottom: calc(12px + var(--safe-bottom));
     box-shadow: 0 8px 20px #1b5b9626;
   }
   .action {
@@ -745,7 +745,7 @@
     left: 50%;
     width: 100vw;
     transform: translateX(-50%);
-    padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+    padding: 6px 0 calc(6px + var(--safe-bottom));
     border-left: 0;
     border-right: 0;
     border-bottom: 0;
@@ -781,7 +781,7 @@
     display: none;
   }
   .page:has(.chat-composer :focus) .chat-composer {
-    bottom: calc(8px + env(safe-area-inset-bottom));
+    bottom: calc(8px + var(--safe-bottom));
   }
 }
 

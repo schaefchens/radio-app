@@ -7,6 +7,8 @@ import { useServerNow } from './useServerNow';
 import { Reactions } from './Reactions';
 import { useVoices } from './useVoices';
 import { ChatIcon } from '@/components/common/icons';
+import { reportVoice } from '@/lib/reports';
+import { ReportButton } from './PrayerWall';
 
 /** Desktop shows this many; the phone carousel rotates through all of them. */
 const DESKTOP_VOICES = 4;
@@ -40,7 +42,7 @@ export function VoicesHeading() {
 }
 
 export function VoiceMessage({ voice, onActivity }: { voice: Voice; onActivity?: (pickerOpen: boolean) => void }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const now = useServerNow(30_000);
   return (
     <div className="quote feed-message">
@@ -49,7 +51,13 @@ export function VoiceMessage({ voice, onActivity }: { voice: Voice; onActivity?:
         {voice.at > 0 && <time dateTime={new Date(voice.at).toISOString()}>{ago(voice.at, now, i18n.language)}</time>}
         <p>{voice.text}</p>
       </div>
-      <Reactions markId={`voice:${voice.id}`} variant="feed" onSend={(kind) => reactVoice(voice.id, kind)} onActivity={onActivity} />
+      <Reactions
+        markId={`voice:${voice.id}`}
+        variant="feed"
+        onSend={(kind) => reactVoice(voice.id, kind)}
+        onActivity={onActivity}
+        extra={<ReportButton question={t('voices.reportConfirm')} onConfirm={() => reportVoice(voice.id)} onAsking={onActivity} />}
+      />
     </div>
   );
 }

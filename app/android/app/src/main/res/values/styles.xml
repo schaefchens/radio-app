@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- The window shows behind the status and navigation bars wherever the
+         WebView cannot draw under them (Capacitor pads it on WebView < 140):
+         its background is the page's base colour, light here, dark in
+         values-night/, so the bars follow the device's scheme. The template's
+         Theme.AppCompat.Light showed two white bands on a dark page. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/chrome</item>
+        <item name="colorPrimaryDark">@color/chrome</item>
+        <item name="colorAccent">@color/brand</item>
+        <item name="android:windowBackground">@color/chrome</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/chrome</item>
+        <item name="android:statusBarColor">@color/chrome</item>
+        <item name="android:navigationBarColor">@color/chrome</item>
+        <!-- Dark icons over the light bars; values-night/ flips them. The page
+             sets them at runtime too (SystemBars.setStyle, lib/native.ts). -->
+        <item name="android:windowLightStatusBar">@bool/lightBars</item>
+        <item name="android:windowLightNavigationBar">@bool/lightBars</item>
+    </style>
+
+    <!-- No android:background here (the template puts @drawable/splash on it):
+         it is a View attribute, so every view inflated from this activity
+         without a background of its own — the <select> rows the WebView
+         spawns above all — showed the splash picture, for the whole process
+         (setTheme() merges the post-splash theme instead of replacing it).
+         bible-assistant found it. The splash itself is the SplashScreen
+         plugin's own view. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:windowBackground">@color/splash</item>
+        <item name="android:statusBarColor">@color/splash</item>
+        <item name="android:navigationBarColor">@color/splash</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

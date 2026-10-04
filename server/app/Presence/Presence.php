@@ -48,17 +48,29 @@ final class Presence
      * instead (Submissions::wall): anonymous there, where a voice card would
      * show the sender's name and country next to what they prayed for.
      *
-     * @return list<array{id:string,name:string,country:string,text:string,at:int}>
+     * `by` lets a listener who blocked the author hide their voices too,
+     * without the files naming who wrote them: voiceTag() of the author.
+     *
+     * @return list<array{id:string,name:string,country:string,text:string,at:int,by:string}>
      */
     public function voices(string $channel, int $limit = 6): array
     {
         $since = $this->app->clock->now() - 7200;
         return array_map(
-            fn($h) => ['id' => (string) $h['uid'], 'name' => (string) $h['name'], 'country' => (string) $h['country'], 'text' => (string) $h['text'], 'at' => (int) $h['at']],
+            fn($h) => ['id' => (string) $h['uid'], 'name' => (string) $h['name'], 'country' => (string) $h['country'], 'text' => (string) $h['text'], 'at' => (int) $h['at'], 'by' => self::voiceTag((string) $h['sub'])],
             $this->app->store()->all(
-                "SELECT uid, name, country, text, at FROM highlights WHERE channel = ? AND status = 'approved' AND at >= ? ORDER BY at DESC LIMIT ?",
+                "SELECT uid, name, country, text, at, sub FROM highlights WHERE channel = ? AND status = 'approved' AND at >= ? ORDER BY at DESC LIMIT ?",
                 [$channel, $since * 1000, $limit],
             ),
         );
+    }
+
+    /**
+     * An author's mark on their voices: the same for all of them, but not
+     * their public id (app/src/lib/blocking.ts computes it the same way).
+     */
+    public static function voiceTag(string $sub): string
+    {
+        return substr(hash('sha256', 'by:' . $sub), 0, 12);
     }
 }

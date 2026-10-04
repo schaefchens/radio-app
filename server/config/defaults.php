@@ -71,6 +71,11 @@ return [
     // 🙏 on prayer wall requests from one address an hour that count (one per
     // device and request anyway): a church group on one Wi-Fi prays a lot.
     'PRAY_ALONG_PER_IP_HOUR' => '600',
+    // Reports of other listeners' content from one address an hour (Moderation\Reports).
+    'REPORTS_PER_IP_HOUR' => '60',
+    // Different listeners whose reports take a wall request down until a
+    // moderator decides; 0 = only moderators take requests down.
+    'WALL_REPORTS_HIDE' => '3',
     'IDENTITIES_PER_IP_DAY' => '300',
     // The e2e stack points this at a fake (app/tests/e2e/fake-youtube.mjs).
     'YOUTUBE_API_BASE' => 'https://www.googleapis.com/youtube/v3',

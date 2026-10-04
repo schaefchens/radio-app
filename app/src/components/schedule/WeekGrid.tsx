@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import type { DayFile, DayProgram, Lang } from '@arche/shared';
 import { localDate, localTime } from '@/lib/format';
+import { BellIcon } from '@/components/common/icons';
 import { useServerNow } from '@/components/home/useServerNow';
 
 /** Seven station days side by side; bar height follows each block's length. */
-export function WeekGrid({ days, onProgram }: { days: (DayFile | null | undefined)[]; onProgram: (p: DayProgram) => void }) {
+export function WeekGrid({ days, onProgram, reminded }: { days: (DayFile | null | undefined)[]; onProgram: (p: DayProgram) => void; reminded?: ReadonlySet<string> }) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
   const now = useServerNow(60_000);
@@ -39,8 +40,9 @@ export function WeekGrid({ days, onProgram }: { days: (DayFile | null | undefine
                       style={{ height: `${h}%`, background: `${p?.color ?? '#2f7bff'}55` }}
                     >
                       {h > 6 && (
-                        <span className="block truncate px-1 pt-0.5 text-[0.6rem] font-semibold leading-tight text-ink sm:text-[0.7rem]">
-                          {p?.title[lang] ?? b.p}
+                        <span className="flex items-center gap-0.5 truncate px-1 pt-0.5 text-[0.6rem] font-semibold leading-tight text-ink sm:text-[0.7rem]">
+                          {reminded?.has(b.p) && <BellIcon size={10} filled className="shrink-0 text-accent" />}
+                          <span className="truncate">{p?.title[lang] ?? b.p}</span>
                         </span>
                       )}
                     </button>

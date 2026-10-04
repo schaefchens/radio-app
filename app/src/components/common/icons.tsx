@@ -149,6 +149,19 @@ export const SendIcon = (p: IconProps) => (
     <path d="M4 12 20 4l-6.5 16-2.5-6.5L4 12Z" />
   </Icon>
 );
+/** "Remind me": filled while a reminder is set. */
+export const BellIcon = ({ filled, ...p }: IconProps & { filled?: boolean }) => (
+  <Icon {...p} fill={filled ? 'currentColor' : 'none'}>
+    <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9Z" />
+    <path d="M10.3 19a1.9 1.9 0 0 0 3.4 0" />
+  </Icon>
+);
+export const ShareIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" />
+    <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" />
+  </Icon>
+);
 export const FlagIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M5 21V4M5 4h11l-2 4 2 4H5" />

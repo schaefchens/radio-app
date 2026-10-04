@@ -7,7 +7,11 @@ import { fetchChannels, fetchDay, fetchEvergreen, fetchLive, fetchSlot, fetchSlo
 import { flushPulse, reactToItem, reactToVoice, reportPlaybackError, setPulseInterval, startPulse } from './pulse';
 import { YouTubePlayer } from './youtube';
 import { stationDate } from './format';
-import { setKeepAwake } from './wakeLock';
+import { onAppBackground, onAppForeground } from './native';
+import { reconcileReminders, startReminders } from './reminders';
+import { navigateTo } from './appNav';
+import { tapHaptic, warmHaptics } from './haptics';
+import { setKeepAwake, setListening } from './wakeLock';
 import { realtime } from './realtime/client';
 import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
@@ -43,6 +47,7 @@ export const engine = new RadioEngine({
   onChange: (s) => {
     useRadio.getState().setEngine(s);
     showPlaybackState(s.joined);
+    setListening(s.joined);
   },
   onPlaybackError: (item, code) => reportPlaybackError(item, code),
 });
@@ -68,6 +73,22 @@ export async function bootRadio(): Promise<void> {
   audio.setVolume(settings.volume);
   setKeepAwake(settings.keepAwake);
   bindMediaKeys();
+  warmHaptics();
+  // Before the channel is picked: a reminder's tap that started the app
+  // chooses the channel (store apps only).
+  startReminders((channel) => {
+    openChannel(channel);
+    navigateTo('/');
+  });
+  // The store apps: nothing may play in the background (YouTube's terms;
+  // the apps declare no background audio), so going there is the lock
+  // screen's Pause. On return the stage says why it is quiet. Before the
+  // first await: a listener may join while the program still loads.
+  onAppBackground(() => {
+    if (!engine.snapshot.joined) return;
+    engine.leave();
+    useRadio.getState().setLeftInBackground(true);
+  });
 
   // Clock first: everything that follows is a function of server time.
   const t0 = Date.now();
@@ -78,11 +99,22 @@ export async function bootRadio(): Promise<void> {
   const channels = await fetchChannels();
   useSession.getState().setChannels(channels);
   const list = channels?.channels ?? [];
-  const wanted = list.find((c) => c.id === settings.channel) ?? list.find((c) => c.main) ?? list[0];
+  // Read now, not at the start: a tapped reminder may have chosen it meanwhile.
+  const chosen = useSettings.getState().channel;
+  const wanted = list.find((c) => c.id === chosen) ?? list.find((c) => c.main) ?? list[0];
   await tuneTo(wanted ?? null);
+  picked = true;
+  // A reminder tapped while it tuned in chose another channel.
+  const tapped = useSettings.getState().channel;
+  if (tapped) openChannel(tapped);
+  reconcileReminders('boot');
 
   useSettings.subscribe((s, prev) => {
-    if (s.lang !== prev.lang) engine.setLang(s.lang);
+    if (s.lang !== prev.lang) {
+      engine.setLang(s.lang);
+      // Their text is in the listener's language.
+      reconcileReminders('lang');
+    }
     if (s.volume !== prev.volume) {
       audio.setVolume(s.volume);
       player.setVolume(s.volume);
@@ -91,13 +123,12 @@ export async function bootRadio(): Promise<void> {
   });
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-      void syncClock(async () => (await api<{ now: number }>('/time')).now, 2);
-      engine.resync();
-    } else {
-      flushPulse();
-    }
+    if (document.visibilityState === 'visible') backInFront();
+    else flushPulse();
   });
+  // iOS reports a return through the App plugin more reliably than through
+  // visibilitychange.
+  onAppForeground(backInFront);
   // Channels (names, the fallback loop) change rarely: every 5 minutes, or
   // every minute while the channel has no fallback loop yet — a new station
   // that just got its first songs should not stay silent for long.
@@ -113,7 +144,23 @@ export async function bootRadio(): Promise<void> {
       engine.setEvergreenUrl(current?.evergreen ?? null);
     }
   }, 30_000);
-  setInterval(() => void loadToday(), 5 * 60_000);
+  setInterval(() => {
+    void loadToday();
+    // The day files move on (a new day, a changed plan): reminders follow.
+    reconcileReminders('tick');
+  }, 5 * 60_000);
+}
+
+let backAt = 0;
+let picked = false;
+
+/** Visible again: the clock and the engine catch up (once, whichever signal comes first). */
+function backInFront(): void {
+  if (Date.now() - backAt < 1000) return;
+  backAt = Date.now();
+  void syncClock(async () => (await api<{ now: number }>('/time')).now, 2);
+  engine.resync();
+  reconcileReminders('resume');
 }
 
 async function tuneTo(channel: ChannelInfo | null): Promise<void> {
@@ -126,6 +173,19 @@ async function tuneTo(channel: ChannelInfo | null): Promise<void> {
   startPulse(channel.id, useSession.getState().config?.pulse ?? 120);
   await engine.start(channel.id);
   void loadToday();
+}
+
+/**
+ * A tapped reminder's channel: before boot has picked one, boot takes it;
+ * afterwards the radio switches (an unknown channel changes nothing).
+ */
+export function openChannel(id: string): void {
+  if (!picked) {
+    useSettings.getState().setChannel(id);
+    return;
+  }
+  const known = useSession.getState().channels?.channels.some((c) => c.id === id);
+  if (known && id !== engine.snapshot.channel) void switchChannel(id);
 }
 
 export async function switchChannel(id: string): Promise<void> {
@@ -152,6 +212,7 @@ export async function mountPlayer(el: HTMLElement): Promise<void> {
 }
 
 export function joinRadio(): void {
+  useRadio.getState().setLeftInBackground(false);
   engine.join();
 }
 
@@ -223,6 +284,7 @@ useStage.subscribe((s) => setStageVisible(stageAvailable(s)));
  * (the node aggregates and reports every 20 s), otherwise with the next pulse.
  */
 export function react(itemId: string, kind: ReactionKind): void {
+  tapHaptic();
   if (realtime.isConnected() && realtime.react(itemId, kind)) return;
   reactToItem(itemId, kind);
 }
@@ -232,6 +294,7 @@ export function react(itemId: string, kind: ReactionKind): void {
  * connected room is a message: reacting likes it there.
  */
 export function reactVoice(voiceId: string, kind: ReactionKind): void {
+  tapHaptic();
   if (realtime.isConnected() && realtime.hasMessage(voiceId)) realtime.like(voiceId);
   else reactToVoice(voiceId, kind);
 }

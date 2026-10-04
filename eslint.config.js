@@ -28,6 +28,10 @@ export default defineConfig([
     '**/test-results',
     '**/blob-report',
     '**/coverage',
+    // The store apps' native projects: generated, and their synced copies of
+    // Capacitor's scripts and Gradle's build trees are not ours to lint.
+    'app/ios',
+    'app/android',
   ]),
   {
     files: ['app/**/*.{ts,tsx}'],

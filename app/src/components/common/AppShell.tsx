@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UpdateBanner } from './UpdateBanner';
 import { MainNav } from './MainNav';
@@ -9,6 +10,8 @@ import { BroadcastIcon } from './icons';
 import { StageRegion } from '@/components/stage/StageRegion';
 import { SubmitSheets, SubmitTiles } from '@/components/home/SubmitTiles';
 import { THEME, useTheme } from '@/lib/theme';
+import { noteNavigation, setRouter } from '@/lib/backStack';
+import { setNavigator } from '@/lib/appNav';
 import logo from '@/assets/theme/light-logo.svg';
 
 /**
@@ -24,9 +27,21 @@ import logo from '@/assets/theme/light-logo.svg';
  */
 export function AppShell() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const theme = useTheme();
+  // Android's back button walks the pages this document has opened, then goes Home.
+  useEffect(() => noteNavigation(navigationType), [location.key, navigationType]);
+  useEffect(
+    () => setRouter({ back: () => navigate(-1), home: () => navigate('/', { replace: true }), path: () => window.location.pathname }),
+    [navigate],
+  );
+  // A tapped reminder opens Home on its channel.
+  useEffect(() => setNavigator((path) => navigate(path)), [navigate]);
   const onHome = location.pathname === '/';
   const onMod = location.pathname.startsWith('/mod');
+  // A link to the legal texts (a store's review, a privacy question) opens on them, not on the welcome.
+  const onLegal = LEGAL.includes(location.pathname);
   const art = THEME[theme].art;
 
   return (
@@ -64,11 +79,13 @@ export function AppShell() {
 
       {/* Mounted once, where the tiles are (a closed sheet stays in the DOM). */}
       {onHome && <SubmitSheets />}
-      <WelcomeDialog />
+      {!onLegal && <WelcomeDialog />}
       <InstallSheet />
     </div>
   );
 }
+
+const LEGAL = ['/about', '/impressum', '/datenschutz', '/regeln', '/rules', '/konto-loeschen', '/delete-account'];
 
 /** A verse in the sky the scenery leaves free (desktop only). */
 function Verse() {

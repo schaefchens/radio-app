@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
+import { RULES_VERSION } from '../../../src/content/rules';
 import { VIDEOS } from '../fake-youtube.mjs';
 
 const SHIM = readFileSync(new URL('./youtube-shim.js', import.meta.url), 'utf8');
@@ -29,6 +30,8 @@ export interface FakeYouTubeOptions {
   welcome?: boolean;
   /** Start in this theme instead of following the browser's scheme. */
   theme?: 'light' | 'dark';
+  /** Keep the community rules unaccepted (the rules test); every other test starts past them. */
+  rules?: boolean;
 }
 
 /**
@@ -38,14 +41,25 @@ export interface FakeYouTubeOptions {
  *
  * Every test starts with fresh storage, so every page would open with the
  * welcome dialog — a modal over everything. A device without settings gets
- * "already welcomed" (and the theme) before the app starts; a later reload
- * keeps whatever the app stored meanwhile.
+ * "already welcomed", the community rules accepted (and the theme) before the
+ * app starts; a later reload keeps whatever the app stored meanwhile. Settings
+ * a spec wrote first (a channel of its own) get the rules too: unaccepted, every
+ * Send stays disabled.
  */
 export async function fakeYouTube(page: Page, opts: FakeYouTubeOptions = {}): Promise<string[]> {
-  await page.addInitScript(({ welcome, theme }) => {
-    if (welcome || localStorage.getItem('arche.settings')) return;
-    localStorage.setItem('arche.settings', JSON.stringify({ state: { welcomed: true, ...(theme ? { theme } : {}) }, version: 1 }));
-  }, { welcome: !!opts.welcome, theme: opts.theme ?? null });
+  await page.addInitScript(({ welcome, theme, rules }) => {
+    if (welcome) return;
+    const stored = localStorage.getItem('arche.settings');
+    if (stored === null) {
+      localStorage.setItem('arche.settings', JSON.stringify({ state: { welcomed: true, ...(rules ? { rules } : {}), ...(theme ? { theme } : {}) }, version: 1 }));
+      return;
+    }
+    const settings = JSON.parse(stored) as { state?: { rules?: number } };
+    if (rules && settings.state && settings.state.rules === undefined) {
+      settings.state.rules = rules;
+      localStorage.setItem('arche.settings', JSON.stringify(settings));
+    }
+  }, { welcome: !!opts.welcome, theme: opts.theme ?? null, rules: opts.rules === false ? 0 : RULES_VERSION });
   const requested: string[] = [];
   await page.route(GOOGLE, async (route) => {
     const url = new URL(route.request().url());

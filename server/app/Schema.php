@@ -483,6 +483,31 @@ final class Schema
             CREATE UNIQUE INDEX library_yt ON library_items(yt_id) WHERE yt_id IS NOT NULL;
             CREATE INDEX library_kind_active ON library_items(kind, active);
             SQL,
+            // 9 — what the app stores ask of user content and accounts.
+            // Listeners report a request on the prayer wall (one report per
+            // listener; enough of them take it down until a moderator
+            // decides, submissions.hidden = 2). An account deleted by its
+            // owner leaves a short note, so a host script being written at
+            // that moment can be scrubbed afterwards (Identity\Erasure).
+            // IF NOT EXISTS: a test replays older migrations on a current database.
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS wall_reports (
+              submission_id INTEGER NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+              reporter_id INTEGER NOT NULL REFERENCES identities(id) ON DELETE CASCADE,
+              reason TEXT NOT NULL DEFAULT '',
+              status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'dismissed', 'actioned')),
+              created INTEGER NOT NULL,
+              PRIMARY KEY (submission_id, reporter_id)
+            ) WITHOUT ROWID;
+            CREATE INDEX IF NOT EXISTS wall_reports_open ON wall_reports(status, submission_id);
+            CREATE TABLE IF NOT EXISTS erasures (
+              id INTEGER PRIMARY KEY,
+              subs TEXT NOT NULL DEFAULT '[]',
+              submission_ids TEXT NOT NULL DEFAULT '[]',
+              created INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS erasures_created ON erasures(created);
+            SQL,
         ];
     }
 }

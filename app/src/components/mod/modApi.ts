@@ -73,6 +73,8 @@ export interface Overview {
   library: { songs: number; preachings: number; jingles: number };
   review: number;
   reports: number;
+  /** Prayer wall requests listeners reported, waiting for a decision. */
+  wallReports: number;
   highlights: number;
   youtube: boolean;
 }

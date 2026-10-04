@@ -40,7 +40,7 @@ export function ModRoutes() {
     { to: '/mod/library', label: t('mod.nav.library') },
     { to: '/mod/programs', label: t('mod.nav.programs') },
     { to: '/mod/plans', label: t('mod.nav.plans') },
-    { to: '/mod/review', label: t('mod.nav.review'), badge: overview?.review },
+    { to: '/mod/review', label: t('mod.nav.review'), badge: (overview?.review ?? 0) + (overview?.wallReports ?? 0) },
     { to: '/mod/chat', label: t('mod.nav.chat'), badge: (overview?.reports ?? 0) + (overview?.highlights ?? 0) },
     ...(admin ? [{ to: '/mod/users', label: t('mod.nav.users') }, { to: '/mod/channels', label: t('mod.nav.channels') }] : []),
   ];

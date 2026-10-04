@@ -42,6 +42,8 @@ export interface Voice {
   country: string;
   text: string;
   at: number;
+  /** The author's mark (Presence::voiceTag), for listeners who blocked them; missing in older files. */
+  by?: string;
 }
 
 /** A typed prayer request on the prayer wall. Anonymous by design — text and

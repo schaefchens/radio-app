@@ -11,3 +11,6 @@ build
 **/dist
 server/vendor
 scripts/probe/.probe.env
+# The store apps' native projects (Xcode, Gradle): nothing the images need.
+app/ios
+app/android

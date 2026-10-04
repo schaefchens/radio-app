@@ -109,6 +109,19 @@ export class RoomRegistry<M> {
     return room;
   }
 
+  /** Remove everything one person wrote; returns each room it was in with the ids that went. */
+  removeBySub(sub: string): { room: Room<M>; ids: string[] }[] {
+    const out: { room: Room<M>; ids: string[] }[] = [];
+    for (const room of this.rooms.values()) {
+      const ids = room.history.filter((e) => e.msg.sub === sub).map((e) => e.msg.id);
+      if (ids.length === 0) continue;
+      room.history = room.history.filter((e) => e.msg.sub !== sub);
+      for (const id of ids) this.byMessage.delete(id);
+      out.push({ room, ids });
+    }
+    return out;
+  }
+
   channelCounts(): Map<string, number> {
     const counts = new Map<string, number>();
     for (const room of this.rooms.values()) {

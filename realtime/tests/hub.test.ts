@@ -194,6 +194,24 @@ describe('applying PHP decisions', () => {
     expect(s.join({ sub: 'b' }).conn.last('welcome')?.history).toEqual([]);
   });
 
+  it('forgets a deleted account: its messages leave every room, it leaves, its token is refused', () => {
+    const s = setup();
+    const gone = s.join({ sub: 'gone' });
+    const stays = s.join({ sub: 'stays' });
+    s.send(gone.client, { t: 'chat', text: 'mine', cid: '1' });
+    const id = gone.conn.last('msg')!.msg.id;
+    s.send(stays.client, { t: 'chat', text: 'theirs', cid: '2' });
+    s.hub.applyResponse({ ok: true, bans: [], removed: [], forget: ['gone'], config: defaultNodeConfig(), drain: false });
+    expect(stays.conn.last('removed')).toEqual({ t: 'removed', msg: id });
+    expect(gone.conn.closed?.code).toBe(CLOSE.auth);
+    expect(stays.conn.closed).toBeNull();
+    expect(s.join({ sub: 'new' }).conn.last('welcome')?.history.map((m) => m.text)).toEqual(['theirs']);
+    expect(s.join({ sub: 'gone' }).conn.errors()).toEqual(['auth']);
+    // An older server sends no list: nothing changes.
+    s.hub.applyResponse({ ok: true, bans: [], removed: [], config: defaultNodeConfig(), drain: false });
+    expect(s.join({ sub: 'other' }).conn.last('welcome')?.history.map((m) => m.text)).toEqual(['theirs']);
+  });
+
   it('applies config and drains on request; PHP may cancel its own drain', () => {
     const s = setup();
     const a = s.join({ sub: 'a' });

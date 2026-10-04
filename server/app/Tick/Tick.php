@@ -124,6 +124,8 @@ final class Tick
             }
         }
         $out['jobs'] = $this->app->runner()->runUntilBudget();
+        // After the jobs: a script written back after its account was deleted.
+        $out['erased'] = $this->app->erasure()->sweep();
         return $out;
     }
 
@@ -201,6 +203,13 @@ final class Tick
             'highlights' => $store->query('DELETE FROM highlights WHERE created < ?', [$now - 7 * 86400])->rowCount(),
             'reports' => $store->query('DELETE FROM chat_reports WHERE created < ?', [$now - 30 * 86400])->rowCount(),
             'removed' => $store->query('DELETE FROM removed_messages WHERE time < ?', [$now - 7 * 86400])->rowCount(),
+            // Reports of wall requests (they also go with their request).
+            'wall_reports' => $store->query('DELETE FROM wall_reports WHERE created < ?', [$now - 30 * 86400])->rowCount(),
+            // Which device saw which YouTube error: needed for a few days of
+            // counting (Library::reportPlaybackError), kept nowhere near forever.
+            'playback_errors' => $store->query('DELETE FROM playback_errors WHERE time < ?', [$now - 30 * 86400])->rowCount(),
+            // An erased account's note lives a day (Identity\Erasure).
+            'erasures' => $store->query('DELETE FROM erasures WHERE created < ?', [$now - 86400])->rowCount(),
         ];
     }
 

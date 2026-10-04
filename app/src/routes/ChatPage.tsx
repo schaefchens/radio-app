@@ -9,6 +9,8 @@ import { MessageList } from '@/components/chat/MessageList';
 import { Composer } from '@/components/chat/Composer';
 import { chatErrorKey } from '@/lib/realtime/errors';
 import { RefreshIcon, UsersIcon } from '@/components/common/icons';
+import { RulesGate } from '@/components/common/RulesConsent';
+import { useRulesNeeded } from '@/lib/rulesConsent';
 
 /**
  * The community room. Joining may wake a realtime node first (the first
@@ -25,6 +27,7 @@ export function ChatPage() {
   const error = useChat((s) => s.error);
   const room = useChat((s) => s.room);
   const hasName = !!identity?.name;
+  const rulesNeeded = useRulesNeeded();
 
   useEffect(() => {
     if (hasName && channel && realtimeOn && !identity?.banned) void realtime.connect(channel);
@@ -82,7 +85,8 @@ export function ChatPage() {
             {/* Pinned to the bottom of the screen, as in any chat app (shell.css). */}
             <div className="chat-composer">
               {errorKey && <p className="mb-2 text-xs text-heart">{t(errorKey)}</p>}
-              <Composer />
+              {/* A name from before the rules existed: they come first, reading needs none. */}
+              {rulesNeeded ? <RulesGate /> : <Composer />}
             </div>
           </>
         )}

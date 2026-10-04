@@ -17,6 +17,8 @@ interface Report {
   reason: string;
   status: string;
   at: number;
+  /** A community voice (a published highlight), not a message in a room. */
+  voice?: number | boolean;
 }
 
 interface Highlight {
@@ -65,6 +67,11 @@ export function ChatModPanel() {
           <ul className="flex flex-col gap-2">
             {reports.data.reports.map((r) => (
               <li key={r.id} className="card-inset flex flex-col gap-2 p-3 text-sm">
+                {!!r.voice && (
+                  <span className="self-start">
+                    <Pill tone="warn">{t('mod.chat.voice')}</Pill>
+                  </span>
+                )}
                 <p className="whitespace-pre-wrap">{r.text}</p>
                 <p className="text-xs text-ink-faint">
                   {r.author} · {t('mod.chat.reporter')} {r.reporter} · {r.reason} · {localTime(r.at, lang)}
