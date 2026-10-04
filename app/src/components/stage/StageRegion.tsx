@@ -9,8 +9,9 @@ import { useStage } from '@/store/stage';
 import { joinRadio, resumeRadio } from '@/lib/radio';
 import { closeFullStage } from '@/lib/fullStage';
 import { tapHaptic } from '@/lib/haptics';
+import { StageBar } from './StageBar';
 import { StageVisual } from './StageVisual';
-import { PlayIcon, ShrinkIcon } from '@/components/common/icons';
+import { PlayIcon } from '@/components/common/icons';
 
 /**
  * The width our visuals are laid out for. The big stage draws them at this
@@ -161,14 +162,7 @@ export function StageRegion({ compact = false, flush = false }: { compact?: bool
           // Under the player and over the page; the controls sit below the stage, never on the video.
           <section className="stage-full" data-theme="dark" aria-label={t('stage.full')}>
             <div className="stage-full-area">{slot}</div>
-            <div className="stage-full-bar">
-              {resume}
-              <p className="stage-full-turn">{t('stage.turnPhone')}</p>
-              <button ref={exit} type="button" className="stage-full-exit" onClick={closeFullStage}>
-                <ShrinkIcon size={18} />
-                <span>{t('stage.exitFull')}</span>
-              </button>
-            </div>
+            <StageBar resume={resume} exitRef={exit} />
           </section>,
           document.body,
         )}

@@ -271,6 +271,27 @@ test.describe('YouTube required minimum functionality', () => {
     // The one player followed the slot: never created again.
     expect((await ytCalls(page)).filter((c) => c.fn === 'create')).toHaveLength(1);
 
+    // The emoji strip opens beside the reactions, inside the bar: never over the video.
+    const bar = page.locator('.stage-full-bar');
+    await bar.getByRole('button', { name: 'Choose an emoji' }).click();
+    const strip = bar.getByRole('group', { name: 'Emoji reactions' });
+    await expect(strip).toBeVisible();
+    expect((await strip.boundingBox())?.y ?? 0).toBeGreaterThanOrEqual(((await bar.boundingBox())?.y ?? 0) - 1);
+    expect(await place()).toMatchObject({ covered: 0 });
+    await page.keyboard.press('Escape');
+    await expect(strip).toBeHidden();
+
+    // Left alone (the pointer over the video, which is YouTube's), a black veil
+    // covers the bar; the first click on it only lifts the veil.
+    await page.mouse.move(640, 300);
+    await expect(bar).toHaveAttribute('data-idle', { timeout: 6000 });
+    const heart = bar.locator('[data-reaction="heart"]');
+    const spot = await heart.boundingBox();
+    if (!spot) throw new Error('no heart');
+    await page.mouse.click(spot.x + spot.width / 2, spot.y + spot.height / 2);
+    await expect(bar).not.toHaveAttribute('data-idle');
+    await expect(heart).toHaveAttribute('aria-pressed', 'false');
+
     await page.getByRole('button', { name: 'Exit full screen' }).click();
     await expect.poll(place).toEqual(before);
     await playing(page);

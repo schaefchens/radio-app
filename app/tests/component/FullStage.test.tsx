@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@/i18n';
+import type { TimelineItem } from '@arche/shared';
 import { PlayerCard } from '@/components/home/PlayerCard';
 import { closeFullStage } from '@/lib/fullStage';
 import { closeTop, resetBackStack } from '@/lib/backStack';
@@ -42,10 +43,16 @@ const turn = (to: 'sideways' | 'upright'): void => {
   act(() => turned.forEach((f) => f()));
 };
 const joined = (on: boolean): void => act(() => useRadio.setState((s) => ({ engine: { ...s.engine, joined: on } })));
+const song = (id: string, title: string): TimelineItem => ({
+  id, type: 'song', kind: 'song', start: Date.now() - 10_000, dur: 200_000, p: 'live', yt: 'AAAAAAAAAAA', title, artist: 'X', thumb: null, request: null, fallback: null,
+});
+const onAir = (item: TimelineItem): void => act(() => useRadio.setState((s) => ({ engine: { ...s.engine, item, mode: 'song' } })));
 
 beforeEach(() => {
   resetBackStack();
   sideways = false;
+  // The button sits in the song row, which shows what is on air.
+  onAir(song('s1', 'One'));
   useSettings.setState({ lang: 'en' });
   fullscreenElement = null;
   requestFullscreen.mockClear();
@@ -57,6 +64,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   act(() => closeFullStage());
   joined(false);
   useStage.setState({ overlays: 0 });
@@ -97,7 +105,7 @@ describe('the big stage', () => {
     expect(container.querySelectorAll('[data-stage-slot]')).toHaveLength(0);
     expect(requestFullscreen).toHaveBeenCalledTimes(1);
     // The way out is at hand, below the stage.
-    expect(document.activeElement?.textContent).toBe('Exit full screen');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Exit full screen');
 
     await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Exit full screen' })));
     expect(layer()).toBeNull();
@@ -188,5 +196,49 @@ describe('the big stage and a phone turned sideways', () => {
     turn('sideways');
     act(() => void closeTop());
     expect(layer()).toBeNull();
+  });
+});
+
+// The bar below the video: the song row made small, veiled when quiet.
+describe("the big stage's bar", () => {
+  const bar = (): HTMLElement | null => document.body.querySelector('.stage-full-bar');
+  const veiled = (): boolean => bar()?.hasAttribute('data-idle') ?? false;
+
+  it('shows what plays and its reactions, veils itself after a few quiet seconds, and comes back on a move', async () => {
+    vi.useFakeTimers();
+    card();
+    await open();
+    const strip = bar();
+    expect(strip?.textContent).toContain('One');
+    expect(strip?.querySelector('[data-reaction="heart"]')).toBeTruthy();
+    expect(veiled()).toBe(false);
+    act(() => void vi.advanceTimersByTime(3000));
+    expect(veiled()).toBe(true);
+    act(() => void fireEvent.pointerMove(document));
+    expect(veiled()).toBe(false);
+  });
+
+  it('stays while the emoji strip is open', async () => {
+    vi.useFakeTimers();
+    card();
+    await open();
+    const strip = bar();
+    if (!strip) throw new Error('no bar');
+    act(() => void fireEvent.click(strip.querySelector('[aria-expanded]') as HTMLElement));
+    act(() => void vi.advanceTimersByTime(5000));
+    expect(veiled()).toBe(false);
+  });
+
+  it('a new song shows itself, then the veil comes back', async () => {
+    vi.useFakeTimers();
+    card();
+    await open();
+    act(() => void vi.advanceTimersByTime(3000));
+    expect(veiled()).toBe(true);
+    onAir(song('s2', 'Two'));
+    expect(veiled()).toBe(false);
+    expect(bar()?.textContent).toContain('Two');
+    act(() => void vi.advanceTimersByTime(3000));
+    expect(veiled()).toBe(true);
   });
 });

@@ -123,14 +123,14 @@
 .player-stage {
   background: #071525;
 }
-/* The big stage, at the end of the station row: just the icon, like play/pause. */
+/* The big stage, at the end of the song bar: just the icon, like play/pause. */
 .full-button {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  margin: 0 -8px 0 -6px;
+  width: 28px;
+  height: 28px;
+  margin-right: -4px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -146,8 +146,8 @@
   outline-offset: 2px;
 }
 .full-button svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
 }
 /* A store app that stays upright (lib/native.ts shellTurns): no bigger there. */
 :root[data-native]:not([data-turns]) .full-button {
@@ -370,41 +370,113 @@
   transform: scale(var(--stage-scale, 1));
   transform-origin: 0 0;
 }
+/* Its bar: the song row made small, one line below the video (two on a
+   narrow phone). Sized here, whatever the page's breakpoints make of the
+   card's song row. */
 .stage-full-bar {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  min-height: 56px;
-  padding: 8px 16px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
 }
-.stage-full-turn {
-  display: none;
-  flex: 1;
-  margin: 0;
-  color: rgb(var(--ink-muted));
-  font-size: 13px;
+.stage-full-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(160px, 34%) auto auto;
+  grid-template-areas: 'cover track progress reactions exit';
+  align-items: center;
+  gap: 8px 16px;
+}
+.stage-full-bar .cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+}
+.stage-full-bar .track .eyebrow {
+  font-size: 9px;
+}
+.stage-full-bar .track .eyebrow svg {
+  width: 12px;
+  height: 12px;
+}
+.stage-full-bar .track strong {
+  font-size: 15px;
   line-height: 1.3;
 }
-/* An upright phone: the 16:9 stage is no wider than before. Android's
-   browser turns itself (lib/fullStage.ts); elsewhere it takes a hand. */
-@media (orientation: portrait) and (max-width: 600px) {
-  .stage-full-turn {
-    display: block;
-  }
+.stage-full-bar .track small {
+  font-size: 12px;
+}
+.stage-full-bar .track-progress {
+  gap: 8px;
+  font-size: 11px;
+}
+.stage-full-bar .play-pause {
+  width: 28px;
+  height: 28px;
+}
+.stage-full-bar .play-pause svg {
+  width: 18px;
+  height: 18px;
+}
+.stage-full-bar .song-progress {
+  height: 4px;
+}
+.stage-full-bar .song-progress span::after {
+  right: -5px;
+  width: 10px;
+  height: 10px;
+}
+.stage-full-bar .reactions {
+  align-self: center;
+  gap: 6px;
+  padding-top: 0;
+}
+.stage-full-bar .icon-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+.stage-full-bar .icon-button svg {
+  width: 20px;
+  height: 20px;
+}
+/* The emoji strip opens to the left of the buttons, inside the bar: above
+   them is the video, below them the screen's edge. */
+.stage-full-bar .emoji-picker {
+  top: 50%;
+  right: calc(100% + 8px);
+  width: auto;
+  padding: 5px;
+  transform: translateY(-50%);
+}
+.stage-full-bar .emoji-picker p {
+  display: none;
+}
+.stage-full-bar .emoji-options {
+  display: flex;
+  gap: 4px;
+}
+.stage-full-bar .emoji-options button {
+  width: 38px;
+  height: 38px;
+  font-size: 21px;
 }
 .stage-full-exit {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 8px;
-  padding: 8px 14px;
+  grid-area: exit;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: 1px solid rgb(var(--ink) / 0.3);
-  border-radius: 999px;
+  border-radius: 50%;
   background: rgb(var(--ink) / 0.08);
   color: rgb(var(--ink));
-  font-size: 14px;
-  font-weight: 600;
+}
+.stage-full-exit svg {
+  width: 20px;
+  height: 20px;
 }
 .stage-full-exit:hover {
   background: rgb(var(--ink) / 0.16);
@@ -412,6 +484,60 @@
 .stage-full-exit:focus-visible {
   outline: 3px solid #249dff;
   outline-offset: 3px;
+}
+.stage-full-turn {
+  grid-area: turn;
+  display: none;
+  margin: 0;
+  color: rgb(var(--ink-muted));
+  font-size: 13px;
+  line-height: 1.3;
+}
+/* A narrow phone: what plays and the way out, then the bar and the
+   reactions; the emoji strip folds into two rows to fit beside them. */
+@media (max-width: 600px) {
+  .stage-full-controls {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'cover track exit'
+      'progress progress reactions'
+      'turn turn turn';
+  }
+  .stage-full-bar .emoji-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+/* Upright: the 16:9 stage is no wider than before. Android's browser turns
+   itself (lib/fullStage.ts); elsewhere it takes a hand. */
+@media (orientation: portrait) and (max-width: 600px) {
+  .stage-full-turn {
+    display: block;
+  }
+}
+/* The veil (StageBar): black over the bar after a few quiet seconds. In the
+   way at once, so it takes the tap that wakes the bar; it fades quickly but
+   stays in the way a moment longer, until that tap's click has passed. */
+.stage-full-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.25s,
+    visibility 0s linear 0.4s;
+}
+.stage-full-bar[data-idle] .stage-full-veil {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.8s,
+    visibility 0s;
+}
+.stage-full:has(.stage-full-bar[data-idle]) {
+  cursor: none;
 }
 
 /* A phone turned sideways (short and wide): the stage fits the screen's
@@ -1538,13 +1664,12 @@
     height: 24px;
   }
   .full-button {
-    width: 30px;
-    height: 30px;
-    margin: 0 -6px 0 -4px;
+    width: 24px;
+    height: 24px;
   }
   .full-button svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
   .play-pause svg {
     width: 16px;
