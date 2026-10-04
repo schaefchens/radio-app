@@ -115,6 +115,7 @@
     "sent": "Thank you! We'll let you know when it's on air.",
     "name": "Your first name",
     "place": "Where are you from? (city or country)",
+    "anonymous": "Stay anonymous: no name on air",
     "consentAir": "I agree that this is broadcast on Arche Radio.",
     "consentReplay": "It may be replayed in future programs.",
     "send": "Send",
@@ -130,13 +131,15 @@
     "messageHint": "The host may read it on air.",
     "checking": "Checking the video…",
     "notEmbeddable": "This video can't be played in other apps.",
-    "invalid": "That doesn't look like a YouTube link."
+    "invalid": "That doesn't look like a YouTube link.",
+    "nameHint": "Your first name and place are named on air with your request."
   },
   "preachingForm": {
     "url": "YouTube link",
     "urlHint": "Paste a link to a Christian preaching or devotion on YouTube (5 to 90 minutes).",
     "message": "Why do you recommend it? (optional)",
-    "messageHint": "The host may read it on air."
+    "messageHint": "The host may read it on air.",
+    "nameHint": "Your first name and place are named on air with your suggestion."
   },
   "prayerForm": {
     "text": "Your prayer request",
@@ -160,6 +163,7 @@
     "again": "Record again",
     "listen": "Listen back",
     "limit": "Up to {{seconds}} seconds",
+    "nameHint": "Your first name and place are named on air with your recording.",
     "micDenied": "Microphone permission denied. Enable it in your browser settings.",
     "micDeniedApp": "Arche Radio may not use the microphone yet. Allow it in your phone's settings for Arche Radio.",
     "preparing": "Preparing the recording…",
@@ -920,7 +924,6 @@
     "introSpoken": "Speak your prayer for the requests you heard. It is played on air as you recorded it.",
     "introWritten": "Write your prayer for the requests you heard. It is read out on air word for word.",
     "text": "Your prayer",
-    "anonymous": "Stay anonymous: no name on air",
     "nameHint": "Your first name and place are named with your prayer.",
     "consent": "I agree that my prayer is aired on Arche Radio, word for word."
   }

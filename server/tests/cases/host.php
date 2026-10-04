@@ -75,6 +75,16 @@ test('host: lead-ins change from one reading to the next, and one for a sender w
     eq([Templates::who('Tom', 'Berlin', 'de'), Templates::who('Tom', '', 'en'), Templates::who('', 'Berlin', 'en')], ['Tom aus Berlin', 'Tom', ''], 'first name and place as the host says them');
 });
 
+test('host: a request or recording whose sender stayed anonymous is announced without a name — and a place alone names nobody', function () {
+    foreach (['announce' => 'request', 'contrib' => 'contribution'] as $kind => $key) {
+        foreach ([['name' => '', 'place' => ''], ['name' => '', 'place' => 'Berlin']] as $who) {
+            $texts = Templates::texts($kind, [$key => $who]);
+            foreach (['en', 'de'] as $l) check(!str_contains($texts[$l], 'Berlin') && !str_contains($texts[$l], '()'), "$kind ($l): {$texts[$l]}");
+        }
+        check(str_contains(Templates::texts($kind, [$key => ['name' => 'Jonas', 'place' => 'Hamburg']])['en'], 'Jonas (Hamburg)'), "$kind names who gave a name");
+    }
+});
+
 test('host: a reading is voiced once, in its own language, and the daily cap neither stops nor counts it', function () {
     $app = TestKit::app(['HOST_MAX_BREAKS_PER_DAY' => '1']);
     $ch = TestKit::main($app);

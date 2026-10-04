@@ -71,7 +71,8 @@ final class Templates
         $req = $c['request'] ?? null;
         $name = $req['name'] ?? ($c['contribution']['name'] ?? '');
         $place = $req['place'] ?? ($c['contribution']['place'] ?? '');
-        $who = trim($name . ($place !== '' ? ' (' . $place . ')' : ''));
+        // No name, no place either: whoever stayed anonymous sent neither, and a place alone names nobody.
+        $who = trim($name) !== '' ? trim($name . ($place !== '' ? ' (' . $place . ')' : '')) : '';
         // A preaching names its preacher where a song names its artist.
         $by = is_array($next) ? (string) ($next['artist'] ?? $next['preacher'] ?? '') : '';
         $nextTitle = is_array($next) ? trim(($next['title'] ?? '') . ($by !== '' ? ' – ' . $by : '')) : '';

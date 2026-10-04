@@ -217,6 +217,10 @@ a deploy.
   program in /mod → Programs). Too late for its program, a song stays in the
   music selection ("may play in a later program"); anything else is marked as
   missed, and a recording that never aired is not kept public.
+- **Names**: every submission form asks "Stay anonymous". Unticked (the
+  default) a first name is needed, and the host says it with the place (a
+  prayer request also shows both on the prayer wall); ticked, neither is sent
+  and nobody is named.
 - **Rejections**: /mod → Review → Rejected shows why each submission was
   declined (the automatic check's verdict and note, or the failed YouTube
   check) and approves it anyway where it can still air.

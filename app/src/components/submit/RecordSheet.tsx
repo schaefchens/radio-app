@@ -10,7 +10,7 @@ import { useSettings } from '@/store/settings';
 import { useRadio } from '@/store/radio';
 import { useSubmit } from './useSubmit';
 import { useRecorder } from './useRecorder';
-import { Done, NamePlace, PrivacyNote } from './VideoRequestSheet';
+import { Done, NameOrAnonymous, PrivacyNote } from './VideoRequestSheet';
 import { MicIcon } from '@/components/common/icons';
 import { RulesCheckbox } from '@/components/common/RulesConsent';
 import { acceptRules, useRulesNeeded } from '@/lib/rulesConsent';
@@ -31,6 +31,8 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
   const [kind, setKind] = useState<Kind>(initialKind);
   const [name, setName] = useState(identity?.name ?? '');
   const [place, setPlace] = useState('');
+  // Kept for the next recording: one who chose to stay anonymous is not named by surprise.
+  const [anonymous, setAnonymous] = useState(false);
   const [consentAir, setConsentAir] = useState(false);
   const [consentReplay, setConsentReplay] = useState(false);
   // The community rules, once per device before the first post.
@@ -57,8 +59,8 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
     const form = new FormData();
     form.set('channel', engine.channel);
     form.set('type', kind);
-    form.set('name', name);
-    form.set('place', place);
+    form.set('name', anonymous ? '' : name);
+    form.set('place', anonymous ? '' : place);
     form.set('lang', lang);
     form.set('consent_air', consentAir ? '1' : '');
     form.set('consent_replay', consentReplay ? '1' : '');
@@ -103,7 +105,16 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
 
             <RecorderPanel rec={rec} limitS={LIMIT_S[kind]} disabled={!allowed(kind)} />
 
-            <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
+            <NameOrAnonymous
+              anonymous={anonymous}
+              setAnonymous={setAnonymous}
+              label={t('submit.anonymous')}
+              hint={t('record.nameHint')}
+              name={name}
+              place={place}
+              setName={setName}
+              setPlace={setPlace}
+            />
             <label className="flex items-start gap-2 text-sm text-ink-muted">
               <input type="checkbox" className="mt-1" checked={consentAir} onChange={(e) => setConsentAir(e.target.checked)} />
               {t('submit.consentAir')}
@@ -118,7 +129,7 @@ export function RecordSheet({ open, onClose, initialKind = 'story' }: { open: bo
             <button
               type="button"
               className="btn-primary"
-              disabled={!rec.blob || !consentAir || submit.busy || rec.recording || (rulesNeeded && !rulesTicked)}
+              disabled={!rec.blob || !consentAir || (!anonymous && name.trim() === '') || submit.busy || rec.recording || (rulesNeeded && !rulesTicked)}
               onClick={() => {
                 if (rulesNeeded) acceptRules();
                 void submit.run();

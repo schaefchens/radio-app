@@ -200,7 +200,10 @@ test('before the listener agrees to YouTube, a song request asks YouTube nothing
   await sheet.getByLabel('YouTube link').fill('https://youtu.be/e2eReqOk001');
   await page.waitForTimeout(1500);
   expect(google).toEqual([]);
-  // The server checks the video anyway, so sending is possible.
+  // The server checks the video anyway, so sending is possible — with a first name, or anonymously.
+  await expect(sheet.getByRole('button', { name: 'Send' })).toBeDisabled();
+  await sheet.getByLabel('Stay anonymous: no name on air').check();
+  await expect(sheet.getByLabel('Your first name')).toHaveCount(0);
   await expect(sheet.getByRole('button', { name: 'Send' })).toBeEnabled();
 });
 
@@ -228,6 +231,7 @@ test('a song that is too long is declined with a general reason', async ({ page 
   const sheet = await openSheet(page, /Request a song/, 'Request a song');
   await sheet.getByLabel('YouTube link').fill('https://www.youtube.com/watch?v=e2eReqLong1');
   await expect(sheet.getByText('E2E Worship - Ten Thousand Reasons Medley')).toBeVisible();
+  await sheet.getByLabel('Stay anonymous: no name on air').check();
   await sheet.getByRole('button', { name: 'Send' }).click();
   await expect(sheet.getByText(SENT)).toBeVisible();
   const device = await deviceOf(page);

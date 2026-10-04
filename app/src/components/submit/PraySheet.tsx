@@ -108,7 +108,7 @@ export function PraySheet({ open, onClose }: { open: boolean; onClose: () => voi
             <NameOrAnonymous
               anonymous={anonymous}
               setAnonymous={setAnonymous}
-              label={t('pray.anonymous')}
+              label={t('submit.anonymous')}
               hint={t('pray.nameHint')}
               name={name}
               place={place}

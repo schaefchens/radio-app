@@ -46,9 +46,10 @@ export interface Voice {
   by?: string;
 }
 
-/** A typed prayer request on the prayer wall. Anonymous by design — text and
- *  day only, no name or place: prayers can reveal faith or health. `id` is
- *  the key for reactions (sent like a voice's). */
+/** A typed prayer request on the prayer wall: text, day and the first name
+ *  and place its sender gave — none for one who chose to stay anonymous
+ *  (prayers can reveal faith or health: the forms ask). `id` is the key for
+ *  reactions (sent like a voice's). */
 export interface WallEntry {
   id: string;
   text: string;
@@ -84,7 +85,8 @@ export interface SongItem extends ItemBase {
   title: string;
   artist: string;
   thumb: string | null;
-  /** Set for a listener request (or a suggested preaching) that was announced on air. */
+  /** Set for a listener request (or a suggested preaching) with its sender's
+   *  first name; null for any other song, and for one whose sender stayed anonymous. */
   request: { name: string; place: string } | null;
   /** Audio to play instead when the video will not play here (region block,
    *  removed video). null = keep the stage up until the item ends. */
@@ -227,8 +229,8 @@ export interface LiveFile {
   gen: number;
   listeners: number;
   voices: Voice[];
-  /** Typed prayer requests the sender agreed to show, anonymous, newest
-   *  first, at most 30 (a prayer hour's: as they are read out, up to 60). In
+  /** Typed prayer requests the sender agreed to show, newest first, at
+   *  most 30 (a prayer hour's: every one as it is read out, up to 60). In
    *  live.json (not the minute files) so that a moderator's takedown applies
    *  with the next tick. */
   wall: WallEntry[];

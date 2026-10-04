@@ -131,7 +131,11 @@ opening prayer) are neither stopped nor counted by the daily cap. The job
 voices only the languages that have text (`HostBreaks::nextLang`).
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
-while the minute file says `open`/`closing` (checked again server-side). One job
+while the minute file says `open`/`closing` (checked again server-side). Every
+form asks "Stay anonymous" (`NameOrAnonymous`, unticked at first: named is the
+station's default): unticked, a first name is needed, and it is said on air
+with the place (and shown on a prayer wall); ticked, the form sends neither,
+and the host, the stage and the wall name nobody. One job
 per submission, one outside call per phase (YouTube → text model; transcribe
 → text model). Recordings arrive as MP3 encoded in the browser (the host has no
 ffmpeg) and stay private until approved. Listeners see three generic reasons only;
@@ -227,9 +231,9 @@ prayer music before the prayer time, silence in it, 20 s pieces, in the
 waiting unit's program — never the previous program's song); a reading waits
 at most `READING_WAIT` from when it was first due, then gives its request back.
 Requests and prayers are read, and shown on a wall, with the first name and
-place their senders gave; whoever ticks "Stay anonymous" in the form gives
-neither (`NameOrAnonymous`; station decision 2026-10-04, replacing a rule
-that read and showed wall requests without names). A moderator can prepare
+place their senders gave; whoever ticks "Stay anonymous" gives neither (every
+submission form has it, `NameOrAnonymous`; station decision 2026-10-04,
+replacing a rule that read and showed wall requests without names). A moderator can prepare
 opening prayers (`Program\OpeningPrayers`,
 /mod → Programs; not a Catalog write, so no drafts are thrown away): each
 airing takes the oldest waiting — a recording airs as a `contrib` item, a text
@@ -506,7 +510,8 @@ sweep, intake times, the prayer wall, typed prayers read out word for word or
 given back, one taken off the wall never read, listeners' prayers: consent,
 limits, never on the wall; praying along), the host never praying
 (`host.php`: the rule in the prompt, the guard, every template and lead-in,
-lead-ins that change, readings voiced once and outside the daily cap),
+lead-ins that change, readings voiced once and outside the daily cap, nobody
+named for a sender who stayed anonymous),
 deleting an account
 (`erasure.php`: aliases and the words, a voiced draft never airs, a committed
 request blocked with minute files byte for byte, an aired recording and the
@@ -539,7 +544,7 @@ reading, a listener's prayer as theirs), the Pray sheet (recorder first,
 written instead, both endpoints, the yes never ticked in advance, staying
 anonymous), our audio not starting a clip over in its quiet, the prayer
 sheet's wall box (and in a prayer hour, the wall after it), "Stay anonymous"
-hiding name and place, and the
+on every form hiding name and place and sending neither, and the
 rules on the first post, the install sheet's single-use prompt; the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background

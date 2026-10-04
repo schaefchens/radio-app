@@ -115,6 +115,7 @@
     "sent": "Danke! Wir sagen dir Bescheid, wenn es on air ist.",
     "name": "Dein Vorname",
     "place": "Woher kommst du? (Stadt oder Land)",
+    "anonymous": "Anonym bleiben: kein Name auf Sendung",
     "consentAir": "Ich bin einverstanden, dass dies auf Arche Radio gesendet wird.",
     "consentReplay": "Es darf in späteren Sendungen wiederholt werden.",
     "send": "Senden",
@@ -130,13 +131,15 @@
     "messageHint": "Die Moderation liest ihn vielleicht vor.",
     "checking": "Video wird geprüft…",
     "notEmbeddable": "Dieses Video kann nicht in anderen Apps abgespielt werden.",
-    "invalid": "Das sieht nicht nach einem YouTube-Link aus."
+    "invalid": "Das sieht nicht nach einem YouTube-Link aus.",
+    "nameHint": "Dein Vorname und Ort werden mit deinem Wunsch auf Sendung genannt."
   },
   "preachingForm": {
     "url": "YouTube-Link",
     "urlHint": "Füge einen Link zu einer christlichen Predigt oder Andacht auf YouTube ein (5 bis 90 Minuten).",
     "message": "Warum empfiehlst du sie? (optional)",
-    "messageHint": "Die Moderation liest es vielleicht vor."
+    "messageHint": "Die Moderation liest es vielleicht vor.",
+    "nameHint": "Dein Vorname und Ort werden mit deinem Vorschlag auf Sendung genannt."
   },
   "prayerForm": {
     "text": "Dein Gebetsanliegen",
@@ -160,6 +163,7 @@
     "again": "Neu aufnehmen",
     "listen": "Anhören",
     "limit": "Bis zu {{seconds}} Sekunden",
+    "nameHint": "Dein Vorname und Ort werden mit deiner Aufnahme auf Sendung genannt.",
     "micDenied": "Mikrofonzugriff verweigert. Erlaube ihn in den Browser-Einstellungen.",
     "micDeniedApp": "Arche Radio darf das Mikrofon noch nicht benutzen. Erlaube es in den Einstellungen deines Handys für Arche Radio.",
     "preparing": "Aufnahme wird vorbereitet…",
@@ -920,7 +924,6 @@
     "introSpoken": "Sprich dein Gebet für die Anliegen, die du gehört hast. Es wird so gesendet, wie du es aufnimmst.",
     "introWritten": "Schreib dein Gebet für die Anliegen, die du gehört hast. Es wird auf Sendung Wort für Wort vorgelesen.",
     "text": "Dein Gebet",
-    "anonymous": "Anonym bleiben: kein Name auf Sendung",
     "nameHint": "Dein Vorname und Ort werden mit deinem Gebet genannt.",
     "consent": "Ich bin einverstanden, dass mein Gebet auf Arche Radio gesendet wird, Wort für Wort."
   }

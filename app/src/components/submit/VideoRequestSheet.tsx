@@ -26,8 +26,8 @@ export type VideoKind = 'song' | 'preaching';
 
 /**
  * A song request, or a preaching suggested for a preaching program: the same
- * form — a YouTube link, a word for the host, name and place — with its own
- * texts and endpoint.
+ * form — a YouTube link, a word for the host, name and place or "Stay
+ * anonymous" — with its own texts and endpoint.
  */
 export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; open: boolean; onClose: () => void }) {
   const uid = useId();
@@ -41,6 +41,8 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
   const [message, setMessage] = useState('');
   const [name, setName] = useState(identity?.name ?? '');
   const [place, setPlace] = useState('');
+  // Kept for the next request: one who chose to stay anonymous is not named by surprise.
+  const [anonymous, setAnonymous] = useState(false);
   const [fetched, setFetched] = useState<Preview | null>(null);
   const id = parseYouTubeId(url);
   const current = fetched && fetched.id === id ? fetched : null;
@@ -69,7 +71,9 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
     };
   }, [id, consent, t]);
 
-  const submit = useSubmit(() => api(`/submissions/${kind}`, { body: { channel, url, message, name, place, lang } }));
+  const submit = useSubmit(() =>
+    api(`/submissions/${kind}`, { body: { channel, url, message, name: anonymous ? '' : name, place: anonymous ? '' : place, lang } }),
+  );
   // The community rules, once per device before the first post.
   const rulesNeeded = useRulesNeeded();
   const [rulesTicked, setRulesTicked] = useState(false);
@@ -116,11 +120,24 @@ export function VideoRequestSheet({ kind, open, onClose }: { kind: VideoKind; op
               <textarea id={`${uid}-msg`} className="field min-h-[80px]" maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} />
               <p className="mt-1 text-xs text-ink-faint">{t(`${form}.messageHint`)}</p>
             </div>
-            <NamePlace name={name} place={place} setName={setName} setPlace={setPlace} />
+            <NameOrAnonymous
+              anonymous={anonymous}
+              setAnonymous={setAnonymous}
+              label={t('submit.anonymous')}
+              hint={t(`${form}.nameHint`)}
+              name={name}
+              place={place}
+              setName={setName}
+              setPlace={setPlace}
+            />
             {submit.error && <p className="text-sm text-heart">{submit.error}</p>}
             {rulesNeeded && <RulesCheckbox checked={rulesTicked} onChange={setRulesTicked} />}
             <PrivacyNote />
-            <button type="submit" className="btn-primary" disabled={!id || !!previewError || submit.busy || (rulesNeeded && !rulesTicked)}>
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={!id || !!previewError || (!anonymous && name.trim() === '') || submit.busy || (rulesNeeded && !rulesTicked)}
+            >
               {submit.busy ? t('common.loading') : t('submit.send')}
             </button>
           </form>
@@ -149,10 +166,10 @@ export function NamePlace({ name, place, setName, setPlace }: { name: string; pl
 }
 
 /**
- * For prayers and prayer requests: "Stay anonymous", and while it is not
- * ticked, first name and place with what happens to them. Named is the
- * station's default; staying anonymous is a choice the sender makes here,
- * not an empty field they may overlook — the sheet then sends neither.
+ * Every submission form: "Stay anonymous", and while it is not ticked, first
+ * name (needed) and place with what happens to them. Named is the station's
+ * default; staying anonymous is a choice the sender makes here, not an empty
+ * field they may overlook — the sheet then sends neither.
  */
 export function NameOrAnonymous({
   anonymous,

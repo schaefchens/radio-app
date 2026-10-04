@@ -213,8 +213,8 @@ const de = (host: string): StationTexts => ({
         'Einwilligung (Art. 6 Abs. 1 lit. a DSGVO). Gebetsanliegen, Gebete, Zeugnisse und Geschichten können Ihre religiöse ' +
         'Überzeugung oder Angaben zur Gesundheit erkennen lassen; mit dem Absenden willigen Sie ausdrücklich ein, dass ' +
         'wir diese Angaben dafür verarbeiten (Art. 9 Abs. 2 lit. a DSGVO).\n' +
-        'Von Ihnen nennen wir auf Sendung nur Vorname und Ort, die Sie angeben. Bei Gebetsanliegen und Gebeten können ' +
-        'Sie „Anonym bleiben“ ankreuzen; dann fragen wir beides nicht ab und nennen keinen Namen. Ein geschriebenes ' +
+        'Von Ihnen nennen wir auf Sendung nur Vorname und Ort, die Sie angeben. Bei jeder Einsendung können Sie ' +
+        '„Anonym bleiben“ ankreuzen; dann fragen wir beides nicht ab und nennen keinen Namen. Ein geschriebenes ' +
         'Gebetsanliegen lesen wir Wort für Wort vor, und die App zeigt den Text dabei an. Es erscheint nach der Freigabe ' +
         'zusätzlich an der Gebetswand der App, wenn Sie das eigens ankreuzen (das Kästchen ist nicht vorausgewählt): ' +
         'der Text, der Tag und – wenn Sie nicht anonym bleiben – Ihr Vorname und Ort. Die Wand zeigt die neuesten ' +
@@ -481,8 +481,8 @@ const en = (host: string): StationTexts => ({
         'id, to check and air it. The legal basis is your consent (Art. 6(1)(a) GDPR). Prayer requests, prayers, testimonies ' +
         'and stories can reveal religious beliefs or health information; by sending, you explicitly consent to our ' +
         'processing them for this purpose (Art. 9(2)(a) GDPR).\n' +
-        'On air we name you only by the first name and place you give. For prayer requests and prayers you can tick ' +
-        '“Stay anonymous”; then we ask for neither and name nobody. A typed prayer request is read out word for word, ' +
+        'On air we name you only by the first name and place you give. With every submission you can tick “Stay ' +
+        'anonymous”; then we ask for neither and name nobody. A typed prayer request is read out word for word, ' +
         'and the app shows the text meanwhile. It also appears on the app’s prayer wall after approval if you tick ' +
         'that box (it is not ticked in advance): the text, the day and — unless you stay anonymous — your first name ' +
         'and place. The wall shows the newest requests; yours stays there until newer ones push it out, a moderator ' +
