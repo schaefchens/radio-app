@@ -5,13 +5,15 @@ import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
 import { useSettings } from '@/store/settings';
 import { joinRadio, leaveRadio, react, switchChannel } from '@/lib/radio';
+import { openFullStage } from '@/lib/fullStage';
+import { isNative } from '@/lib/native';
 import { clockDuration } from '@/lib/format';
 import { useServerNow } from './useServerNow';
 import { Reactions } from './Reactions';
 import { StageRegion } from '@/components/stage/StageRegion';
 import { CdnImg } from '@/components/common/CdnImg';
 import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
-import { BookIcon, ChevronIcon, LevelsIcon, MicIcon, MusicIcon, NavLiveIcon, PauseIcon, PlayIcon, UsersIcon } from '@/components/common/icons';
+import { BookIcon, ChevronIcon, ExpandIcon, LevelsIcon, MicIcon, MusicIcon, NavLiveIcon, PauseIcon, PlayIcon, UsersIcon } from '@/components/common/icons';
 import { tapHaptic } from '@/lib/haptics';
 
 // A stable empty list: a selector that returns a fresh [] on every call makes
@@ -66,6 +68,13 @@ function StationRow() {
           <span>{t('live.listeningNow')}</span>
         </div>
       </div>
+      {/* Not in the store apps: they stay upright, and an upright phone's
+          stage is as wide as the screen already. */}
+      {!isNative() && (
+        <button type="button" className="full-button" aria-label={t('stage.full')} title={t('stage.full')} onClick={openFullStage}>
+          <ExpandIcon />
+        </button>
+      )}
       {several && (
         <BottomSheet open={choosing} onClose={() => setChoosing(false)} title={t('channel.choose')}>
           <BottomSheetBody>

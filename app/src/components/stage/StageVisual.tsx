@@ -47,7 +47,7 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
   const hostKind = item?.type === 'host' ? item.kind : null;
 
   return (
-    <div className="absolute inset-0 z-0 select-none">
+    <div className="stage-visual absolute inset-0 z-0 select-none">
       <Backdrop image={image} color={program?.color ?? '#2f7bff'} calm={engine.mode === 'silence' || engine.mode === 'bed'} />
 
       {/* Before joining, the round play button has the stage to itself. */}

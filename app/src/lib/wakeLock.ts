@@ -4,7 +4,9 @@ import { hasPlugin, plugin } from './native';
  * "Keep the screen on while listening": phones stop YouTube embeds when the
  * screen locks, and in the store apps the lock sends the app to the
  * background, where the radio leaves. Held only while the setting is on and
- * the listener is in: a radio that is not playing lets the phone sleep.
+ * the listener is in: a radio that is not playing lets the phone sleep. The
+ * big stage holds it without the setting: a projector that dims in the
+ * prayer time's quiet, where no video plays, loses the room.
  *
  * The store apps hold it through the shell (the Web API is missing or
  * unreliable in WebViews); browsers through the Screen Wake Lock API, taken
@@ -13,6 +15,7 @@ import { hasPlugin, plugin } from './native';
  */
 let setting = false;
 let listening = false;
+let stageFull = false;
 let sentinel: WakeLockSentinel | null = null;
 let shellHolds: boolean | null = null;
 let queue: Promise<void> = Promise.resolve();
@@ -34,6 +37,15 @@ export function setListening(on: boolean): void {
   apply();
 }
 
+/** The big stage is open (lib/fullStage.ts). */
+export function setStageFull(on: boolean): void {
+  if (stageFull === on) return;
+  stageFull = on;
+  apply();
+}
+
+const wanted = (): boolean => listening && (setting || stageFull);
+
 // One change at a time, each acting on the newest wish: a quick join and
 // leave must never end with the screen held.
 function apply(): void {
@@ -41,7 +53,7 @@ function apply(): void {
 }
 
 async function sync(): Promise<void> {
-  const want = setting && listening;
+  const want = wanted();
   if (await syncShell(want)) return;
   if (want) await acquire();
   else release();
@@ -80,6 +92,6 @@ function release(): void {
 
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && setting && listening && !sentinel) apply();
+    if (document.visibilityState === 'visible' && wanted() && !sentinel) apply();
   });
 }

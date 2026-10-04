@@ -236,6 +236,46 @@ test.describe('YouTube required minimum functionality', () => {
     await expect(page.getByRole('dialog', { name: 'Share a prayer request' })).toBeInViewport();
   });
 
+  test('the big stage: the video fills the screen above its bar, uncovered and playing on, then back in place', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await waitForSong();
+    await fakeYouTube(page);
+    await join(page);
+    await playing(page);
+    const place = () =>
+      page.evaluate(() => {
+        const f = document.querySelector('iframe[data-fake-youtube]');
+        const slot = document.querySelector('[data-stage-slot]');
+        if (!f || !slot) return null;
+        const r = f.getBoundingClientRect();
+        const s = slot.getBoundingClientRect();
+        const bar = document.querySelector('.stage-full-bar')?.getBoundingClientRect();
+        const points: [number, number][] = [[0.5, 0.5], [0.05, 0.05], [0.95, 0.05], [0.05, 0.95], [0.95, 0.95]];
+        return {
+          big: !!slot.closest('.stage-full'),
+          width: Math.round(r.width),
+          follows: Math.abs(r.top - s.top) < 1 && Math.abs(r.left - s.left) < 1 && Math.abs(r.width - s.width) < 1,
+          aboveBar: !bar || r.bottom <= bar.top + 1,
+          covered: points.filter(([x, y]) => document.elementFromPoint(r.left + r.width * x, r.top + r.height * y) !== f).length,
+        };
+      });
+    const before = await place();
+    expect(before).toMatchObject({ big: false, follows: true, covered: 0 });
+
+    await page.getByRole('button', { name: 'Full screen', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Exit full screen' })).toBeFocused();
+    await expect.poll(place).toMatchObject({ big: true, follows: true, aboveBar: true, covered: 0 });
+    // The width of the window, or the height above the bar at 16:9, whichever is less.
+    expect((await place())?.width).toBeGreaterThan(1200);
+    expect((await ytNow(page))?.state).toBe(YT_PLAYING);
+    // The one player followed the slot: never created again.
+    expect((await ytCalls(page)).filter((c) => c.fn === 'create')).toHaveLength(1);
+
+    await page.getByRole('button', { name: 'Exit full screen' }).click();
+    await expect.poll(place).toEqual(before);
+    await playing(page);
+  });
+
   test('a sheet over the stage pauses the video; closing it resumes at the live position', async ({ page }) => {
     await waitForSong(40_000);
     await fakeYouTube(page);

@@ -117,6 +117,17 @@ export const CloseIcon = (p: IconProps) => (
     <path d="M6 6l12 12M18 6 6 18" />
   </Icon>
 );
+/** The big stage: four corners going out, and coming back in. */
+export const ExpandIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M16 21h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+  </Icon>
+);
+export const ShrinkIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M16 21v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+  </Icon>
+);
 export const PlayIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" />

@@ -39,6 +39,9 @@
     "sharePrayer": "Share a prayer request",
     "listenerPrayer": "Prayer from a listener",
     "pray": "Pray",
+    "full": "Full screen",
+    "exitFull": "Exit full screen",
+    "turnPhone": "Turn your phone sideways for a bigger picture",
     "collected_one": "{{count}} prayer request so far",
     "collected_other": "{{count}} prayer requests so far"
   },

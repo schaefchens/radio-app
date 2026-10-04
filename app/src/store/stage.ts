@@ -11,21 +11,26 @@ interface StageState {
   inView: boolean;
   /** Open bottom sheets / dialogs that would cover the player. */
   overlays: number;
+  /** The big stage: the stage alone on the screen (lib/fullStage.ts). */
+  full: boolean;
   /** `inView`: measured as the slot mounts, so a page change hands over without a gap. */
   setSlot: (el: HTMLElement | null, inView?: boolean) => void;
   setInView: (v: boolean) => void;
   pushOverlay: () => void;
   popOverlay: () => void;
+  setFull: (v: boolean) => void;
 }
 
 export const useStage = create<StageState>((set) => ({
   slot: null,
   inView: false,
   overlays: 0,
+  full: false,
   setSlot: (slot, inView) => set((s) => (s.slot === slot ? s : { slot, inView: slot ? (inView ?? s.inView) : false })),
   setInView: (inView) => set({ inView }),
   pushOverlay: () => set((s) => ({ overlays: s.overlays + 1 })),
   popOverlay: () => set((s) => ({ overlays: Math.max(0, s.overlays - 1) })),
+  setFull: (full) => set({ full }),
 }));
 
 /** The player may be seen (and so may play): a slot, in view, nothing on top. */

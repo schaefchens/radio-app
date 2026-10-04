@@ -39,6 +39,9 @@
     "sharePrayer": "Gebetsanliegen teilen",
     "listenerPrayer": "Gebet aus der Gemeinde",
     "pray": "Beten",
+    "full": "Vollbild",
+    "exitFull": "Vollbild beenden",
+    "turnPhone": "Halte dein Handy quer für ein größeres Bild",
     "collected_one": "{{count}} Gebetsanliegen bisher",
     "collected_other": "{{count}} Gebetsanliegen bisher"
   },
