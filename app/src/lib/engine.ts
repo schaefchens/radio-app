@@ -191,6 +191,8 @@ export class RadioEngine {
   /** When we last told the player to load, cue, seek, pause or stop. */
   private commandAt = 0;
   private fadingOut: string | null = null;
+  /** Our latest try at starting a clip: only its outcome may ask for a tap. */
+  private ownTry = 0;
   private fetching: { gen: number; done: Promise<void> } | null = null;
   private generation = 0;
   /** The minute file the program's context (the tiles, what comes next) was read from. */
@@ -563,17 +565,24 @@ export class RadioEngine {
     // Already playing where this item needs it — the next piece of the same
     // prayer music, or the stage back after a sheet (reenter): stay on it.
     // Starting it again would dip the music and fade it in once more.
+    const attempt = ++this.ownTry;
     const playing = audio.playingAt(url);
     if (playing !== null && Math.abs(playing - at) < CONTINUE_MS) {
       audio.resync(at);
+      this.askTap(item, false);
       return;
     }
+    // The newest try decides: an older one that a re-entry overtook must not
+    // leave "Tap to resume" over a clip that plays, nor clear a real refusal.
     void audio.play(url, at, item.type === 'bed' ? BED_FADE_MS : 0).then((ok) => {
-      if (!ok && this.key === item.id) {
-        this.state = { ...this.state, needsTap: true };
-        this.emit();
-      }
+      if (attempt === this.ownTry) this.askTap(item, !ok);
     });
+  }
+
+  private askTap(item: TimelineItem, needsTap: boolean): void {
+    if (this.key !== item.id || this.state.needsTap === needsTap) return;
+    this.state = { ...this.state, needsTap };
+    this.emit();
   }
 
   /** The item after this piece of prayer music goes on with the same file, where this one ends. */

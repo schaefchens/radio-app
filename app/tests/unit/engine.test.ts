@@ -311,6 +311,37 @@ describe('RadioEngine', () => {
     s.engine.stop();
   });
 
+  it('only the newest start of a clip asks for a tap: an older one a re-entry overtook does not, and a clip that plays takes the hint away', async () => {
+    const s = setup();
+    // Each start settles when the test says, as a browser's play() does.
+    const settle: ((ok: boolean) => void)[] = [];
+    s.audio.play = (u) => {
+      s.audio.calls.push(`play ${u}`);
+      return new Promise<boolean>((r) => settle.push(r));
+    };
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(205_000);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('host');
+    // The stage back in view while the clip is still starting.
+    s.engine.reenter();
+    expect(settle).toHaveLength(2);
+    settle[0]!(false);
+    await Promise.resolve();
+    expect(s.engine.snapshot.needsTap).toBe(false);
+    // The newest one is refused: now the listener is asked.
+    settle[1]!(false);
+    await Promise.resolve();
+    expect(s.engine.snapshot.needsTap).toBe(true);
+    // A tap starts it after all: the hint goes.
+    s.engine.resume();
+    settle[2]!(true);
+    await Promise.resolve();
+    expect(s.engine.snapshot.needsTap).toBe(false);
+    s.engine.stop();
+  });
+
   it('every later tap wakes our audio engine: a phone may have put it to sleep', async () => {
     const s = setup();
     await s.engine.start('main');

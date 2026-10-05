@@ -26,6 +26,8 @@ export class HostAudio {
   private volume = 1;
   /** Per element, the play() of ours it is on (0: none, or we paused it since). */
   private started = [0, 0];
+  /** Per element, the play() of ours still on its way: loading, or play() not settled yet. */
+  private pending = [0, 0];
   private plays = 0;
   unlocked = false;
 
@@ -75,7 +77,13 @@ export class HostAudio {
     return this.els[this.active]!;
   }
 
-  /** Play `url` from `offsetMs` in, rising from silence over `fadeInMs`. Resolves false if the browser refused. */
+  /**
+   * Play `url` from `offsetMs` in, rising from silence over `fadeInMs`.
+   * Resolves false only if the browser refused it while it was still ours to
+   * play: stopped or replaced by us as it started (a re-entry, the next clip),
+   * our own pause makes the browser abort its play() — and taking that for a
+   * refusal put "Tap to resume" on screen while the clip played on.
+   */
   async play(url: string, offsetMs: number, fadeInMs = 0): Promise<boolean> {
     // In the quiet after a clip (a listener's words, then a few seconds to
     // take them in), re-entering its item — a sheet closed, a join, a resume
@@ -87,8 +95,10 @@ export class HostAudio {
     this.active = next;
     const token = ++this.plays;
     this.started[next] = token;
-    const refused = (): false => {
-      if (this.started[next] === token) this.started[next] = 0;
+    this.pending[next] = token;
+    const refused = (): boolean => {
+      if (this.started[next] !== token) return true;
+      this.started[next] = 0;
       return false;
     };
     this.setGain(next, this.volume, fadeInMs);
@@ -98,8 +108,16 @@ export class HostAudio {
       // Its length first: before it, a fresh element would play the clip's
       // start until it knew where to seek — which may be past its end.
       if (el.readyState < 1) await metadata(el);
+      // Stopped or replaced while it loaded: playing now would put the
+      // host's words twice over each other.
+      if (this.started[next] !== token) return true;
       const at = Math.max(0, (offsetMs + Date.now() - started) / 1000);
-      if (Number.isFinite(el.duration) && el.duration > 0 && at >= el.duration - 0.05) return true;
+      if (Number.isFinite(el.duration) && el.duration > 0 && at >= el.duration - 0.05) {
+        // Past its end (the quiet after it): nothing of ours plays, and a clip
+        // never started must not look paused from outside.
+        this.started[next] = 0;
+        return true;
+      }
       try {
         el.currentTime = at;
       } catch {
@@ -121,6 +139,8 @@ export class HostAudio {
       } catch {
         return refused();
       }
+    } finally {
+      if (this.pending[next] === token) this.pending[next] = 0;
     }
   }
 
@@ -160,11 +180,14 @@ export class HostAudio {
 
   /**
    * The clip we started is paused, and not by us: the lock screen, headphones
-   * or a call paused the element itself. (One that ended or failed is not.)
+   * or a call paused the element itself. (One that ended or failed is not,
+   * nor one still loading: a clip not fetched ahead — the break after a song
+   * longer than the five fixed minutes — is paused while it loads, and the
+   * radio left for the listener at the start of the break.)
    */
   pausedFromOutside(): boolean {
     const el = this.el();
-    return this.started[this.active] !== 0 && el.paused && !el.ended && !el.error;
+    return this.started[this.active] !== 0 && this.pending[this.active] === 0 && el.paused && !el.ended && !el.error;
   }
 
   /** Correct drift of the playing clip against the shared clock. */

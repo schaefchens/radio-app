@@ -567,6 +567,14 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   pause, stops anything that plays while the listener is out, and maps the
   media keys to join/leave. YouTube's `seekTo` starts a stopped video: no
   drift seek for a listener who is out.
+- **…but our clip is paused while it loads.** A host clip is fetched ahead
+  only when its break is known as the song before it starts — not after a
+  song longer than the five fixed minutes. Loading, the element is paused,
+  and the rule above left the radio at the start of the break, for everyone
+  (seen on production 2026-10-05, every browser). `HostAudio` counts a clip
+  as paused from outside only once its start has settled, and a start we
+  overtook ourselves (a re-entry) is no refusal: that one put "Tap to resume"
+  over a host who went on speaking.
 
 ## Testing
 
@@ -622,7 +630,7 @@ request shown from its reading on, the pulse's voice reactions; jsdom: the
 stage's prayer view (buttons by the minute file, the count, the page, a
 reading, a listener's prayer as theirs), the Pray sheet (recorder first,
 written instead, both endpoints, the yes never ticked in advance, staying
-anonymous), our audio not starting a clip over in its quiet, the prayer
+anonymous), our audio not starting a clip over in its quiet, nor taken for paused while it loads, nor refused when a re-entry overtakes its start, the prayer
 sheet's wall box (and in a prayer hour, the wall after it), the video
 sheet's picker (open kinds only, the program's own kind first, a kind in use
 kept with its notice) and `allowedForFormat`, the stage's notice card (its
