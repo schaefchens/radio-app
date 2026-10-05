@@ -934,7 +934,7 @@
       "modelHintOpenAi": "gpt-4o-mini-tts folgt der Sprechanweisung, tts-1 und tts-1-hd nicht.",
       "modelHintElevenLabs": "eleven_flash_v2_5 kostet halb so viele Zeichen; eleven_multilingual_v2 und eleven_v3 klingen voller.",
       "voiceId": "Stimme",
-      "voiceHintOpenAi": "Eine der Stimmen von OpenAI (marin und cedar klingen am besten) oder eine eigene voice_…-Kennung.",
+      "voiceHintOpenAi": "Vergleiche sie nacheinander: Die Frauenstimmen liegen nah beieinander, und dieselbe Sprechanweisung macht sie sich noch ähnlicher.",
       "voiceHintElevenLabs": "Eine Stimmen-ID aus deinem ElevenLabs-Konto: Liste laden oder die ID einfügen.",
       "loadVoices": "Stimmen von ElevenLabs laden",
       "catalogStub": "Testbetrieb: ElevenLabs wird hier nicht gefragt. Füge eine Stimmen-ID ein.",
@@ -981,7 +981,7 @@
         "text": "Was die Moderation sagt",
         "play": "Abspielen",
         "making": "Wird erzeugt…",
-        "played": "{{seconds}} s Sprache für {{chars}} Zeichen.",
+        "played": "{{seconds}} s Sprache von {{voice}} ({{model}}) für {{chars}} Zeichen.",
         "costOpenAi": "Mit den ungespeicherten Änderungen. Kostet so viel wie ein Moderationsmoment.",
         "costElevenLabs": "Mit den ungespeicherten Änderungen. Verbraucht Zeichen des ElevenLabs-Kontos und zählt zur Tagesgrenze.",
         "sampleEn": "Hello, this is {{name}} on ARCHE. Up next, a song for everyone listening around the world.",
@@ -1021,7 +1021,24 @@
         "voice_failed": "Der Stimmen-Dienst hat abgelehnt: {{reason}}",
         "invalid_color": "Das ist keine Farbe.",
         "invalid_image": "Das Bild konnte nicht gelesen werden (JPEG, PNG oder WebP, höchstens 8 MB)."
-      }
+      },
+      "voiceNames": {
+        "alloy": "neutral, ausgewogen",
+        "ash": "männlich, klar",
+        "ballad": "männlich, weich und melodisch",
+        "coral": "weiblich, warm und hell",
+        "echo": "männlich, ruhig",
+        "fable": "männlich, erzählend",
+        "nova": "weiblich, hell und lebhaft",
+        "onyx": "männlich, tief",
+        "sage": "weiblich, ruhig und sanft",
+        "shimmer": "weiblich, sanft, etwas tiefer",
+        "verse": "männlich, ausdrucksstark",
+        "marin": "weiblich, natürlich – beste Qualität",
+        "cedar": "männlich, natürlich – beste Qualität"
+      },
+      "otherVoiceOpenAi": "Eigene Stimmen-Kennung (voice_…)",
+      "otherVoiceElevenLabs": "Andere Stimmen-ID"
     }
   },
   "about": {

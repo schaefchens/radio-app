@@ -399,6 +399,7 @@ test('hosts: "Try voice" speaks unsaved changes and counts them; an ElevenLabs h
     [$st, $d] = call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'lang' => 'de', 'text' => 'Hallo, hier ist Hope.', 'draft' => ['instructions' => 'Leise.', 'voices' => ['de' => 'marin']]], $admin);
     eq($st, 200, 'tried');
     check(strlen(base64_decode((string) $d['audio'])) > 1000 && $d['ms'] > 0, 'an MP3 comes back');
+    eq([$d['voice'], $d['model']], ['marin', 'gpt-4o-mini-tts'], 'and which voice spoke it: the one being tried, not the saved one');
     eq($app->hosts()->usedToday($hope['id']), mb_strlen('Hallo, hier ist Hope.'), 'counted');
     eq(hope($app)['instructions'], 'Warm and calm, like a Christian radio host.', 'nothing saved');
     $free = makeHost($app, ['name' => 'Free', 'provider' => 'elevenlabs', 'api_key' => EL_KEY, 'voices' => ['en' => EL_VOICE]]);

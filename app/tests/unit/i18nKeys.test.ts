@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { SUBMISSION_TYPES, VIDEO_FORMATS, VOICE_PROVIDERS, isVideoSubmissionType } from '@arche/shared';
 import en from '@/i18n/en.json';
 import de from '@/i18n/de.json';
+import { VOICES } from '@/components/mod/voices';
 
 /** Adapted from bible-assistant: both languages have the same keys, and every
  *  literal t('…') in src/ exists (plural keys count through their _one form). */
@@ -70,6 +71,7 @@ describe('i18n', () => {
       ),
       // /mod › Hosts: each voice service by name, and modError's map of the server's host errors.
       ...VOICE_PROVIDERS.map((p) => `mod.hosts.providers.${p}`),
+      ...VOICES.map((v) => `mod.hosts.voiceNames.${v}`),
       ...[
         'host_name', 'host_about', 'host_style', 'host_instructions', 'host_model', 'host_voice', 'host_key', 'host_provider', 'host_lineup',
         'host_in_use', 'last_host', 'host_try_text', 'host_no_room', 'voice_timeout', 'voice_failed', 'invalid_color', 'invalid_image',

@@ -12,6 +12,7 @@ import { DayBlocks } from '@/components/home/TodayProgram';
 import { ProgramSheet } from '@/components/schedule/ProgramSheet';
 import { PrivacyNote } from '@/components/submit/VideoRequestSheet';
 import { HostLineup } from '@/components/mod/HostLineup';
+import { HostsPanel } from '@/components/mod/HostsPanel';
 import type { LineupEntry, ModHost } from '@/components/mod/modApi';
 import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
@@ -186,5 +187,41 @@ describe('/mod: a lineup of hosts', () => {
   it('says so when nobody is on air', async () => {
     render(<Lineup initial={[{ id: 1, role: 'fallback' }]} onChange={() => undefined} />);
     expect(await screen.findByText('At least one host has to be on air.')).toBeTruthy();
+  });
+});
+
+describe('/mod: trying a host\'s voice', () => {
+  const grace: ModHost = {
+    id: 7, name: 'Grace', avatar: null, color: '#bd2eff', about_en: '', about_de: '', style: '', provider: 'openai', model: 'gpt-4o-mini-tts', voices: { en: 'marin', de: 'marin' },
+    instructions: 'Calm.', settings: { speed: 0.95 }, max_chars_day: 0, active: true, key_set: false, key_unreadable: false, station_key: true, key_hint: '', resting_until: 0,
+    last_error: '', speaks: true, today: { chars: 0, calls: 0 }, used_in: [],
+  };
+
+  it('every voice is in the list — not only the one already chosen — and the try names the voice that spoke', async () => {
+    const tried: { voices: Record<string, string> }[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/mod/hosts/try')) {
+        const body = JSON.parse(String(init?.body)) as { lang: 'en' | 'de'; draft: { voices: Record<string, string>; model: string } };
+        tried.push(body.draft);
+        return new Response(JSON.stringify({ audio: 'AAAA', ms: 2400, provider: 'openai', voice: body.draft.voices[body.lang], model: body.draft.model }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ hosts: [grace] }), { status: 200 });
+    }));
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    render(<HostsPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    // The select's name is its whole label: "Voice", then the hint.
+    const voice = screen.getByRole('combobox', { name: /^Voice/ }) as HTMLSelectElement;
+    expect(voice.value).toBe('marin');
+    expect([...voice.options].map((o) => o.value)).toEqual(expect.arrayContaining(['coral', 'onyx', 'marin', 'shimmer', 'cedar']));
+    expect(screen.getByRole('option', { name: 'onyx – male, deep' })).toBeTruthy();
+    fireEvent.change(voice, { target: { value: 'onyx' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Play' }));
+    expect(await screen.findByText(/^2\.4 s of speech by onyx \(gpt-4o-mini-tts\) for \d+ characters\.$/)).toBeTruthy();
+    expect(tried[0]?.voices).toEqual({ en: 'onyx', de: 'onyx' });
+    // A voice of one's own: the field opens with it.
+    fireEvent.change(voice, { target: { value: '__other' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'A voice id of your own (voice_…)' }), { target: { value: 'voice_abc123' } });
+    expect(voice.value).toBe('__other');
   });
 });

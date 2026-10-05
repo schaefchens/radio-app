@@ -934,7 +934,7 @@
       "modelHintOpenAi": "gpt-4o-mini-tts follows the voice direction; tts-1 and tts-1-hd do not.",
       "modelHintElevenLabs": "eleven_flash_v2_5 costs half as many characters; eleven_multilingual_v2 and eleven_v3 sound richer.",
       "voiceId": "Voice",
-      "voiceHintOpenAi": "One of OpenAI's voices (marin and cedar sound best), or a custom voice_… id.",
+      "voiceHintOpenAi": "Hear them side by side: the women's voices are close to each other, and the same direction makes them closer still.",
       "voiceHintElevenLabs": "A voice id from your ElevenLabs account: load the list, or paste the id.",
       "loadVoices": "Load voices from ElevenLabs",
       "catalogStub": "Test mode: ElevenLabs is not asked here. Paste a voice id.",
@@ -981,7 +981,7 @@
         "text": "What the host says",
         "play": "Play",
         "making": "Making it…",
-        "played": "{{seconds}} s of speech for {{chars}} characters.",
+        "played": "{{seconds}} s of speech by {{voice}} ({{model}}) for {{chars}} characters.",
         "costOpenAi": "Uses the unsaved changes. Costs what a host moment costs.",
         "costElevenLabs": "Uses the unsaved changes. Spends characters of the ElevenLabs account and counts toward today's limit.",
         "sampleEn": "Hello, this is {{name}} on ARCHE. Up next, a song for everyone listening around the world.",
@@ -1021,7 +1021,24 @@
         "voice_failed": "The voice service said no: {{reason}}",
         "invalid_color": "That is not a colour.",
         "invalid_image": "That picture could not be read (JPEG, PNG or WebP, at most 8 MB)."
-      }
+      },
+      "voiceNames": {
+        "alloy": "neutral, balanced",
+        "ash": "male, clear",
+        "ballad": "male, soft and melodic",
+        "coral": "female, warm and bright",
+        "echo": "male, calm",
+        "fable": "male, storytelling",
+        "nova": "female, bright and lively",
+        "onyx": "male, deep",
+        "sage": "female, calm and soft",
+        "shimmer": "female, soft, a little lower",
+        "verse": "male, expressive",
+        "marin": "female, natural — best quality",
+        "cedar": "male, natural — best quality"
+      },
+      "otherVoiceOpenAi": "A voice id of your own (voice_…)",
+      "otherVoiceElevenLabs": "Another voice id"
     }
   },
   "about": {

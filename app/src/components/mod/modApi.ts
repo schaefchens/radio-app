@@ -294,8 +294,7 @@ export function modError(e: unknown): string {
 
 export const modApi = api;
 
-/** OpenAI's built-in voices (Host\Hosts::OPENAI_VOICES); tts-1 and tts-1-hd lack ballad, marin and cedar. */
-export const VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse', 'marin', 'cedar'] as const;
+export { VOICES } from './voices';
 
 /** Models suggested in the host editor; any other id of the provider works too. */
 export const MODELS: Record<VoiceProvider, readonly string[]> = {

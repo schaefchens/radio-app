@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
 import type { Lang, VoiceProvider } from '@arche/shared';
 import { api } from '@/lib/api';
 import { localDate, localTime } from '@/lib/format';
@@ -138,7 +139,7 @@ function HostState({ host: h }: { host: ModHost }) {
 function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: (text: string, keep?: ModHost) => void; onCancel: () => void }) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
-  const ids = { models: useId(), voices: useId() };
+  const modelsId = useId();
   const [d, setD] = useState<Draft>(() => draftOf(host));
   const [avatar, setAvatar] = useState<string | null>(host?.avatar ?? null);
   const [key, setKey] = useState('');
@@ -310,14 +311,14 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label={t('mod.hosts.model')} hint={eleven ? t('mod.hosts.modelHintElevenLabs') : t('mod.hosts.modelHintOpenAi')}>
-              <input className="field font-mono" list={ids.models} value={d.model} onChange={(e) => set('model', e.target.value.trim())} />
-              <datalist id={ids.models}>
+              <input className="field font-mono" list={modelsId} value={d.model} onChange={(e) => set('model', e.target.value.trim())} />
+              <datalist id={modelsId}>
                 {models.map((m) => (
                   <option key={m} value={m} />
                 ))}
               </datalist>
             </Field>
-            <VoicePicker label={t('mod.hosts.voiceId')} value={d.voice} options={voiceOptions} eleven={eleven} listId={ids.voices} onChange={(v) => set('voice', v)} />
+            <VoicePicker label={t('mod.hosts.voiceId')} value={d.voice} options={voiceOptions} eleven={eleven} onChange={(v) => set('voice', v)} />
           </div>
           {eleven && (
             <div className="flex flex-col gap-1.5">
@@ -342,7 +343,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
             </div>
           )}
           <Check label={t('mod.hosts.otherDe')} checked={d.otherDe} onChange={(v) => set('otherDe', v)} />
-          {d.otherDe && <VoicePicker label={t('mod.hosts.voiceDe')} value={d.voiceDe} options={voiceOptions} eleven={eleven} listId={`${ids.voices}-de`} onChange={(v) => set('voiceDe', v)} />}
+          {d.otherDe && <VoicePicker label={t('mod.hosts.voiceDe')} value={d.voiceDe} options={voiceOptions} eleven={eleven} onChange={(v) => set('voiceDe', v)} />}
 
           {!eleven && (
             <Field label={t('mod.hosts.direction')} hint={d.model.startsWith('tts-1') ? t('mod.hosts.directionIgnored') : t('mod.hosts.directionHint')}>
@@ -393,34 +394,66 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
   );
 }
 
-/** A voice: OpenAI's named ones (or a custom voice_… id), or an ElevenLabs id from the account's list or pasted. */
+/** The list entry that opens the field for an id of one's own. */
+const OTHER_VOICE = '__other';
+
+/**
+ * A voice: every voice there is to choose in a list — OpenAI's thirteen with
+ * a few words about each, or the ElevenLabs account's once loaded — and a
+ * field for anything else (a custom voice_… id, an ElevenLabs id pasted). A
+ * list, not a text field with suggestions: browsers suggest only what matches
+ * the text already in the field, so the other voices never showed.
+ */
 function VoicePicker({
   label,
   value,
   options,
   eleven,
-  listId,
   onChange,
 }: {
   label: string;
   value: string;
   options: VoiceCatalog['voices'];
   eleven: boolean;
-  listId: string;
   onChange: (v: string) => void;
 }) {
   const { t } = useTranslation();
+  const [typing, setTyping] = useState(false);
+  const listed = options.some((o) => o.id === value);
+  const own = typing || (!listed && value !== '');
   const known = options.find((o) => o.id === value);
+  const hint = eleven ? (known ? `${known.name}${known.labels ? ` · ${known.labels}` : ''}` : t('mod.hosts.voiceHintElevenLabs')) : t('mod.hosts.voiceHintOpenAi');
   return (
-    <Field label={label} hint={eleven ? (known ? `${known.name}${known.labels ? ` · ${known.labels}` : ''}` : t('mod.hosts.voiceHintElevenLabs')) : t('mod.hosts.voiceHintOpenAi')}>
-      <input className="field font-mono" list={listId} value={value} spellCheck={false} onChange={(e) => onChange(e.target.value.trim())} />
-      <datalist id={listId}>
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name !== o.id ? `${o.name}${o.labels ? ` · ${o.labels}` : ''}` : undefined}
-          </option>
-        ))}
-      </datalist>
+    <Field label={label} hint={hint}>
+      {options.length > 0 && (
+        <select
+          className="field"
+          value={own ? OTHER_VOICE : value}
+          onChange={(e) => {
+            const v = e.target.value;
+            setTyping(v === OTHER_VOICE);
+            if (v !== OTHER_VOICE) onChange(v);
+          }}
+        >
+          {value === '' && !own && <option value="">{t('mod.common.choose')}</option>}
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {eleven ? `${o.name}${o.labels ? ` · ${o.labels}` : ''}` : `${o.id} – ${t(`mod.hosts.voiceNames.${o.id}`)}`}
+            </option>
+          ))}
+          <option value={OTHER_VOICE}>{t(eleven ? 'mod.hosts.otherVoiceElevenLabs' : 'mod.hosts.otherVoiceOpenAi')}</option>
+        </select>
+      )}
+      {(own || options.length === 0) && (
+        <input
+          className={clsx('field font-mono', options.length > 0 && 'mt-2')}
+          value={value}
+          spellCheck={false}
+          placeholder={eleven ? 'voice id' : 'voice_…'}
+          aria-label={t(eleven ? 'mod.hosts.otherVoiceElevenLabs' : 'mod.hosts.otherVoiceOpenAi')}
+          onChange={(e) => onChange(e.target.value.trim())}
+        />
+      )}
     </Field>
   );
 }
@@ -455,14 +488,16 @@ function TryVoice({ host, draft, keyBody }: { host: ModHost; draft: Draft; keyBo
     setResult(null);
     playing.current?.pause();
     try {
-      const r = await api<{ audio: string; ms: number; provider: string }>('/mod/hosts/try', {
+      const r = await api<{ audio: string; ms: number; provider: string; voice: string; model: string }>('/mod/hosts/try', {
         body: { host_id: host.id, lang, text: text[lang], draft: { ...bodyOf(draft), ...keyBody() } },
       });
-      setResult({ tone: 'ok', text: t('mod.hosts.try.played', { seconds: (r.ms / 1000).toFixed(1), chars: text[lang].length }) });
+      setResult({ tone: 'ok', text: t('mod.hosts.try.played', { seconds: (r.ms / 1000).toFixed(1), chars: text[lang].length, voice: r.voice, model: r.model }) });
       const audio = new Audio(`data:audio/mpeg;base64,${r.audio}`);
       playing.current = audio;
       // The clip was made (and paid for) either way; a browser that will not play it says so in its own way.
-      void audio.play().catch(() => undefined);
+      void Promise.resolve()
+        .then(() => audio.play())
+        .catch(() => undefined);
     } catch (e) {
       setResult({ tone: 'error', text: modError(e) });
     } finally {

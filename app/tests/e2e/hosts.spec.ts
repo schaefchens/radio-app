@@ -78,7 +78,7 @@ test('an admin makes a host in /mod › Hosts, tries its voice and puts it on ai
 
   // Still open: a saved host can be tried — with the stub, a clip comes back at once.
   await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.getByText(/s of speech for \d+ characters\./)).toBeVisible();
+  await expect(page.getByText(/s of speech by coral \(gpt-4o-mini-tts\) for \d+ characters\./)).toBeVisible();
 
   // The program editor's lineup: Noah on air.
   await page.goto('/mod/programs');

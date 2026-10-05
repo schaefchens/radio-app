@@ -686,7 +686,9 @@ final class ModApi
         @unlink($tmp);
         if (!$mp3['ok']) throw new ApiError(502, 'voice_failed', ['reason' => 'no playable audio']);
         $app->store()->audit($this->actor(), 'Host voice tried', $host['id'] . ' ' . $host['name'] . ' (' . $lang . ', ' . mb_strlen($text) . ' characters)');
-        return ['audio' => base64_encode($spoken['bytes']), 'ms' => $mp3['ms'], 'provider' => $spoken['provider']];
+        // Which voice and model spoke: what the editor shows, so a choice can be checked by ear and by name.
+        return ['audio' => base64_encode($spoken['bytes']), 'ms' => $mp3['ms'], 'provider' => $spoken['provider'],
+            'voice' => Hosts::voiceFor($draft, $lang), 'model' => (string) $draft['model']];
     }
 
     // --- users (admin) -----------------------------------------------------------------------------
