@@ -100,6 +100,7 @@ test('contract: generated program files match shared/fixtures', function () {
     $day = json_decode((string) file_get_contents($app->publicPath('program/main/days/' . gmdate('Y-m-d', intdiv($now, 1000)) . '.json')));
     shape($day, fixture('day.json'), 'day', ['programs']);
     check(count($day->played) > 0, 'played list filled');
+    foreach ($day->played as $p) check($p->type !== 'song' || preg_match('/^[\w-]{11}$/', $p->yt) === 1, 'a played song names its video');
     $live = json_decode((string) file_get_contents($app->publicPath('program/main/live.json')));
     shape($live, fixture('live.json'), 'live', []);
     eq(count($live->wall), 1, 'a wall entry was compared');

@@ -216,6 +216,7 @@ final class Publisher
                         default => trim(($p['name'] ?? '') . (($p['place'] ?? '') !== '' ? ', ' . $p['place'] : '')),
                     },
                     'artist' => $it['type'] === 'song' ? (string) ($p['artist'] ?? '') : '',
+                    'yt' => $it['type'] === 'song' ? (string) ($p['yt'] ?? '') : '',
                     'thumb' => $it['type'] === 'song' ? ($p['thumb'] ?? null) : null,
                     'p' => $program !== null ? (string) $program['slug'] : '',
                 ];

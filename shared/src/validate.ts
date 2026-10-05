@@ -251,6 +251,7 @@ function parsePlayed(v: unknown): PlayedEntry | null {
     type: v.type,
     title: str(v.title),
     artist: str(v.artist),
+    yt: str(v.yt),
     thumb: strOrNull(v.thumb),
     p: str(v.p),
   };

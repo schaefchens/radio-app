@@ -31,7 +31,7 @@
     }
   },
   "played": [
-    { "start": 1790114400000, "type": "song", "title": "Good God", "artist": "Chris Tomlin", "thumb": "/media/thumbs/dQw4w9WgXcQ.jpg", "p": "night" },
-    { "start": 1790114900000, "type": "contrib", "title": "Lena, Brazil", "artist": "", "thumb": null, "p": "night" }
+    { "start": 1790114400000, "type": "song", "title": "Good God", "artist": "Chris Tomlin", "yt": "dQw4w9WgXcQ", "thumb": "/media/thumbs/dQw4w9WgXcQ.jpg", "p": "night" },
+    { "start": 1790114900000, "type": "contrib", "title": "Lena, Brazil", "artist": "", "yt": "", "thumb": null, "p": "night" }
   ]
 }

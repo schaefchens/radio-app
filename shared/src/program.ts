@@ -223,6 +223,8 @@ export interface PlayedEntry {
   type: 'song' | 'contrib';
   title: string;
   artist: string;
+  /** The YouTube id of a song or video; '' for a listener's contribution (and in day files written before it). */
+  yt: string;
   thumb: string | null;
   p: string;
 }

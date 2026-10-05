@@ -21,7 +21,15 @@ export function PlayedList({ day }: { day: DayFile }) {
             </div>
             <div className="min-w-0 flex-1">
               {/* An empty title: its sender deleted their account. */}
-              <p className="truncate font-medium">{p.title || (p.type === 'song' ? '' : t('schedule.contribution'))}</p>
+              <p className="truncate font-medium">
+                {p.yt ? (
+                  <a href={`https://www.youtube.com/watch?v=${p.yt}`} target="_blank" rel="noopener noreferrer" className="hover:underline" title={t('nowPlaying.openYouTube', { title: p.title })}>
+                    {p.title}
+                  </a>
+                ) : (
+                  p.title || (p.type === 'song' ? '' : t('schedule.contribution'))
+                )}
+              </p>
               <p className="truncate text-xs text-ink-muted">
                 {p.artist}
                 {p.artist && day.programs[p.p] ? ' · ' : ''}

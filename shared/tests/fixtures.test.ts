@@ -67,6 +67,9 @@ describe('program file fixtures', () => {
     const day = parseDayFile(load('day.json'));
     expect(day?.blocks).toHaveLength(2);
     expect(day?.played).toHaveLength(2);
+    // "Was lief" links a song to YouTube; a listener's contribution has nothing there.
+    expect(day?.played.map((p) => p.yt)).toEqual(['dQw4w9WgXcQ', '']);
+    expect(parseDayFile({ ...(load('day.json') as object), played: [{ start: 1, type: 'song', title: 'Old file' }] })?.played[0]?.yt).toBe('');
     expect(day?.programs.prayer?.description.de).not.toBe('');
     expect(day?.programs.prayer?.format).toBe('prayer');
 
