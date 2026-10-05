@@ -5,6 +5,7 @@ import { submissionLabel } from '@/i18n';
 import { localDate } from '@/lib/format';
 import { remindersAvailable } from '@/lib/reminders';
 import { ReminderToggle } from './ReminderToggle';
+import { HostFace } from '@/components/home/TodayProgram';
 
 interface Props {
   program: DayProgram | null;
@@ -26,6 +27,25 @@ export function ProgramSheet({ program, channel, next, onClose }: Props) {
             <div className="h-1.5 w-16 rounded-full" style={{ background: program.color }} />
             {program.subtitle[lang] && <p className="text-accent">{program.subtitle[lang]}</p>}
             {program.description[lang] && <p className="text-sm leading-relaxed text-ink">{program.description[lang]}</p>}
+            {program.hosts.length > 0 && (
+              <div>
+                <p className="label">{t(program.hosts.length === 1 ? 'schedule.host' : 'schedule.hosts')}</p>
+                <ul className="flex flex-col gap-2">
+                  {program.hosts.map((h, i) => (
+                    <li key={`${i}-${h.name}`} className="flex items-start gap-3">
+                      <HostFace host={h} size="h-10 w-10 shrink-0 text-sm" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold" style={{ color: h.color }}>
+                          {h.name}
+                        </p>
+                        {(h.about[lang] || h.about.en) && <p className="text-xs leading-snug text-ink-muted">{h.about[lang] || h.about.en}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {program.hosts.length > 1 && <p className="mt-1.5 text-xs text-ink-faint">{t('schedule.hostsRotate')}</p>}
+              </div>
+            )}
             <p className="text-sm text-ink-muted">
               {next === null
                 ? t('schedule.noneSoon')

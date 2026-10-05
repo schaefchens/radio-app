@@ -26,6 +26,7 @@ const program = (format: ProgramRef['format']): ProgramRef => ({
   stage: { mode: 'ambient', image: null, tagline: { en: '', de: '' } },
   allowed: [],
   format,
+  voicedBy: ['openai'],
 });
 
 /** What the minute file says: the program on air and what it takes now. */

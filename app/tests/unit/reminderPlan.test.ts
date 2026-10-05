@@ -18,7 +18,7 @@ import {
  */
 
 const TZ = 'Europe/Berlin';
-const MAIN: ChannelInfo = { id: 'main', name: { en: 'Arche Radio', de: 'Arche Radio' }, main: true, tz: TZ, color: '#000', host: { name: 'Noah', avatar: null }, evergreen: null };
+const MAIN: ChannelInfo = { id: 'main', name: { en: 'Arche Radio', de: 'Arche Radio' }, main: true, tz: TZ, color: '#000', host: { name: 'Noah', avatar: null, color: '#2f7bff', about: { en: '', de: '' }, voice: 'openai' }, evergreen: null };
 
 /** UTC ms of a Berlin wall-clock time (tries both offsets the zone has). */
 function berlin(date: string, hm: string): number {
@@ -32,7 +32,7 @@ function berlin(date: string, hm: string): number {
 }
 
 function program(id: string, de = id, en = id): DayProgram {
-  return { id, title: { en, de }, subtitle: { en: '', de: '' }, description: { en: '', de: '' }, color: '#000', stage: {} as DayProgram['stage'], allowed: [], format: 'music' };
+  return { id, title: { en, de }, subtitle: { en: '', de: '' }, description: { en: '', de: '' }, color: '#000', stage: {} as DayProgram['stage'], allowed: [], format: 'music', voicedBy: [], hosts: [] };
 }
 
 const PROGRAMS = { musik: program('musik', 'Musik', 'Music'), gebet: program('gebet', 'Gebetsstunde', 'Prayer hour') };

@@ -19,6 +19,7 @@ const prayerHour: ProgramRef = {
   stage: { mode: 'ambient', image: null, tagline: { en: '', de: '' } },
   allowed: ['prayer', 'intercession'],
   format: 'prayer',
+  voicedBy: ['openai'],
 };
 
 afterEach(() => {

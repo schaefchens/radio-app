@@ -13,8 +13,11 @@ final class Seeder
 {
     public static function ensureDefaults(Store $store, int $nowMs): void
     {
-        if ((int) $store->value('SELECT COUNT(*) FROM channels') > 0) return;
         $t = intdiv($nowMs, 1000);
+        if ((int) $store->value('SELECT COUNT(*) FROM channels') > 0) {
+            self::ensureHost($store, $t);
+            return;
+        }
 
         $channelId = $store->insert('channels', [
             'slug' => 'main',
@@ -67,5 +70,29 @@ final class Seeder
             'fallback_program_id' => $programId,
         ], 'id = ?', [$channelId]);
         $store->audit('system', 'Seeded defaults', 'channel main, program live, plan Standard');
+        self::ensureHost($store, $t);
+    }
+
+    /**
+     * Hope, the station's first host (OpenAI, coral), on the main channel's
+     * lineup — when there is no host at all: a fresh install (migration 13
+     * runs before the channel exists, so it has none to copy). Not while a
+     * test replays migrations up to one before the hosts table.
+     */
+    private static function ensureHost(Store $store, int $t): void
+    {
+        if ($store->value("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'hosts'") === null) return;
+        if ((int) $store->value('SELECT COUNT(*) FROM hosts') > 0) return;
+        $channel = $store->value('SELECT id FROM channels ORDER BY is_main DESC, active DESC, sort, id LIMIT 1');
+        $hostId = $store->insert('hosts', [
+            'name' => 'Hope',
+            'provider' => 'openai',
+            'model' => 'gpt-4o-mini-tts',
+            'voices' => '{"en":"coral","de":"coral"}',
+            'instructions' => 'Warm and calm, like a Christian radio host.',
+            'created' => $t,
+            'updated' => $t,
+        ]);
+        if ($channel !== null) $store->insert('host_lineups', ['host_id' => $hostId, 'channel_id' => (int) $channel, 'role' => 'main', 'sort' => 0]);
     }
 }

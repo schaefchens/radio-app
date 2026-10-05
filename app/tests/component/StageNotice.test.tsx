@@ -14,6 +14,7 @@ const sermons: ProgramRef = {
   stage: { mode: 'ambient', image: null, tagline: { en: '', de: '' } },
   allowed: ['preaching'],
   format: 'preaching',
+  voicedBy: ['openai'],
 };
 const grace: GroupNotice = {
   name: 'Grace Chapel',
@@ -28,7 +29,7 @@ const grace: GroupNotice = {
 function hostWith(notice: GroupNotice | null): TimelineItem {
   return {
     id: 'h1', type: 'host', start: 0, dur: 18_000, p: 'predigt', kind: 'break', audio: { en: '/media/host/b.mp3' },
-    text: { en: 'More from Grace Chapel: the links are in the app now.' }, voices: [], prayers: [], notice,
+    text: { en: 'More from Grace Chapel: the links are in the app now.' }, voices: [], prayers: [], notice, host: null,
   };
 }
 

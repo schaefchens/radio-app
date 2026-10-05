@@ -122,7 +122,9 @@ final class Drafter
         $base = ['program_id' => (int) $program['id'], 'block_start' => $block['start'], 'block_end' => $block['end']];
         $recent = $this->app->timeline()->recent($cid, self::RECENT);
         $prev = $recent[0] ?? null;
-        $hostOn = $settings['host']['enabled'] && $this->app->hostBreaks()->available();
+        // Only with someone in its lineup who can speak: a request nobody can
+        // read out would be taken, fail and be given back over and over.
+        $hostOn = $settings['host']['enabled'] && $this->app->hostBreaks()->available($channel, $program);
 
         // 1. A new program starts: the host opens it.
         if (($prev['program_id'] ?? null) !== (int) $program['id'] && $hostOn && $settings['host']['intro']

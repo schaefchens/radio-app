@@ -17,7 +17,17 @@
       "color": "#5b4bd6",
       "stage": { "mode": "ambient", "image": null, "tagline": { "en": "", "de": "" } },
       "allowed": ["song"],
-      "format": "music"
+      "format": "music",
+      "voicedBy": ["openai"],
+      "hosts": [
+        {
+          "name": "Hope",
+          "avatar": "/media/stage/host-1a2b.webp",
+          "color": "#2f7bff",
+          "about": { "en": "Your companion through the day.", "de": "Deine Begleiterin durch den Tag." },
+          "voice": "openai"
+        }
+      ]
     },
     "prayer": {
       "id": "prayer",
@@ -27,7 +37,12 @@
       "color": "#1d5ff5",
       "stage": { "mode": "image", "image": "/media/stage/77aa.webp", "tagline": { "en": "", "de": "" } },
       "allowed": ["prayer"],
-      "format": "prayer"
+      "format": "prayer",
+      "voicedBy": ["openai", "elevenlabs"],
+      "hosts": [
+        { "name": "Hope", "avatar": null, "color": "#2f7bff", "about": { "en": "", "de": "" }, "voice": "openai" },
+        { "name": "David", "avatar": null, "color": "#e0763a", "about": { "en": "Mornings and requests.", "de": "Morgens und eure Wünsche." }, "voice": "elevenlabs" }
+      ]
     }
   },
   "played": [

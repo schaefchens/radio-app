@@ -265,6 +265,16 @@
 .stage-notice .stage-prayer-share {
   text-decoration: none;
 }
+/* A few words about the host speaking, under their name (full stage only). */
+.stage-host-about {
+  margin: 0;
+  max-width: 30rem;
+  color: rgb(var(--ink-muted));
+  font-size: 13px;
+  line-height: 1.35;
+  text-wrap: balance;
+  text-shadow: 0 1px 6px #0006;
+}
 /* A page of the hour's requests — what there is to pray for. Two on a phone. */
 .stage-wall-page {
   display: grid;
@@ -1035,6 +1045,14 @@
 .host-message strong {
   font-size: 14px;
 }
+/* A few words about the host, under their name. */
+.host-about {
+  display: block;
+  margin-top: 2px;
+  color: rgb(var(--ink-faint));
+  font-size: 11px;
+  line-height: 1.35;
+}
 .host-message p {
   margin: 8px 0 0;
   color: rgb(var(--ink-muted));
@@ -1582,7 +1600,12 @@
      host's face and words and the few words about them do not. */
   .stage-host.has-notice .stage-host-avatar,
   .stage-host.has-notice .stage-host-text,
+  .stage-host.has-notice .stage-host-about,
   .stage-notice-text {
+    display: none;
+  }
+  /* A phone's stage has room for the host's words or the few about them: the words. */
+  .stage-host-about {
     display: none;
   }
   .stage-notice .stage-prayer-share {

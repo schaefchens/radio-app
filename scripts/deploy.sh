@@ -72,8 +72,6 @@ SERVER_ENV_KEYS=(
   SITE_BASE_URL
   ANTHROPIC_KEY OPENAI_KEY YOUTUBE_API_KEY
   AI_MODE AI_TEXT_PROVIDER HOST_MODEL MODERATION_MODEL OPENAI_HOST_MODEL OPENAI_MODERATION_MODEL AI_DAILY_BUDGET_USD
-  TTS_PROVIDER ELEVENLABS_API_KEY ELEVENLABS_MODEL ELEVENLABS_VOICE_EN ELEVENLABS_VOICE_DE
-  ELEVENLABS_MAX_CHARS_PER_DAY
   CRON_KEY NODE_SECRET IDENTITY_PEPPER ADMIN_SETUP_KEY TOKEN_SIGNING_KEY TOKEN_PUBLIC_KEY
   REALTIME_DRIVER REALTIME_STATIC_URL HETZNER_CLOUD_TOKEN REALTIME_SLOTS REALTIME_MAX_NODES
   REALTIME_SERVER_TYPE REALTIME_FALLBACK_TYPE REALTIME_LOCATION REALTIME_FIREWALL_ID REALTIME_ACME_EMAIL REALTIME_SSH_KEY
@@ -516,12 +514,12 @@ quote_env_value() {
 }
 
 # A key the server does not use does not go up: the Hetzner token only with
-# the hcloud driver, the ElevenLabs key only when the voice is switched to it.
-# A leaked server .env then holds no more than the running station needs.
+# the hcloud driver. (A host's ElevenLabs key is entered in /mod › Hosts and
+# kept sealed in the database — never in .env.) A leaked server .env then
+# holds no more than the running station needs.
 server_needs() { # KEY
   case "$1" in
     HETZNER_CLOUD_TOKEN) [ "$(env_value "$ENV_FILE" REALTIME_DRIVER)" = hcloud ] ;;
-    ELEVENLABS_API_KEY) [ "$(env_value "$ENV_FILE" TTS_PROVIDER)" = elevenlabs ] ;;
     BUNNY_API_KEY) env_has "$ENV_FILE" BUNNY_PULL_ZONE_ID ;;
     *) return 0 ;;
   esac

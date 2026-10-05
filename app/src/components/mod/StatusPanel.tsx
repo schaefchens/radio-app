@@ -25,7 +25,14 @@ interface StatusData {
   spentTodayUsd: number;
   budgetUsd: number;
   /** '' = no text model: templates only, submissions closed. */
-  ai: { text: '' | 'stub' | 'anthropic' | 'openai'; hostModel: string; moderationModel: string; voice: 'openai' | 'elevenlabs' | 'stub' };
+  ai: {
+    text: '' | 'stub' | 'anthropic' | 'openai';
+    hostModel: string;
+    moderationModel: string;
+    voice: 'openai' | 'elevenlabs' | 'stub';
+    /** Every host's voice (absent from a server older than hosts). */
+    voices?: { id: number; name: string; provider: 'openai' | 'elevenlabs'; model: string; active: boolean; speaks: boolean; restingUntil: number; charsToday: number; cap: number; lastError: string }[];
+  };
   realtime: { driver: string; slots: string[]; nodes: { slot: string; state: string; connections: number; last_report: number | null; error: string }[] };
   /** base '' = the app reads from this site; api = the server can purge and count (absent from an older server). */
   cdn?: { base: string; api: boolean; queued: number; counts: Record<string, { minute: number; n: number } | null> };
@@ -91,9 +98,35 @@ export function StatusPanel() {
         ) : (
           <p className="text-sm">
             {t('mod.status.textModel', { provider: PROVIDERS[data.ai.text], host: data.ai.hostModel || '—', moderation: data.ai.moderationModel || '—' })}
-            {' · '}
-            {t('mod.status.voice', { provider: PROVIDERS[data.ai.voice] })}
+            {!data.ai.voices && (
+              <>
+                {' · '}
+                {t('mod.status.voice', { provider: PROVIDERS[data.ai.voice] })}
+              </>
+            )}
           </p>
+        )}
+        {data.ai.voices && (
+          <ul className="flex flex-col gap-1 text-sm">
+            {data.ai.voices.map((v) => (
+              <li key={v.id} className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{v.name}</span>
+                <span className="text-ink-muted">
+                  {PROVIDERS[v.provider]} · {v.model} · {v.cap > 0 ? t('mod.hosts.charsOf', { used: v.charsToday, cap: v.cap }) : t('mod.hosts.chars', { used: v.charsToday })}
+                </span>
+                {!v.active ? (
+                  <Pill>{t('mod.common.inactive')}</Pill>
+                ) : v.restingUntil > 0 ? (
+                  <Pill tone="warn">{t('mod.hosts.state.resting', { time: localTime(v.restingUntil * 1000, lang) })}</Pill>
+                ) : v.speaks ? (
+                  <Pill tone="good">{t('mod.hosts.state.speaks')}</Pill>
+                ) : (
+                  <Pill tone="bad">{t('mod.hosts.state.silent')}</Pill>
+                )}
+                {v.lastError && <span className="w-full text-xs text-ink-faint">{v.lastError}</span>}
+              </li>
+            ))}
+          </ul>
         )}
         <p className="text-sm">{t('mod.status.spend', { spent: data.spentTodayUsd.toFixed(2), budget: data.budgetUsd.toFixed(2) })}</p>
         <div className="h-2 overflow-hidden rounded-full bg-line/30">

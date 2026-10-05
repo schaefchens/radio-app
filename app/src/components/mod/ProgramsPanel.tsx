@@ -11,6 +11,7 @@ import { OpeningPrayers } from './OpeningPrayers';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { submissionLabel } from '@/i18n';
 import { allowedForFormat } from './programFormat';
+import { HostLineup } from './HostLineup';
 
 /** Suggested videos only in a video program: the server drops their types anywhere else. */
 const TYPES: readonly SubmissionType[] = ['song', 'story', 'testimony', 'greeting', 'prayer', ...VIDEO_SUBMISSION_TYPES];
@@ -50,6 +51,8 @@ function draftOf(p: ModProgram | null): Draft {
     // A server older than a setting (during a deploy) answers without it.
     settings: { ...DEFAULT_SETTINGS, ...p?.settings },
     active: p ? Number(p.active) === 1 : true,
+    // Its hosts only when the server sent them: from an older one, [] would empty the lineup.
+    ...(p === null ? { hosts: [] } : p.hosts ? { hosts: p.hosts } : {}),
   };
 }
 
@@ -303,6 +306,12 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           </Field>
         </div>
         {prayer && <p className="text-xs text-ink-faint">{t('mod.programs.prayer.intakeHint')}</p>}
+        {d.hosts && (
+          <div className="flex flex-col gap-2 border-t border-line/20 pt-3">
+            <p className="label">{t('mod.hosts.lineup.programTitle')}</p>
+            <HostLineup value={d.hosts} onChange={(v) => set('hosts', v)} emptyHint={t('mod.hosts.lineup.emptyProgram')} />
+          </div>
+        )}
       </div>
 
       {video && (

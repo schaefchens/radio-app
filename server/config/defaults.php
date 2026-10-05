@@ -17,15 +17,9 @@ return [
     'MODERATION_MODEL' => 'claude-opus-5',
     'OPENAI_HOST_MODEL' => 'gpt-5-mini',
     'OPENAI_MODERATION_MODEL' => 'gpt-5-mini',
+    // Jingles made with OpenAI's voice in /mod. The hosts' voices — OpenAI or
+    // ElevenLabs, model, voice, key, a daily cap — are set per host in /mod › Hosts.
     'TTS_MODEL' => 'gpt-4o-mini-tts',
-    // openai | elevenlabs. ElevenLabs is opt-in and hard-capped per day: the
-    // account behind ELEVENLABS_API_KEY is a small one. A cap of 0 means it is
-    // never used, whatever TTS_PROVIDER says (OpenAI takes over).
-    'TTS_PROVIDER' => 'openai',
-    'ELEVENLABS_MODEL' => 'eleven_flash_v2_5',
-    'ELEVENLABS_VOICE_EN' => '',
-    'ELEVENLABS_VOICE_DE' => '',
-    'ELEVENLABS_MAX_CHARS_PER_DAY' => '0',
     'STT_MODEL' => 'gpt-4o-transcribe',
     'STATION_LANGS' => 'en,de',
     // Rough USD cap across all AI calls per UTC day. Host breaks and

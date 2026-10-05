@@ -75,6 +75,11 @@ export const isVideoFormat = (v: unknown): v is VideoFormat => VIDEO_FORMATS.inc
 
 export const isVideoSubmissionType = (v: unknown): v is VideoSubmissionType => VIDEO_SUBMISSION_TYPES.includes(v as VideoSubmissionType);
 
+/** The services a host's voice comes from (server/app/Host/Hosts.php
+ *  PROVIDERS). Listeners are told when ElevenLabs reads out what they send. */
+export const VOICE_PROVIDERS = ['openai', 'elevenlabs'] as const;
+export type VoiceProvider = (typeof VOICE_PROVIDERS)[number];
+
 export const SUBMISSION_STATES = ['open', 'closing', 'closed'] as const;
 export type SubmissionState = (typeof SUBMISSION_STATES)[number];
 

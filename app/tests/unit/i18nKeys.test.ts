@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { SUBMISSION_TYPES, VIDEO_FORMATS, isVideoSubmissionType } from '@arche/shared';
+import { SUBMISSION_TYPES, VIDEO_FORMATS, VOICE_PROVIDERS, isVideoSubmissionType } from '@arche/shared';
 import en from '@/i18n/en.json';
 import de from '@/i18n/de.json';
 
@@ -68,6 +68,12 @@ describe('i18n', () => {
       ...['invalid_name', 'about_too_long', 'invalid_link', 'too_many_links', 'invalid_channel', 'too_many_channels', 'too_many_names', 'channel_in_group', 'channel_handle', 'channel_unknown'].map(
         (code) => `mod.groups.errors.${code}`,
       ),
+      // /mod › Hosts: each voice service by name, and modError's map of the server's host errors.
+      ...VOICE_PROVIDERS.map((p) => `mod.hosts.providers.${p}`),
+      ...[
+        'host_name', 'host_about', 'host_style', 'host_instructions', 'host_model', 'host_voice', 'host_key', 'host_provider', 'host_lineup',
+        'host_in_use', 'last_host', 'host_try_text', 'host_no_room', 'voice_timeout', 'voice_failed', 'invalid_color', 'invalid_image',
+      ].map((code) => `mod.hosts.errors.${code}`),
     ];
     expect(built.filter((k) => !all.has(k))).toEqual([]);
   });

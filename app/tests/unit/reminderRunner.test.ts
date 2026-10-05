@@ -12,8 +12,8 @@ import type { ReminderIntent } from '@/lib/reminderPlan';
  */
 
 const TZ = 'Europe/Berlin';
-const MAIN: ChannelInfo = { id: 'main', name: { en: 'Arche Radio', de: 'Arche Radio' }, main: true, tz: TZ, color: '#000', host: { name: 'Noah', avatar: null }, evergreen: null };
-const GEBET: DayProgram = { id: 'gebet', title: { en: 'Prayer hour', de: 'Gebetsstunde' }, subtitle: { en: '', de: '' }, description: { en: '', de: '' }, color: '#000', stage: {} as DayProgram['stage'], allowed: [], format: 'prayer' };
+const MAIN: ChannelInfo = { id: 'main', name: { en: 'Arche Radio', de: 'Arche Radio' }, main: true, tz: TZ, color: '#000', host: { name: 'Noah', avatar: null, color: '#2f7bff', about: { en: '', de: '' }, voice: 'openai' }, evergreen: null };
+const GEBET: DayProgram = { id: 'gebet', title: { en: 'Prayer hour', de: 'Gebetsstunde' }, subtitle: { en: '', de: '' }, description: { en: '', de: '' }, color: '#000', stage: {} as DayProgram['stage'], allowed: [], format: 'prayer', voicedBy: [], hosts: [] };
 
 const NOW = Date.UTC(2026, 9, 7, 8, 0); // 10:00 in Berlin
 const SKEW = 4_000; // the server is 4 s ahead of this phone

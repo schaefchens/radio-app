@@ -4,10 +4,13 @@ import { deviceHeaders } from './device';
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
-  constructor(status: number, code: string) {
+  /** The rest of the answer — e.g. why a voice provider said no (`reason`). */
+  readonly detail: Record<string, unknown>;
+  constructor(status: number, code: string, detail: Record<string, unknown> = {}) {
     super(code);
     this.status = status;
     this.code = code;
+    this.detail = detail;
   }
 }
 
@@ -48,7 +51,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   }
   if (!res.ok) {
     const code = (data as { error?: string } | null)?.error ?? `http_${res.status}`;
-    throw new ApiError(res.status, code);
+    throw new ApiError(res.status, code, data !== null && typeof data === 'object' ? (data as Record<string, unknown>) : {});
   }
   return data as T;
 }

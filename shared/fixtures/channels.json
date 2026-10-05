@@ -9,7 +9,13 @@
       "main": true,
       "tz": "Europe/Berlin",
       "color": "#2f7bff",
-      "host": { "name": "Hope", "avatar": "/media/stage/host-1a2b.webp" },
+      "host": {
+        "name": "Hope",
+        "avatar": "/media/stage/host-1a2b.webp",
+        "color": "#2f7bff",
+        "about": { "en": "Your companion through the day.", "de": "Deine Begleiterin durch den Tag." },
+        "voice": "openai"
+      },
       "evergreen": "/program/main/evergreen-5f3c2a.json"
     },
     {
@@ -18,7 +24,7 @@
       "main": false,
       "tz": "Europe/Berlin",
       "color": "#8e4dff",
-      "host": { "name": "Hope", "avatar": null },
+      "host": { "name": "Hope", "avatar": null, "color": "#2f7bff", "about": { "en": "", "de": "" }, "voice": "openai" },
       "evergreen": null
     }
   ],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche;
 
 use Arche\Ai\Claude;
+use Arche\Ai\ElevenLabs;
 use Arche\Ai\OpenAi;
 use Arche\Ai\OpenAiText;
 use Arche\Ai\StubOpenAi;
@@ -14,6 +15,7 @@ use Arche\Ai\Voice;
 use Arche\Cdn\Bunny;
 use Arche\Host\HostBreaks;
 use Arche\Host\HostWriter;
+use Arche\Host\Hosts;
 use Arche\Identity\Erasure;
 use Arche\Identity\Identities;
 use Arche\Identity\RateLimit;
@@ -129,6 +131,16 @@ final class App
     public function voice(): Voice
     {
         return $this->service('voice', Voice::class, fn() => new Voice($this));
+    }
+
+    public function elevenLabs(): ElevenLabs
+    {
+        return $this->service('elevenLabs', ElevenLabs::class, fn() => new ElevenLabs($this));
+    }
+
+    public function hosts(): Hosts
+    {
+        return $this->service('hosts', Hosts::class, fn() => new Hosts($this));
     }
 
     public function media(): Media

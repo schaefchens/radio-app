@@ -276,13 +276,17 @@ export function NameOrAnonymous({
 
 /**
  * What sending means, right above the button: submissions can reveal faith or
- * health (Art. 9 GDPR), so the consent has to be explicit and informed.
+ * health (Art. 9 GDPR), so the consent has to be explicit and informed. When
+ * a host of the program on air speaks with ElevenLabs, the words read out go
+ * there too: then it says so.
  */
 export function PrivacyNote() {
   const { t } = useTranslation();
+  const elevenLabs = useRadio((s) => s.engine.program?.voicedBy.includes('elevenlabs') ?? false);
   return (
     <p className="text-xs leading-snug text-ink-faint">
-      {t('submit.privacyNote')}{' '}
+      {t('submit.privacyNote')}
+      {elevenLabs && ` ${t('submit.privacyElevenLabs')}`}{' '}
       <Link to="/datenschutz" className="underline">
         {t('submit.privacyLink')}
       </Link>

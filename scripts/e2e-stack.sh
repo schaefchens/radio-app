@@ -61,8 +61,6 @@ YOUTUBE_API_KEY=e2e-fake-key
 YOUTUBE_API_BASE=http://fakeyt:8080/youtube/v3
 REALTIME_DRIVER=static
 REALTIME_STATIC_URL=ws://localhost:8797/ws
-TTS_PROVIDER=openai
-ELEVENLABS_MAX_CHARS_PER_DAY=0
 # Every test browser comes from the same Docker address.
 SUBMISSIONS_PER_IP_HOUR=100000
 IDENTITIES_PER_IP_DAY=100000

@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { api } from '@/lib/api';
 import { useApi } from './useApi';
 import { useOverview } from './overview';
-import { modError, VOICES, type ModChannel, type PlansData } from './modApi';
+import { modError, type ModChannel, type PlansData } from './modApi';
 import { Check, Field, Loading, Notice, Pill, Section } from './ui';
+import { HostLineup } from './HostLineup';
 
 const FALLBACK_ZONES = ['Europe/Berlin', 'Europe/London', 'Europe/Vienna', 'Europe/Zurich', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'America/Sao_Paulo', 'Africa/Lagos', 'Africa/Nairobi', 'Asia/Kolkata', 'Asia/Singapore', 'Australia/Sydney', 'UTC'];
 const ZONES: string[] = (() => {
@@ -48,14 +49,11 @@ export function ChannelsPanel() {
               ) : (
                 <div className="card flex flex-wrap items-center gap-3 p-3">
                   <span className="h-10 w-2 rounded-full" style={{ background: c.color }} />
-                  {c.host_avatar && <img src={c.host_avatar} alt="" className="h-10 w-10 rounded-full object-cover" />}
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">
                       {i18n.language === 'de' ? c.name_de : c.name_en} <span className="text-xs text-ink-faint">{c.slug}</span>
                     </p>
-                    <p className="text-xs text-ink-muted">
-                      {c.timezone} · {c.host_name}
-                    </p>
+                    <p className="text-xs text-ink-muted">{c.timezone}</p>
                     <div className="mt-1 flex gap-1">
                       {Number(c.is_main) === 1 && <Pill tone="good">{t('mod.channels.main')}</Pill>}
                       {Number(c.active) !== 1 && <Pill>{t('mod.common.inactive')}</Pill>}
@@ -141,7 +139,6 @@ function ChannelEditor({ channel, onDone, onCancel }: { channel: ModChannel; onD
   const plans = useApi<PlansData>(`/mod/channels/${channel.id}/plans`);
   const [c, setC] = useState<ModChannel>(channel);
   const [busy, setBusy] = useState(false);
-  const [avatarError, setAvatarError] = useState<string | null>(null);
   const set = <K extends keyof ModChannel>(k: K, v: ModChannel[K]): void => setC((x) => ({ ...x, [k]: v }));
 
   const save = async (): Promise<void> => {
@@ -156,12 +153,10 @@ function ChannelEditor({ channel, onDone, onCancel }: { channel: ModChannel; onD
           color: c.color,
           is_main: Number(c.is_main) === 1,
           active: Number(c.active) === 1,
-          host_name: c.host_name,
-          host_voice_en: c.host_voice_en,
-          host_voice_de: c.host_voice_de,
-          host_style: c.host_style,
           default_day_plan_id: c.default_day_plan_id,
           fallback_program_id: c.fallback_program_id,
+          // Only when the server sent a lineup: an older one answers without, and [] would empty it.
+          ...(c.hosts ? { hosts: c.hosts } : {}),
         },
       });
       onDone(t('mod.common.saved'));
@@ -169,18 +164,6 @@ function ChannelEditor({ channel, onDone, onCancel }: { channel: ModChannel; onD
       onDone(modError(e), 'error');
     } finally {
       setBusy(false);
-    }
-  };
-
-  const upload = async (file: File): Promise<void> => {
-    setAvatarError(null);
-    try {
-      const form = new FormData();
-      form.set('image', file);
-      const r = await api<{ channel: ModChannel }>(`/mod/channels/${channel.id}/avatar`, { form });
-      set('host_avatar', r.channel.host_avatar);
-    } catch (e) {
-      setAvatarError(modError(e));
     }
   };
 
@@ -198,38 +181,6 @@ function ChannelEditor({ channel, onDone, onCancel }: { channel: ModChannel; onD
         </Field>
         <Field label={t('mod.channels.color')}>
           <input type="color" className="h-10 w-20 rounded-lg border border-line/30 bg-soft" value={c.color} onChange={(e) => set('color', e.target.value)} />
-        </Field>
-        <Field label={t('mod.channels.hostName')}>
-          <input className="field" maxLength={40} value={c.host_name} onChange={(e) => set('host_name', e.target.value)} />
-        </Field>
-        <div>
-          <p className="label">{t('mod.channels.avatar')}</p>
-          <div className="flex items-center gap-3">
-            {c.host_avatar && <img src={c.host_avatar} alt="" className="h-12 w-12 rounded-full object-cover" />}
-            <input type="file" accept="image/*" className="text-sm" aria-label={t('mod.channels.uploadAvatar')} onChange={(e) => e.target.files?.[0] && void upload(e.target.files[0])} />
-          </div>
-          {avatarError && <p className="mt-1 text-xs text-heart">{avatarError}</p>}
-        </div>
-        <Field label={t('mod.channels.voiceEn')}>
-          <select className="field" value={c.host_voice_en} onChange={(e) => set('host_voice_en', e.target.value)}>
-            {VOICES.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={t('mod.channels.voiceDe')}>
-          <select className="field" value={c.host_voice_de} onChange={(e) => set('host_voice_de', e.target.value)}>
-            {VOICES.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={t('mod.channels.hostStyle')}>
-          <textarea className="field min-h-[72px]" maxLength={400} value={c.host_style} onChange={(e) => set('host_style', e.target.value)} />
         </Field>
         <div className="flex flex-col gap-3">
           <Field label={t('mod.channels.defaultPlan')}>
@@ -257,6 +208,12 @@ function ChannelEditor({ channel, onDone, onCancel }: { channel: ModChannel; onD
           </Field>
         </div>
       </div>
+      {c.hosts && (
+        <div className="card-inset flex flex-col gap-2 p-3">
+          <p className="label">{t('mod.hosts.lineup.channelTitle')}</p>
+          <HostLineup value={c.hosts} onChange={(v) => set('hosts', v)} emptyHint={t(Number(c.is_main) === 1 ? 'mod.hosts.lineup.emptyMain' : 'mod.hosts.lineup.emptyChannel')} />
+        </div>
+      )}
       {plans.data === null && <Loading />}
       <div className="flex flex-wrap gap-4">
         <Check label={t('mod.channels.main')} checked={Number(c.is_main) === 1} onChange={(v) => set('is_main', v ? 1 : 0)} />

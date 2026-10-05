@@ -596,6 +596,68 @@ final class Schema
             CREATE INDEX IF NOT EXISTS library_group ON library_items(group_id) WHERE group_id IS NOT NULL;
             CREATE INDEX IF NOT EXISTS library_yt_channel ON library_items(yt_channel) WHERE yt_channel IS NOT NULL;
             SQL,
+            // 13 — on-air hosts (Host\Hosts): each with its own persona,
+            // voice provider and key, and the lineups of channels and
+            // programs (on-air hosts, then fallbacks). Every distinct host the
+            // channels had becomes one (same name, picture, voices and style =
+            // one host) and that channel's lineup; the channel columns stay,
+            // unused, for /mod tabs opened before the deploy. A break's host
+            // lives in its context (`host_id`): no ALTER, because tests replay
+            // older migrations on a current database and SQLite has no ADD
+            // COLUMN IF NOT EXISTS — the seeds are guarded for the same reason.
+            // AUTOINCREMENT: a deleted host's id is never handed to a new one
+            // (lineups, show picks and break contexts point at it). No new plan
+            // version: nothing planned changes, voiced drafts stay.
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS hosts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              avatar TEXT,
+              color TEXT NOT NULL DEFAULT '#2f7bff',
+              about_en TEXT NOT NULL DEFAULT '',
+              about_de TEXT NOT NULL DEFAULT '',
+              style TEXT NOT NULL DEFAULT '',
+              provider TEXT NOT NULL DEFAULT 'openai' CHECK (provider IN ('openai', 'elevenlabs')),
+              api_key TEXT NOT NULL DEFAULT '',
+              key_hint TEXT NOT NULL DEFAULT '',
+              model TEXT NOT NULL DEFAULT '',
+              voices TEXT NOT NULL DEFAULT '{}',
+              instructions TEXT NOT NULL DEFAULT '',
+              settings TEXT NOT NULL DEFAULT '{}',
+              max_chars_day INTEGER NOT NULL DEFAULT 0,
+              active INTEGER NOT NULL DEFAULT 1,
+              resting_until INTEGER NOT NULL DEFAULT 0,
+              fail_count INTEGER NOT NULL DEFAULT 0,
+              last_error TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS host_lineups (
+              host_id INTEGER NOT NULL REFERENCES hosts(id) ON DELETE CASCADE,
+              channel_id INTEGER REFERENCES channels(id) ON DELETE CASCADE,
+              program_id INTEGER REFERENCES programs(id) ON DELETE CASCADE,
+              role TEXT NOT NULL DEFAULT 'main' CHECK (role IN ('main', 'fallback')),
+              sort INTEGER NOT NULL DEFAULT 0,
+              CHECK ((channel_id IS NULL) <> (program_id IS NULL))
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS host_lineups_channel ON host_lineups(channel_id, host_id) WHERE channel_id IS NOT NULL;
+            CREATE UNIQUE INDEX IF NOT EXISTS host_lineups_program ON host_lineups(program_id, host_id) WHERE program_id IS NOT NULL;
+            CREATE INDEX IF NOT EXISTS host_lineups_host ON host_lineups(host_id);
+            INSERT INTO hosts (name, avatar, style, provider, model, voices, instructions, created, updated)
+            SELECT host_name, NULLIF(host_avatar, ''), host_style, 'openai', 'gpt-4o-mini-tts',
+                   json_object('en', host_voice_en, 'de', host_voice_de),
+                   trim('Warm and calm, like a Christian radio host. ' || host_style), MIN(created), MAX(updated)
+            FROM channels
+            WHERE NOT EXISTS (SELECT 1 FROM hosts)
+            GROUP BY host_name, NULLIF(host_avatar, ''), host_voice_en, host_voice_de, host_style
+            ORDER BY MAX(is_main) DESC, MIN(sort), MIN(id);
+            INSERT INTO host_lineups (host_id, channel_id, role, sort)
+            SELECT h.id, c.id, 'main', 0
+            FROM channels c
+            JOIN hosts h ON h.name = c.host_name AND h.avatar IS NULLIF(c.host_avatar, '') AND h.style = c.host_style
+              AND json_extract(h.voices, '$.en') = c.host_voice_en AND json_extract(h.voices, '$.de') = c.host_voice_de
+            WHERE NOT EXISTS (SELECT 1 FROM host_lineups);
+            SQL,
         ];
     }
 }

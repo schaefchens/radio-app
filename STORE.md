@@ -113,7 +113,7 @@ logs, advertising data.
   other IDs (required).
 - **Purposes**: App functionality; Analytics (listener count); Fraud
   prevention, security and compliance; Account management.
-- **Shared**: none. OpenAI, Hetzner and BunnyCDN process data on our behalf
+- **Shared**: none. OpenAI, ElevenLabs (the voice of some hosts), Hetzner and BunnyCDN process data on our behalf
   (processors, not sharing). YouTube is loaded only after the listener's own
   tap to join.
 - **Encrypted in transit**: yes. **Deletion**: yes, in the app (Profile ›

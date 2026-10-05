@@ -1,4 +1,13 @@
-import { LANGS, SUBMISSION_STATES, SUBMISSION_TYPES, isVideoFormat, type SubmissionState, type SubmissionType } from './constants.ts';
+import {
+  LANGS,
+  SUBMISSION_STATES,
+  SUBMISSION_TYPES,
+  VOICE_PROVIDERS,
+  isVideoFormat,
+  type SubmissionState,
+  type SubmissionType,
+  type VoiceProvider,
+} from './constants.ts';
 import type {
   ChannelInfo,
   ChannelsFile,
@@ -9,6 +18,7 @@ import type {
   EvergreenTrack,
   GroupLink,
   GroupNotice,
+  HostInfo,
   HostKind,
   I18nText,
   LangMap,
@@ -90,6 +100,7 @@ function stage(v: unknown): StageConfig {
 
 const isSubmissionType = (v: unknown): v is SubmissionType => SUBMISSION_TYPES.includes(v as SubmissionType);
 const isSubmissionState = (v: unknown): v is SubmissionState => SUBMISSION_STATES.includes(v as SubmissionState);
+const isVoiceProvider = (v: unknown): v is VoiceProvider => VOICE_PROVIDERS.includes(v as VoiceProvider);
 
 export function parseProgramRef(v: unknown): ProgramRef | null {
   if (!isObj(v) || !isStr(v.id)) return null;
@@ -101,6 +112,25 @@ export function parseProgramRef(v: unknown): ProgramRef | null {
     stage: stage(v.stage),
     allowed: arr(v.allowed).filter(isSubmissionType),
     format: v.format === 'prayer' || isVideoFormat(v.format) ? v.format : 'music',
+    voicedBy: [...new Set(arr(v.voicedBy).filter(isVoiceProvider))],
+  };
+}
+
+const HOST_COLOR = '#2f7bff';
+const MAX_DAY_HOSTS = 6;
+
+/** A host as listeners see them. The picture only from our own /media (it
+ *  lands in an <img src> in every listener's app), the color only as #rrggbb
+ *  (it lands in a style). */
+export function parseHostInfo(v: unknown): HostInfo | null {
+  if (!isObj(v) || !isStr(v.name) || v.name === '') return null;
+  const avatar = isStr(v.avatar) && v.avatar.startsWith('/media/') && !v.avatar.includes('..') ? v.avatar : null;
+  return {
+    name: v.name,
+    avatar,
+    color: isStr(v.color) && /^#[0-9a-fA-F]{6}$/.test(v.color) ? v.color : HOST_COLOR,
+    about: i18n(v.about),
+    voice: isVoiceProvider(v.voice) ? v.voice : 'openai',
   };
 }
 
@@ -170,6 +200,7 @@ export function parseItem(v: unknown): TimelineItem | null {
         voices: compact(arr(v.voices), parseVoice),
         prayers: arr(v.prayers).filter(isStr),
         notice: parseNotice(v.notice),
+        host: parseHostInfo(v.host),
       };
     case 'jingle':
       return isStr(v.audio) ? { ...base, type: 'jingle', audio: v.audio } : null;
@@ -236,7 +267,7 @@ export function parseSlotFile(v: unknown): SlotFile | null {
 function parseDayProgram(v: unknown): DayProgram | null {
   const ref = parseProgramRef(v);
   if (!ref || !isObj(v)) return null;
-  return { ...ref, description: i18n(v.description) };
+  return { ...ref, description: i18n(v.description), hosts: compact(arr(v.hosts), parseHostInfo).slice(0, MAX_DAY_HOSTS) };
 }
 
 function parseBlock(v: unknown): DayBlock | null {
@@ -290,14 +321,15 @@ export function parseLiveFile(v: unknown): LiveFile | null {
 
 function parseChannel(v: unknown): ChannelInfo | null {
   if (!isObj(v) || !isStr(v.id)) return null;
-  const host = isObj(v.host) ? v.host : {};
+  // An older channels.json names only {name, avatar}: the rest defaults.
+  const host = parseHostInfo(v.host) ?? { name: '', avatar: null, color: HOST_COLOR, about: { en: '', de: '' }, voice: 'openai' };
   return {
     id: v.id,
     name: i18n(v.name),
     main: v.main === true,
     tz: str(v.tz) || 'Europe/Berlin',
     color: str(v.color) || '#2f7bff',
-    host: { name: str(host.name), avatar: strOrNull(host.avatar) },
+    host,
     evergreen: strOrNull(v.evergreen),
   };
 }

@@ -49,11 +49,12 @@ const de = (host: string): StationTexts => ({
         'und Englisch – über das, was gerade läuft, über eure Wünsche und Gebetsanliegen.',
     },
     {
-      h: `${host} ist eine KI`,
+      h: 'Unsere Moderation ist eine KI',
       p:
-        `Die Moderationstexte von ${host} schreibt ein KI-Modell, gesprochen werden sie von einer synthetischen Stimme ` +
-        '(beides von OpenAI). Welche Songs und Sendungen laufen, entscheidet unser Team. Einsendungen werden ' +
-        'automatisch geprüft, bevor sie auf Sendung gehen.',
+        `Jede Moderation bei Arche Radio, auch ${host}, ist eine KI: Die Moderationstexte schreibt ein KI-Modell (von OpenAI), ` +
+        'gesprochen werden sie von einer synthetischen Stimme – von OpenAI oder, bei einzelnen Moderationen, von ElevenLabs. ' +
+        'Welche Songs und Sendungen laufen, entscheidet unser Team. Einsendungen werden automatisch geprüft, bevor sie auf ' +
+        'Sendung gehen.',
     },
     {
       h: 'Mitmachen',
@@ -88,7 +89,7 @@ const de = (host: string): StationTexts => ({
     },
     {
       h: 'KI-generierte Inhalte',
-      p: 'Die Moderationstexte und die Stimme des Hosts werden mit künstlicher Intelligenz erzeugt.',
+      p: 'Die Moderationstexte und die Stimmen der Moderation werden mit künstlicher Intelligenz erzeugt.',
     },
     {
       h: 'Haftung für Inhalte und Links',
@@ -249,8 +250,9 @@ const de = (host: string): StationTexts => ({
     {
       h: 'KI-Dienste (OpenAI)',
       p:
-        'Für die Prüfung der Einsendungen, die Texte und die Stimme des Hosts (auch beim Vorlesen von Gebetsanliegen und ' +
-        'Gebeten) und die Verschriftlichung von Aufnahmen ' +
+        'Für die Prüfung der Einsendungen, die Moderationstexte und – außer bei Moderationen mit einer Stimme von ' +
+        'ElevenLabs (siehe unten) – ihre Stimme (auch beim Vorlesen von Gebetsanliegen und Gebeten) und die ' +
+        'Verschriftlichung von Aufnahmen ' +
         'nutzen wir die Programmierschnittstelle der OpenAI Ireland Limited, 1st Floor, The Liffey Trust Centre, ' +
         '117–126 Sheriff Street Upper, Dublin 1, D01 YC43, Irland, die in unserem Auftrag tätig ist. Dabei ' +
         'übermitteln wir Ihren eingesandten Text bzw. Ihre Aufnahme und deren Abschrift, Vorname und Ort, bei ' +
@@ -261,6 +263,22 @@ const de = (host: string): StationTexts => ({
         'Grundlage sind die Standardvertragsklauseln der EU-Kommission. Rechtsgrundlage sind Ihre Einwilligung zur ' +
         'Einsendung (Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 lit. a DSGVO) und unser berechtigtes Interesse an einem ' +
         'sicheren, moderierten Programm (Art. 6 Abs. 1 lit. f DSGVO). Mehr: https://openai.com/policies/privacy-policy',
+    },
+    {
+      h: 'KI-Stimmen (ElevenLabs)',
+      p:
+        'Einzelne Moderationen sprechen mit einer Stimme von ElevenLabs; die Einsendeformulare sagen es, wenn das in der ' +
+        'laufenden Sendung der Fall sein kann. Dafür übermitteln wir den Text, den die Moderation spricht, an die ' +
+        'Programmierschnittstelle der Eleven Labs Inc., 169 Madison Ave #2484, New York, NY 10016, USA, die in unserem ' +
+        'Auftrag tätig ist (in der EU: Eleven Labs Poland sp. z o.o., Lipska 27/22, 03-908 Warschau, Polen). Dieser Text ' +
+        'kann Ihren Vornamen und Ort enthalten, bei Songwünschen und Videovorschlägen die Widmung bzw. Begründung, ' +
+        'Gebetsanliegen und Gebete, die wörtlich vorgelesen werden, und Community-Stimmen. ElevenLabs bewahrt die ' +
+        'erzeugten Texte und Aufnahmen im Verlauf unseres Kontos auf, bis wir sie dort löschen; der Nutzung zum ' +
+        'Training haben wir widersprochen. Dabei werden Daten in die USA übermittelt; Grundlage ist die Zertifizierung ' +
+        'von ElevenLabs nach dem EU-US Data Privacy Framework, ergänzend die Standardvertragsklauseln der ' +
+        'EU-Kommission. Rechtsgrundlage sind Ihre Einwilligung zur Einsendung (Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 ' +
+        'lit. a DSGVO) und unser berechtigtes Interesse an einem moderierten Programm (Art. 6 Abs. 1 lit. f DSGVO). ' +
+        'Mehr: https://elevenlabs.io/privacy-policy',
     },
     {
       h: 'Community-Räume',
@@ -339,10 +357,11 @@ const en = (host: string): StationTexts => ({
         'playing, your requests and your prayer requests.',
     },
     {
-      h: `${host} is an AI`,
+      h: 'Our hosts are AI',
       p:
-        `${host}'s words are written by an AI model and spoken by a synthetic voice (both from OpenAI). Our team ` +
-        'decides which songs and programs run. Submissions are checked automatically before they go on air.',
+        `Every host on Arche Radio, ${host} too, is an AI: their words are written by an AI model (from OpenAI) and ` +
+        'spoken by a synthetic voice — from OpenAI or, for some hosts, from ElevenLabs. Our team decides which songs ' +
+        'and programs run. Submissions are checked automatically before they go on air.',
     },
     {
       h: 'Take part',
@@ -374,7 +393,7 @@ const en = (host: string): StationTexts => ({
       h: 'Online dispute resolution',
       p: 'We are neither obliged nor willing to take part in dispute resolution proceedings before a consumer arbitration board.',
     },
-    { h: 'AI-generated content', p: "The host's words and voice are generated with artificial intelligence." },
+    { h: 'AI-generated content', p: "The hosts' words and voices are generated with artificial intelligence." },
     {
       h: 'Liability for content and links',
       p:
@@ -514,8 +533,8 @@ const en = (host: string): StationTexts => ({
     {
       h: 'AI services (OpenAI)',
       p:
-        "To check submissions, for the host's words and voice (also when it reads out prayer requests and prayers) and " +
-        'to transcribe recordings we use the API of OpenAI ' +
+        "To check submissions, for the hosts' words and — except for hosts with a voice from ElevenLabs (see below) — " +
+        'their voice (also when they read out prayer requests and prayers) and to transcribe recordings we use the API of OpenAI ' +
         'Ireland Limited, 1st Floor, The Liffey Trust Centre, 117–126 Sheriff Street Upper, Dublin 1, D01 YC43, ' +
         'Ireland, on our behalf. We send your text or recording and its transcript, first name and place, for song ' +
         'requests and video suggestions the dedication or reason and — to select community voices — the chat ' +
@@ -524,6 +543,20 @@ const en = (host: string): StationTexts => ({
         "Data may be transferred to the USA on the basis of the EU Commission's standard contractual clauses. Legal " +
         'basis: your consent to the submission (Art. 6(1)(a), Art. 9(2)(a) GDPR) and our legitimate interest in a ' +
         'safe, moderated program (Art. 6(1)(f) GDPR). More: https://openai.com/policies/privacy-policy',
+    },
+    {
+      h: 'AI voices (ElevenLabs)',
+      p:
+        'Some hosts speak with a voice from ElevenLabs; the submission forms say so when that can be the case in the ' +
+        'program on air. For it we send the text the host speaks to the API of Eleven Labs Inc., 169 Madison Ave #2484, ' +
+        'New York, NY 10016, USA, on our behalf (in the EU: Eleven Labs Poland sp. z o.o., Lipska 27/22, 03-908 Warsaw, ' +
+        'Poland). This text can contain your first name and place, for song requests and video suggestions the ' +
+        'dedication or reason, prayer requests and prayers read out word for word, and community voices. ElevenLabs ' +
+        "keeps the generated texts and recordings in our account's history until we delete them there; we have " +
+        'objected to their use for training. Data is transferred to the USA on the basis of ElevenLabs\' certification ' +
+        "under the EU-US Data Privacy Framework, with the EU Commission's standard contractual clauses in addition. " +
+        'Legal basis: your consent to the submission (Art. 6(1)(a), Art. 9(2)(a) GDPR) and our legitimate interest in a ' +
+        'moderated program (Art. 6(1)(f) GDPR). More: https://elevenlabs.io/privacy-policy',
     },
     {
       h: 'Community rooms',

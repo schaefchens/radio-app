@@ -2,20 +2,30 @@
 declare(strict_types=1);
 
 // One real host break through the production code path (the text model's
-// script — Claude or OpenAI, see AI_TEXT_PROVIDER — and TTS in every station
-// language), without touching the program. For checking the live AI setup
-// after changing keys or models. Costs one text call + TTS.
+// script — Claude or OpenAI, see AI_TEXT_PROVIDER — and the host's voice in
+// every station language), without touching the program. For checking the
+// live AI setup after changing keys, models or a host. Costs one text call +
+// TTS — with an ElevenLabs host, characters of its account.
 //
 //   docker compose --env-file docker/compose.env exec -e ARCHE_PUBLIC_DIR=/var/www/site \
-//     -e ARCHE_DATA_DIR=/var/www/site/_arche/var php php /srv/server/bin/try-host.php
+//     -e ARCHE_DATA_DIR=/var/www/site/_arche/var php php /srv/server/bin/try-host.php [host id]
+//
+// Without a host id: the main channel's first host.
 if (PHP_SAPI !== 'cli') exit(1);
 putenv('AI_MODE=live');
 $app = require dirname(__DIR__) . '/app/bootstrap.php';
 $channel = $app->catalog()->mainChannel();
 $program = $app->catalog()->program((int) $channel['fallback_program_id']);
+$lineup = $app->hosts()->effective($channel, $program);
+$host = isset($argv[1]) ? $app->hosts()->get((int) $argv[1]) : ($lineup['mains'][0] ?? $lineup['fallbacks'][0] ?? null);
+if ($host === null) {
+    fwrite(STDERR, "No such host.\n");
+    exit(1);
+}
+printf("host %s (%s, %s)\n", $host['name'], $host['provider'], $host['model']);
 $context = [
     'kind' => 'announce',
-    'host_name' => $channel['host_name'],
+    'host_name' => $host['name'],
     'program' => ['title' => ['en' => $program['title_en'], 'de' => $program['title_de']], 'subtitle' => ['en' => $program['subtitle_en'], 'de' => $program['subtitle_de']], 'themes' => $program['themes']],
     'time_of_day_de' => 'Abend',
     'previous' => ['title' => 'Battle Belongs', 'artist' => 'Phil Wickham'],
@@ -23,12 +33,12 @@ $context = [
     'request' => ['name' => 'Jenny', 'place' => 'München', 'message' => 'Für meinen Mann – wir haben heute geheiratet!'],
 ];
 $t0 = microtime(true);
-$written = $app->hostWriter()->write(['id' => 0, 'kind' => 'announce', 'channel_id' => $channel['id']], $context);
+$written = $app->hostWriter()->write(['id' => 0, 'kind' => 'announce', 'channel_id' => $channel['id']], $context, $host);
 printf("script (%s, %.1f s)\n", $written['source'], microtime(true) - $t0);
 foreach ($written['texts'] as $lang => $text) {
     echo "  [$lang] $text\n";
     $t1 = microtime(true);
-    $voice = $app->voice()->speak($text, $lang, $channel, '');
+    $voice = $app->voice()->speak($host, $text, $lang);
     $tmp = tempnam(sys_get_temp_dir(), 'tts');
     file_put_contents($tmp, $voice['bytes']);
     $mp3 = Arche\Audio\Mp3::inspect($tmp);

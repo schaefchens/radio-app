@@ -4,10 +4,14 @@ declare(strict_types=1);
 namespace Arche\Api;
 
 use Arche\ApiError;
+use Arche\Ai\VoiceError;
+use Arche\Audio\Mp3;
+use Arche\Host\Hosts;
 use Arche\Http\Context;
 use Arche\Http\Response;
 use Arche\Identity\Identities;
 use Arche\Program\Timing;
+use Arche\Support\BudgetExceeded;
 
 /**
  * /api/mod/*: the Plan layer and the content pool, for moderators; users and
@@ -51,7 +55,7 @@ final class ModApi
         $app = $this->c->app;
         $channels = [];
         foreach ($app->catalog()->channels(false) as $ch) {
-            $channels[] = $ch + ['programs' => $app->catalog()->programs((int) $ch['id'])];
+            $channels[] = $this->withHosts('channel', $ch) + ['programs' => array_map(fn($p) => $this->withHosts('program', $p), $app->catalog()->programs((int) $ch['id']))];
         }
         return [
             'me' => Identities::publicView($this->me),
@@ -104,17 +108,25 @@ final class ModApi
         ];
     }
 
-    /** @return array{text:string,hostModel:string,moderationModel:string,voice:string} which models are at work */
+    /**
+     * Which models are at work: the text model, and the hosts' voices
+     * (`voice`, the main channel's first host's provider, for /mod tabs
+     * opened before hosts existed).
+     *
+     * @return array<string,mixed>
+     */
     private function aiSetup(): array
     {
-        $c = $this->c->app->config;
+        $app = $this->c->app;
+        $c = $app->config;
         $provider = $c->textProvider();
         [$host, $moderation] = match ($provider) {
             'anthropic' => [$c->get('HOST_MODEL'), $c->get('MODERATION_MODEL')],
             'openai' => [$c->get('OPENAI_HOST_MODEL'), $c->get('OPENAI_MODERATION_MODEL')],
             default => ['', ''],
         };
-        return ['text' => $provider, 'hostModel' => $host, 'moderationModel' => $moderation, 'voice' => $this->c->app->voice()->provider()];
+        $voice = $c->stubAi() ? 'stub' : (string) $app->hosts()->channelHost($app->catalog()->mainChannel())['voice'];
+        return ['text' => $provider, 'hostModel' => $host, 'moderationModel' => $moderation, 'voice' => $voice, 'voices' => $app->hosts()->summary()];
     }
 
     // --- library -------------------------------------------------------------------------
@@ -236,7 +248,18 @@ final class ModApi
     public function channels(): array
     {
         $this->mod();
-        return ['channels' => $this->c->app->catalog()->channels(false)];
+        return ['channels' => array_map(fn($ch) => $this->withHosts('channel', $ch), $this->c->app->catalog()->channels(false))];
+    }
+
+    /**
+     * A channel or program row with its lineup (`hosts`: [{id, role}]).
+     *
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private function withHosts(string $owner, array $row): array
+    {
+        return $row + ['hosts' => $this->c->app->hosts()->lineup($owner, (int) $row['id'])];
     }
 
     public function channelCreate(): array
@@ -250,14 +273,14 @@ final class ModApi
         ], $this->actor());
         $plan = $catalog->saveDayPlan(null, (int) $ch['id'], 'Standard', [['start_min' => 0, 'end_min' => 1440, 'program_id' => $program['id']]], $this->actor());
         $catalog->setWeekPlan((int) $ch['id'], array_fill_keys(range(1, 7), $plan), $this->actor());
-        return ['channel' => $catalog->saveChannel((int) $ch['id'], ['default_day_plan_id' => $plan, 'fallback_program_id' => $program['id']], $this->actor())];
+        return ['channel' => $this->withHosts('channel', $catalog->saveChannel((int) $ch['id'], ['default_day_plan_id' => $plan, 'fallback_program_id' => $program['id']], $this->actor()))];
     }
 
     /** @param array<string,string> $a */
     public function channelUpdate(array $a): array
     {
         $this->admin();
-        return ['channel' => $this->c->app->catalog()->saveChannel($this->id($a), $this->c->req->json(), $this->actor())];
+        return ['channel' => $this->withHosts('channel', $this->c->app->catalog()->saveChannel($this->id($a), $this->c->req->json(), $this->actor()))];
     }
 
     /** @param array<string,string> $a */
@@ -273,7 +296,7 @@ final class ModApi
     public function programs(array $a): array
     {
         $this->mod();
-        return ['programs' => $this->c->app->catalog()->programs($this->c->channelById($this->id($a))['id'])];
+        return ['programs' => array_map(fn($p) => $this->withHosts('program', $p), $this->c->app->catalog()->programs($this->c->channelById($this->id($a))['id']))];
     }
 
     /** @param array<string,string> $a */
@@ -281,7 +304,7 @@ final class ModApi
     {
         $this->mod();
         $cid = (int) $this->c->channelById($this->id($a))['id'];
-        return ['program' => $this->c->app->catalog()->saveProgram(null, $cid, $this->c->req->json(), $this->actor())];
+        return ['program' => $this->withHosts('program', $this->c->app->catalog()->saveProgram(null, $cid, $this->c->req->json(), $this->actor()))];
     }
 
     /** @param array<string,string> $a */
@@ -289,7 +312,7 @@ final class ModApi
     {
         $this->mod();
         $program = $this->c->app->catalog()->program($this->id($a)) ?? throw new ApiError(404, 'not_found');
-        return ['program' => $this->c->app->catalog()->saveProgram((int) $program['id'], (int) $program['channel_id'], $this->c->req->json(), $this->actor())];
+        return ['program' => $this->withHosts('program', $this->c->app->catalog()->saveProgram((int) $program['id'], (int) $program['channel_id'], $this->c->req->json(), $this->actor()))];
     }
 
     /** @param array<string,string> $a */
@@ -307,7 +330,7 @@ final class ModApi
         $program = $this->c->app->catalog()->program($this->id($a)) ?? throw new ApiError(404, 'not_found');
         $file = $this->c->req->file('image') ?? throw new ApiError(422, 'missing_image');
         $url = $this->c->app->media()->storeImage($file, 'stage', 1280, 720);
-        return ['program' => $this->c->app->catalog()->saveProgram((int) $program['id'], (int) $program['channel_id'], ['image' => $url], $this->actor())];
+        return ['program' => $this->withHosts('program', $this->c->app->catalog()->saveProgram((int) $program['id'], (int) $program['channel_id'], ['image' => $url], $this->actor()))];
     }
 
     /** @param array<string,string> $a */
@@ -547,6 +570,123 @@ final class ModApi
         if ($channel !== null) $app->publisher()->publishLive($channel);
         $app->store()->audit($this->actor(), $hidden ? 'Removed from the prayer wall' : 'Shown on the prayer wall', $publicId);
         return ['ok' => true, 'hidden' => $hidden];
+    }
+
+    // --- hosts (Host\Hosts) ----------------------------------------------------------------------------
+
+    /** Moderators read them too (a program's lineup is theirs to set); the key's end is for admins. */
+    public function hosts(): array
+    {
+        $this->mod();
+        $admin = $this->me['role'] === 'admin';
+        return ['hosts' => $this->c->app->hosts()->views($admin)];
+    }
+
+    public function hostCreate(): array
+    {
+        $this->admin();
+        $hosts = $this->c->app->hosts();
+        return ['host' => $hosts->view($hosts->save(null, $this->c->req->json(), $this->actor()), true)];
+    }
+
+    /** @param array<string,string> $a */
+    public function hostUpdate(array $a): array
+    {
+        $this->admin();
+        $hosts = $this->c->app->hosts();
+        return ['host' => $hosts->view($hosts->save($this->id($a), $this->c->req->json(), $this->actor()), true)];
+    }
+
+    /** @param array<string,string> $a */
+    public function hostDelete(array $a): array
+    {
+        $this->admin();
+        $this->c->app->hosts()->delete($this->id($a), $this->actor());
+        return ['ok' => true];
+    }
+
+    /** @param array<string,string> $a */
+    public function hostAvatar(array $a): array
+    {
+        $this->admin();
+        $file = $this->c->req->file('image') ?? throw new ApiError(422, 'missing_image');
+        $hosts = $this->c->app->hosts();
+        return ['host' => $hosts->view($hosts->setAvatar($this->id($a), $file, $this->actor()), true)];
+    }
+
+    /**
+     * What a provider offers the host editor: voices and models, and for
+     * ElevenLabs the characters left this month — with a key typed in, or
+     * the host's own. No characters are spent. In stub mode ElevenLabs is
+     * never asked (dev must not touch the station's account).
+     */
+    public function hostCatalog(): array
+    {
+        $this->admin();
+        $app = $this->c->app;
+        $in = $this->c->req->json();
+        $provider = (string) ($in['provider'] ?? 'openai');
+        $list = fn(array $ids): array => array_map(fn($v) => ['id' => $v, 'name' => $v], $ids);
+        if ($provider === 'openai') return ['voices' => $list(Hosts::OPENAI_VOICES), 'models' => $list(Hosts::OPENAI_MODELS), 'account' => null, 'errors' => []];
+        if ($provider !== 'elevenlabs') throw new ApiError(422, 'host_provider');
+        $models = $list(Hosts::ELEVENLABS_MODELS);
+        if ($app->config->stubAi()) return ['voices' => [], 'models' => $models, 'account' => null, 'errors' => [], 'stub' => true];
+        $key = trim((string) ($in['api_key'] ?? ''));
+        $host = isset($in['host_id']) ? $app->hosts()->get((int) $in['host_id']) : null;
+        if ($key === '' && $host !== null && $host['provider'] === 'elevenlabs') $key = $app->hosts()->key($host);
+        if ($key === '') throw new ApiError(422, 'host_key');
+        $el = $app->elevenLabs();
+        $out = ['voices' => [], 'models' => $models, 'account' => null, 'errors' => []];
+        // Each on its own: a restricted key may read voices but not the account.
+        foreach (['voices', 'models', 'account'] as $what) {
+            try {
+                $got = $el->$what($key);
+                if ($got !== null && $got !== []) $out[$what] = $got;
+            } catch (VoiceError $e) {
+                $out['errors'][] = $e->getMessage();
+            } catch (\RuntimeException) {
+                $out['errors'][] = 'ElevenLabs: no answer';
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * "Try voice": a sample in a host's voice with the editor's unsaved
+     * changes (voice, direction, settings, a key typed in). Counted against
+     * the host's characters like any clip, and a daily cap still applies — an
+     * ElevenLabs host without one is never voiced. 20 an hour per admin.
+     */
+    public function hostTry(): array
+    {
+        $this->admin();
+        $app = $this->c->app;
+        $in = $this->c->req->json();
+        $hosts = $app->hosts();
+        $host = $hosts->get((int) ($in['host_id'] ?? 0)) ?? throw new ApiError(404, 'not_found');
+        $text = trim((string) preg_replace('/\s+/u', ' ', (string) ($in['text'] ?? '')));
+        if ($text === '' || mb_strlen($text) > 300) throw new ApiError(422, 'host_try_text');
+        $langs = $app->config->stationLangs();
+        $lang = in_array($in['lang'] ?? '', $langs, true) ? (string) $in['lang'] : $langs[0];
+        $changes = is_array($in['draft'] ?? null) ? $in['draft'] : [];
+        $draft = $hosts->draft($host, $changes);
+        $key = trim((string) ($changes['api_key'] ?? ''));
+        if (!$hosts->mayTry($draft, mb_strlen($text))) throw new ApiError(422, 'host_no_room');
+        if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], 20, 3600)) throw new ApiError(429, 'rate_limited');
+        try {
+            $spoken = $app->voice()->speak($draft, $text, $lang, $key !== '' ? $key : null);
+        } catch (VoiceError $e) {
+            throw new ApiError(502, 'voice_failed', ['reason' => $e->getMessage()]);
+        } catch (BudgetExceeded) {
+            throw new ApiError(503, 'voice_timeout');
+        }
+        $tmp = tempnam(sys_get_temp_dir(), 'try');
+        file_put_contents($tmp, $spoken['bytes']);
+        $mp3 = Mp3::inspect($tmp);
+        @unlink($tmp);
+        if (!$mp3['ok']) throw new ApiError(502, 'voice_failed', ['reason' => 'no playable audio']);
+        $app->store()->audit($this->actor(), 'Host voice tried', $host['id'] . ' ' . $host['name'] . ' (' . $lang . ', ' . mb_strlen($text) . ' characters)');
+        return ['audio' => base64_encode($spoken['bytes']), 'ms' => $mp3['ms'], 'provider' => $spoken['provider']];
     }
 
     // --- users (admin) -----------------------------------------------------------------------------

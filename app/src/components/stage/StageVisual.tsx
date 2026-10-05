@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { GroupNotice, Lang, SubmissionState, SubmissionType, Voice, WallEntry } from '@arche/shared';
+import type { GroupNotice, HostInfo, Lang, SubmissionState, SubmissionType, Voice, WallEntry } from '@arche/shared';
 import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
 import { useSheets } from '@/store/sheets';
@@ -10,6 +10,7 @@ import { visibleVoices, visibleWall } from '@/lib/blocking';
 import { useBlocks } from '@/store/blocks';
 import { useServerNow } from '@/components/home/useServerNow';
 import { CdnImg } from '@/components/common/CdnImg';
+import { speakingHost } from '@/lib/host';
 import { RadioIcon } from '@/components/common/icons';
 
 /**
@@ -37,7 +38,8 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
   const item = engine.item;
   const image = program?.stage.image ?? null;
   const tagline = program?.stage.tagline[lang] ?? '';
-  const hostName = channel?.host.name ?? 'Hope';
+  // Who speaks: the host the moment names (several share the station), else the channel's.
+  const host = speakingHost(item, engine.lastHost, channel);
   const prayerHour = program?.format === 'prayer';
   // What this device reported or whose author it blocked stays off the stage too.
   const blocked = useBlocks((s) => s.users);
@@ -61,11 +63,11 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
         )}
         {engine.mode === 'host' && onAir.length === 0 && hostKind !== 'intercession' && (
           <HostMoment
-            name={hostName}
-            avatar={channel?.host.avatar ?? null}
+            host={host}
             text={engine.hostText}
-            label={t('stage.hostSpeaking', { name: hostName })}
+            label={t('stage.hostSpeaking', { name: host.name })}
             notice={!compact && item?.type === 'host' ? item.notice : null}
+            compact={compact}
             lang={lang}
           />
         )}
@@ -268,35 +270,48 @@ function Logo() {
   );
 }
 
+/**
+ * The host speaking: their picture (or initial) in rings of their color,
+ * who they are — a few words about them on the full stage — and what they say.
+ */
 function HostMoment({
-  name,
-  avatar,
+  host,
   text,
   label,
   notice,
+  compact,
   lang,
 }: {
-  name: string;
-  avatar: string | null;
+  host: HostInfo;
   text: string | null;
   label: string;
   notice: GroupNotice | null;
+  compact: boolean;
   lang: Lang;
 }) {
+  const about = host.about[lang] || host.about.en;
+  // #rrggbb (the parser's promise) plus an alpha: the rings fade like the accent's did.
+  const ring = (alpha: string): React.CSSProperties => ({ borderColor: `${host.color}${alpha}` });
   return (
     <div className={clsx('stage-host flex max-w-xl flex-col items-center gap-3 animate-fly-in', notice && 'has-notice')}>
       <div className="stage-host-avatar relative h-20 w-20 sm:h-24 sm:w-24">
-        <span className="absolute inset-0 animate-ring rounded-full border-2 border-accent/60" />
-        <span className="absolute inset-0 animate-ring rounded-full border-2 border-accent/40 [animation-delay:0.7s]" />
-        {avatar ? (
-          <CdnImg src={avatar} className="relative h-full w-full rounded-full object-cover ring-2 ring-accent/70" />
+        <span className="absolute inset-0 animate-ring rounded-full border-2" style={ring('99')} />
+        <span className="absolute inset-0 animate-ring rounded-full border-2 [animation-delay:0.7s]" style={ring('66')} />
+        {host.avatar ? (
+          <CdnImg src={host.avatar} className="relative h-full w-full rounded-full border-2 object-cover" style={ring('b3')} />
         ) : (
-          <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-accent-fill to-song-to text-2xl font-semibold ring-2 ring-accent/70">
-            {name.slice(0, 1)}
+          <div
+            className="relative flex h-full w-full items-center justify-center rounded-full border-2 bg-gradient-to-br from-accent-fill to-song-to text-2xl font-semibold"
+            style={ring('b3')}
+          >
+            {host.name.slice(0, 1)}
           </div>
         )}
       </div>
-      <p className="eyebrow">{label}</p>
+      <div className="flex flex-col items-center gap-1">
+        <p className="eyebrow">{label}</p>
+        {!compact && about && <p className="stage-host-about">{about}</p>}
+      </div>
       {text && <p className="stage-host-text text-balance text-base leading-snug text-ink drop-shadow sm:text-xl">{text}</p>}
       {notice && <NoticeCard notice={notice} lang={lang} />}
     </div>

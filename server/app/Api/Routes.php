@@ -61,6 +61,13 @@ final class Routes
         $r->add('POST', '/mod/groups/channel', $m('groupChannel'));
         $r->add('PATCH', '/mod/groups/{id}', $m('groupUpdate'));
         $r->add('DELETE', '/mod/groups/{id}', $m('groupDelete'));
+        $r->add('GET', '/mod/hosts', $m('hosts'));
+        $r->add('POST', '/mod/hosts', $m('hostCreate'));
+        $r->add('POST', '/mod/hosts/catalog', $m('hostCatalog'));
+        $r->add('POST', '/mod/hosts/try', $m('hostTry'));
+        $r->add('PATCH', '/mod/hosts/{id}', $m('hostUpdate'));
+        $r->add('DELETE', '/mod/hosts/{id}', $m('hostDelete'));
+        $r->add('POST', '/mod/hosts/{id}/avatar', $m('hostAvatar'));
         $r->add('GET', '/mod/channels', $m('channels'));
         $r->add('POST', '/mod/channels', $m('channelCreate'));
         $r->add('PATCH', '/mod/channels/{id}', $m('channelUpdate'));

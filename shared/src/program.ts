@@ -1,4 +1,4 @@
-import type { Lang, SubmissionState, SubmissionType, VideoFormat } from './constants.ts';
+import type { Lang, SubmissionState, SubmissionType, VideoFormat, VoiceProvider } from './constants.ts';
 
 /**
  * The static program files: written by server/app/Program/*, read by the PWA.
@@ -32,6 +32,24 @@ export interface ProgramRef {
    *  (preaching, testimony, mission, film): its videos with songs between
    *  them; 'music' otherwise. */
   format: ProgramFormat;
+  /** The voice services its hosts speak with — every one in its lineup. The
+   *  forms say so when ElevenLabs may read out what a listener sends. [] in
+   *  files of older generators. */
+  voicedBy: VoiceProvider[];
+}
+
+/** One of the station's AI hosts as listeners see them: on the stage while
+ *  they speak, in the schedule with the programs they host. */
+export interface HostInfo {
+  name: string;
+  /** A picture under /media (256 × 256), or null: their initial. */
+  avatar: string | null;
+  /** #rrggbb, for the rings around their picture. */
+  color: string;
+  /** A few words about them ('' when there are none). */
+  about: I18nText;
+  /** Whose synthetic voice it is: ElevenLabs is credited where they speak. */
+  voice: VoiceProvider;
 }
 
 export type ProgramFormat = 'music' | 'prayer' | VideoFormat;
@@ -136,6 +154,9 @@ export interface HostItem extends ItemBase {
    *  to more, shown on the stage while the host speaks. null otherwise — and
    *  in every file of an older generator. */
   notice: GroupNotice | null;
+  /** Who speaks it; null in files from before there were several hosts (the
+   *  channel's host then, ChannelInfo.host). */
+  host: HostInfo | null;
 }
 
 /** A group's "more from …" on the stage. Links are https only (a
@@ -231,6 +252,8 @@ export interface PlayedEntry {
 
 export interface DayProgram extends ProgramRef {
   description: I18nText;
+  /** Its on-air hosts (one of them hosts each airing); [] in older files. */
+  hosts: HostInfo[];
 }
 
 /** The plan for one station-local day. Structure only — what will play stays
@@ -273,7 +296,8 @@ export interface ChannelInfo {
   main: boolean;
   tz: string;
   color: string;
-  host: { name: string; avatar: string | null };
+  /** Its lineup's first host: the one shown for a moment that names none. */
+  host: HostInfo;
   /** Path of the current evergreen loop file, or null while there is none. */
   evergreen: string | null;
 }

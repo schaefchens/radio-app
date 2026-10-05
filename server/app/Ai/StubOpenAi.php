@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Arche\Ai;
 
-/** AI_MODE=stub: a bundled short MP3 for every voice, a fixed transcript. */
+/** AI_MODE=stub: a bundled short MP3 for every voice and every host (ElevenLabs' too), a fixed transcript. */
 final class StubOpenAi extends OpenAi
 {
     public int $ttsCalls = 0;
@@ -15,6 +15,11 @@ final class StubOpenAi extends OpenAi
         $bytes = is_file($file) ? file_get_contents($file) : false;
         if ($bytes === false) throw new \RuntimeException('resources/stub-voice.mp3 missing');
         return $bytes;
+    }
+
+    public function speech(#[\SensitiveParameter] string $key, string $model, string $voice, string $text, string $instructions, float $speed = 1.0): string
+    {
+        return $this->tts($text, $voice, $instructions);
     }
 
     public function transcribe(string $file, string $lang): string

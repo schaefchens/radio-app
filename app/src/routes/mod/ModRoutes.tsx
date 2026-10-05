@@ -13,6 +13,7 @@ import { ReviewPanel } from '@/components/mod/ReviewPanel';
 import { ChatModPanel } from '@/components/mod/ChatModPanel';
 import { UsersPanel } from '@/components/mod/UsersPanel';
 import { ChannelsPanel } from '@/components/mod/ChannelsPanel';
+import { HostsPanel } from '@/components/mod/HostsPanel';
 import { Loading, Notice } from '@/components/mod/ui';
 
 /**
@@ -44,7 +45,13 @@ export function ModRoutes() {
     { to: '/mod/plans', label: t('mod.nav.plans') },
     { to: '/mod/review', label: t('mod.nav.review'), badge: (overview?.review ?? 0) + (overview?.wallReports ?? 0) },
     { to: '/mod/chat', label: t('mod.nav.chat'), badge: (overview?.reports ?? 0) + (overview?.highlights ?? 0) },
-    ...(admin ? [{ to: '/mod/users', label: t('mod.nav.users') }, { to: '/mod/channels', label: t('mod.nav.channels') }] : []),
+    ...(admin
+      ? [
+          { to: '/mod/users', label: t('mod.nav.users') },
+          { to: '/mod/channels', label: t('mod.nav.channels') },
+          { to: '/mod/hosts', label: t('mod.nav.hosts') },
+        ]
+      : []),
   ];
 
   return (
@@ -76,6 +83,7 @@ export function ModRoutes() {
         <Route path="chat" element={<ChatModPanel />} />
         {admin && <Route path="users" element={<UsersPanel />} />}
         {admin && <Route path="channels" element={<ChannelsPanel />} />}
+        {admin && <Route path="hosts" element={<HostsPanel />} />}
         <Route path="*" element={<Navigate to="/mod" replace />} />
       </Routes>
     </div>

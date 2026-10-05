@@ -1,4 +1,4 @@
-import type { ProgramFormat, VideoFormat } from '@arche/shared';
+import type { Lang, ProgramFormat, VideoFormat, VoiceProvider } from '@arche/shared';
 import { api, ApiError } from '@/lib/api';
 import { errorText } from '@/i18n';
 import i18n from '@/i18n';
@@ -29,6 +29,8 @@ export interface ModProgram {
   moods: string[];
   settings: ProgramSettings;
   active: number;
+  /** Its lineup (on-air hosts first); missing from a server older than hosts. */
+  hosts?: LineupEntry[];
 }
 
 export interface ProgramSettings {
@@ -62,13 +64,68 @@ export interface ModChannel {
   color: string;
   sort: number;
   active: number;
-  host_name: string;
-  host_avatar: string | null;
-  host_voice_en: string;
-  host_voice_de: string;
-  host_style: string;
   default_day_plan_id: number | null;
   fallback_program_id: number | null;
+  /** Its lineup: the hosts of programs that have none. Missing from a server older than hosts. */
+  hosts?: LineupEntry[];
+}
+
+/** One host in a channel's or program's lineup: on air (one per show, at random) or a fallback (in order). */
+export interface LineupEntry {
+  id: number;
+  role: 'main' | 'fallback';
+}
+
+/** What a provider can be told (Host\Hosts::SETTINGS): OpenAI only `speed`. */
+export interface HostSettings {
+  speed: number;
+  stability?: number;
+  similarity?: number;
+  style?: number;
+  speaker_boost?: boolean;
+  /** Send the language code (eleven_multilingual_v2 refuses one). */
+  language?: boolean;
+}
+
+/** An on-air host (/mod › Hosts). The key itself never comes back. */
+export interface ModHost {
+  id: number;
+  name: string;
+  avatar: string | null;
+  color: string;
+  about_en: string;
+  about_de: string;
+  style: string;
+  provider: VoiceProvider;
+  model: string;
+  voices: Partial<Record<Lang, string>>;
+  instructions: string;
+  settings: HostSettings;
+  /** Characters a day; 0 = no cap (an ElevenLabs host then never speaks). */
+  max_chars_day: number;
+  active: boolean;
+  key_set: boolean;
+  /** Its sealed key no longer opens: enter it again. */
+  key_unreadable: boolean;
+  /** An OpenAI host without a key of its own speaks with the station's. */
+  station_key: boolean;
+  /** The key's last characters (admins only). */
+  key_hint?: string;
+  /** Unix seconds; 0 = not resting. */
+  resting_until: number;
+  last_error: string;
+  speaks: boolean;
+  today: { chars: number; calls: number };
+  used_in: { channel: string; program: number | null; title: { en: string; de: string }; role: LineupEntry['role'] }[];
+}
+
+/** What a provider offers the host editor (POST /mod/hosts/catalog). */
+export interface VoiceCatalog {
+  voices: { id: string; name: string; category?: string; labels?: string; languages?: string[] }[];
+  models: { id: string; name: string; languages?: string[]; cost?: number }[];
+  account: { used: number; limit: number; resets: number; tier: string } | null;
+  errors: string[];
+  stub?: boolean;
 }
 
 export interface Overview {
@@ -207,10 +264,28 @@ const KNOWN: Record<string, string> = {
   channel_in_group: 'mod.groups.errors.channel_in_group',
   channel_handle: 'mod.groups.errors.channel_handle',
   channel_unknown: 'mod.groups.errors.channel_unknown',
+  host_name: 'mod.hosts.errors.host_name',
+  host_about: 'mod.hosts.errors.host_about',
+  host_style: 'mod.hosts.errors.host_style',
+  host_instructions: 'mod.hosts.errors.host_instructions',
+  host_model: 'mod.hosts.errors.host_model',
+  host_voice: 'mod.hosts.errors.host_voice',
+  host_key: 'mod.hosts.errors.host_key',
+  host_provider: 'mod.hosts.errors.host_provider',
+  host_lineup: 'mod.hosts.errors.host_lineup',
+  host_in_use: 'mod.hosts.errors.host_in_use',
+  last_host: 'mod.hosts.errors.last_host',
+  host_try_text: 'mod.hosts.errors.host_try_text',
+  host_no_room: 'mod.hosts.errors.host_no_room',
+  voice_timeout: 'mod.hosts.errors.voice_timeout',
+  invalid_color: 'mod.hosts.errors.invalid_color',
+  invalid_image: 'mod.hosts.errors.invalid_image',
 };
 
 export function modError(e: unknown): string {
   const code = e instanceof ApiError ? e.code : 'generic';
+  // A voice provider's own words (redacted by the server): what to fix.
+  if (code === 'voice_failed' && e instanceof ApiError) return i18n.t('mod.hosts.errors.voice_failed', { reason: String(e.detail.reason ?? '') });
   const key = KNOWN[code];
   if (key) return i18n.t(key);
   const text = errorText(code);
@@ -219,5 +294,17 @@ export function modError(e: unknown): string {
 
 export const modApi = api;
 
-/** OpenAI TTS voices the host can use. */
-export const VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'] as const;
+/** OpenAI's built-in voices (Host\Hosts::OPENAI_VOICES); tts-1 and tts-1-hd lack ballad, marin and cedar. */
+export const VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse', 'marin', 'cedar'] as const;
+
+/** Models suggested in the host editor; any other id of the provider works too. */
+export const MODELS: Record<VoiceProvider, readonly string[]> = {
+  openai: ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd'],
+  elevenlabs: ['eleven_multilingual_v2', 'eleven_flash_v2_5', 'eleven_v3'],
+};
+
+/** What a new host of each provider starts with (Host\Hosts::SETTINGS and DEFAULT_MODEL). */
+export const HOST_DEFAULTS: Record<VoiceProvider, { model: string; settings: HostSettings }> = {
+  openai: { model: 'gpt-4o-mini-tts', settings: { speed: 1 } },
+  elevenlabs: { model: 'eleven_flash_v2_5', settings: { stability: 0.5, similarity: 0.75, style: 0, speaker_boost: true, speed: 1, language: true } },
+};

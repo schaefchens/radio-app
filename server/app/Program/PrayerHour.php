@@ -135,7 +135,7 @@ final class PrayerHour
         $s = $program['settings'];
         $drafter = $this->app->drafter();
         $close = self::closeOf($program, $run);
-        $hostOn = $s['host']['enabled'] && $this->app->hostBreaks()->available();
+        $hostOn = $s['host']['enabled'] && $this->app->hostBreaks()->available($channel, $program);
         $st = $this->state((int) $channel['id'], (int) $program['id']);
 
         // 1. The closing: the outro at its time, then music until the next program.

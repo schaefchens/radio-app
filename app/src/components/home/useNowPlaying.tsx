@@ -4,6 +4,7 @@ import type { Lang } from '@arche/shared';
 import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
 import { useServerNow } from './useServerNow';
+import { speakingHost } from '@/lib/host';
 import { BookIcon, MicIcon, MusicIcon, NavLiveIcon } from '@/components/common/icons';
 
 /**
@@ -55,8 +56,11 @@ export function useNowPlaying(): NowPlaying | null {
   } else if (item?.type === 'host') {
     // A listener's request or prayer, read out in the host's voice: theirs, not the host's words.
     const theirs = item.kind === 'reading' || item.kind === 'intercession';
-    title = theirs ? t(item.kind === 'reading' ? 'stage.prayingNow' : 'stage.listenerPrayer') : t('nowPlaying.host', { name: channel?.host.name ?? 'Hope' });
-    subtitle = theirs ? t('nowPlaying.readBy', { name: channel?.host.name ?? 'Hope' }) : t('host.aiNote');
+    const host = speakingHost(item, engine.lastHost, channel);
+    title = theirs ? t(item.kind === 'reading' ? 'stage.prayingNow' : 'stage.listenerPrayer') : t('nowPlaying.host', { name: host.name });
+    subtitle = theirs ? t('nowPlaying.readBy', { name: host.name }) : t('host.aiNote');
+    // ElevenLabs asks for a credit where its voice is heard.
+    if (host.voice === 'elevenlabs') subtitle += ` · ${t('host.voiceBy', { by: 'elevenlabs.io' })}`;
     ({ start, dur } = item);
     icon = <MicIcon />;
   } else if (item?.type === 'contrib') {

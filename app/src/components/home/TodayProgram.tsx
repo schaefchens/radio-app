@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { DayFile, DayProgram, Lang } from '@arche/shared';
+import type { DayFile, DayProgram, HostInfo, Lang } from '@arche/shared';
 import { localTime } from '@/lib/format';
 import { BellIcon } from '@/components/common/icons';
+import { CdnImg } from '@/components/common/CdnImg';
 import { useServerNow } from './useServerNow';
 
 interface Props {
@@ -39,6 +40,7 @@ export function DayBlocks({ day, compact = false, onProgram, reminded }: Props) 
             </p>
             {!compact && p?.subtitle[lang] && <p className="text-sm text-ink-muted">{p.subtitle[lang]}</p>}
             {!compact && p?.description[lang] && <p className="mt-1 text-xs text-ink-faint">{p.description[lang]}</p>}
+            {!compact && p && p.hosts.length > 0 && <HostsLine hosts={p.hosts} />}
           </>
         );
         return (
@@ -65,5 +67,31 @@ export function DayBlocks({ day, compact = false, onProgram, reminded }: Props) 
         );
       })}
     </ol>
+  );
+}
+
+/** A program's hosts in a line: their pictures and names ("with Hope · David"). */
+export function HostsLine({ hosts }: { hosts: HostInfo[] }) {
+  const { t } = useTranslation();
+  return (
+    <p className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-muted">
+      <span className="flex shrink-0 -space-x-1.5" aria-hidden="true">
+        {hosts.map((h, i) => (
+          <HostFace key={`${i}-${h.name}`} host={h} size="h-5 w-5 text-[0.6rem]" />
+        ))}
+      </span>
+      <span className="truncate">{t('schedule.with', { names: hosts.map((h) => h.name).join(' · ') })}</span>
+    </p>
+  );
+}
+
+/** A host's picture — or their initial — in a ring of their color. */
+export function HostFace({ host, size }: { host: HostInfo; size: string }) {
+  return host.avatar ? (
+    <CdnImg src={host.avatar} className={clsx('rounded-full border-2 object-cover', size)} style={{ borderColor: host.color }} />
+  ) : (
+    <span className={clsx('flex items-center justify-center rounded-full border-2 bg-soft font-semibold text-ink', size)} style={{ borderColor: host.color }}>
+      {host.name.slice(0, 1)}
+    </span>
   );
 }

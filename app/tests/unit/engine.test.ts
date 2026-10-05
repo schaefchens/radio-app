@@ -55,7 +55,7 @@ function fakeAudio(now: () => number): AudioLike & { calls: string[]; outside: '
 
 const items: TimelineItem[] = [
   { id: 's1', type: 'song', kind: 'song', start: 0, dur: 200_000, p: 'live', yt: 'AAAAAAAAAAA', title: 'One', artist: 'X', thumb: null, request: null, fallback: '/media/jingles/j.mp3' },
-  { id: 'h1', type: 'host', start: 200_000, dur: 20_000, p: 'live', kind: 'break', audio: { en: '/media/host/en.mp3', de: '/media/host/de.mp3' }, text: { en: 'Hello', de: 'Hallo' }, voices: [], prayers: [], notice: null },
+  { id: 'h1', type: 'host', start: 200_000, dur: 20_000, p: 'live', kind: 'break', audio: { en: '/media/host/en.mp3', de: '/media/host/de.mp3' }, text: { en: 'Hello', de: 'Hallo' }, voices: [], prayers: [], notice: null, host: null },
   { id: 's2', type: 'song', kind: 'song', start: 220_000, dur: 300_000, p: 'live', yt: 'BBBBBBBBBBB', title: 'Two', artist: 'Y', thumb: null, request: null, fallback: null },
 ];
 const slotFile: SlotFile = { v: 1, channel: 'main', t: 0, gen: 0, current: 'live', next: null, submissions: { song: 'open' }, programs: {}, items };
@@ -514,7 +514,7 @@ describe('the prayer hour', () => {
   it('knows which wall request is on air while it is read out', async () => {
     const moment: TimelineItem = {
       id: 'h9', type: 'host', start: 40_000, dur: 20_000, p: 'prayer', kind: 'reading',
-      audio: { en: '/media/host/p.mp3' }, text: { en: 'A prayer request: Please pray for my mother.' }, voices: [], prayers: ['pk3v9q2m7x4tb'], notice: null,
+      audio: { en: '/media/host/p.mp3' }, text: { en: 'A prayer request: Please pray for my mother.' }, voices: [], prayers: ['pk3v9q2m7x4tb'], notice: null, host: null,
     };
     const quiet: TimelineItem = { id: 'q9', type: 'silence', start: 60_000, dur: 60_000, p: 'prayer', label: { en: 'Prayer time', de: 'Gebetszeit' } };
     const s = setup({ slot: { ...slotFile, items: [moment, quiet] } });
@@ -532,7 +532,7 @@ describe('the prayer hour', () => {
     const quiet: TimelineItem = { id: 'q1', type: 'silence', start: 40_000, dur: 30_000, p: 'prayer', label: { en: 'Prayer time', de: 'Gebetszeit' } };
     const reading: TimelineItem = {
       id: 'r1', type: 'host', start: 70_000, dur: 12_000, p: 'prayer', kind: 'reading',
-      audio: { en: '/media/host/r.mp3' }, text: { en: 'A prayer request: For my mother.' }, voices: [], prayers: ['pq'], notice: null,
+      audio: { en: '/media/host/r.mp3' }, text: { en: 'A prayer request: For my mother.' }, voices: [], prayers: ['pq'], notice: null, host: null,
     };
     const wall = [{ id: 'pq', text: 'For my mother.', at: 1000, from: 70_000 }, { id: 'pk', text: 'For peace.', at: 900, from: 30_000 }];
     const s = setup({ slot: { ...slotFile, items: [quiet, reading] }, live: { ...live, wall, collected: 1 } });

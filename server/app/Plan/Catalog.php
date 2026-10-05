@@ -147,16 +147,20 @@ final class Catalog
         }
         $now = $this->app->clock->now();
         $store = $this->app->store();
-        $id = $store->tx(function () use ($store, $id, $row, $now) {
+        // Its hosts (Host\Hosts): only when sent — an older /mod tab sends none.
+        $hosts = is_array($data['hosts'] ?? null) ? $data['hosts'] : null;
+        $id = $store->tx(function () use ($store, $id, $row, $now, $hosts) {
             if (($row['is_main'] ?? 0) === 1) $store->query('UPDATE channels SET is_main = 0');
             if ($id === null) {
                 foreach (['slug', 'name_en', 'name_de'] as $req) {
                     if (($row[$req] ?? '') === '') throw new ApiError(422, 'missing_' . $req);
                 }
                 if ($store->one('SELECT id FROM channels WHERE slug = ?', [$row['slug']])) throw new ApiError(409, 'slug_taken');
-                return $store->insert('channels', $row + ['created' => $now, 'updated' => $now]);
+                $id = $store->insert('channels', $row + ['created' => $now, 'updated' => $now]);
+            } elseif ($row) {
+                $store->update('channels', $row + ['updated' => $now], 'id = ?', [$id]);
             }
-            if ($row) $store->update('channels', $row + ['updated' => $now], 'id = ?', [$id]);
+            if ($hosts !== null) $this->app->hosts()->setLineup('channel', $id, $hosts);
             return $id;
         });
         $this->bump($actor, 'channel ' . $id);
@@ -247,7 +251,10 @@ final class Catalog
 
         $now = $this->app->clock->now();
         $store = $this->app->store();
-        $id = $store->tx(function () use ($store, $id, $channelId, $row, $now) {
+        // Its hosts (Host\Hosts) live outside `settings`: cleanSettings() would
+        // reset them from an older /mod tab, which sends none — written only when sent.
+        $hosts = is_array($data['hosts'] ?? null) ? $data['hosts'] : null;
+        $id = $store->tx(function () use ($store, $id, $channelId, $row, $now, $hosts) {
             if ($id === null) {
                 foreach (['slug', 'title_en', 'title_de'] as $req) {
                     if (($row[$req] ?? '') === '') throw new ApiError(422, 'missing_' . $req);
@@ -255,9 +262,11 @@ final class Catalog
                 if ($store->one('SELECT id FROM programs WHERE channel_id = ? AND slug = ?', [$channelId, $row['slug']])) {
                     throw new ApiError(409, 'slug_taken');
                 }
-                return $store->insert('programs', $row + ['channel_id' => $channelId, 'created' => $now, 'updated' => $now]);
+                $id = $store->insert('programs', $row + ['channel_id' => $channelId, 'created' => $now, 'updated' => $now]);
+            } elseif ($row) {
+                $store->update('programs', $row + ['updated' => $now], 'id = ?', [$id]);
             }
-            if ($row) $store->update('programs', $row + ['updated' => $now], 'id = ?', [$id]);
+            if ($hosts !== null) $this->app->hosts()->setLineup('program', $id, $hosts);
             return $id;
         });
         $this->bump($actor, 'program ' . $id);
@@ -270,9 +279,12 @@ final class Catalog
         $inUse = (int) $store->value('SELECT COUNT(*) FROM day_plan_blocks WHERE program_id = ?', [$id])
             + (int) $store->value('SELECT COUNT(*) FROM channels WHERE fallback_program_id = ?', [$id]);
         if ($inUse > 0) throw new ApiError(409, 'program_in_use');
-        // Its prepared opening prayers go along, recordings included.
+        // Its prepared opening prayers go along, recordings included; its
+        // lineup with the row (ON DELETE CASCADE), its shows' host picks here.
         $this->app->openingPrayers()->purge(0, $id);
+        $channelId = (int) $store->value('SELECT channel_id FROM programs WHERE id = ?', [$id]);
         $store->query('DELETE FROM programs WHERE id = ?', [$id]);
+        $this->app->hosts()->forgetProgram($channelId, $id);
         $this->bump($actor, 'program deleted ' . $id);
     }
 

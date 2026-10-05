@@ -207,8 +207,19 @@ a deploy.
   host-break outcomes, AI spend vs budget, realtime nodes, audit log.
 - **Costs**: `AI_DAILY_BUDGET_USD` (all AI), `HOST_MAX_BREAKS_PER_DAY`
   (300; people's words read out do not count), `HOST_MIN_LISTENERS`,
-  `MODERATION_MAX_PER_DAY`. ElevenLabs is used only with
-  `TTS_PROVIDER=elevenlabs` and `ELEVENLABS_MAX_CHARS_PER_DAY` > 0.
+  `MODERATION_MAX_PER_DAY`, and each host's characters per day.
+- **Hosts**: /mod → Hosts (admins). Each has a picture, name, colour, a few
+  words for listeners, style notes for the writer, and its voice: OpenAI or
+  ElevenLabs with its own key (write-only; an OpenAI host without one uses
+  `OPENAI_KEY`), model, voice, direction, settings and a daily character
+  limit — an ElevenLabs host without one never speaks. "Try voice" plays a
+  sample with unsaved changes (it spends characters). Programs (and channels,
+  for programs without their own) pick their hosts in their editor: on air —
+  one per show, at random — and fallbacks in order. A host that fails rests
+  (until the next day for a quota or a wrong key; saving it tries again); the
+  next one steps in. /mod → Status lists every host's state. Before an
+  ElevenLabs host goes on air: turn off the use of data for training in the
+  ElevenLabs account (the privacy policy says so).
 - **Backups**: a daily `VACUUM INTO` copy in `/_arche/var/backups` (seven kept).
 - **Pull from air**: /mod → Library → pull; clients skip it within a minute.
 - **Requests** air about ten minutes after approval; several waiting are
@@ -335,7 +346,6 @@ Everything is an `.env` key (defaults in `server/config/defaults.php`, names in
 | `AI_TEXT_PROVIDER` | `auto` | who writes and moderates: `auto` (Claude if `ANTHROPIC_KEY` is set, else OpenAI), `anthropic`, `openai` |
 | `OPENAI_HOST_MODEL`, `OPENAI_MODERATION_MODEL` | `gpt-5-mini` | OpenAI model ids (when OpenAI writes and moderates) |
 | `HOST_MODEL`, `MODERATION_MODEL` | `claude-opus-5` | Claude model ids (when Claude does) |
-| `TTS_PROVIDER` | `openai` | `elevenlabs` only together with `ELEVENLABS_MAX_CHARS_PER_DAY` > 0 |
 | `STATION_LANGS` | `en,de` | languages every host break is voiced in |
 | `TICK_BUDGET` | `22` | seconds of network time per tick (from the probe) |
 | `PULSE_SECONDS` | `120` | presence pulse interval; `0` turns pulses off under load |

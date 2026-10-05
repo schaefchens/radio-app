@@ -15,6 +15,7 @@ const prayerHour: ProgramRef = {
   stage: { mode: 'ambient', image: null, tagline: { en: '', de: '' } },
   allowed: ['prayer', 'intercession'],
   format: 'prayer',
+  voicedBy: ['openai'],
 };
 const mother: WallEntry = { id: 'pa', text: 'Please pray for my mother.', at: 4 };
 const peace: WallEntry = { id: 'pb', text: 'Pray for peace in our town.', at: 3 };
@@ -30,11 +31,11 @@ const bed: TimelineItem = {
 const silence: TimelineItem = { id: 's1', type: 'silence', start: 0, dur: 60_000, p: 'prayer', label: { en: 'Prayer time', de: 'Gebetszeit' } };
 const reading: TimelineItem = {
   id: 'h1', type: 'host', start: 0, dur: 12_000, p: 'prayer', kind: 'reading', audio: { en: '/media/host/r.mp3' },
-  text: { en: 'A prayer request: Please pray for my mother.' }, voices: [], prayers: ['pa'], notice: null,
+  text: { en: 'A prayer request: Please pray for my mother.' }, voices: [], prayers: ['pa'], notice: null, host: null,
 };
 const written: TimelineItem = {
   id: 'h2', type: 'host', start: 0, dur: 12_000, p: 'prayer', kind: 'intercession', audio: { de: '/media/host/i.mp3' },
-  text: { de: 'Tom aus Berlin betet: Herr, sei bei Maria.' }, voices: [], prayers: [], notice: null,
+  text: { de: 'Tom aus Berlin betet: Herr, sei bei Maria.' }, voices: [], prayers: [], notice: null, host: null,
 };
 
 function stage(item: TimelineItem, mode: EngineState['mode'], extra: Partial<EngineState> = {}): EngineState {

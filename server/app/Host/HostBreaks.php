@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Host;
 
 use Arche\App;
+use Arche\Ai\VoiceError;
 use Arche\Audio\Mp3;
 use Arche\Program\PrayerHour;
 use Arche\Program\Timing;
@@ -19,19 +20,35 @@ use Arche\Support\Ids;
  * retried by the job lease on the next tick. The cost gates run at script
  * time, not at drafting time: a listener who tunes in now should hear the
  * host in the next break already planned, not only in the ones planned later.
+ *
+ * Who speaks is decided at script time too (Hosts::forBreak: the show's
+ * host, else one who can), and one host voices every language. When its
+ * voice fails, the moment goes to the next host who can speak: voiced again
+ * by them — or, when they have another name and the model wrote the words
+ * (it may have said its name), written again first. At most MAX_TRIED hosts.
  */
 final class HostBreaks
 {
+    /** Hosts one moment may go through before it gives up. */
+    private const MAX_TRIED = 4;
+    /** What a script pass wrote into the context, gone before the next pass writes its own. */
+    private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution'];
+
     public function __construct(private App $app) {}
 
     /**
-     * Whether host breaks can be produced at all: a text model (Claude or
-     * OpenAI) and a voice (OpenAI, or ElevenLabs when opted in) — or stub mode.
+     * Whether host breaks can be produced: a text model (Claude or OpenAI, or
+     * stub mode) and a host who can speak — in this program's lineup when one
+     * is given (Hosts::effective), anywhere on the station otherwise.
+     *
+     * @param array<string,mixed>|null $channel
+     * @param array<string,mixed>|null $program
      */
-    public function available(): bool
+    public function available(?array $channel = null, ?array $program = null): bool
     {
-        $c = $this->app->config;
-        return $c->stubAi() || ($c->textProvider() !== '' && ($c->openaiKey() !== '' || $c->has('ELEVENLABS_API_KEY')));
+        if ($this->app->config->textProvider() === '') return false;
+        $hosts = $this->app->hosts();
+        return $channel === null ? $hosts->anySpeaks() : $hosts->speaksFor($channel, $program);
     }
 
     /**
@@ -43,6 +60,10 @@ final class HostBreaks
     public function create(array $channel, array $program, string $kind, array $item, array $context = []): int
     {
         $now = $this->app->clock->now();
+        // The show it belongs to (one host per show), from its block: an
+        // estimated start drifts past a block's end when the plan runs late.
+        $at = (int) ($item['block_start'] ?? $item['est_start'] ?? $this->app->clock->nowMs());
+        $context['show'] ??= $this->app->hosts()->showStart($channel, (int) $program['id'], $at);
         $id = $this->app->store()->insert('host_breaks', [
             'channel_id' => (int) $channel['id'],
             'program_id' => (int) $program['id'],
@@ -175,7 +196,8 @@ final class HostBreaks
         $channel = $this->app->catalog()->channel((int) $hb['channel_id']);
         $program = $hb['program_id'] !== null ? $this->app->catalog()->program((int) $hb['program_id']) : null;
         if ($channel === null || $program === null) return null;
-        $new = $this->create($channel, $program, (string) $hb['kind'], \Arche\Program\Timeline::decode($row), array_diff_key($hb['context'], array_flip(self::PERSONAL)));
+        // Its host is found anew (the old one may have been tried and failed).
+        $new = $this->create($channel, $program, (string) $hb['kind'], \Arche\Program\Timeline::decode($row), array_diff_key($hb['context'], array_flip([...self::PERSONAL, 'host_id', 'tried'])));
         $this->app->store()->update('timeline_items', ['host_break_id' => $new], 'id = ?', [(int) $row['id']]);
         return $new;
     }
@@ -221,6 +243,8 @@ final class HostBreaks
             'text' => array_intersect_key($hb['texts'], $hb['audio']),
             'voices' => $hb['kind'] === 'break' ? array_slice($this->app->presence()->voices($this->channelSlug($hb)), 0, 3) : [],
             'prayers' => $this->wallRefs($hb),
+            // Who speaks, as listeners see them; null once the host is gone.
+            'host' => $this->app->hosts()->info((int) ($hb['context']['host_id'] ?? 0)),
         ] + $this->notice($hb, $before);
     }
 
@@ -284,12 +308,25 @@ final class HostBreaks
                 $this->fail($hb, $gate);
                 return null;
             }
-            $context = $this->app->hostWriter()->context($hb);
-            $written = $this->app->hostWriter()->write($hb, $context);
+            // Its host: the one a switch chose (and that can still speak), else the show's.
+            $hosts = $this->app->hosts();
+            $tried = self::tried($hb);
+            $chosen = isset($hb['context']['host_id']) ? $hosts->get((int) $hb['context']['host_id']) : null;
+            $host = $chosen !== null && !in_array($chosen['id'], $tried, true) && $hosts->canSpeak($chosen) ? $chosen : $hosts->forBreak($hb, $tried);
+            if ($host === null) {
+                $this->fail($hb, 'no_voice');
+                return null;
+            }
+            $context = $this->app->hostWriter()->context($hb, $host);
+            $written = $this->app->hostWriter()->write($hb, $context, $host);
+            // A switch before writing again: the clips of the one before go.
+            foreach ($hb['audio'] as $url) $this->app->media()->delete(is_string($url) ? $url : null);
             // The model takes seconds: an account deleted meanwhile has had this break forgotten.
             if (!$this->saveIfPending($hb['id'], [
-                'context' => json_encode($context + $hb['context'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'context' => json_encode(['host_id' => $host['id']] + $context + array_diff_key($hb['context'], array_flip(self::WRITTEN)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'texts' => json_encode($written['texts'] ?: new \stdClass(), JSON_UNESCAPED_UNICODE),
+                'audio' => '{}',
+                'durations' => '{}',
                 'source' => $written['source'],
             ])) {
                 return null;
@@ -303,19 +340,33 @@ final class HostBreaks
                 $this->fail($hb, 'no_text');
                 return null;
             }
+            // Its characters for today cannot take every language: another host, before any clip.
+            if (!$hosts->hasRoom($host, $written['texts'])) return $this->switchHost($this->get($hb['id']) ?? $hb, $host, null);
             return 'tts:' . $first;
         }
 
         if (str_starts_with($phase, 'tts:')) {
             $lang = substr($phase, 4);
-            $channel = $this->app->catalog()->channel((int) $hb['channel_id']) ?? [];
             $text = (string) ($hb['texts'][$lang] ?? '');
             if ($text !== '') {
-                $spoken = $this->app->voice()->speak($text, $lang, $channel, (string) ($channel['host_style'] ?? ''));
-                $name = sprintf('%d-%s.%s.mp3', $hb['id'], Ids::short(6), $lang);
-                $url = $this->app->media()->put('host/' . gmdate('Ymd', $this->app->clock->now()), $name, $spoken['bytes']);
-                $check = Mp3::inspect((string) $this->app->media()->path($url));
-                if (!$check['ok']) throw new \RuntimeException('TTS returned no playable audio');
+                $hosts = $this->app->hosts();
+                $host = $hosts->get((int) ($hb['context']['host_id'] ?? 0));
+                // Deleted, switched off, resting or out of characters since its script: the next who can.
+                if ($host === null || !$hosts->canSpeak($host, mb_strlen($text))) return $this->switchHost($hb, $host, null);
+                try {
+                    $spoken = $this->app->voice()->speak($host, $text, $lang);
+                    $name = sprintf('%d-%s.%s.mp3', $hb['id'], Ids::short(6), $lang);
+                    $url = $this->app->media()->put('host/' . gmdate('Ymd', $this->app->clock->now()), $name, $spoken['bytes']);
+                    $check = Mp3::inspect((string) $this->app->media()->path($url));
+                    if (!$check['ok']) {
+                        $this->app->media()->delete($url);
+                        throw VoiceError::broken((string) $host['provider'], 'no playable audio');
+                    }
+                } catch (VoiceError $e) {
+                    $hosts->failed($host, $e);
+                    return $this->switchHost($hb, $host, $e);
+                }
+                $hosts->succeeded($host);
                 $hb['audio'][$lang] = $url;
                 $hb['durations'][$lang] = $check['ms'];
                 if (!$this->saveIfPending($hb['id'], ['audio' => json_encode($hb['audio']), 'durations' => json_encode($hb['durations'])])) {
@@ -334,6 +385,51 @@ final class HostBreaks
             return null;
         }
         return null;
+    }
+
+    /**
+     * The moment goes to the next host who can speak (Hosts::forBreak, never
+     * one tried before). Words of the same name's host, or not the model's
+     * (a reading, a moderator's text, a template), are voiced again in every
+     * language; another name's are written again for them first. Nobody left:
+     * a temporary error is thrown, for the job's retry as before; otherwise
+     * the moment fails.
+     *
+     * @param array<string,mixed> $hb
+     * @param array<string,mixed>|null $from the host that could not
+     */
+    private function switchHost(array $hb, ?array $from, ?VoiceError $error): ?string
+    {
+        $tried = self::tried($hb);
+        if ($from !== null && !in_array($from['id'], $tried, true)) $tried[] = $from['id'];
+        $next = count($tried) < self::MAX_TRIED ? $this->app->hosts()->forBreak($hb, $tried) : null;
+        if ($next === null) {
+            if ($error !== null && !$error->lasting()) throw $error;
+            $this->fail($hb, 'no_voice');
+            return null;
+        }
+        // The model may have said the name it wrote for; templates and people's words name no host.
+        $modelWords = !in_array((string) $hb['source'], ['listener', 'moderator'], true) && !str_starts_with((string) $hb['source'], 'template:');
+        $writtenFor = (string) ($hb['context']['host_name'] ?? $from['name'] ?? '');
+        $rewrite = $modelWords && $writtenFor !== '' && mb_strtolower((string) $next['name']) !== mb_strtolower($writtenFor);
+        foreach ($hb['audio'] as $url) $this->app->media()->delete(is_string($url) ? $url : null);
+        $context = ['host_id' => $next['id'], 'tried' => $tried] + $hb['context'];
+        if (!$this->saveIfPending($hb['id'], [
+            'context' => json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'audio' => '{}',
+            'durations' => '{}',
+        ])) {
+            return null;
+        }
+        if ($rewrite) return 'script';
+        $first = $this->nextLang($hb['texts'], null);
+        return $first !== null ? 'tts:' . $first : 'script';
+    }
+
+    /** @param array<string,mixed> $hb @return list<int> hosts this moment already failed with */
+    private static function tried(array $hb): array
+    {
+        return array_values(array_filter(array_map('intval', (array) ($hb['context']['tried'] ?? [])), fn($id) => $id > 0));
     }
 
     /** Why this break should not cost anything right now, or null. @param array<string,mixed> $hb */

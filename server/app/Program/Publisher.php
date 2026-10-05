@@ -83,7 +83,7 @@ final class Publisher
         $programs = [];
         foreach (array_keys($programIds) as $pid) {
             $p = $catalog->program($pid);
-            if ($p !== null) $programs[(string) $p['slug']] = $catalog->programRef($p);
+            if ($p !== null) $programs[(string) $p['slug']] = $this->programRef($channel, $p);
         }
 
         return [
@@ -129,6 +129,8 @@ final class Publisher
                 'text' => (object) ($p['text'] ?? []),
                 'voices' => array_values((array) ($p['voices'] ?? [])),
                 'prayers' => array_values((array) ($p['prayers'] ?? [])),
+                // Who speaks (Host\Hosts::info); null in items committed before hosts existed.
+                'host' => $p['host'] ?? null,
             // After an item of a group that wants it: who, a few words, their links.
             ] + (isset($p['notice']) ? ['notice' => $p['notice']] : []),
             'jingle' => $base + ['audio' => (string) ($p['audio'] ?? '')],
@@ -196,7 +198,8 @@ final class Publisher
         foreach ($blocks as $b) {
             $p = $catalog->program($b['program_id']);
             if ($p === null) continue;
-            $programs[(string) $p['slug']] = $catalog->programRef($p, true);
+            // With its on-air hosts, for the schedule.
+            $programs[(string) $p['slug']] = $this->programRef($channel, $p, true) + ['hosts' => $this->app->hosts()->publicMains($channel, $p)];
             $outBlocks[] = ['start' => $b['start'], 'end' => $b['end'], 'p' => (string) $p['slug']];
         }
         $played = [];
@@ -254,6 +257,20 @@ final class Publisher
         return $n;
     }
 
+    /**
+     * A program as the files carry it, with the voice services its lineup
+     * may speak with (`voicedBy`): the forms say when ElevenLabs reads out
+     * what a listener sends.
+     *
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $p decoded program
+     * @return array<string,mixed>
+     */
+    private function programRef(array $channel, array $p, bool $withDescription = false): array
+    {
+        return $this->app->catalog()->programRef($p, $withDescription) + ['voicedBy' => $this->app->hosts()->providers($channel, $p)];
+    }
+
     // --- channels.json + evergreen ------------------------------------------------------
 
     /** @return bool whether the file changed */
@@ -267,7 +284,8 @@ final class Publisher
                 'main' => (bool) $c['is_main'],
                 'tz' => (string) $c['timezone'],
                 'color' => (string) $c['color'],
-                'host' => ['name' => (string) $c['host_name'], 'avatar' => $c['host_avatar'] ?: null],
+                // Its lineup's first host — the one an app shows when a moment names none.
+                'host' => $this->app->hosts()->channelHost($c),
                 'evergreen' => $this->app->store()->get('evergreen:' . $c['id']),
             ];
         }

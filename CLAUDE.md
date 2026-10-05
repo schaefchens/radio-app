@@ -137,9 +137,8 @@ Opus 5, hard timeouts through a Guzzle transport, no SDK retries), otherwise
 OpenAI Chat Completions (`gpt-5-mini` by default) — an OpenAI key alone runs the
 whole station. Both answer through a strict JSON schema; every failure is a
 result without data, never an exception (except `BudgetExceeded`, which the job
-runner retries without counting an attempt). Voiced with OpenAI
-`gpt-4o-mini-tts` (ElevenLabs strictly opt-in behind a daily character cap: the
-account is a small free one). The German text may
+runner retries without counting an attempt). Voiced by the moment's host
+(below), with OpenAI or ElevenLabs. The German text may
 say "heute Abend"; the English one is heard worldwide and stays time-neutral.
 All language versions share one slot length: the longest one plus padding.
 Cost gates (listeners ≥ `HOST_MIN_LISTENERS`, daily cap, `AI_DAILY_BUDGET_USD`)
@@ -151,6 +150,47 @@ for everyone who came on time; the hour's order must not depend on who
 listens. People's words read out (`reading`, `intercession`, a prepared
 opening prayer) are neither stopped nor counted by the daily cap. The job
 voices only the languages that have text (`HostBreaks::nextLang`).
+
+**Hosts** (`Host\Hosts`, /mod › Hosts, admins; station decision 2026-10-05).
+Each host is a persona — picture, name, color, a few words in en/de that
+listeners read *and* the writer is given, private style notes for the writer
+— with a voice of its own: OpenAI or ElevenLabs, model, voice (one per
+language if wanted), OpenAI's voice direction (`instructions`), settings, and
+its own key: write-only, sealed with a key derived from the identity pepper
+(`Support\Sealed`), never in a response, the audit or an error (`VoiceError`
+redacts); an OpenAI host without one speaks with `OPENAI_KEY`. A daily
+character cap counts `ai_usage` kind `tts:host:<id>`; an ElevenLabs host
+without a cap never speaks (fail closed: the station's account is a small
+free one). A program's **lineup** (`host_lineups`: on air, then fallbacks in
+order; else its channel's, else the main channel's) is written with the
+program's PATCH under `hosts` — never inside `settings`, which `cleanSettings`
+resets from an older /mod tab. **One host per show** (a run of the program,
+`PlanResolver::runAt` of the item's `block_start`; a run longer than a day is
+one show per local day), picked at random among the on-air hosts who can
+speak, not the previous show's when another can, kept in kv
+`host_show:<cid>:<pid>`. The host is chosen at script time (`Hosts::forBreak`):
+the show's, else one of the same name (the same persona with another voice),
+else the fallbacks, else the other on-air hosts; one host voices every
+language of a moment (`hasRoom` checks the cap for all of them). A voice that
+fails: account or setup errors (400–404, 422, quotas) rest the host until the
+next UTC day or until it is saved, temporary ones count (three in a row: ten
+minutes); the moment goes to the next host who can (`context.tried`, at most
+four) — voiced again, or written again first when the new one has another
+name and the model wrote the words; nobody left: a temporary error is
+thrown for the job's retry, anything else fails `no_voice`. A timeout cut
+short by the tick is `BudgetExceeded`, never the host's. The generator plans
+host moments only while someone in the program's lineup can speak
+(`HostBreaks::available($channel, $program)`): a request nobody could read
+was taken, failed and given back over and over. The committed item carries
+`host` (`Hosts::info`: name, avatar, color, about, voice) — the stage, host
+card and song bar show it, older apps keep `channels.json` `host` (the
+channel's first) —, day files carry each program's on-air `hosts`, and
+program refs `voicedBy`: with `elevenlabs` in it the forms' privacy note says
+an ElevenLabs voice may read out what is sent (privacy policy, `legal.ts`),
+and the song bar credits "voice: elevenlabs.io" (the free plan's attribution).
+Stub mode calls no voice provider for any host; "Try voice" in /mod speaks
+the editor's unsaved changes and counts against the cap. The channels'
+`host_*` columns are unused since migration 13.
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
 while the minute file says `open`/`closing` (checked again server-side). Every
@@ -468,6 +508,10 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 
 ## Gotchas that already bit
 
+- **A migration must survive a replay.** Tests set `schema` back and migrate
+  again on a current database: a new version uses `IF NOT EXISTS`, guards its
+  seeds, and never `ADD COLUMN`s to a table no later version rebuilds (SQLite
+  has no `ADD COLUMN IF NOT EXISTS`) — a moment's host lives in its context.
 - **SQLite + PDO**: bind integers as integers (`Store::query` does). PDO binds
   text by default, and `start_ms + dur_ms > ?` against a text value is always
   false in SQLite (every integer sorts before every string) — the retention
@@ -619,7 +663,13 @@ host's words per kind, every format in every list), library groups
 never its id —, items joining by channel, one channel one group, blocking by
 channel, by a fan upload's artist and by a library item, never overruled,
 pulled from air and back, the channel backfill in one call, links https only,
-the migration), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+the migration), hosts (`hosts.php`: the migration from the channels' hosts and
+its replay, roles, the key sealed and never shown, what a save checks, the
+delete guards, lineups an older tab leaves alone, one host per show and not
+the last one's, who steps in, stub mode without a request, the ElevenLabs
+quota answered by the same persona on OpenAI with its request bodies, a
+rewrite for another name, retries and rests, the tick's own timeout, what
+listeners see, "Try voice" and the catalog), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -702,7 +752,8 @@ Comments explain the failure a line prevents. Commits: sentence-case imperative.
 
 ## Known gaps / later
 
-A custom hostname for the CDN zone, ElevenLabs as the default voice, archive *replay* (slot files
+A custom hostname for the CDN zone, clearing generated clips from the ElevenLabs
+history automatically, co-hosted moments (two hosts in one break), archive *replay* (slot files
 are kept 48 h; `days/*.json` keep what played), phone background
 playback (not possible with YouTube embeds), push notifications (the apps
 have local reminders only), App/Universal Links, the iPad layout in the iOS

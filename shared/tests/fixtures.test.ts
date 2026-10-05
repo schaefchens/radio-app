@@ -158,6 +158,64 @@ describe('program file fixtures', () => {
     expect(noticeOf({ name: 'Hope', links: [1, 2, 3, 4, 5].map((n) => ({ kind: 'website', url: https(n) })) })?.links).toHaveLength(4);
   });
 
+  it('a host moment names its host; the schedule its hosts; channels their first; and who may voice a program', () => {
+    const slot = parseSlotFile(load('slot.json'));
+    const hosts = slot!.items.flatMap((i) => (i.type === 'host' ? [i.host] : []));
+    expect(hosts).toEqual([
+      { name: 'David', avatar: null, color: '#e0763a', about: { en: 'Mornings and requests.', de: 'Morgens und eure Wünsche.' }, voice: 'elevenlabs' },
+      { name: 'Hope', avatar: '/media/stage/host-1a2b.webp', color: '#2f7bff', about: { en: 'Your companion through the day.', de: 'Deine Begleiterin durch den Tag.' }, voice: 'openai' },
+    ]);
+    expect(Object.fromEntries(Object.entries(slot!.programs).map(([k, p]) => [k, p.voicedBy]))).toEqual({
+      worship: ['openai', 'elevenlabs'],
+      sermon: ['openai'],
+      outreach: ['elevenlabs'],
+    });
+    const day = parseDayFile(load('day.json'));
+    expect(day?.programs.night?.hosts.map((h) => h.name)).toEqual(['Hope']);
+    expect(day?.programs.prayer?.hosts.map((h) => [h.name, h.voice])).toEqual([
+      ['Hope', 'openai'],
+      ['David', 'elevenlabs'],
+    ]);
+    const channels = parseChannelsFile(load('channels.json'));
+    expect(channels?.channels[0]?.host).toMatchObject({ name: 'Hope', avatar: '/media/stage/host-1a2b.webp', color: '#2f7bff', voice: 'openai' });
+  });
+
+  it('files from before several hosts read as none named — the channel\'s then — and nobody voiced', () => {
+    const raw = load('slot.json') as { items: Record<string, unknown>[]; programs: Record<string, Record<string, unknown>> };
+    const { host: _host, ...older } = raw.items[1]!;
+    const { voicedBy: _voicedBy, ...worship } = raw.programs.worship!;
+    const slot = parseSlotFile({ ...raw, programs: { worship }, items: [older] });
+    expect(slot?.items[0]?.type === 'host' && slot.items[0].host).toBeNull();
+    expect(slot?.programs.worship?.voicedBy).toEqual([]);
+    const dayRaw = load('day.json') as { programs: Record<string, Record<string, unknown>> };
+    const { hosts: _hosts, ...night } = dayRaw.programs.night!;
+    expect(parseDayFile({ ...dayRaw, programs: { night } })?.programs.night?.hosts).toEqual([]);
+    // channels.json of an older generator: {name, avatar} only.
+    const channelsRaw = load('channels.json') as { channels: Record<string, unknown>[] };
+    const channels = parseChannelsFile({ ...channelsRaw, channels: [{ ...channelsRaw.channels[0], host: { name: 'Hope', avatar: '/media/stage/a.webp' } }] });
+    expect(channels?.channels[0]?.host).toEqual({ name: 'Hope', avatar: '/media/stage/a.webp', color: '#2f7bff', about: { en: '', de: '' }, voice: 'openai' });
+  });
+
+  it('a host\'s picture only from /media, a color only as #rrggbb, an unknown voice as OpenAI — no name, no host', () => {
+    const raw = load('slot.json') as { items: Record<string, unknown>[] };
+    const hostOf = (host: unknown) => {
+      const item = parseSlotFile({ ...(raw as object), items: [{ ...raw.items[1], host }] })?.items[0];
+      return item?.type === 'host' ? item.host : undefined;
+    };
+    expect(hostOf({ name: 'Eve', avatar: 'https://evil.example/x.png', color: 'red;background:url(x)', voice: 'acme' })).toEqual({
+      name: 'Eve',
+      avatar: null,
+      color: '#2f7bff',
+      about: { en: '', de: '' },
+      voice: 'openai',
+    });
+    expect(hostOf({ name: 'Eve', avatar: '/media/../_arche/.env' })?.avatar).toBeNull();
+    expect(hostOf({ avatar: '/media/stage/a.webp' })).toBeNull();
+    const dayRaw = load('day.json') as { programs: Record<string, Record<string, unknown>> };
+    const many = Array.from({ length: 9 }, (_, i) => ({ name: `Host ${i}` }));
+    expect(parseDayFile({ ...dayRaw, programs: { night: { ...dayRaw.programs.night, hosts: many } } })?.programs.night?.hosts).toHaveLength(6);
+  });
+
   it('a song item without a kind is a song; a format or kind it does not know reads as music and a song', () => {
     const raw = load('slot.json') as { items: Record<string, unknown>[]; programs: Record<string, Record<string, unknown>> };
     const { kind: _kind, ...song } = raw.items[0]!;

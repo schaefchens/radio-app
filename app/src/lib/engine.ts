@@ -1,5 +1,6 @@
 import type {
   EvergreenFile,
+  HostInfo,
   Lang,
   LiveFile,
   ProgramRef,
@@ -57,7 +58,8 @@ export interface EngineState {
   needsTap: boolean;
   playerVisible: boolean;
   hostText: string | null;
-  lastHost: { text: string; at: number } | null;
+  /** The host's last words while music plays — and who said them (null in older files). */
+  lastHost: { text: string; at: number; host: HostInfo | null } | null;
   listeners: number;
   voices: Voice[];
   /** The prayer wall from live.json: anonymous typed prayer requests, newest
@@ -688,7 +690,7 @@ export class RadioEngine {
     const item = this.state.item;
     if (item?.type === 'host') {
       const text = item.text[this.lang] ?? item.text.en ?? item.text.de ?? null;
-      this.state = { ...this.state, hostText: text, lastHost: text ? { text, at: item.start } : this.state.lastHost };
+      this.state = { ...this.state, hostText: text, lastHost: text ? { text, at: item.start, host: item.host } : this.state.lastHost };
     } else if (this.state.hostText !== null) {
       this.state = { ...this.state, hostText: null };
     }

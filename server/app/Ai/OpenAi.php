@@ -37,6 +37,31 @@ class OpenAi
         return $r->body;
     }
 
+    /**
+     * One clip in a host's voice, with the host's model and key (the
+     * station's when the host has none). Usage is the caller's (Voice
+     * records it per host). Voice direction is a gpt-4o-mini-tts thing: the
+     * tts-1 models refuse `instructions`. A custom voice ("voice_…") goes as
+     * an object.
+     *
+     * @return string mp3 bytes
+     */
+    public function speech(#[\SensitiveParameter] string $key, string $model, string $voice, string $text, string $instructions, float $speed = 1.0): string
+    {
+        $body = [
+            'model' => $model,
+            'voice' => str_starts_with($voice, 'voice_') ? ['id' => $voice] : $voice,
+            'input' => $text,
+            'response_format' => 'mp3',
+        ];
+        if ($instructions !== '' && !str_starts_with($model, 'tts-1')) $body['instructions'] = $instructions;
+        if (abs($speed - 1.0) > 0.001) $body['speed'] = $speed;
+        $r = $this->app->http()->postJson('https://api.openai.com/v1/audio/speech', $body, ['Authorization' => 'Bearer ' . $key], 30);
+        if ($r->status !== 200) throw VoiceError::fromResponse('openai', $r, $key);
+        if ($r->body === '') throw VoiceError::broken('openai', 'an empty answer', $key);
+        return $r->body;
+    }
+
     public function transcribe(string $file, string $lang): string
     {
         if ($this->key() === '') throw new \RuntimeException('OPENAI_KEY missing');
