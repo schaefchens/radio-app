@@ -27,8 +27,10 @@ final class Media
     /** Write $bytes under /media/$sub/$name and return its URL path. */
     public function put(string $sub, string $name, string $bytes): string
     {
-        // Mixed case: YouTube ids name the thumbnails.
-        if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{2,80}$/', $name) || preg_match('/\.ph/i', $name)) {
+        // Mixed case: YouTube ids name the thumbnails, and one in 32 starts
+        // with - or _ (refused, adding such a video to the library failed).
+        // Never a leading dot: .htaccess and .user.ini configure the host.
+        if (!preg_match('/^[A-Za-z0-9_-][A-Za-z0-9._-]{2,80}$/', $name) || preg_match('/\.ph/i', $name)) {
             throw new \InvalidArgumentException('Unsafe media name');
         }
         Files::write($this->dir($sub) . '/' . $name, $bytes);
