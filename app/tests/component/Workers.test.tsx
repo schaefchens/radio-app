@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@/i18n';
 import { HostsPanel } from '@/components/mod/HostsPanel';
 import { StatusPanel } from '@/components/mod/StatusPanel';
@@ -68,14 +68,21 @@ describe('/mod: a host on our own computers', () => {
     expect(screen.queryByLabelText('API key')).toBeNull();
     expect(screen.getByText('Temperature: 0.70')).toBeTruthy();
     expect(screen.queryByText(/^Speed/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Load voices from our computers' }));
+    // The computers are asked as the editor opens: no click, no key.
     expect(await screen.findByText(/No computer is connected right now/)).toBeTruthy();
     expect(calls.find((c) => c.path === '/mod/hosts/catalog')?.body).toMatchObject({ provider: 'worker', host_id: 9 });
     // Joy has a voice of her own for German: the first picker is English's.
     const [voice, voiceDe] = screen.getAllByRole('combobox', { name: /^Voice/ }) as HTMLSelectElement[];
     expect(voiceDe?.value).toBe('Sohee');
-    expect([...(voice?.options ?? [])].map((o) => o.value)).toEqual(expect.arrayContaining(['Sohee', 'Ryan', '__other']));
+    // Qwen's presets are there although no computer reported them.
+    expect([...(voice?.options ?? [])].map((o) => o.value)).toEqual(['Ryan', 'Aiden', 'Vivian', 'Serena', 'Uncle_Fu', 'Dylan', 'Eric', 'Ono_Anna', 'Sohee', '__other']);
+    expect(screen.getAllByRole('option', { name: 'Serena · female, Chinese, warm and gentle' })).toHaveLength(2);
     expect(voice?.value).toBe('Ryan');
+    const model = screen.getByRole('combobox', { name: /^Model/ }) as HTMLSelectElement;
+    expect([...model.options].map((o) => o.textContent)).toEqual(['Qwen3-TTS 1.7B (qwen3-tts-1.7b-customvoice)', 'Another model id']);
+    expect(model.value).toBe('qwen3-tts-1.7b-customvoice');
+    fireEvent.click(screen.getByRole('button', { name: 'Ask our computers again' }));
+    await waitFor(() => expect(calls.filter((c) => c.path === '/mod/hosts/catalog')).toHaveLength(2));
   });
 
   it('a try waits for a computer, then plays what it spoke', async () => {

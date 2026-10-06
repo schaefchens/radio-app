@@ -224,4 +224,33 @@ describe('/mod: trying a host\'s voice', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'A voice id of your own (voice_…)' }), { target: { value: 'voice_abc123' } });
     expect(voice.value).toBe('__other');
   });
+
+  it('the model is a list of the known ones, and still takes any other id', async () => {
+    const saved: { model: string }[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/mod/hosts/7') && init?.method === 'PATCH') {
+        saved.push(JSON.parse(String(init.body)) as { model: string });
+        return new Response(JSON.stringify({ host: grace }), { status: 200 });
+      }
+      if (url.endsWith('/mod/hosts/catalog')) return new Response(JSON.stringify({ voices: [], models: [], account: null, errors: [], workers_online: 1 }), { status: 200 });
+      return new Response(JSON.stringify({ hosts: [grace] }), { status: 200 });
+    }));
+    render(<HostsPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    // Switched there and back, one list each time — the other provider's leaves.
+    fireEvent.click(screen.getByRole('radio', { name: 'Own computer (Qwen)' }));
+    expect((screen.getAllByRole('combobox', { name: /^Model/ }) as HTMLSelectElement[]).map((m) => m.value)).toEqual(['qwen3-tts-1.7b-customvoice']);
+    fireEvent.click(screen.getByRole('radio', { name: 'OpenAI' }));
+    const model = screen.getByRole('combobox', { name: /^Model/ }) as HTMLSelectElement;
+    expect([...model.options].map((o) => o.value)).toEqual(['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd', '__other']);
+    expect(model.value).toBe('gpt-4o-mini-tts');
+    expect(screen.queryByRole('textbox', { name: 'Another model id' })).toBeNull();
+    // A successor OpenAI names one day goes in without a deploy.
+    fireEvent.change(model, { target: { value: '__other' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Another model id' }), { target: { value: 'gpt-5-mini-tts' } });
+    expect(model.value).toBe('__other');
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await screen.findByText('Host saved.');
+    expect(saved[0]?.model).toBe('gpt-5-mini-tts');
+  });
 });

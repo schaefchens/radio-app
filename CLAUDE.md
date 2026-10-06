@@ -777,9 +777,10 @@ on every form hiding name and place and sending neither, and the
 rules on the first post, the install sheet's single-use prompt, /mod › Lines (the
 filters' query, play, recording again only after a confirm, bulk selection,
 the options for admins only, the write form), a program's "host's words"
-sent only as it came, the worker provider in the host editor (no key, the
-temperature, the voices the workers offer, the try that polls, "no worker")
-and the Rechner section (the key and its config shown once, a new key and
+sent only as it came, the host editor's model list (any other id still
+taken, one list after a provider switch), the worker provider in it (no key,
+the temperature, Qwen's presets and the voices the workers offer, asked
+without a click, the try that polls, "no worker") and the Rechner section (the key and its config shown once, a new key and
 delete behind a confirm); the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background

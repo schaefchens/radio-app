@@ -411,7 +411,7 @@ export function modError(e: unknown): string {
 
 export const modApi = api;
 
-export { VOICES } from './voices';
+export { QWEN_VOICES, VOICES } from './voices';
 
 /** Models suggested in the host editor; any other id of the provider works too. */
 export const MODELS: Record<VoiceProvider, readonly string[]> = {

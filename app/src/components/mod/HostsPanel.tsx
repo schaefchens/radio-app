@@ -1,12 +1,13 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { VOICE_PROVIDERS, type Lang, type VoiceProvider } from '@arche/shared';
 import { api } from '@/lib/api';
 import { localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
-import { HOST_DEFAULTS, MODELS, VOICES, modError, type HostSettings, type ModHost, type VoiceCatalog, type WorkerTry } from './modApi';
+import { HOST_DEFAULTS, MODELS, QWEN_VOICES, VOICES, modError, type HostSettings, type ModHost, type VoiceCatalog, type WorkerTry } from './modApi';
 import { HostAvatar } from './HostLineup';
 import { WorkersSection } from './WorkersSection';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
@@ -150,13 +151,13 @@ function HostState({ host: h }: { host: ModHost }) {
 function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: (text: string, keep?: ModHost) => void; onCancel: () => void }) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
-  const modelsId = useId();
   const [d, setD] = useState<Draft>(() => draftOf(host));
   const [avatar, setAvatar] = useState<string | null>(host?.avatar ?? null);
   const [key, setKey] = useState('');
   const [replaceKey, setReplaceKey] = useState(!host?.key_set);
   const [removeKey, setRemoveKey] = useState(false);
-  const [catalog, setCatalog] = useState<VoiceCatalog | null>(null);
+  // Kept with its provider: an answer that comes after a switch is never shown for the other one.
+  const [catalog, setCatalog] = useState<{ provider: VoiceProvider; data: VoiceCatalog } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]): void => setD((x) => ({ ...x, [k]: v }));
@@ -165,9 +166,26 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
   const worker = d.provider === 'worker';
   // The other provider's key would only fail there: switched, it goes with the save.
   const keyGoes = host !== null && host.provider !== d.provider;
+  const shown = catalog?.provider === d.provider ? catalog.data : null;
+  // The voices to choose from without a click: our computers' always (no key,
+  // nothing counted), ElevenLabs' with the key already saved for it.
+  const autoLoad = worker || (eleven && host?.provider === 'elevenlabs' && host.key_set && !host.key_unreadable);
+  const hostId = host?.id;
+
+  useEffect(() => {
+    if (!autoLoad) return;
+    let live = true;
+    const provider = d.provider;
+    api<VoiceCatalog>('/mod/hosts/catalog', { body: { provider, host_id: hostId } }).then(
+      (data) => live && setCatalog({ provider, data }),
+      (e: unknown) => live && setError(modError(e)),
+    );
+    return () => {
+      live = false;
+    };
+  }, [autoLoad, d.provider, hostId]);
 
   const switchTo = (provider: VoiceProvider): void => {
-    setCatalog(null);
     setD((x) => {
       const back = host?.provider === provider ? draftOf(host) : null;
       const voice = back?.voice ?? (provider === 'openai' ? 'coral' : '');
@@ -234,7 +252,9 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
     setBusy(true);
     setError(null);
     try {
-      setCatalog(await api<VoiceCatalog>('/mod/hosts/catalog', { body: { provider: d.provider, host_id: host?.id, ...(key.trim() !== '' ? { api_key: key.trim() } : {}) } }));
+      const provider = d.provider;
+      const data = await api<VoiceCatalog>('/mod/hosts/catalog', { body: { provider, host_id: host?.id, ...(key.trim() !== '' ? { api_key: key.trim() } : {}) } });
+      setCatalog({ provider, data });
     } catch (e) {
       setError(modError(e));
     } finally {
@@ -242,8 +262,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
     }
   };
 
-  const models = [...new Set([...MODELS[d.provider], ...(catalog?.models.map((m) => m.id) ?? [])])];
-  const voiceOptions = d.provider === 'openai' ? VOICES.map((v) => ({ id: v, name: v, labels: '' })) : (catalog?.voices ?? []);
+  const voiceOptions = d.provider === 'openai' ? VOICES.map((v) => ({ id: v, name: v, labels: '' })) : worker ? qwenVoices(shown?.voices ?? [], t) : (shown?.voices ?? []);
   const modelHint = eleven ? t('mod.hosts.modelHintElevenLabs') : worker ? t('mod.hosts.modelHintWorker') : t('mod.hosts.modelHintOpenAi');
 
   return (
@@ -326,15 +345,8 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
           {worker && keyGoes && host?.key_set && <p className="text-xs text-ink-faint">{t('mod.hosts.keyGoes')}</p>}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label={t('mod.hosts.model')} hint={modelHint}>
-              <input className="field font-mono" list={modelsId} value={d.model} onChange={(e) => set('model', e.target.value.trim())} />
-              <datalist id={modelsId}>
-                {models.map((m) => (
-                  <option key={m} value={m} />
-                ))}
-              </datalist>
-            </Field>
-            <VoicePicker label={t('mod.hosts.voiceId')} value={d.voice} options={voiceOptions} provider={d.provider} onChange={(v) => set('voice', v)} />
+            <ModelPicker key={`model-${d.provider}`} value={d.model} provider={d.provider} catalog={shown} hint={modelHint} onChange={(v) => set('model', v)} />
+            <VoicePicker key={`voice-${d.provider}`} label={t('mod.hosts.voiceId')} value={d.voice} options={voiceOptions} provider={d.provider} onChange={(v) => set('voice', v)} />
           </div>
           {(eleven || worker) && (
             <div className="flex flex-col gap-1.5">
@@ -346,18 +358,18 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
               >
                 {worker ? t('mod.hosts.loadVoicesWorker') : t('mod.hosts.loadVoices')}
               </button>
-              {eleven && catalog?.stub && <p className="text-xs text-ink-faint">{t('mod.hosts.catalogStub')}</p>}
-              {worker && catalog?.workers_online === 0 && <Notice>{t('mod.hosts.noWorkerOnline')}</Notice>}
-              {catalog?.account && (
+              {eleven && shown?.stub && <p className="text-xs text-ink-faint">{t('mod.hosts.catalogStub')}</p>}
+              {worker && shown?.workers_online === 0 && <Notice>{t('mod.hosts.noWorkerOnline')}</Notice>}
+              {shown?.account && (
                 <p className="text-xs text-ink-muted">
                   {t('mod.hosts.account', {
-                    left: Math.max(0, catalog.account.limit - catalog.account.used).toLocaleString(lang),
-                    limit: catalog.account.limit.toLocaleString(lang),
-                    date: catalog.account.resets > 0 ? localDate(catalog.account.resets * 1000, lang, { day: 'numeric', month: 'long' }) : '—',
+                    left: Math.max(0, shown.account.limit - shown.account.used).toLocaleString(lang),
+                    limit: shown.account.limit.toLocaleString(lang),
+                    date: shown.account.resets > 0 ? localDate(shown.account.resets * 1000, lang, { day: 'numeric', month: 'long' }) : '—',
                   })}
                 </p>
               )}
-              {catalog?.errors.map((m) => (
+              {shown?.errors.map((m) => (
                 <p key={m} className="text-xs text-heart">
                   {m}
                 </p>
@@ -365,7 +377,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
             </div>
           )}
           <Check label={t('mod.hosts.otherDe')} checked={d.otherDe} onChange={(v) => set('otherDe', v)} />
-          {d.otherDe && <VoicePicker label={t('mod.hosts.voiceDe')} value={d.voiceDe} options={voiceOptions} provider={d.provider} onChange={(v) => set('voiceDe', v)} />}
+          {d.otherDe && <VoicePicker key={`voiceDe-${d.provider}`} label={t('mod.hosts.voiceDe')} value={d.voiceDe} options={voiceOptions} provider={d.provider} onChange={(v) => set('voiceDe', v)} />}
 
           {!eleven && (
             <Field label={t('mod.hosts.direction')} hint={worker ? t('mod.hosts.directionHintWorker') : d.model.startsWith('tts-1') ? t('mod.hosts.directionIgnored') : t('mod.hosts.directionHint')}>
@@ -428,6 +440,80 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
 
 /** The list entry that opens the field for an id of one's own. */
 const OTHER_VOICE = '__other';
+const OTHER_MODEL = '__other';
+
+/**
+ * A model: the provider's known ones in a list — ElevenLabs' with the
+ * account's names and what a character costs once its voices are loaded,
+ * our computers' as they report them — and a field for any other id: OpenAI
+ * may name a successor for its speech models before they end (2027-01-06),
+ * and a host must be able to take it without a deploy.
+ */
+function ModelPicker({
+  value,
+  provider,
+  catalog,
+  hint,
+  onChange,
+}: {
+  value: string;
+  provider: VoiceProvider;
+  catalog: VoiceCatalog | null;
+  hint: string;
+  onChange: (v: string) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [typing, setTyping] = useState(false);
+  const known = new Map<string, VoiceCatalog['models'][number]>(MODELS[provider].map((id) => [id, { id, name: id }]));
+  for (const m of catalog?.models ?? []) known.set(m.id, m);
+  const own = typing || (value !== '' && !known.has(value));
+  const name = (m: VoiceCatalog['models'][number]): string => {
+    const cost = provider === 'elevenlabs' && m.cost !== undefined && m.cost !== 1 ? ` · ${t('mod.hosts.modelCost', { cost: m.cost.toLocaleString(i18n.language) })}` : '';
+    return `${m.name !== m.id ? `${m.name} (${m.id})` : m.id}${cost}`;
+  };
+  return (
+    <Field label={t('mod.hosts.model')} hint={hint}>
+      <select
+        className="field"
+        value={own ? OTHER_MODEL : value}
+        onChange={(e) => {
+          const v = e.target.value;
+          setTyping(v === OTHER_MODEL);
+          if (v !== OTHER_MODEL) onChange(v);
+        }}
+      >
+        {[...known.values()].map((m) => (
+          <option key={m.id} value={m.id}>
+            {name(m)}
+          </option>
+        ))}
+        <option value={OTHER_MODEL}>{t('mod.hosts.otherModel')}</option>
+      </select>
+      {own && (
+        <input
+          className="field mt-2 font-mono"
+          value={value}
+          spellCheck={false}
+          aria-label={t('mod.hosts.otherModel')}
+          onChange={(e) => onChange(e.target.value.trim())}
+        />
+      )}
+    </Field>
+  );
+}
+
+/**
+ * Qwen's voices: its presets always, with a few words about each — so a
+ * host on our computers can be set up while none is online — and anything
+ * else a computer reports after them.
+ */
+function qwenVoices(reported: VoiceCatalog['voices'], t: TFunction): VoiceCatalog['voices'] {
+  const presets: readonly string[] = QWEN_VOICES;
+  return [
+    ...QWEN_VOICES.map((id) => ({ id, name: reported.find((v) => v.id === id)?.name ?? id.replace('_', ' '), labels: t(`mod.hosts.qwenVoices.${id}`) })),
+    ...reported.filter((v) => !presets.includes(v.id)),
+  ];
+}
 
 /** The words for a voice of one's own, by provider. */
 const OTHER_VOICE_LABEL: Record<VoiceProvider, string> = {
@@ -438,10 +524,10 @@ const OTHER_VOICE_LABEL: Record<VoiceProvider, string> = {
 
 /**
  * A voice: every voice there is to choose in a list — OpenAI's thirteen with
- * a few words about each, the ElevenLabs account's or the Qwen voices our
- * computers offer once loaded — and a field for anything else (a custom
- * voice_… id, an ElevenLabs id pasted, a Qwen voice while no computer is
- * online). A list, not a text field with suggestions: browsers suggest only
+ * a few words about each, the ElevenLabs account's once loaded, Qwen's
+ * presets and what our computers report — and a field for anything else (a
+ * custom voice_… id, an ElevenLabs id pasted, a voice a computer of ours
+ * will offer). A list, not a text field with suggestions: browsers suggest only
  * what matches the text already in the field, so the other voices never showed.
  */
 function VoicePicker({
