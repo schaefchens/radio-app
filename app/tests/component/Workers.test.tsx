@@ -76,7 +76,9 @@ describe('/mod: a host on our own computers', () => {
     expect(voiceDe?.value).toBe('Sohee');
     // Qwen's presets are there although no computer reported them.
     expect([...(voice?.options ?? [])].map((o) => o.value)).toEqual(['Ryan', 'Aiden', 'Vivian', 'Serena', 'Uncle_Fu', 'Dylan', 'Eric', 'Ono_Anna', 'Sohee', '__other']);
-    expect(screen.getAllByRole('option', { name: 'Serena · female, Chinese, warm and gentle' })).toHaveLength(2);
+    // By name only, as the computers report them.
+    expect(screen.getAllByRole('option', { name: 'Uncle Fu' })).toHaveLength(2);
+    expect(screen.queryByText(/female|male/)).toBeNull();
     expect(voice?.value).toBe('Ryan');
     const model = screen.getByRole('combobox', { name: /^Model/ }) as HTMLSelectElement;
     expect([...model.options].map((o) => o.textContent)).toEqual(['Qwen3-TTS 1.7B (qwen3-tts-1.7b-customvoice)', 'Another model id']);

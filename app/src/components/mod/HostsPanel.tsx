@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { VOICE_PROVIDERS, type Lang, type VoiceProvider } from '@arche/shared';
@@ -262,7 +261,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
     }
   };
 
-  const voiceOptions = d.provider === 'openai' ? VOICES.map((v) => ({ id: v, name: v, labels: '' })) : worker ? qwenVoices(shown?.voices ?? [], t) : (shown?.voices ?? []);
+  const voiceOptions = d.provider === 'openai' ? VOICES.map((v) => ({ id: v, name: v, labels: '' })) : worker ? qwenVoices(shown?.voices ?? []) : (shown?.voices ?? []);
   const modelHint = eleven ? t('mod.hosts.modelHintElevenLabs') : worker ? t('mod.hosts.modelHintWorker') : t('mod.hosts.modelHintOpenAi');
 
   return (
@@ -503,14 +502,14 @@ function ModelPicker({
 }
 
 /**
- * Qwen's voices: its presets always, with a few words about each — so a
- * host on our computers can be set up while none is online — and anything
- * else a computer reports after them.
+ * Qwen's voices by name: its presets always — so a host on our computers can
+ * be set up while none is online — and anything else a computer reports
+ * after them.
  */
-function qwenVoices(reported: VoiceCatalog['voices'], t: TFunction): VoiceCatalog['voices'] {
+function qwenVoices(reported: VoiceCatalog['voices']): VoiceCatalog['voices'] {
   const presets: readonly string[] = QWEN_VOICES;
   return [
-    ...QWEN_VOICES.map((id) => ({ id, name: reported.find((v) => v.id === id)?.name ?? id.replace('_', ' '), labels: t(`mod.hosts.qwenVoices.${id}`) })),
+    ...QWEN_VOICES.map((id) => ({ id, name: reported.find((v) => v.id === id)?.name ?? id.replace('_', ' '), labels: '' })),
     ...reported.filter((v) => !presets.includes(v.id)),
   ];
 }
@@ -549,11 +548,14 @@ function VoicePicker({
   const listed = options.some((o) => o.id === value);
   const own = typing || (!listed && value !== '');
   const known = options.find((o) => o.id === value);
+  // A Qwen voice is named in its list already: the hint says what to know about them all.
   const hint = openai
     ? t('mod.hosts.voiceHintOpenAi')
-    : known
-      ? `${known.name}${known.labels ? ` · ${known.labels}` : ''}`
-      : t(provider === 'worker' ? 'mod.hosts.voiceHintWorker' : 'mod.hosts.voiceHintElevenLabs');
+    : provider === 'worker'
+      ? t('mod.hosts.voiceHintWorker')
+      : known
+        ? `${known.name}${known.labels ? ` · ${known.labels}` : ''}`
+        : t('mod.hosts.voiceHintElevenLabs');
   return (
     <Field label={label} hint={hint}>
       {options.length > 0 && (

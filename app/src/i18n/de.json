@@ -1065,17 +1065,6 @@
         "marin": "weiblich, natürlich – beste Qualität",
         "cedar": "männlich, natürlich – beste Qualität"
       },
-      "qwenVoices": {
-        "Ryan": "männlich, Englisch, lebhaft",
-        "Aiden": "männlich, amerikanisches Englisch, sonnig",
-        "Vivian": "weiblich, Chinesisch, hell",
-        "Serena": "weiblich, Chinesisch, warm und sanft",
-        "Uncle_Fu": "männlich, Chinesisch, älter und tief",
-        "Dylan": "männlich, Chinesisch (Peking), jung",
-        "Eric": "männlich, Chinesisch (Sichuan), lebhaft",
-        "Ono_Anna": "weiblich, Japanisch, verspielt",
-        "Sohee": "weiblich, Koreanisch, warm"
-      },
       "otherVoiceOpenAi": "Eigene Stimmen-Kennung (voice_…)",
       "otherVoiceElevenLabs": "Andere Stimmen-ID",
       "otherVoiceWorker": "Andere Qwen-Stimme",
