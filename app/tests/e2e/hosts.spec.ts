@@ -94,7 +94,7 @@ test('an admin makes a host in /mod › Hosts, tries its voice and puts it on ai
 
 test('listeners see the host who speaks, on the stage and in the schedule', async ({ browser }) => {
   // A channel made just now anchors its timeline first, and the host speaks after each song.
-  test.setTimeout(12 * 60_000);
+  test.setTimeout(18 * 60_000);
   // A new channel anchors its timeline first; then the host speaks between songs.
   await expect
     .poll(
@@ -109,8 +109,17 @@ test('listeners see the host who speaks, on the stage and in the schedule', asyn
     )
     .toBe(NOAH);
 
-  const day = await fetchJson<DayFile>(`program/${channel.slug}/days/${new Date(await serverNow()).toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' })}.json`);
-  expect(Object.values(day?.programs ?? {}).flatMap((p) => p.hosts.map((h) => h.name))).toContain(NOAH);
+  // Day files are written every five minutes: a channel made just now may still show its lineup from before.
+  await expect
+    .poll(
+      async () => {
+        await cron();
+        const day = await fetchJson<DayFile>(`program/${channel.slug}/days/${new Date(await serverNow()).toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' })}.json`);
+        return Object.values(day?.programs ?? {}).flatMap((p) => p.hosts.map((h) => h.name));
+      },
+      { timeout: 6 * 60_000, intervals: [10_000] },
+    )
+    .toContain(NOAH);
 
   const page = await listener(browser);
   await page.getByRole('button', { name: 'Tap to join live' }).click();
