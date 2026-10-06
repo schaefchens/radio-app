@@ -895,6 +895,8 @@
       "claimed": "Passphrase",
       "empty": "No users found.",
       "needsPassphrase": "Roles need a passphrase identity.",
+      "rolesIntro": "Moderator or administrator only for an account with a passphrase, so the role belongs to their 12 words and not to one browser. Ask them to open Profile › “Your 12-word passphrase” › “Create a passphrase”, then search here for the listener id their Profile shows.",
+      "needsPassphraseShort": "A role needs their passphrase first (Profile › Create a passphrase).",
       "devices_one": "{{count}} device",
       "devices_other": "{{count}} devices"
     },

@@ -62,6 +62,8 @@ export function UsersPanel() {
     >
       {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
+      {/* The server refuses a role without a passphrase (Identities::setRole): say so before anyone tries. */}
+      <p className="text-sm text-ink-muted">{t('mod.users.rolesIntro')}</p>
       {!data ? (
         <Loading />
       ) : data.users.length === 0 ? (
@@ -82,16 +84,17 @@ export function UsersPanel() {
                   {u.banned && <Pill tone="bad">{t('mod.users.banned')}</Pill>}
                   {u.devices > 1 && <Pill>{t('mod.users.devices', { count: u.devices })}</Pill>}
                 </div>
+                {!u.claimed && u.id !== me?.id && <p className="mt-1 text-xs text-ink-faint">{t('mod.users.needsPassphraseShort')}</p>}
               </div>
               <select
                 className="field w-auto"
                 value={u.role}
                 aria-label={t('mod.users.role')}
-                disabled={u.id === me?.id}
+                disabled={u.id === me?.id || (!u.claimed && u.role === 'listener')}
                 onChange={(e) => void patch(u.id, { role: e.target.value })}
               >
                 {ROLES.map((r) => (
-                  <option key={r} value={r} disabled={r !== 'listener' && !u.claimed}>
+                  <option key={r} value={r}>
                     {t(`mod.users.roles.${r}`)}
                   </option>
                 ))}

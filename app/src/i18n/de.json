@@ -895,6 +895,8 @@
       "claimed": "Passphrase",
       "empty": "Keine Nutzer gefunden.",
       "needsPassphrase": "Rollen brauchen eine Passphrase-Identität.",
+      "rolesIntro": "Moderation oder Administration nur für ein Konto mit Passphrase – so gehört die Rolle zu den 12 Wörtern der Person und nicht zu einem Browser. Bitte sie, im Profil unter „Deine 12-Wörter-Passphrase“ auf „Passphrase erstellen“ zu tippen, und suche dann hier nach der Hörer-ID, die ihr Profil zeigt.",
+      "needsPassphraseShort": "Eine Rolle braucht zuerst ihre Passphrase (Profil › Passphrase erstellen).",
       "devices_one": "{{count}} Gerät",
       "devices_other": "{{count}} Geräte"
     },
