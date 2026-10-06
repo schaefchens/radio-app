@@ -404,6 +404,7 @@
       "groups": "Groups",
       "programs": "Programs",
       "plans": "Plans",
+      "lines": "Lines",
       "review": "Review",
       "chat": "Chat",
       "users": "Users",
@@ -690,6 +691,14 @@
         "added": "Added.",
         "deleted": "Deleted.",
         "saveFirst": "Save the program first to prepare opening prayers."
+      },
+      "lines": {
+        "title": "The host's words",
+        "fresh": "Fresh each time",
+        "library": "From recorded lines",
+        "composed": "Built from recorded pieces",
+        "kinds": "Recorded lines for:",
+        "hint": "Moments the host has no recorded lines for are spoken fresh. Lines are made under Lines."
       }
     },
     "plans": {
@@ -1038,7 +1047,194 @@
         "cedar": "male, natural — best quality"
       },
       "otherVoiceOpenAi": "A voice id of your own (voice_…)",
-      "otherVoiceElevenLabs": "Another voice id"
+      "otherVoiceElevenLabs": "Another voice id",
+      "linesCount_one": "{{count}} recorded line",
+      "linesCount_other": "{{count}} recorded lines"
+    },
+    "lines": {
+      "intro": "Lines a host recorded once, such as welcomes, goodbyes and encouragements. The AI picks a fitting one instead of writing and voicing new words each time. A line costs characters only when it is recorded.",
+      "host": "Host",
+      "noHosts": "There is no host yet. An admin makes one under Hosts first.",
+      "voice": "Voice: {{voice}}",
+      "summary": {
+        "active": "{{n}} on air",
+        "waiting": "{{n}} waiting",
+        "failed": "{{n}} failed",
+        "oldVoice": "{{n}} with an earlier voice"
+      },
+      "queued_one": "{{count}} request for new lines is waiting",
+      "queued_other": "{{count}} requests for new lines are waiting",
+      "month": "{{chars}} of {{allowance}} characters recorded this month.",
+      "elevenlabsNote": "Recordings count against the ElevenLabs plan.",
+      "noAllowance": "This host records nothing yet: an admin sets a monthly allowance in the options.",
+      "pools": {
+        "title": "By kind",
+        "kind": "Kind",
+        "lines": "On air",
+        "waiting": "Waiting",
+        "failed": "Failed",
+        "oldVoice": "Earlier voice",
+        "aired": "Aired (7 days)",
+        "ofTarget": "{{active}} of {{target}}",
+        "low": "Too few",
+        "none": "No lines yet. Have some written, or switch a program to recorded lines.",
+        "generic": "every program"
+      },
+      "write": {
+        "title": "Write new lines",
+        "open": "Write lines",
+        "kind": "Kind",
+        "program": "Program",
+        "noProgram": "None of this host's programs has this kind of moment.",
+        "count": "How many",
+        "hint": "A note for the writer (optional)",
+        "hintPlaceholder": "e.g. Advent, more joyful",
+        "submit": "Write and record",
+        "costHint": "The AI writes them in the host's style. Each is recorded once in the host's voice and goes on air as the options say.",
+        "queued_one": "{{count}} line is being written and recorded.",
+        "queued_other": "{{count}} lines are being written and recorded."
+      },
+      "add": {
+        "title": "Add a line yourself",
+        "open": "Add a line",
+        "submit": "Add and record",
+        "done": "Line added. It is being recorded."
+      },
+      "textEn": "Words (English)",
+      "textDe": "Words (German)",
+      "time": "Time of day",
+      "mood": "Mood",
+      "moodNone": "No particular mood",
+      "moods": {
+        "calm": "Calm",
+        "joyful": "Joyful",
+        "hopeful": "Hopeful",
+        "reflective": "Reflective",
+        "warm": "Warm"
+      },
+      "kinds": {
+        "intro": "Welcome",
+        "outro": "Goodbye",
+        "encourage": "Encouragement in the prayer time",
+        "present": "Presenting the prayer requests",
+        "prayertime": "Opening the prayer time",
+        "prayer": "Invitation to pray",
+        "break": "Between songs"
+      },
+      "times": {
+        "any": "Any time",
+        "morning": "Morning",
+        "afternoon": "Afternoon",
+        "evening": "Evening",
+        "night": "Night"
+      },
+      "states": {
+        "draft": "Waits for approval",
+        "recording": "Being recorded",
+        "active": "On air",
+        "paused": "Paused",
+        "failed": "Recording failed",
+        "removed": "Removed"
+      },
+      "oldVoice": "Earlier voice",
+      "source": {
+        "model": "Written by the AI",
+        "moderator": "Written by the team"
+      },
+      "langs": {
+        "en": "English",
+        "de": "German"
+      },
+      "play": "Play {{lang}}",
+      "notRecorded": "not recorded",
+      "aired_one": "Aired {{count}} time",
+      "aired_other": "Aired {{count}} times",
+      "neverAired": "Not aired yet",
+      "lastAired": "last on {{date}}",
+      "filters": {
+        "label": "Filter the lines",
+        "kind": "Kind",
+        "allKinds": "All kinds",
+        "program": "Program",
+        "allPrograms": "All programs",
+        "generic": "For every program",
+        "state": "State",
+        "allStates": "All",
+        "sort": "Order",
+        "search": "Search the words"
+      },
+      "sorts": {
+        "newest": "Newest first",
+        "most": "Most aired",
+        "least": "Least aired"
+      },
+      "list": {
+        "title": "Lines",
+        "empty": "No lines match.",
+        "count": "{{shown}} of {{total}}",
+        "more": "Load more",
+        "selectAll": "Select all shown",
+        "select": "Select line {{id}}"
+      },
+      "actions": {
+        "pause": "Pause",
+        "resume": "Resume",
+        "approve": "Approve",
+        "rerecord": "Record again",
+        "remove": "Remove"
+      },
+      "edit": {
+        "saveRecord": "Save and record again"
+      },
+      "confirm": {
+        "rerecord": "Recording again costs characters. Record again?",
+        "saveRecord": "Recording again costs characters. Save and record again?",
+        "remove": "Remove this line? Its recording is deleted."
+      },
+      "done": {
+        "saved": "Line saved.",
+        "rerecord": "It is being recorded again.",
+        "removed": "Line removed.",
+        "changed_one": "{{count}} line changed.",
+        "changed_other": "{{count}} lines changed."
+      },
+      "bulk": {
+        "label": "Change the selected lines",
+        "selected_one": "{{count}} selected",
+        "selected_other": "{{count}} selected",
+        "clear": "Clear the selection",
+        "confirmRemove_one": "Remove {{count}} line? Its recording is deleted.",
+        "confirmRemove_other": "Remove {{count}} lines? Their recordings are deleted.",
+        "confirmRerecord_one": "Record {{count}} line again? It costs characters.",
+        "confirmRerecord_other": "Record {{count}} lines again? It costs characters."
+      },
+      "options": {
+        "title": "Options",
+        "refill": "Write and record new lines when a kind runs low",
+        "live": "New lines go on air without approval",
+        "oldVoice": "Keep using lines recorded with an earlier voice",
+        "monthChars": "Characters it may record each month",
+        "monthHint": "0 records nothing. About {{example}} fill a library once.",
+        "restHours": "A line comes back no sooner than … hours",
+        "restHint": "When there are others to pick from.",
+        "targets": "Lines to keep for each kind",
+        "saved": "Options saved."
+      },
+      "errors": {
+        "line_kind": "That kind of line does not exist.",
+        "line_text": "A line needs words, and not too many.",
+        "line_prays": "The host never prays: a line may invite to prayer, but not pray.",
+        "line_program": "Choose one of this host's programs for this kind.",
+        "line_state": "This line cannot change that way right now.",
+        "line_tags": "The time of day or the mood is not valid.",
+        "line_ids": "Choose at least one line.",
+        "line_action": "That action does not exist.",
+        "line_count": "Between 1 and 10 lines at a time.",
+        "line_hint": "The note is too long (200 characters at most).",
+        "line_options": "One of the options is not valid.",
+        "line_host": "Choose an existing host.",
+        "lines_mode": "That choice for the host's words does not exist."
+      }
     }
   },
   "about": {

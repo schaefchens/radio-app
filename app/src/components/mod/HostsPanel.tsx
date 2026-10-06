@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import type { Lang, VoiceProvider } from '@arche/shared';
 import { api } from '@/lib/api';
@@ -106,9 +107,14 @@ export function HostsPanel() {
                     {t(`mod.hosts.providers.${h.provider}`)} · {h.model} ·{' '}
                     {h.max_chars_day > 0 ? t('mod.hosts.charsOf', { used: h.today.chars, cap: h.max_chars_day }) : t('mod.hosts.chars', { used: h.today.chars })}
                   </p>
-                  <div className="mt-1 flex flex-wrap gap-1">
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
                     <HostState host={h} />
                     {h.used_in.length === 0 && <Pill>{t('mod.hosts.unused')}</Pill>}
+                    {typeof h.lines_active === 'number' && (
+                      <Link to={`/mod/lines?host=${h.id}`} className="text-xs text-accent underline-offset-2 hover:underline">
+                        {t('mod.hosts.linesCount', { count: h.lines_active })}
+                      </Link>
+                    )}
                   </div>
                 </div>
                 <button type="button" className="btn-ghost px-3 py-1.5" onClick={() => setEditing(h)}>

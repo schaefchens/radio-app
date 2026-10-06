@@ -10,7 +10,7 @@ import { asDevice, ensureAdmin } from './support/station';
  */
 
 const LISTENER = ['/', '/schedule', '/chat', '/profile', '/setup', '/about', '/impressum', '/datenschutz'];
-const MOD = ['/mod', '/mod/library', '/mod/groups', '/mod/programs', '/mod/plans', '/mod/review', '/mod/chat', '/mod/users', '/mod/channels', '/mod/hosts'];
+const MOD = ['/mod', '/mod/library', '/mod/groups', '/mod/programs', '/mod/plans', '/mod/lines', '/mod/review', '/mod/chat', '/mod/users', '/mod/channels', '/mod/hosts'];
 
 for (const [width, theme] of [
   [360, 'light'],

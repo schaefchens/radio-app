@@ -192,6 +192,7 @@ final class Hosts
             'speaks' => $this->canSpeak($h),
             'today' => ['chars' => $this->usedToday($h['id']), 'calls' => $this->callsToday($h['id'])],
             'used_in' => $this->usedIn($h['id']),
+            'lines_active' => $this->app->lines()->activeCount($h['id']),
         ];
         if ($admin) $view['key_hint'] = (string) $h['key_hint'];
         return $view;
@@ -384,6 +385,8 @@ final class Hosts
         $used = $this->usedIn($id);
         if ($used) throw new ApiError(409, 'host_in_use', ['used' => array_map(fn($u) => $u['title']['en'], $used)]);
         if (count($this->byId()) <= 1) throw new ApiError(409, 'last_host');
+        // Its recorded lines' files (the rows go with it, ON DELETE CASCADE).
+        $this->app->lines()->forgetHost($id);
         $this->app->store()->query('DELETE FROM hosts WHERE id = ?', [$id]);
         $this->changed();
         $this->app->store()->audit($actor, 'Host deleted', $id . ' ' . $h['name']);

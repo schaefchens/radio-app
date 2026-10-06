@@ -290,7 +290,7 @@ final class HostWriter
             ];
         }
         $schema = ['type' => 'object', 'properties' => $props, 'required' => $langs, 'additionalProperties' => false];
-        $user = json_encode(array_diff_key($context, array_flip(self::NOT_FOR_MODEL)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        $user = json_encode(self::forModel($context), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 
         $model = $this->app->text();
         $result = $model->json(
@@ -306,7 +306,7 @@ final class HostWriter
         $fallback = Templates::texts((string) $hb['kind'], $context);
         if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason];
 
-        $max = in_array($hb['kind'], ['intro', 'prayertime', 'prayer'], true) ? self::MAX_CHARS_LONG : self::MAX_CHARS;
+        $max = self::maxChars((string) $hb['kind']);
         $texts = [];
         $prayed = [];
         foreach ($langs as $l) {
@@ -318,6 +318,24 @@ final class HostWriter
         }
         if ($prayed) $this->app->store()->audit('host', 'The script prayed; the template was used', $hb['kind'] . ' ' . implode(',', $prayed));
         return ['texts' => $texts, 'source' => $model->provider()];
+    }
+
+    /** The longest a moment of this kind may be, per language. */
+    public static function maxChars(string $kind): int
+    {
+        return in_array($kind, ['intro', 'prayertime', 'prayer'], true) ? self::MAX_CHARS_LONG : self::MAX_CHARS;
+    }
+
+    /**
+     * A moment's context as the model sees it: without what is kept for
+     * finding a deleted account or for the commit.
+     *
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    public static function forModel(array $context): array
+    {
+        return array_diff_key($context, array_flip(self::NOT_FOR_MODEL));
     }
 
     /**
@@ -396,9 +414,11 @@ final class HostWriter
      * serves them all), then who this host is: a name, the few words
      * listeners read about them, their style notes — never above the rules.
      *
+     * Host\Lines writes recorded lines with it too: the same rules, the same persona.
+     *
      * @param array<string,mixed>|null $host
      */
-    private function system(?array $host): string
+    public function system(?array $host): string
     {
         $langs = implode(' and ', array_map(fn($l) => $l === 'de' ? 'German' : 'English', $this->app->config->stationLangs()));
         $prompt = <<<TXT

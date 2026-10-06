@@ -136,12 +136,14 @@ final class PrayerHour
         $drafter = $this->app->drafter();
         $close = self::closeOf($program, $run);
         $hostOn = $s['host']['enabled'] && $this->app->hostBreaks()->available($channel, $program);
+        // The hour's own words from recorded lines (Host\Lines) need no voice that speaks now; people's words do.
+        $hostFor = fn(string $kind): bool => $hostOn || ($s['host']['enabled'] && $this->app->hostBreaks()->available($channel, $program, $kind));
         $st = $this->state((int) $channel['id'], (int) $program['id']);
 
         // 1. The closing: the outro at its time, then music until the next program.
         if ($st['outro'] || $cursor >= $close + Timing::OUTRO_LATE) return $this->after($channel, $program, $run, $base, $cursor);
         if ($cursor >= $close - 5_000) {
-            if (!$hostOn || !$s['host']['outro']) return $this->after($channel, $program, $run, $base, $cursor);
+            if (!$hostFor('outro') || !$s['host']['outro']) return $this->after($channel, $program, $run, $base, $cursor);
             return $drafter->addHost($channel, $program, 'outro', $cursor, $base, [], self::unit(), Timing::OUTRO_ESTIMATE);
         }
 
@@ -150,7 +152,7 @@ final class PrayerHour
         //    from its first item (an outage, or a plan changed at the last
         //    minute, moves the start). Both wait for their voice rather than go.
         if (!$st['collecting'] && !$st['presenting']) {
-            if ($st['empty'] && $hostOn && $s['host']['intro']) {
+            if ($st['empty'] && $hostFor('intro') && $s['host']['intro']) {
                 return $drafter->addHost($channel, $program, 'intro', $cursor, $base, [], self::unit());
             }
             $from = $st['from'] ?? $cursor;
@@ -192,7 +194,7 @@ final class PrayerHour
         // 6. The prayer time: what listeners sent, in the order it came; quiet otherwise.
         if (($item = $this->read($channel, $program, $base, $cursor, $room, $st, null, $hostOn)) !== null) return $item;
         $quietMs = (int) $s['prayer']['quiet_min'] * 60_000;
-        if ($hostOn && $room >= Timing::HOST_ESTIMATE + Timing::MIN_CHUNK && $st['lastWord'] !== null && $cursor - $st['lastWord'] >= $quietMs) {
+        if ($hostFor('encourage') && $room >= Timing::HOST_ESTIMATE + Timing::MIN_CHUNK && $st['lastWord'] !== null && $cursor - $st['lastWord'] >= $quietMs) {
             return $drafter->addHost($channel, $program, 'encourage', $cursor, $base);
         }
         return $this->silence($channel, $base, $cursor, self::chunk(Timing::SILENT_CHUNK, $room), self::PRAY);

@@ -143,6 +143,8 @@ final class Committer
         foreach (HostBreaks::prayerIds($hb) as $id) $this->app->submissions()->markScheduled($id, $frontier);
         // A moderator's prepared opening prayer: used now, the next airing takes the next one.
         if (isset($hb['context']['prepared_id'])) $this->app->openingPrayers()->markAired((int) $hb['context']['prepared_id'], $frontier);
+        // A recorded line: counted, and resting from its airtime (Host\Lines::pick).
+        if ($hb['source'] === 'library' && isset($hb['context']['line_id'])) $this->app->lines()->aired((int) $hb['context']['line_id'], $frontier);
         return $end;
     }
 

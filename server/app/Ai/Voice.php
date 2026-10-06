@@ -29,18 +29,20 @@ final class Voice
     /**
      * @param array<string,mixed> $host decoded (Hosts::get), or a draft from /mod's "Try voice"
      * @param ?string $key the key to use instead of the host's (an unsaved one being tried)
+     * @param ?string $usageKind what it counts as (Host\Lines records under its own kind,
+     *                           never against the host's daily cap for moments on air)
      * @return array{bytes:string,provider:string}
      * @throws VoiceError the provider said no, or did not answer
      * @throws BudgetExceeded the tick's time ran out mid-call (not the host's fault)
      */
-    public function speak(array $host, string $text, string $lang, #[\SensitiveParameter] ?string $key = null): array
+    public function speak(array $host, string $text, string $lang, #[\SensitiveParameter] ?string $key = null, ?string $usageKind = null): array
     {
         $provider = (string) $host['provider'];
         $voice = Hosts::voiceFor($host, $lang);
         $settings = Hosts::settings($provider, (array) $host['settings']);
         if ($this->app->config->stubAi()) {
             $bytes = $this->app->openai()->speech('', 'stub', $voice ?: 'coral', $text, '');
-            $this->record($host, $text, 0);
+            $this->record($host, $text, 0, $usageKind);
             return ['bytes' => $bytes, 'provider' => 'stub'];
         }
         $key ??= $this->app->hosts()->key($host);
@@ -57,7 +59,7 @@ final class Voice
             if ($this->app->budget->left() < 1.5) throw new BudgetExceeded('Time budget used up during a voice call; the next tick continues.');
             throw VoiceError::broken($provider, 'no answer (' . $e->getMessage() . ')', $key);
         }
-        $this->record($host, $text, $provider === 'openai' ? self::micros((string) $host['model']) : 0);
+        $this->record($host, $text, $provider === 'openai' ? self::micros((string) $host['model']) : 0, $usageKind);
         return ['bytes' => $bytes, 'provider' => $provider];
     }
 
@@ -83,10 +85,10 @@ final class Voice
     }
 
     /** @param array<string,mixed> $host */
-    private function record(array $host, string $text, int $microsPerChar): void
+    private function record(array $host, string $text, int $microsPerChar, ?string $kind = null): void
     {
         $chars = mb_strlen($text);
         if ((int) ($host['id'] ?? 0) <= 0) return;
-        $this->app->usage()->record(Hosts::usageKind((int) $host['id']), $chars, 0, $chars * $microsPerChar);
+        $this->app->usage()->record($kind ?? Hosts::usageKind((int) $host['id']), $chars, 0, $chars * $microsPerChar);
     }
 }

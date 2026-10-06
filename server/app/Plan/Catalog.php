@@ -254,7 +254,9 @@ final class Catalog
         // Its hosts (Host\Hosts) live outside `settings`: cleanSettings() would
         // reset them from an older /mod tab, which sends none — written only when sent.
         $hosts = is_array($data['hosts'] ?? null) ? $data['hosts'] : null;
-        $id = $store->tx(function () use ($store, $id, $channelId, $row, $now, $hosts) {
+        // So does whether its host speaks from recorded lines (Host\Lines), for the same reason.
+        $lines = is_array($data['lines'] ?? null) ? $data['lines'] : null;
+        $id = $store->tx(function () use ($store, $id, $channelId, $row, $now, $hosts, $lines) {
             if ($id === null) {
                 foreach (['slug', 'title_en', 'title_de'] as $req) {
                     if (($row[$req] ?? '') === '') throw new ApiError(422, 'missing_' . $req);
@@ -267,6 +269,7 @@ final class Catalog
                 $store->update('programs', $row + ['updated' => $now], 'id = ?', [$id]);
             }
             if ($hosts !== null) $this->app->hosts()->setLineup('program', $id, $hosts);
+            if ($lines !== null) $this->app->lines()->setProgramMode($id, $lines);
             return $id;
         });
         $this->bump($actor, 'program ' . $id);
@@ -282,6 +285,8 @@ final class Catalog
         // Its prepared opening prayers go along, recordings included; its
         // lineup with the row (ON DELETE CASCADE), its shows' host picks here.
         $this->app->openingPrayers()->purge(0, $id);
+        // Its own recorded lines' files (the rows go with it).
+        $this->app->lines()->forgetProgram($id);
         $channelId = (int) $store->value('SELECT channel_id FROM programs WHERE id = ?', [$id]);
         $store->query('DELETE FROM programs WHERE id = ?', [$id]);
         $this->app->hosts()->forgetProgram($channelId, $id);

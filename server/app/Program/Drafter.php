@@ -125,9 +125,11 @@ final class Drafter
         // Only with someone in its lineup who can speak: a request nobody can
         // read out would be taken, fail and be given back over and over.
         $hostOn = $settings['host']['enabled'] && $this->app->hostBreaks()->available($channel, $program);
+        // A moment the program takes from recorded lines (Host\Lines) needs no voice that speaks now.
+        $hostFor = fn(string $kind): bool => $hostOn || ($settings['host']['enabled'] && $this->app->hostBreaks()->available($channel, $program, $kind));
 
         // 1. A new program starts: the host opens it.
-        if (($prev['program_id'] ?? null) !== (int) $program['id'] && $hostOn && $settings['host']['intro']
+        if (($prev['program_id'] ?? null) !== (int) $program['id'] && $hostFor('intro') && $settings['host']['intro']
             && !$this->isHost($prev)) {
             return $this->addHost($channel, $program, 'intro', $cursor, $base);
         }
@@ -138,7 +140,7 @@ final class Drafter
 
         // 2. Not enough time left for a song: close the block.
         if ($blockEnds && $remaining < Timing::MIN_SONG) {
-            if ($hostOn && $settings['host']['outro'] && $remaining >= 30_000 && !$this->isHost($prev, 'outro')) {
+            if ($hostFor('outro') && $settings['host']['outro'] && $remaining >= 30_000 && !$this->isHost($prev, 'outro')) {
                 return $this->addHost($channel, $program, 'outro', $cursor, $base);
             }
             return $this->pad($channel, $cursor, max(1000, $remaining), $base, $nextProgram);
@@ -205,7 +207,7 @@ final class Drafter
         }
 
         // 6. The host speaks every N songs.
-        if ($hostOn && $this->songsSince($recent, 'host') >= (int) $settings['host']['every_songs']) {
+        if ($hostFor('break') && $this->songsSince($recent, 'host') >= (int) $settings['host']['every_songs']) {
             return $this->addHost($channel, $program, 'break', $cursor, $base);
         }
 

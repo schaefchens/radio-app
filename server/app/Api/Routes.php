@@ -68,6 +68,15 @@ final class Routes
         $r->add('PATCH', '/mod/hosts/{id}', $m('hostUpdate'));
         $r->add('DELETE', '/mod/hosts/{id}', $m('hostDelete'));
         $r->add('POST', '/mod/hosts/{id}/avatar', $m('hostAvatar'));
+        $r->add('PATCH', '/mod/hosts/{id}/lines', $m('hostLineOptions'));
+        // Recorded host lines (Host\Lines); the fixed paths before {id}.
+        $r->add('GET', '/mod/lines/overview', $m('linesOverview'));
+        $r->add('POST', '/mod/lines/write', $m('linesWrite'));
+        $r->add('POST', '/mod/lines/bulk', $m('linesBulk'));
+        $r->add('GET', '/mod/lines', $m('lines'));
+        $r->add('POST', '/mod/lines', $m('lineAdd'));
+        $r->add('PATCH', '/mod/lines/{id}', $m('lineUpdate'));
+        $r->add('DELETE', '/mod/lines/{id}', $m('lineDelete'));
         $r->add('GET', '/mod/channels', $m('channels'));
         $r->add('POST', '/mod/channels', $m('channelCreate'));
         $r->add('PATCH', '/mod/channels/{id}', $m('channelUpdate'));

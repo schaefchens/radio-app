@@ -5,6 +5,7 @@ import { SUBMISSION_TYPES, VIDEO_FORMATS, VOICE_PROVIDERS, isVideoSubmissionType
 import en from '@/i18n/en.json';
 import de from '@/i18n/de.json';
 import { VOICES } from '@/components/mod/voices';
+import { LINE_BULK_ACTIONS, LINE_ERRORS, LINE_KINDS, LINE_MOODS, LINE_SORTS, LINE_STATES, LINE_TIMES } from '@/components/mod/lineKinds';
 
 /** Adapted from bible-assistant: both languages have the same keys, and every
  *  literal t('…') in src/ exists (plural keys count through their _one form). */
@@ -76,6 +77,19 @@ describe('i18n', () => {
         'host_name', 'host_about', 'host_style', 'host_instructions', 'host_model', 'host_voice', 'host_key', 'host_provider', 'host_lineup',
         'host_in_use', 'last_host', 'host_try_text', 'host_no_room', 'voice_timeout', 'voice_failed', 'invalid_color', 'invalid_image',
       ].map((code) => `mod.hosts.errors.${code}`),
+      // /mod › Lines: every list a line is shown or filtered by, and modError's map of the server's line errors.
+      ...LINE_KINDS.map((k) => `mod.lines.kinds.${k}`),
+      ...LINE_TIMES.map((x) => `mod.lines.times.${x}`),
+      ...LINE_MOODS.map((x) => `mod.lines.moods.${x}`),
+      ...LINE_STATES.map((x) => `mod.lines.states.${x}`),
+      ...LINE_SORTS.map((x) => `mod.lines.sorts.${x}`),
+      ...LINE_BULK_ACTIONS.map((x) => `mod.lines.actions.${x}`),
+      ...['model', 'moderator'].map((x) => `mod.lines.source.${x}`),
+      ...['en', 'de'].map((x) => `mod.lines.langs.${x}`),
+      ...LINE_ERRORS.map((code) => `mod.lines.errors.${code}`),
+      ...['fresh', 'library', 'composed'].map((mode) => `mod.programs.lines.${mode}`),
+      'mod.lines.bulk.confirmRemove_one',
+      'mod.lines.bulk.confirmRerecord_one',
     ];
     expect(built.filter((k) => !all.has(k))).toEqual([]);
   });

@@ -119,6 +119,8 @@ final class Tick
         if ($this->due('opendoors', 3600)) $this->app->openDoors()->queue();
         // Older library videos learn their YouTube channel, so groups find them.
         if ($this->due('channels', 3600)) $this->app->library()->queueChannels();
+        // Hosts' recorded lines: written and recorded where a pool runs low, in the runner's budget.
+        if ($this->due('lines', 600)) $this->app->lines()->queue();
         if ($this->due('cdn', 60)) {
             try {
                 $out['cdn'] = $this->app->cdn()->maintain();
@@ -203,6 +205,7 @@ final class Tick
                 [$now - $c->int('RETAIN_TIMELINE_DAYS', 30) * 86400],
             )->rowCount(),
             'jobs' => $this->app->jobs()->purgeBefore($now - 7 * 86400),
+            'host_lines' => $this->app->lines()->purge($now - $c->int('RETAIN_TIMELINE_DAYS', 30) * 86400),
             'attempts' => $store->query('DELETE FROM attempts WHERE time < ?', [$now - 2 * 86400])->rowCount(),
             'presence' => $store->query('DELETE FROM presence WHERE seen < ?', [$now - 86400])->rowCount(),
             'audit' => $store->query('DELETE FROM audit WHERE time < ?', [$now - 90 * 86400])->rowCount(),

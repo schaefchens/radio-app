@@ -47,6 +47,9 @@ describe('/mod gate', () => {
     useSession.setState({ identity: who('moderator'), config });
     const { unmount } = renderAt('/mod');
     expect(screen.getByRole('link', { name: 'Library' })).toBeTruthy();
+    // The hosts' recorded lines are moderators' work too; the hosts themselves an admin's.
+    expect(screen.getByRole('link', { name: 'Lines' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Hosts' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Users' })).toBeNull();
     unmount();
     useSession.setState({ identity: who('admin'), config });

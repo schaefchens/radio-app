@@ -14,6 +14,7 @@ import { ChatModPanel } from '@/components/mod/ChatModPanel';
 import { UsersPanel } from '@/components/mod/UsersPanel';
 import { ChannelsPanel } from '@/components/mod/ChannelsPanel';
 import { HostsPanel } from '@/components/mod/HostsPanel';
+import { LinesPanel } from '@/components/mod/LinesPanel';
 import { Loading, Notice } from '@/components/mod/ui';
 
 /**
@@ -43,6 +44,7 @@ export function ModRoutes() {
     { to: '/mod/groups', label: t('mod.nav.groups') },
     { to: '/mod/programs', label: t('mod.nav.programs') },
     { to: '/mod/plans', label: t('mod.nav.plans') },
+    { to: '/mod/lines', label: t('mod.nav.lines') },
     { to: '/mod/review', label: t('mod.nav.review'), badge: (overview?.review ?? 0) + (overview?.wallReports ?? 0) },
     { to: '/mod/chat', label: t('mod.nav.chat'), badge: (overview?.reports ?? 0) + (overview?.highlights ?? 0) },
     ...(admin
@@ -79,6 +81,7 @@ export function ModRoutes() {
         <Route path="groups" element={<GroupsPanel />} />
         <Route path="programs" element={<ProgramsPanel />} />
         <Route path="plans" element={<PlansPanel />} />
+        <Route path="lines" element={<LinesPanel />} />
         <Route path="review" element={<ReviewPanel />} />
         <Route path="chat" element={<ChatModPanel />} />
         {admin && <Route path="users" element={<UsersPanel />} />}

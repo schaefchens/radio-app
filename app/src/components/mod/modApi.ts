@@ -2,6 +2,9 @@ import type { Lang, ProgramFormat, VideoFormat, VoiceProvider } from '@arche/sha
 import { api, ApiError } from '@/lib/api';
 import { errorText } from '@/i18n';
 import i18n from '@/i18n';
+import { LINE_ERRORS, type LineKind, type LineState, type LineTime } from './lineKinds';
+
+export * from './lineKinds';
 
 /**
  * Typed shapes of the /api/mod answers (server/app/Api/ModApi.php) and a
@@ -31,6 +34,16 @@ export interface ModProgram {
   active: number;
   /** Its lineup (on-air hosts first); missing from a server older than hosts. */
   hosts?: LineupEntry[];
+  /** Whether the host's words come from recorded lines; missing from a server older than them. */
+  lines?: ProgramLines;
+}
+
+export type LinesMode = 'fresh' | 'library' | 'composed';
+
+/** A program's choice (outside its settings, like its lineup): `kinds` take a recorded line when the host has one. */
+export interface ProgramLines {
+  mode: LinesMode;
+  kinds: LineKind[];
 }
 
 export interface ProgramSettings {
@@ -117,6 +130,77 @@ export interface ModHost {
   speaks: boolean;
   today: { chars: number; calls: number };
   used_in: { channel: string; program: number | null; title: { en: string; de: string }; role: LineupEntry['role'] }[];
+  /** Its recorded lines on air; missing from a server older than them. */
+  lines_active?: number;
+}
+
+/** One recorded line of a host (/mod › Lines): its words and a clip per language. */
+export interface ModLine {
+  id: number;
+  host_id: number;
+  kind: LineKind;
+  program_id: number | null;
+  texts: Partial<Record<Lang, string>>;
+  /** Public /media URL per recorded language. */
+  audio: Partial<Record<Lang, string>>;
+  /** Milliseconds per recorded language. */
+  durations: Partial<Record<Lang, number>>;
+  tags: { time: LineTime; mood: string };
+  state: LineState;
+  /** Recorded with an earlier voice of the host: not picked unless its options say so. */
+  old_voice: boolean;
+  source: 'model' | 'moderator';
+  chars: number;
+  uses: number;
+  /** Milliseconds; null = never aired. */
+  last_aired: number | null;
+  error: string;
+  note: string;
+  /** Unix seconds. */
+  created: number;
+  updated: number;
+}
+
+/** One kind's lines of a host (for one program, where the kind names it). */
+export interface LinePool {
+  kind: LineKind;
+  program_id: number | null;
+  active: number;
+  target: number;
+  /** Waiting for approval or being recorded. */
+  waiting: number;
+  failed: number;
+  old_voice: number;
+  aired_7d: number;
+}
+
+export interface LineOptions {
+  /** Write and record new lines when a kind runs low. */
+  refill: boolean;
+  /** New lines go on air without approval. */
+  live: boolean;
+  targets: Record<LineKind, number>;
+  /** A line comes back no sooner, when there are others. */
+  rest_hours: number;
+  /** Characters a calendar month the host may record; 0 records nothing. */
+  month_chars: number;
+  /** Keep picking lines recorded with an earlier voice. */
+  old_voice: boolean;
+}
+
+export interface LinesOverview {
+  host: { id: number; name: string; color: string; avatar: string | null; provider: VoiceProvider; model: string; voices: Partial<Record<Lang, string>> };
+  kinds: LineKind[];
+  program_kinds: LineKind[];
+  /** The programs whose lineup has this host. */
+  programs: { id: number; channel_id: number; title: { en: string; de: string }; format: string; mode: LinesMode; kinds: LineKind[] }[];
+  pools: LinePool[];
+  month: { chars: number; allowance: number };
+  options: LineOptions;
+  /** Requests for new lines the AI has not written yet. */
+  queued: number;
+  /** Admins change the options. */
+  can_edit_options: boolean;
 }
 
 /** What a provider offers the host editor (POST /mod/hosts/catalog). */
@@ -280,6 +364,7 @@ const KNOWN: Record<string, string> = {
   voice_timeout: 'mod.hosts.errors.voice_timeout',
   invalid_color: 'mod.hosts.errors.invalid_color',
   invalid_image: 'mod.hosts.errors.invalid_image',
+  ...Object.fromEntries(LINE_ERRORS.map((code) => [code, `mod.lines.errors.${code}`])),
 };
 
 export function modError(e: unknown): string {

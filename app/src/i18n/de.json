@@ -404,6 +404,7 @@
       "groups": "Gruppen",
       "programs": "Sendungen",
       "plans": "Pläne",
+      "lines": "Sprechtexte",
       "review": "Prüfen",
       "chat": "Chat",
       "users": "Nutzer",
@@ -690,6 +691,14 @@
         "added": "Hinzugefügt.",
         "deleted": "Gelöscht.",
         "saveFirst": "Speichere die Sendung zuerst, um Eröffnungsgebete vorzubereiten."
+      },
+      "lines": {
+        "title": "Worte der Moderation",
+        "fresh": "Jedes Mal neu",
+        "library": "Aus aufgenommenen Sprechtexten",
+        "composed": "Aus aufgenommenen Bausteinen",
+        "kinds": "Aufgenommene Sprechtexte für:",
+        "hint": "Momente ohne aufgenommene Sprechtexte werden neu gesprochen. Sprechtexte entstehen unter Sprechtexte."
       }
     },
     "plans": {
@@ -1038,7 +1047,194 @@
         "cedar": "männlich, natürlich – beste Qualität"
       },
       "otherVoiceOpenAi": "Eigene Stimmen-Kennung (voice_…)",
-      "otherVoiceElevenLabs": "Andere Stimmen-ID"
+      "otherVoiceElevenLabs": "Andere Stimmen-ID",
+      "linesCount_one": "{{count}} Sprechtext",
+      "linesCount_other": "{{count}} Sprechtexte"
+    },
+    "lines": {
+      "intro": "Einmal aufgenommene Sprechtexte einer Moderation, etwa Begrüßungen, Verabschiedungen und Ermutigungen. Die KI wählt einen passenden aus, statt jedes Mal neue Worte zu schreiben und zu vertonen. Ein Sprechtext kostet nur beim Aufnehmen Zeichen.",
+      "host": "Moderation",
+      "noHosts": "Es gibt noch keine Moderation. Admins legen zuerst unter KI-Moderation eine an.",
+      "voice": "Stimme: {{voice}}",
+      "summary": {
+        "active": "{{n}} auf Sendung",
+        "waiting": "{{n}} wartend",
+        "failed": "{{n}} fehlgeschlagen",
+        "oldVoice": "{{n}} mit früherer Stimme"
+      },
+      "queued_one": "{{count}} Auftrag für neue Sprechtexte wartet",
+      "queued_other": "{{count}} Aufträge für neue Sprechtexte warten",
+      "month": "In diesem Monat {{chars}} von {{allowance}} Zeichen aufgenommen.",
+      "elevenlabsNote": "Aufnahmen zählen zum ElevenLabs-Tarif.",
+      "noAllowance": "Diese Moderation nimmt noch nichts auf: Admins legen in den Optionen ein Monatskontingent fest.",
+      "pools": {
+        "title": "Nach Art",
+        "kind": "Art",
+        "lines": "Auf Sendung",
+        "waiting": "Wartend",
+        "failed": "Fehlgeschlagen",
+        "oldVoice": "Frühere Stimme",
+        "aired": "Gesendet (7 Tage)",
+        "ofTarget": "{{active}} von {{target}}",
+        "low": "Zu wenige",
+        "none": "Noch keine Sprechtexte. Lass welche schreiben oder stelle eine Sendung auf aufgenommene Sprechtexte um.",
+        "generic": "alle Sendungen"
+      },
+      "write": {
+        "title": "Neue Sprechtexte schreiben lassen",
+        "open": "Schreiben lassen",
+        "kind": "Art",
+        "program": "Sendung",
+        "noProgram": "Keine Sendung dieser Moderation hat diese Art von Moment.",
+        "count": "Wie viele",
+        "hint": "Ein Hinweis zum Schreiben (optional)",
+        "hintPlaceholder": "z. B. Advent, fröhlicher",
+        "submit": "Schreiben und aufnehmen",
+        "costHint": "Die KI schreibt sie im Stil der Moderation. Jeder wird einmal mit ihrer Stimme aufgenommen und geht auf Sendung, wie es die Optionen sagen.",
+        "queued_one": "{{count}} Sprechtext wird geschrieben und aufgenommen.",
+        "queued_other": "{{count}} Sprechtexte werden geschrieben und aufgenommen."
+      },
+      "add": {
+        "title": "Selbst einen Sprechtext hinzufügen",
+        "open": "Sprechtext hinzufügen",
+        "submit": "Hinzufügen und aufnehmen",
+        "done": "Sprechtext hinzugefügt. Er wird aufgenommen."
+      },
+      "textEn": "Text (Englisch)",
+      "textDe": "Text (Deutsch)",
+      "time": "Tageszeit",
+      "mood": "Stimmung",
+      "moodNone": "Keine bestimmte Stimmung",
+      "moods": {
+        "calm": "Ruhig",
+        "joyful": "Fröhlich",
+        "hopeful": "Hoffnungsvoll",
+        "reflective": "Nachdenklich",
+        "warm": "Herzlich"
+      },
+      "kinds": {
+        "intro": "Begrüßung",
+        "outro": "Verabschiedung",
+        "encourage": "Ermutigung in der Gebetszeit",
+        "present": "Vorstellung der Gebetsanliegen",
+        "prayertime": "Eröffnung der Gebetszeit",
+        "prayer": "Einladung zum Gebet",
+        "break": "Zwischen den Liedern"
+      },
+      "times": {
+        "any": "Jederzeit",
+        "morning": "Morgens",
+        "afternoon": "Nachmittags",
+        "evening": "Abends",
+        "night": "Nachts"
+      },
+      "states": {
+        "draft": "Wartet auf Freigabe",
+        "recording": "Wird aufgenommen",
+        "active": "Auf Sendung",
+        "paused": "Pausiert",
+        "failed": "Aufnahme fehlgeschlagen",
+        "removed": "Entfernt"
+      },
+      "oldVoice": "Frühere Stimme",
+      "source": {
+        "model": "Von der KI geschrieben",
+        "moderator": "Vom Team geschrieben"
+      },
+      "langs": {
+        "en": "Englisch",
+        "de": "Deutsch"
+      },
+      "play": "{{lang}} abspielen",
+      "notRecorded": "nicht aufgenommen",
+      "aired_one": "{{count}}-mal gesendet",
+      "aired_other": "{{count}}-mal gesendet",
+      "neverAired": "Noch nicht gesendet",
+      "lastAired": "zuletzt am {{date}}",
+      "filters": {
+        "label": "Sprechtexte filtern",
+        "kind": "Art",
+        "allKinds": "Alle Arten",
+        "program": "Sendung",
+        "allPrograms": "Alle Sendungen",
+        "generic": "Für jede Sendung",
+        "state": "Status",
+        "allStates": "Alle",
+        "sort": "Reihenfolge",
+        "search": "In den Texten suchen"
+      },
+      "sorts": {
+        "newest": "Neueste zuerst",
+        "most": "Am häufigsten gesendet",
+        "least": "Am seltensten gesendet"
+      },
+      "list": {
+        "title": "Sprechtexte",
+        "empty": "Keine passenden Sprechtexte.",
+        "count": "{{shown}} von {{total}}",
+        "more": "Mehr laden",
+        "selectAll": "Alle angezeigten auswählen",
+        "select": "Sprechtext {{id}} auswählen"
+      },
+      "actions": {
+        "pause": "Pausieren",
+        "resume": "Fortsetzen",
+        "approve": "Freigeben",
+        "rerecord": "Neu aufnehmen",
+        "remove": "Entfernen"
+      },
+      "edit": {
+        "saveRecord": "Speichern und neu aufnehmen"
+      },
+      "confirm": {
+        "rerecord": "Neu aufnehmen kostet Zeichen. Neu aufnehmen?",
+        "saveRecord": "Neu aufnehmen kostet Zeichen. Speichern und neu aufnehmen?",
+        "remove": "Diesen Sprechtext entfernen? Seine Aufnahme wird gelöscht."
+      },
+      "done": {
+        "saved": "Sprechtext gespeichert.",
+        "rerecord": "Er wird neu aufgenommen.",
+        "removed": "Sprechtext entfernt.",
+        "changed_one": "{{count}} Sprechtext geändert.",
+        "changed_other": "{{count}} Sprechtexte geändert."
+      },
+      "bulk": {
+        "label": "Ausgewählte Sprechtexte ändern",
+        "selected_one": "{{count}} ausgewählt",
+        "selected_other": "{{count}} ausgewählt",
+        "clear": "Auswahl aufheben",
+        "confirmRemove_one": "{{count}} Sprechtext entfernen? Seine Aufnahme wird gelöscht.",
+        "confirmRemove_other": "{{count}} Sprechtexte entfernen? Ihre Aufnahmen werden gelöscht.",
+        "confirmRerecord_one": "{{count}} Sprechtext neu aufnehmen? Das kostet Zeichen.",
+        "confirmRerecord_other": "{{count}} Sprechtexte neu aufnehmen? Das kostet Zeichen."
+      },
+      "options": {
+        "title": "Optionen",
+        "refill": "Neue Sprechtexte schreiben und aufnehmen, wenn eine Art knapp wird",
+        "live": "Neue Sprechtexte gehen ohne Freigabe auf Sendung",
+        "oldVoice": "Sprechtexte mit früherer Stimme weiter verwenden",
+        "monthChars": "Zeichen, die sie pro Monat aufnehmen darf",
+        "monthHint": "0 nimmt nichts auf. Etwa {{example}} füllen eine Sammlung einmal.",
+        "restHours": "Ein Sprechtext kommt frühestens nach … Stunden wieder",
+        "restHint": "Sofern es andere zur Auswahl gibt.",
+        "targets": "Sprechtexte pro Art",
+        "saved": "Optionen gespeichert."
+      },
+      "errors": {
+        "line_kind": "Diese Art von Sprechtext gibt es nicht.",
+        "line_text": "Ein Sprechtext braucht Text – und nicht zu viel.",
+        "line_prays": "Die Moderation betet nie: Ein Sprechtext darf zum Gebet einladen, aber nicht beten.",
+        "line_program": "Wähle für diese Art eine Sendung dieser Moderation.",
+        "line_state": "Dieser Sprechtext kann gerade nicht so geändert werden.",
+        "line_tags": "Tageszeit oder Stimmung ist ungültig.",
+        "line_ids": "Wähle mindestens einen Sprechtext.",
+        "line_action": "Diese Aktion gibt es nicht.",
+        "line_count": "Zwischen 1 und 10 Sprechtexte auf einmal.",
+        "line_hint": "Der Hinweis ist zu lang (höchstens 200 Zeichen).",
+        "line_options": "Eine der Optionen ist ungültig.",
+        "line_host": "Wähle eine vorhandene Moderation.",
+        "lines_mode": "Diese Einstellung für die Worte der Moderation gibt es nicht."
+      }
     }
   },
   "about": {

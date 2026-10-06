@@ -658,6 +658,52 @@ final class Schema
               AND json_extract(h.voices, '$.en') = c.host_voice_en AND json_extract(h.voices, '$.de') = c.host_voice_de
             WHERE NOT EXISTS (SELECT 1 FROM host_lineups);
             SQL,
+            // 14 — recorded host lines (Host\Lines): per host, lines written
+            // once and recorded once in its voice, that the AI picks for the
+            // moments a program takes from the library (`program_lines`, kept
+            // out of program settings: cleanSettings() would reset it from an
+            // older /mod tab). `part` and the mode `composed` are for breaks
+            // built from recorded pieces later — in the CHECKs now, since a
+            // CHECK can only change with a rebuilt table. `voice`: who it was
+            // recorded with (Lines::signature). Times: created/updated in
+            // seconds, last_aired in ms (airtime). No new plan version.
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS host_lines (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              host_id INTEGER NOT NULL REFERENCES hosts(id) ON DELETE CASCADE,
+              kind TEXT NOT NULL,
+              part TEXT NOT NULL DEFAULT 'whole' CHECK (part IN ('whole', 'open', 'close', 'lead')),
+              program_id INTEGER REFERENCES programs(id) ON DELETE CASCADE,
+              texts TEXT NOT NULL DEFAULT '{}',
+              audio TEXT NOT NULL DEFAULT '{}',
+              durations TEXT NOT NULL DEFAULT '{}',
+              tags TEXT NOT NULL DEFAULT '{}',
+              voice TEXT NOT NULL DEFAULT '',
+              state TEXT NOT NULL DEFAULT 'recording' CHECK (state IN ('draft', 'recording', 'active', 'paused', 'failed', 'removed')),
+              source TEXT NOT NULL DEFAULT 'model' CHECK (source IN ('model', 'moderator')),
+              chars INTEGER NOT NULL DEFAULT 0,
+              uses INTEGER NOT NULL DEFAULT 0,
+              last_aired INTEGER,
+              error TEXT NOT NULL DEFAULT '',
+              note TEXT NOT NULL DEFAULT '',
+              created_by TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS host_lines_pick ON host_lines(host_id, kind, state);
+            CREATE INDEX IF NOT EXISTS host_lines_program ON host_lines(program_id) WHERE program_id IS NOT NULL;
+            CREATE TABLE IF NOT EXISTS host_line_options (
+              host_id INTEGER PRIMARY KEY REFERENCES hosts(id) ON DELETE CASCADE,
+              data TEXT NOT NULL DEFAULT '{}',
+              updated INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS program_lines (
+              program_id INTEGER PRIMARY KEY REFERENCES programs(id) ON DELETE CASCADE,
+              mode TEXT NOT NULL DEFAULT 'fresh' CHECK (mode IN ('fresh', 'library', 'composed')),
+              kinds TEXT NOT NULL DEFAULT '[]',
+              updated INTEGER NOT NULL
+            );
+            SQL,
         ];
     }
 }

@@ -192,6 +192,42 @@ Stub mode calls no voice provider for any host; "Try voice" in /mod speaks
 the editor's unsaved changes and counts against the cap. The channels'
 `host_*` columns are unused since migration 13.
 
+**Lines** (`Host\Lines`, /mod › Lines, moderators; station decision
+2026-10-06, after OpenAI announced its speech models' end for 2027-01-06).
+Per host, a library of recorded lines: written once (the text model with
+`HostWriter::system()`, kind `lines_write`, or a moderator by hand), recorded
+once in the host's voice (OpenAI or ElevenLabs, one language per job phase,
+usage `tts:lines:<id>` — never the daily cap of moments on air), then picked
+by the AI (`lines_pick`, schema `{id: enum}`; without the model — no key, the
+day's budget spent, a refusal — the one aired longest ago) for the moments a
+program takes from the library: `program_lines` (mode `fresh`, the default,
+or `library` with its kinds: intro, outro, encourage, present, prayertime,
+prayer, break), outside program settings for the reason the lineup is. A
+picked line is `source='library'`, ready at once without a voice call, with no
+`next_uid` (it names no song); it airs even when nobody in the lineup can
+speak (`HostBreaks::available(…, $kind)`, Drafter/PrayerHour `$hostFor`) —
+OpenAI-recorded lines keep playing after OpenAI's shutdown — and neither the
+daily cap nor the budget stops it. Readings, requests, a moderator's opening
+prayer, video intros and a welcome that must name who prays stay fresh
+(`Lines::fits`). Lines never pray (`HostWriter::prays()` on every line,
+`line_prays` for a moderator's). Which line may air: active, recorded with the
+host's current voice (`Lines::signature`: provider — `stub` in stub mode —,
+model, voices, direction, settings; `old_voice` keeps earlier ones), the
+program's own first (intro, outro, present, prayertime name their program),
+the time tag fitting the channel's local time (a German line may say "heute
+Abend"), not aired within `rest_hours` while others have rested; counted at
+commit. Each host's options (`host_line_options`, admins): refill below a
+target per kind (job `lines` every 10 min, in the runner's budget), new lines
+live or as drafts for approval, rest hours, a monthly recording allowance
+(OpenAI 100,000 characters; ElevenLabs 0 — records nothing until an admin
+says, like the daily cap). Files live in `/media/lines/<id>-<hash>.<lang>.mp3`:
+never in `media/host` (pruned after 48 h), and every break-clip deletion
+(`HostBreaks::deleteClips`) touches `/media/host/` only, since many moments
+share one recording; removing a line, its host or its program deletes its
+files. The `part` column and the mode `composed` wait for Stage 2 (breaks from
+recorded pieces plus a short fresh part, joined in PHP) — plan in
+`~/.claude/plans/swirling-skipping-reef.md`.
+
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
 while the minute file says `open`/`closing` (checked again server-side). Every
 form asks "Stay anonymous" (`NameOrAnonymous`, unticked at first: named is the
@@ -669,7 +705,14 @@ delete guards, lineups an older tab leaves alone, one host per show and not
 the last one's, who steps in, stub mode without a request, the ElevenLabs
 quota answered by the same persona on OpenAI with its request bodies, a
 rewrite for another name, retries and rests, the tick's own timeout, what
-listeners see, "Try voice" and the catalog), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+listeners see, "Try voice" and the catalog), recorded lines (`lines.php`: written
+by the AI where the library is used, under their own usage and never the daily
+cap, praying, overlong and twice-written lines dropped, the AI's pick and the
+fallback without it, rotation, the time tag, the voice, the program's own
+first, a host who cannot speak still airing them while cap and budget stop
+fresh words, files outliving every break, a deleted host's or program's going
+along, the ElevenLabs allowance, the prayer hour's encouragements, /mod and its
+roles, a program's mode written only when sent, the replay), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -689,7 +732,10 @@ and back, the browser's way out, no Fullscreen API, the page left, a phone's
 turns, Android's back; its bar veiled when quiet, back on a move or the next
 song, kept while the emoji strip is open) and which shells turn, "Stay anonymous"
 on every form hiding name and place and sending neither, and the
-rules on the first post, the install sheet's single-use prompt; the store apps: platform
+rules on the first post, the install sheet's single-use prompt, /mod › Lines (the
+filters' query, play, recording again only after a confirm, bulk selection,
+the options for admins only, the write form) and a program's "host's words"
+sent only as it came; the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background
 signal only in the apps, the entry script for iOS updates, reminder plans
@@ -732,9 +778,11 @@ the tile closed on a music program), a stand-in
 store-app shell (no install offer, the background stops the radio, failing
 plugins break nothing), deleting an account from Profile and with the 12
 words on `/konto-loeschen`, blocking between two listeners (reported to /mod,
-unblocked in Profile), the rules before the first message, and a wall
+unblocked in Profile), the rules before the first message, a wall
 request reported (hidden for the reporter, in front of the moderators, down
-and back by their decision). `npm run e2e:reset` starts over.
+and back by their decision), and recorded lines (encouragements written by the
+stub writer go on air by themselves, one paused, a program set to recorded
+lines). `npm run e2e:reset` starts over.
 
 The dev and e2e stacks mount `server/app` live and their cron loops tick every
 minute: a half-written change runs there at once (and migrates their

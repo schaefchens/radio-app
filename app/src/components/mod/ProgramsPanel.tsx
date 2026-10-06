@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { VIDEO_SUBMISSION_TYPES, isVideoFormat, isVideoSubmissionType, type SubmissionType } from '@arche/shared';
 import { api } from '@/lib/api';
 import { useApi } from './useApi';
 import { useModChannelId, useOverview } from './overview';
 import { clockDuration } from '@/lib/format';
-import { modError, type LibraryItem, type ModProgram, type ProgramSettings } from './modApi';
+import { DEFAULT_LINE_KINDS, LINE_KINDS, modError, type LibraryItem, type LineKind, type LinesMode, type ModProgram, type ProgramLines, type ProgramSettings } from './modApi';
 import { ChannelSelect } from './ChannelSelect';
 import { OpeningPrayers } from './OpeningPrayers';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
@@ -53,7 +53,14 @@ function draftOf(p: ModProgram | null): Draft {
     active: p ? Number(p.active) === 1 : true,
     // Its hosts only when the server sent them: from an older one, [] would empty the lineup.
     ...(p === null ? { hosts: [] } : p.hosts ? { hosts: p.hosts } : {}),
+    // The same for where the host's words come from: sent back only as it came.
+    ...(p?.lines ? { lines: p.lines } : {}),
   };
+}
+
+/** The kinds of recorded lines a program of this format has moments for. */
+function lineKindsFor(format: ProgramSettings['format']): readonly LineKind[] {
+  return format === 'prayer' ? LINE_KINDS.filter((k) => k !== 'break') : LINE_KINDS.filter((k) => k !== 'encourage' && k !== 'present' && k !== 'prayertime');
 }
 
 export function ProgramsPanel() {
@@ -134,6 +141,9 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
   const setP = (patch: Partial<ProgramSettings['prayer']>): void => setS({ prayer: { ...d.settings.prayer, ...patch } });
   const setC = (patch: Partial<ProgramSettings['prayer']['collect']>): void => setP({ collect: { ...d.settings.prayer.collect, ...patch } });
   const beds = useApi<{ items: LibraryItem[] }>(prayer ? '/mod/library?kind=bed&limit=100' : null);
+  const linesName = useId();
+  const setLines = (lines: ProgramLines): void => set('lines', lines);
+  const linesModes: LinesMode[] = d.lines?.mode === 'composed' ? ['fresh', 'library', 'composed'] : ['fresh', 'library'];
   const num = (v: string): number => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
   const save = async (): Promise<void> => {
@@ -310,6 +320,43 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           <div className="flex flex-col gap-2 border-t border-line/20 pt-3">
             <p className="label">{t('mod.hosts.lineup.programTitle')}</p>
             <HostLineup value={d.hosts} onChange={(v) => set('hosts', v)} emptyHint={t('mod.hosts.lineup.emptyProgram')} />
+          </div>
+        )}
+        {d.lines && (
+          <div className="flex flex-col gap-2 border-t border-line/20 pt-3">
+            <p className="label" id={`${linesName}-label`}>
+              {t('mod.programs.lines.title')}
+            </p>
+            <div className="flex flex-wrap gap-4" role="radiogroup" aria-labelledby={`${linesName}-label`}>
+              {linesModes.map((mode) => (
+                <label key={mode} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    className="h-4 w-4 accent-accent-fill"
+                    name={linesName}
+                    checked={d.lines?.mode === mode}
+                    onChange={() => d.lines && setLines({ mode, kinds: d.lines.kinds.length > 0 ? d.lines.kinds : [...DEFAULT_LINE_KINDS] })}
+                  />
+                  {t(`mod.programs.lines.${mode}`)}
+                </label>
+              ))}
+            </div>
+            {d.lines.mode !== 'fresh' && (
+              <>
+                <p className="text-xs text-ink-muted">{t('mod.programs.lines.kinds')}</p>
+                <div className="flex flex-wrap gap-4">
+                  {lineKindsFor(d.settings.format).map((k) => (
+                    <Check
+                      key={k}
+                      label={t(`mod.lines.kinds.${k}`)}
+                      checked={d.lines?.kinds.includes(k) ?? false}
+                      onChange={(on) => d.lines && setLines({ ...d.lines, kinds: on ? [...d.lines.kinds, k] : d.lines.kinds.filter((x) => x !== k) })}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-ink-faint">{t('mod.programs.lines.hint')}</p>
+              </>
+            )}
           </div>
         )}
       </div>

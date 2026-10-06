@@ -259,7 +259,10 @@ final class ModApi
      */
     private function withHosts(string $owner, array $row): array
     {
-        return $row + ['hosts' => $this->c->app->hosts()->lineup($owner, (int) $row['id'])];
+        $row += ['hosts' => $this->c->app->hosts()->lineup($owner, (int) $row['id'])];
+        // A program's: whether its host speaks from recorded lines (Host\Lines).
+        if ($owner === 'program') $row += ['lines' => $this->c->app->lines()->programMode((int) $row['id'])];
+        return $row;
     }
 
     public function channelCreate(): array
@@ -570,6 +573,66 @@ final class ModApi
         if ($channel !== null) $app->publisher()->publishLive($channel);
         $app->store()->audit($this->actor(), $hidden ? 'Removed from the prayer wall' : 'Shown on the prayer wall', $publicId);
         return ['ok' => true, 'hidden' => $hidden];
+    }
+
+    // --- recorded host lines (Host\Lines) ---------------------------------------------------------------
+
+    /** Moderators look after the lines; recording is bounded by the host's monthly allowance, an admin's. */
+    public function lines(): array
+    {
+        $this->mod();
+        $q = $this->c->req->query;
+        return $this->c->app->lines()->list($q, (int) ($q['limit'] ?? 50), (int) ($q['offset'] ?? 0));
+    }
+
+    public function linesOverview(): array
+    {
+        $this->mod();
+        $host = $this->c->app->hosts()->get((int) ($this->c->req->query['host'] ?? 0)) ?? throw new ApiError(404, 'not_found');
+        return $this->c->app->lines()->overview($host, $this->me['role'] === 'admin');
+    }
+
+    public function lineAdd(): array
+    {
+        $this->mod();
+        return ['line' => $this->c->app->lines()->add($this->c->req->json(), $this->actor())];
+    }
+
+    /** Lines asked of the AI: a model call and recordings each, so a few an hour per moderator. */
+    public function linesWrite(): array
+    {
+        $this->mod();
+        if (!$this->c->app->rateLimit()->hit('lines-write:' . $this->me['id'], 30, 3600)) throw new ApiError(429, 'rate_limited');
+        return ['ok' => true, 'queued' => $this->c->app->lines()->requestWrite($this->c->req->json(), $this->actor())];
+    }
+
+    public function linesBulk(): array
+    {
+        $this->mod();
+        $body = $this->c->req->json();
+        return ['ok' => true, 'changed' => $this->c->app->lines()->bulk(is_array($body['ids'] ?? null) ? array_values($body['ids']) : [], (string) ($body['action'] ?? ''), $this->actor())];
+    }
+
+    /** @param array<string,string> $a */
+    public function lineUpdate(array $a): array
+    {
+        $this->mod();
+        return ['line' => $this->c->app->lines()->update($this->id($a), $this->c->req->json(), $this->actor())];
+    }
+
+    /** @param array<string,string> $a */
+    public function lineDelete(array $a): array
+    {
+        $this->mod();
+        $this->c->app->lines()->remove($this->id($a), $this->actor());
+        return ['ok' => true];
+    }
+
+    /** @param array<string,string> $a */
+    public function hostLineOptions(array $a): array
+    {
+        $this->admin();
+        return ['options' => $this->c->app->lines()->setOptions($this->id($a), $this->c->req->json(), $this->actor())];
     }
 
     // --- hosts (Host\Hosts) ----------------------------------------------------------------------------

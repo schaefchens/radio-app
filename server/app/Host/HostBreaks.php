@@ -39,16 +39,20 @@ final class HostBreaks
     /**
      * Whether host breaks can be produced: a text model (Claude or OpenAI, or
      * stub mode) and a host who can speak — in this program's lineup when one
-     * is given (Hosts::effective), anywhere on the station otherwise.
+     * is given (Hosts::effective), anywhere on the station otherwise. Given a
+     * kind the program takes from recorded lines (Host\Lines), a host with
+     * such lines is enough: a recorded line needs no voice now.
      *
      * @param array<string,mixed>|null $channel
      * @param array<string,mixed>|null $program
      */
-    public function available(?array $channel = null, ?array $program = null): bool
+    public function available(?array $channel = null, ?array $program = null, ?string $kind = null): bool
     {
         if ($this->app->config->textProvider() === '') return false;
         $hosts = $this->app->hosts();
-        return $channel === null ? $hosts->anySpeaks() : $hosts->speaksFor($channel, $program);
+        $speaks = $channel === null ? $hosts->anySpeaks() : $hosts->speaksFor($channel, $program);
+        if ($speaks || $kind === null || $channel === null) return $speaks;
+        return $this->app->lines()->covers($channel, $program, $kind);
     }
 
     /**
@@ -164,7 +168,7 @@ final class HostBreaks
             $this->app->store()->update('host_breaks', ['state' => 'cancelled'], "id = ? AND state = 'ready'", [$id]);
             $hb = $this->get($id);
             if ($hb === null) continue;
-            foreach ($hb['audio'] as $url) $this->app->media()->delete(is_string($url) ? $url : null);
+            $this->deleteClips($hb['audio']);
             $ctx = array_diff_key($hb['context'], array_flip(self::PERSONAL));
             foreach (['submission_id', 'again_id'] as $k) {
                 if (isset($ctx[$k]) && in_array((int) $ctx[$k], $erased, true)) unset($ctx[$k]);
@@ -303,14 +307,27 @@ final class HostBreaks
         $phase = $job['phase'] === 'start' ? 'script' : (string) $job['phase'];
 
         if ($phase === 'script') {
-            $gate = $this->gate($hb);
+            $library = $this->libraryCovers($hb);
+            $gate = $this->gate($hb, $library);
             if ($gate !== null) {
                 $this->fail($hb, $gate);
                 return null;
             }
+            $tried = self::tried($hb);
+            // A recorded line, where the program wants one and its host has one: ready at once.
+            if ($library && $tried === [] && $this->fromLibrary($hb)) return null;
+            // None fits: fresh words, gated like any others.
+            if ($library && ($gate = $this->gate($hb)) !== null) {
+                $this->fail($hb, $gate);
+                return null;
+            }
+            // Everything after costs a script and a voice: not past the day's budget.
+            if (!$this->app->usage()->withinBudget()) {
+                $this->fail($hb, 'budget');
+                return null;
+            }
             // Its host: the one a switch chose (and that can still speak), else the show's.
             $hosts = $this->app->hosts();
-            $tried = self::tried($hb);
             $chosen = isset($hb['context']['host_id']) ? $hosts->get((int) $hb['context']['host_id']) : null;
             $host = $chosen !== null && !in_array($chosen['id'], $tried, true) && $hosts->canSpeak($chosen) ? $chosen : $hosts->forBreak($hb, $tried);
             if ($host === null) {
@@ -320,7 +337,7 @@ final class HostBreaks
             $context = $this->app->hostWriter()->context($hb, $host);
             $written = $this->app->hostWriter()->write($hb, $context, $host);
             // A switch before writing again: the clips of the one before go.
-            foreach ($hb['audio'] as $url) $this->app->media()->delete(is_string($url) ? $url : null);
+            $this->deleteClips($hb['audio']);
             // The model takes seconds: an account deleted meanwhile has had this break forgotten.
             if (!$this->saveIfPending($hb['id'], [
                 'context' => json_encode(['host_id' => $host['id']] + $context + array_diff_key($hb['context'], array_flip(self::WRITTEN)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -412,7 +429,7 @@ final class HostBreaks
         $modelWords = !in_array((string) $hb['source'], ['listener', 'moderator'], true) && !str_starts_with((string) $hb['source'], 'template:');
         $writtenFor = (string) ($hb['context']['host_name'] ?? $from['name'] ?? '');
         $rewrite = $modelWords && $writtenFor !== '' && mb_strtolower((string) $next['name']) !== mb_strtolower($writtenFor);
-        foreach ($hb['audio'] as $url) $this->app->media()->delete(is_string($url) ? $url : null);
+        $this->deleteClips($hb['audio']);
         $context = ['host_id' => $next['id'], 'tried' => $tried] + $hb['context'];
         if (!$this->saveIfPending($hb['id'], [
             'context' => json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -432,11 +449,18 @@ final class HostBreaks
         return array_values(array_filter(array_map('intval', (array) ($hb['context']['tried'] ?? [])), fn($id) => $id > 0));
     }
 
-    /** Why this break should not cost anything right now, or null. @param array<string,mixed> $hb */
-    private function gate(array $hb): ?string
+    /**
+     * Why this break should not cost anything right now, or null. The day's
+     * budget is checked after the library (runPhase): a recorded line costs
+     * no voice, and with the budget spent its pick still works without the model.
+     *
+     * @param array<string,mixed> $hb
+     * @param bool $library its program takes it from recorded lines, and someone has one
+     */
+    private function gate(array $hb, bool $library = false): ?string
     {
         $c = $this->app->config;
-        if (!$this->available()) return 'unavailable';
+        if (!$library && !$this->available()) return 'unavailable';
         $slug = $this->channelSlug($hb);
         $prayerHour = $this->inPrayerHour($hb);
         // People's own words, read out (and a moderator's prepared opening prayer).
@@ -454,16 +478,73 @@ final class HostBreaks
         // else — breaks, an encouragement, the outro — needs an audience.
         if (!$owed && $this->app->presence()->listeners($slug) < $c->int('HOST_MIN_LISTENERS', 1)) return 'no_listeners';
         // The daily cap is for the host's own words: a reading costs one voice
-        // call, and someone sent it — it is neither stopped nor counted.
-        if (!$theirs) {
+        // call, and someone sent it — it is neither stopped nor counted. A
+        // recorded line costs no voice: neither stopped nor counted either.
+        if (!$theirs && !$library) {
             $today = (int) $this->app->store()->value(
-                "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND state = 'ready' AND updated >= ? AND source NOT IN ('listener', 'moderator')",
+                "SELECT COUNT(*) FROM host_breaks WHERE channel_id = ? AND state = 'ready' AND updated >= ? AND source NOT IN ('listener', 'moderator', 'library')",
                 [(int) $hb['channel_id'], $this->app->clock->now() - 86400],
             );
             if ($today >= $c->int('HOST_MAX_BREAKS_PER_DAY', 300)) return 'daily_cap';
         }
-        if (!$this->app->usage()->withinBudget()) return 'budget';
         return null;
+    }
+
+    /** @param array<string,mixed> $hb */
+    private function libraryCovers(array $hb): bool
+    {
+        $program = $hb['program_id'] !== null ? $this->app->catalog()->program((int) $hb['program_id']) : null;
+        $channel = $this->app->catalog()->channel((int) $hb['channel_id']);
+        return $channel !== null && $this->app->lines()->covers($channel, $program, (string) $hb['kind']);
+    }
+
+    /**
+     * The moment from a recorded line (Host\Lines::pick): its words and
+     * clips, ready at once. No `next_uid`: a line names no song, so the
+     * committer must not drop it when the next one changes. False: nothing
+     * fits (its host has no line for now, or the moment needs fresh words) —
+     * the fresh way, and the library is asked to fill up.
+     *
+     * @param array<string,mixed> $hb
+     */
+    private function fromLibrary(array $hb): bool
+    {
+        $lines = $this->app->lines();
+        $program = $hb['program_id'] !== null ? $this->app->catalog()->program((int) $hb['program_id']) : null;
+        $channel = $this->app->catalog()->channel((int) $hb['channel_id']);
+        if ($channel === null) return false;
+        $host = $lines->hostFor($hb, $channel, $program);
+        $context = $host !== null ? $this->app->hostWriter()->context($hb, $host) : [];
+        $line = $host !== null && Lines::fits((string) $hb['kind'], $context) ? $lines->pick($hb, $host, $context, $channel, $program) : null;
+        if ($host === null || $line === null) {
+            if ($host !== null) $this->app->jobs()->enqueue('lines', (int) $host['id'], 70, $this->app->clock->nowMs());
+            return false;
+        }
+        $texts = array_intersect_key($line['texts'], $line['audio']);
+        $ctx = ['host_id' => (int) $host['id'], 'line_id' => (int) $line['id']] + array_diff_key($hb['context'], array_flip([...self::WRITTEN, 'next_uid']));
+        // Cancelled meanwhile (a plan change, a deleted account): done all the same.
+        $this->saveIfPending($hb['id'], [
+            'context' => json_encode($ctx, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'texts' => json_encode($texts ?: new \stdClass(), JSON_UNESCAPED_UNICODE),
+            'audio' => json_encode($line['audio'] ?: new \stdClass(), JSON_UNESCAPED_SLASHES),
+            'durations' => json_encode($line['durations'] ?: new \stdClass()),
+            'source' => 'library',
+            'state' => 'ready',
+        ]);
+        return true;
+    }
+
+    /**
+     * A break's own clips go (here and at the edge); a recorded line's files
+     * are shared by every moment that airs it (Host\Lines) and stay.
+     *
+     * @param array<mixed> $audio
+     */
+    private function deleteClips(array $audio): void
+    {
+        foreach ($audio as $url) {
+            if (is_string($url) && str_starts_with($url, '/media/host/')) $this->app->media()->delete($url);
+        }
     }
 
     /**
