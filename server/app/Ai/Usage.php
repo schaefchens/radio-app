@@ -19,6 +19,11 @@ final class Usage
     private const OPENAI = [
         'gpt-5-nano' => [0.05, 0.4],
         'gpt-5-mini' => [0.25, 2.0],
+        'gpt-5.4-mini' => [0.75, 4.5],
+        'gpt-5.6-luna' => [0.2, 1.2],
+        'gpt-5.6-terra' => [2.0, 12.0],
+        'gpt-5.6-sol' => [4.0, 20.0],
+        'gpt-6-luna' => [0.1, 0.5],
         'gpt-5' => [1.25, 10.0],
         'gpt-4.1-nano' => [0.1, 0.4],
         'gpt-4.1-mini' => [0.4, 1.6],
@@ -38,8 +43,8 @@ final class Usage
     ];
     /** gpt-4o-mini-tts ≈ $0.015 per minute of speech ≈ 900 characters. */
     private const TTS_MICROS_PER_CHAR = 17;
-    /** gpt-4o-transcribe ≈ $0.006 per minute. */
-    private const STT_MICROS_PER_SECOND = 100;
+    /** gpt-transcribe ≈ $0.0045 per minute. */
+    private const STT_MICROS_PER_SECOND = 75;
 
     public function __construct(private App $app) {}
 

@@ -134,7 +134,7 @@ evergreen loop for that span.
 `Ai\TextModel` (`App::text()`): Claude via the Anthropic PHP SDK when
 `ANTHROPIC_KEY` is set (`claude-opus-5` by default, `fallbacks: 'default'` on
 Opus 5, hard timeouts through a Guzzle transport, no SDK retries), otherwise
-OpenAI Chat Completions (`gpt-5-mini` by default) — an OpenAI key alone runs the
+OpenAI Chat Completions (`gpt-5.4-mini` by default) — an OpenAI key alone runs the
 whole station. Both answer through a strict JSON schema; every failure is a
 result without data, never an exception (except `BudgetExceeded`, which the job
 runner retries without counting an attempt). Voiced by the moment's host
@@ -762,3 +762,11 @@ probe (background run length → `TICK_BUDGET`, WAL, directives) and the device
 sync spike on a real iPhone/Android, and there the prayer music (it plays after
 the join tap, fades, goes on across pieces, comes back after the background).
 More program formats with a running order beyond the prayer hour.
+
+OpenAI switches off its speech models (`tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`)
+on 2027-01-06 (announced 2026-10-01); its named successor,
+`gpt-realtime-2.1-mini`, has no `/v1/audio/speech` and no MP3. An OpenAI host
+then fails with a lasting error and rests, so only ElevenLabs hosts speak —
+unless OpenAI offers a successor: the host editor takes any model id.
+`gpt-5-mini` goes on 2026-12-11 and `gpt-4o-transcribe` on 2027-02-26; the
+defaults are `gpt-5.4-mini` and `gpt-transcribe` (which takes `languages[]`).

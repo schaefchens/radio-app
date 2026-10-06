@@ -344,7 +344,7 @@ Everything is an `.env` key (defaults in `server/config/defaults.php`, names in
 |---|---|---|
 | `AI_MODE` | `live` | `stub` = no network AI (tests, offline dev) |
 | `AI_TEXT_PROVIDER` | `auto` | who writes and moderates: `auto` (Claude if `ANTHROPIC_KEY` is set, else OpenAI), `anthropic`, `openai` |
-| `OPENAI_HOST_MODEL`, `OPENAI_MODERATION_MODEL` | `gpt-5-mini` | OpenAI model ids (when OpenAI writes and moderates) |
+| `OPENAI_HOST_MODEL`, `OPENAI_MODERATION_MODEL` | `gpt-5.4-mini` | OpenAI model ids (when OpenAI writes and moderates); a new one also needs its price in `Ai\Usage` |
 | `HOST_MODEL`, `MODERATION_MODEL` | `claude-opus-5` | Claude model ids (when Claude does) |
 | `STATION_LANGS` | `en,de` | languages every host break is voiced in |
 | `TICK_BUDGET` | `22` | seconds of network time per tick (from the probe) |

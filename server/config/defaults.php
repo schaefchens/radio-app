@@ -15,12 +15,15 @@ return [
     'AI_TEXT_PROVIDER' => 'auto',
     'HOST_MODEL' => 'claude-opus-5',
     'MODERATION_MODEL' => 'claude-opus-5',
-    'OPENAI_HOST_MODEL' => 'gpt-5-mini',
-    'OPENAI_MODERATION_MODEL' => 'gpt-5-mini',
+    // gpt-5-mini is switched off on 2026-12-11; a model missing from
+    // Ai\Usage::OPENAI is priced high and eats AI_DAILY_BUDGET_USD early.
+    'OPENAI_HOST_MODEL' => 'gpt-5.4-mini',
+    'OPENAI_MODERATION_MODEL' => 'gpt-5.4-mini',
     // Jingles made with OpenAI's voice in /mod. The hosts' voices — OpenAI or
     // ElevenLabs, model, voice, key, a daily cap — are set per host in /mod › Hosts.
     'TTS_MODEL' => 'gpt-4o-mini-tts',
-    'STT_MODEL' => 'gpt-4o-transcribe',
+    // gpt-4o-transcribe is switched off on 2027-02-26.
+    'STT_MODEL' => 'gpt-transcribe',
     'STATION_LANGS' => 'en,de',
     // Rough USD cap across all AI calls per UTC day. Host breaks and
     // moderation both stop (template / reject-later) when it is reached.

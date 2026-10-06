@@ -65,14 +65,19 @@ class OpenAi
     public function transcribe(string $file, string $lang): string
     {
         if ($this->key() === '') throw new \RuntimeException('OPENAI_KEY missing');
-        $r = $this->app->http()->request('POST', 'https://api.openai.com/v1/audio/transcriptions', [
-            'Authorization' => 'Bearer ' . $this->key(),
-        ], [
-            'model' => $this->app->config->get('STT_MODEL'),
-            'language' => $lang,
+        $model = $this->app->config->get('STT_MODEL');
+        $fields = [
+            'model' => $model,
             'response_format' => 'json',
             'file' => new \CURLFile($file, 'audio/mpeg', 'contribution.mp3'),
-        ], 40);
+        ];
+        // gpt-transcribe takes a list of languages and refuses the single
+        // `language` of the older models next to it.
+        if (str_starts_with($model, 'gpt-transcribe')) $fields['languages[]'] = $lang;
+        else $fields['language'] = $lang;
+        $r = $this->app->http()->request('POST', 'https://api.openai.com/v1/audio/transcriptions', [
+            'Authorization' => 'Bearer ' . $this->key(),
+        ], $fields, 40);
         $data = $r->json();
         if ($r->status !== 200 || !is_array($data) || !isset($data['text'])) {
             throw new \RuntimeException('Transcription failed with HTTP ' . $r->status);

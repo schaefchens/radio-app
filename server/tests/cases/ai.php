@@ -38,7 +38,7 @@ function openaiAnswer(array $content, string $finish = 'stop', ?string $refusal 
     return new HttpResponse(200, (string) json_encode([
         'id' => 'chatcmpl-test',
         'object' => 'chat.completion',
-        'model' => 'gpt-5-mini-2025-08-07',
+        'model' => 'gpt-5.4-mini-2026-03-17',
         'choices' => [[
             'index' => 0,
             'finish_reason' => $finish,
@@ -80,17 +80,17 @@ test('ai: OpenAI answers are schema-bound JSON; refusals, cut-offs and errors ar
     eq($http->sent[0]['url'], 'https://api.openai.com/v1/chat/completions', 'Chat Completions');
     eq($http->sent[0]['headers']['Authorization'] ?? '', 'Bearer sk-test', 'the key as a Bearer header');
     $body = $http->body(0);
-    eq($body['model'], 'gpt-5-mini', 'the host model');
+    eq($body['model'], 'gpt-5.4-mini', 'the host model');
     eq($body['messages'][0], ['role' => 'system', 'content' => 'You are Hope.'], 'the system prompt');
     eq($body['response_format']['type'], 'json_schema', 'structured output');
     eq($body['response_format']['json_schema']['strict'], true, 'strict');
     eq($body['response_format']['json_schema']['schema'], $schema, 'our schema, unchanged');
     eq($body['reasoning_effort'], 'low', 'an effort for a reasoning model');
-    eq((int) $app->store()->value("SELECT cost_micros FROM ai_usage WHERE kind = 'text:host_break'"), 900, 'cost from the dated snapshot\'s price');
+    eq((int) $app->store()->value("SELECT cost_micros FROM ai_usage WHERE kind = 'text:host_break'"), 2250, 'cost from the dated snapshot\'s price');
 
     $http->answers[] = openaiAnswer([], 'stop', 'I can’t help with that.');
     eq($app->text()->json('moderate_prayer', 'moderation', 's', 'u', $schema)->reason, 'refusal', 'a refusal is an answer without data');
-    eq($http->body(1)['model'], 'gpt-5-mini', 'the moderation model');
+    eq($http->body(1)['model'], 'gpt-5.4-mini', 'the moderation model');
 
     $http->answers[] = openaiAnswer(['en' => 'cut'], 'length');
     eq($app->text()->json('host_break', 'host', 's', 'u', $schema)->reason, 'max_tokens', 'cut off');
@@ -136,4 +136,22 @@ test('ai: with OpenAI alone the host speaks both languages and a prayer is judge
     runJobs($app);
     eq($app->submissions()->byPublicId($sub['id'])['status'], 'approved', 'judged by OpenAI');
     eq($http->body(1)['response_format']['json_schema']['name'], 'moderate_prayer', 'with the moderation schema');
+});
+
+test('ai: recordings are transcribed by gpt-transcribe, which takes `languages` and never `language` beside it', function () {
+    $app = TestKit::app(['OPENAI_KEY' => 'sk-test'] + LIVE_NO_KEYS);
+    $http = new FakeHttp();
+    $app->set('http', $http);
+    $file = $app->config->root . '/resources/stub-voice.mp3';
+    $http->answers[] = new HttpResponse(200, '{"text":" Gott ist treu. "}');
+    eq($app->openai()->transcribe($file, 'de'), 'Gott ist treu.', 'the text, trimmed');
+    $sent = $http->sent[0];
+    eq($sent['url'], 'https://api.openai.com/v1/audio/transcriptions', 'the transcription endpoint');
+    eq([$sent['body']['model'], $sent['body']['languages[]'] ?? null, array_key_exists('language', $sent['body'])], ['gpt-transcribe', 'de', false], 'the language as an item of the list only');
+
+    $older = TestKit::app(['OPENAI_KEY' => 'sk-test', 'STT_MODEL' => 'gpt-4o-transcribe'] + LIVE_NO_KEYS);
+    $older->set('http', $http);
+    $http->answers[] = new HttpResponse(200, '{"text":"ok"}');
+    $older->openai()->transcribe($file, 'en');
+    eq([$http->sent[1]['body']['language'] ?? null, array_key_exists('languages[]', $http->sent[1]['body'])], ['en', false], 'an older model keeps its single language');
 });
