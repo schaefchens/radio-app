@@ -340,8 +340,8 @@ a deploy.
 Hosts can speak with a voice made on a Mac of ours (provider "Eigener Rechner").
 The Mac pulls voice jobs from the station, so it needs no public address.
 Add a worker in /mod › KI-Moderation › Rechner (the key is shown once), then
-follow `worker/README.md` on the Mac: `worker/setup.sh`, put the key in
-`~/.config/arche-worker/config.toml`, `worker/run.sh check`, `worker/run.sh`.
+follow `worker/README.md` on the Mac: `worker/setup-arche-worker.sh`, put the key in
+`~/.config/arche-worker/config.toml`, `worker/run-arche-worker.sh check`, `worker/run-arche-worker.sh`.
 One worker may serve production and the dev station. With no worker online, a
 worker host's moments go to the next host in the lineup.
 
