@@ -29,10 +29,12 @@ interface StatusData {
     text: '' | 'stub' | 'anthropic' | 'openai';
     hostModel: string;
     moderationModel: string;
-    voice: 'openai' | 'elevenlabs' | 'stub';
+    voice: 'openai' | 'elevenlabs' | 'worker' | 'stub';
     /** Every host's voice (absent from a server older than hosts). */
-    voices?: { id: number; name: string; provider: 'openai' | 'elevenlabs'; model: string; active: boolean; speaks: boolean; restingUntil: number; charsToday: number; cap: number; lastError: string }[];
+    voices?: { id: number; name: string; provider: 'openai' | 'elevenlabs' | 'worker'; model: string; active: boolean; speaks: boolean; restingUntil: number; charsToday: number; cap: number; lastError: string }[];
   };
+  /** Our own computers that speak for the hosts (absent from a server older than them). */
+  workers?: { online: number; total: number; queued: number };
   realtime: { driver: string; slots: string[]; nodes: { slot: string; state: string; connections: number; last_report: number | null; error: string }[] };
   /** base '' = the app reads from this site; api = the server can purge and count (absent from an older server). */
   cdn?: { base: string; api: boolean; queued: number; counts: Record<string, { minute: number; n: number } | null> };
@@ -54,6 +56,8 @@ export function StatusPanel() {
   if (error && !data) return <Notice tone="error">{error}</Notice>;
   if (!data) return <Loading />;
   const tickAge = data.lastTick ? Math.max(0, Math.round((data.now - data.lastTick.at * 1000) / 1000)) : null;
+  // Our own computers have no brand name: "Own computer (Qwen)", in the reader's language.
+  const providerName = (p: string): string => (p === 'worker' ? t('mod.hosts.providers.worker') : (PROVIDERS[p] ?? p));
   const time = (ms: number): string => `${localDate(ms, lang, { day: 'numeric', month: 'short' })} ${localTime(ms, lang)}`;
 
   return (
@@ -101,7 +105,7 @@ export function StatusPanel() {
             {!data.ai.voices && (
               <>
                 {' · '}
-                {t('mod.status.voice', { provider: PROVIDERS[data.ai.voice] })}
+                {t('mod.status.voice', { provider: providerName(data.ai.voice) })}
               </>
             )}
           </p>
@@ -112,7 +116,7 @@ export function StatusPanel() {
               <li key={v.id} className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{v.name}</span>
                 <span className="text-ink-muted">
-                  {PROVIDERS[v.provider]} · {v.model} · {v.cap > 0 ? t('mod.hosts.charsOf', { used: v.charsToday, cap: v.cap }) : t('mod.hosts.chars', { used: v.charsToday })}
+                  {providerName(v.provider)} · {v.model} · {v.cap > 0 ? t('mod.hosts.charsOf', { used: v.charsToday, cap: v.cap }) : t('mod.hosts.chars', { used: v.charsToday })}
                 </span>
                 {!v.active ? (
                   <Pill>{t('mod.common.inactive')}</Pill>
@@ -127,6 +131,12 @@ export function StatusPanel() {
               </li>
             ))}
           </ul>
+        )}
+        {data.workers && data.workers.total > 0 && (
+          <p className="text-sm">
+            {t('mod.status.workers', { count: data.workers.queued, online: data.workers.online, total: data.workers.total })}{' '}
+            {data.workers.online === 0 && <Pill tone="warn">{t('mod.workers.offline')}</Pill>}
+          </p>
         )}
         <p className="text-sm">{t('mod.status.spend', { spent: data.spentTodayUsd.toFixed(2), budget: data.budgetUsd.toFixed(2) })}</p>
         <div className="h-2 overflow-hidden rounded-full bg-line/30">

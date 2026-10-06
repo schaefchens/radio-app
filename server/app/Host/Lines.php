@@ -5,6 +5,7 @@ namespace Arche\Host;
 
 use Arche\ApiError;
 use Arche\App;
+use Arche\Ai\Voice;
 use Arche\Ai\VoiceError;
 use Arche\Audio\Mp3;
 use Arche\Support\BudgetExceeded;
@@ -49,6 +50,10 @@ final class Lines
     ];
     /** An OpenAI host may record this many characters a month unless told otherwise (≈ $1.70). An ElevenLabs host: none — its account is a small one. */
     private const OPENAI_MONTH_CHARS = 100_000;
+    /** A voice worker's host (our own Mac, no bill): a whole library and more. */
+    private const WORKER_MONTH_CHARS = 2_000_000;
+    /** A line a worker could not speak this often (each after its own takes) is marked failed. */
+    private const WORKER_FAILS = 2;
     /** Lines a pick chooses from: enough to fit the moment, few enough to stay cheap. */
     private const MAX_PICK = 12;
     /** Lines one refill writes; a moderator may ask for up to WRITE_MAX. */
@@ -142,7 +147,11 @@ final class Lines
     /** @param array<mixed> $in @return array<string,mixed> */
     private static function cleanOptions(array $in, string $provider): array
     {
-        $o = self::DEFAULT_OPTIONS + ['month_chars' => $provider === 'openai' ? self::OPENAI_MONTH_CHARS : 0];
+        $o = self::DEFAULT_OPTIONS + ['month_chars' => match ($provider) {
+            'openai' => self::OPENAI_MONTH_CHARS,
+            'worker' => self::WORKER_MONTH_CHARS,
+            default => 0,
+        }];
         foreach (['refill', 'live', 'old_voice'] as $k) {
             if (array_key_exists($k, $in)) $o[$k] = (bool) $in[$k];
         }
@@ -200,7 +209,8 @@ final class Lines
         foreach ($this->app->config->stationLangs() as $l) $voices[$l] = Hosts::voiceFor($host, $l);
         $provider = (string) $host['provider'];
         return substr(hash('sha256', (string) json_encode([
-            $this->app->config->stubAi() ? 'stub' : $provider,
+            // A worker is never stubbed (our own hardware): its recordings are real in every mode.
+            $this->app->config->stubAi() && $provider !== 'worker' ? 'stub' : $provider,
             (string) $host['model'],
             $voices,
             $provider === 'openai' ? trim((string) ($host['instructions'] ?? '')) : '',
@@ -507,6 +517,11 @@ final class Lines
      */
     private function record(array $host): ?string
     {
+        // A voice worker's host: every waiting language asked of the workers; their uploads finish the lines.
+        if (Voice::async($host)) {
+            $this->askWorkers($host);
+            return null;
+        }
         $row = $this->app->store()->one("SELECT * FROM host_lines WHERE host_id = ? AND state = 'recording' ORDER BY id LIMIT 1", [(int) $host['id']]);
         if ($row === null) return null;
         $line = self::decode($row);
@@ -556,6 +571,65 @@ final class Lines
         }
         if ($this->complete($line)) $this->finish($host, $line);
         return $this->waiting($host) ? 'record' : null;
+    }
+
+    /**
+     * A worker host's waiting lines: each language without a clip and not
+     * asked for yet goes to the workers, within this month's allowance. A
+     * language the workers gave up on WORKER_FAILS times marks its line failed
+     * (Qwen could not read it), so it is not asked for again and again.
+     *
+     * @param array<string,mixed> $host
+     */
+    private function askWorkers(array $host): void
+    {
+        $workers = $this->app->workers();
+        $voice = $this->signature($host);
+        $room = $this->room($host);
+        foreach ($this->app->store()->all("SELECT * FROM host_lines WHERE host_id = ? AND state = 'recording' ORDER BY id LIMIT 50", [(int) $host['id']]) as $row) {
+            $line = self::decode($row);
+            $tasks = $workers->tasksFor('line', $line['id']);
+            foreach ($this->app->config->stationLangs() as $l) {
+                $text = trim((string) ($line['texts'][$l] ?? ''));
+                if ($text === '' || isset($line['audio'][$l])) continue;
+                $mine = array_filter($tasks, fn($t) => $t['lang'] === $l);
+                if (array_filter($mine, fn($t) => in_array($t['state'], ['queued', 'leased'], true))) continue;
+                if (count(array_filter($mine, fn($t) => $t['state'] === 'failed')) >= self::WORKER_FAILS) {
+                    $this->save($line['id'], ['state' => 'failed', 'error' => 'The computer could not read it as written.']);
+                    continue 2;
+                }
+                if ($room < mb_strlen($text)) return; // this month's allowance: the rest waits for the next
+                $workers->request('line', $line['id'], $host, $l, $text, 0, ['signature' => $voice]);
+                $room -= mb_strlen($text);
+            }
+        }
+    }
+
+    /**
+     * A language of a line arrived from a voice worker (Host\Workers::complete):
+     * merged in one statement (both languages may arrive at once). Recorded
+     * with another voice than its other language (the host changed meanwhile):
+     * the other goes, and is asked for again. False: the line is not
+     * waiting any more (removed, changed) — the caller drops the clip.
+     */
+    public function recorded(int $lineId, string $lang, string $url, int $ms, string $voice): bool
+    {
+        $line = $this->get($lineId);
+        if ($line === null || $line['state'] !== 'recording') return false;
+        if ($line['audio'] && $voice !== '' && $line['voice'] !== '' && $line['voice'] !== $voice) {
+            $this->deleteFiles($line['audio']);
+            $this->app->store()->update('host_lines', ['audio' => '{}', 'durations' => '{}'], "id = ? AND state = 'recording'", [$lineId]);
+        }
+        $saved = $this->app->store()->query(
+            "UPDATE host_lines SET audio = json_set(audio, '$.' || ?, ?), durations = json_set(durations, '$.' || ?, ?), voice = ?, updated = ? WHERE id = ? AND state = 'recording'",
+            [$lang, $url, $lang, $ms, $voice !== '' ? $voice : $line['voice'], $this->app->clock->now(), $lineId],
+        )->rowCount() === 1;
+        if (!$saved) return false;
+        $line = $this->get($lineId);
+        $host = $this->app->hosts()->get($line['host_id'] ?? 0);
+        if ($line !== null && $host !== null && $this->complete($line)) $this->finish($host, $line);
+        $this->has = [];
+        return true;
     }
 
     /** Every language recorded: on air, or waiting for a moderator's approval. @param array<string,mixed> $host @param array<string,mixed> $line */

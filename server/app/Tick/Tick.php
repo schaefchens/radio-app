@@ -129,6 +129,8 @@ final class Tick
                 $this->app->store()->audit('tick', 'CDN maintenance failed', $e->getMessage());
             }
         }
+        // Voice workers: leases that ran out, moments' tasks too late, old words (no network).
+        $out['workers'] = $this->app->workers()->maintain();
         $out['jobs'] = $this->app->runner()->runUntilBudget();
         // After the jobs: a script written back after its account was deleted.
         $out['erased'] = $this->app->erasure()->sweep();
@@ -206,6 +208,8 @@ final class Tick
             )->rowCount(),
             'jobs' => $this->app->jobs()->purgeBefore($now - 7 * 86400),
             'host_lines' => $this->app->lines()->purge($now - $c->int('RETAIN_TIMELINE_DAYS', 30) * 86400),
+            // Voice workers' tasks held listeners' words: two days at most.
+            'voice_tasks' => $this->app->workers()->purge($now - 2 * 86400),
             'attempts' => $store->query('DELETE FROM attempts WHERE time < ?', [$now - 2 * 86400])->rowCount(),
             'presence' => $store->query('DELETE FROM presence WHERE seen < ?', [$now - 86400])->rowCount(),
             'audit' => $store->query('DELETE FROM audit WHERE time < ?', [$now - 90 * 86400])->rowCount(),

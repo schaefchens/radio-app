@@ -17,6 +17,7 @@ use Arche\Host\HostBreaks;
 use Arche\Host\HostWriter;
 use Arche\Host\Hosts;
 use Arche\Host\Lines;
+use Arche\Host\Workers;
 use Arche\Identity\Erasure;
 use Arche\Identity\Identities;
 use Arche\Identity\RateLimit;
@@ -227,6 +228,11 @@ final class App
     public function lines(): Lines
     {
         return $this->service('lines', Lines::class, fn() => new Lines($this));
+    }
+
+    public function workers(): Workers
+    {
+        return $this->service('workers', Workers::class, fn() => new Workers($this));
     }
 
     public function jobs(): Jobs

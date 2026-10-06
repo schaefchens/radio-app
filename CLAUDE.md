@@ -74,6 +74,7 @@ voiced (a tick or two; the cron runs every minute).
 | `realtime/` | Node 24 + `ws` chat/presence/reactions node | Docker: local compose, and Hetzner Cloud nodes |
 | `infra/realtime/` | what a node runs: compose, Caddyfile, systemd unit, cloud-init template | baked into the node snapshot |
 | `scripts/` | deploy (SFTP), assemble, secrets, cron line, host probe, Hetzner setup/snapshot, Bunny zone setup | your Mac |
+| `worker/` | the voice worker: Python 3.13, Qwen3-TTS through mlx-audio, pulls voice tasks from one or more stations | any Apple Silicon Mac of ours |
 | `docker/`, `compose.yaml` | local stack: Apache + PHP-FPM like the host, a cron loop, the realtime image; web root in `.data/site`, `/_arche/var` on the `var` volume | your Mac |
 
 The deployed tree (built by `scripts/assemble-site.sh` into `build/site/`):
@@ -225,8 +226,40 @@ never in `media/host` (pruned after 48 h), and every break-clip deletion
 (`HostBreaks::deleteClips`) touches `/media/host/` only, since many moments
 share one recording; removing a line, its host or its program deletes its
 files. The `part` column and the mode `composed` wait for Stage 2 (breaks from
-recorded pieces plus a short fresh part, joined in PHP) — plan in
-`~/.claude/plans/swirling-skipping-reef.md`.
+recorded pieces plus a short fresh part, joined in PHP).
+
+**Workers** (`Host\Workers`, `Api\WorkerApi`, `worker/`, /mod › KI-Moderation
+› Rechner; station decision 2026-10-06). Macs of ours speak for hosts with
+Qwen3-TTS (CustomVoice 1.7B through mlx-audio, about 0.5× real time on an M1
+Max) — free, and listeners' words stay on our hardware. A Mac has no public
+address, so the station never calls it: a worker polls `POST /api/worker/poll`
+(its key in `X-Arche-Worker-Key` — Authorization never reaches PHP here — shown
+once in /mod and kept as an HMAC with the pepper; only failed keys are
+rate-limited), leases one task, speaks it, uploads the MP3 multipart
+(`/api/worker/tasks/{id}/audio`; JSON bodies are cut at 1 MiB) or reports
+`/fail`; none of these routes runs a tick. Provider `worker` (migration 15
+rebuilt `hosts` for the CHECK, the children and the id sequence parked in TEMP
+tables: dropping `hosts` would cascade, and PRAGMA foreign_keys cannot change
+inside migrate()'s transaction): no key, voices are Qwen's presets (Sohee for
+German, by ear), `instructions` go as Qwen's instruct, `settings.temperature`
+0.7. Such a host can speak only while a worker offering its voice polled in the
+last 90 s — a Mac asleep is a host that cannot speak, and the lineup's
+fallbacks take over. Voicing is asynchronous: the voice phase queues one
+`voice_tasks` row per language (`HostBreaks::askWorkers`, due 30 s before the
+commit comes near, the round's ids in `context.tasks`) and the job waits
+(`Runner`: a phase named `wait…` is leased again after 30 s, attempts reset);
+the upload finishes the moment (`HostBreaks::voiced`, merged with `json_set`
+since two languages may arrive at once). A clip whose length does not fit its
+words (6–30 characters a second) is spoken again with another seed, then given
+up; a task given up or past its deadline, or no worker online while nobody
+holds one, hands the moment to the next host. Worker voices read listeners'
+words too, with that check. Recorded lines go to workers the same way
+(`Lines::askWorkers`/`recorded`, allowance 2,000,000 characters a month), and
+"Try voice" answers 202 with a task the editor polls. Not stubbed in
+`AI_MODE=stub`: our own hardware, so the dev station and the owner's Mac test
+the whole loop. Cancelling or forgetting a moment cancels its tasks and blanks
+their words; tasks lose their words after a day and go after two (privacy
+policy). One worker may serve several stations (production first, then dev).
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
 while the minute file says `open`/`closing` (checked again server-side). Every
@@ -712,7 +745,16 @@ fallback without it, rotation, the time tag, the voice, the program's own
 first, a host who cannot speak still airing them while cap and budget stop
 fresh words, files outliving every break, a deleted host's or program's going
 along, the ElevenLabs allowance, the prayer hour's encouragements, /mod and its
-roles, a program's mode written only when sent, the replay), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+roles, a program's mode written only when sent, the replay), voice workers
+(`workers.php`: the key shown once and kept as an HMAC, a wrong key, a
+switched-off worker, a new key; a worker host speaking only while a worker with
+its voice is online; a moment asked for both languages at once, the job
+waiting, the uploads making it ready and airing; the length check and its new
+take, then the next host; a lease that ran out, a Mac gone quiet, a deadline;
+cancelled and forgotten moments' tasks turned away and blanked; a prayer
+request voiced word for word; Sprechtexte recorded by a worker, never stubbed;
+"Try voice" by task; no tick from worker routes; the purge; migration 15
+keeping hosts, lineups, lines, options and the id sequence), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -734,8 +776,11 @@ song, kept while the emoji strip is open) and which shells turn, "Stay anonymous
 on every form hiding name and place and sending neither, and the
 rules on the first post, the install sheet's single-use prompt, /mod › Lines (the
 filters' query, play, recording again only after a confirm, bulk selection,
-the options for admins only, the write form) and a program's "host's words"
-sent only as it came; the store apps: platform
+the options for admins only, the write form), a program's "host's words"
+sent only as it came, the worker provider in the host editor (no key, the
+temperature, the voices the workers offer, the try that polls, "no worker")
+and the Rechner section (the key and its config shown once, a new key and
+delete behind a confirm); the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background
 signal only in the apps, the entry script for iOS updates, reminder plans
@@ -780,9 +825,12 @@ plugins break nothing), deleting an account from Profile and with the 12
 words on `/konto-loeschen`, blocking between two listeners (reported to /mod,
 unblocked in Profile), the rules before the first message, a wall
 request reported (hidden for the reporter, in front of the moderators, down
-and back by their decision), and recorded lines (encouragements written by the
+and back by their decision), recorded lines (encouragements written by the
 stub writer go on air by themselves, one paused, a program set to recorded
-lines). `npm run e2e:reset` starts over.
+lines), and a voice worker (a stand-in Mac polls through Apache with its key
+header, uploads MP3s multipart, and its host's moments air with them).
+`npm run test:worker` runs the worker's own tests (pytest, no model) where its
+test venv can be made. `npm run e2e:reset` starts over.
 
 The dev and e2e stacks mount `server/app` live and their cron loops tick every
 minute: a half-written change runs there at once (and migrates their

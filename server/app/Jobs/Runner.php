@@ -14,6 +14,8 @@ final class Runner
 {
     /** Seconds a phase is assumed to need at most; below this, stop. */
     private const PHASE_RESERVE = 8.0;
+    /** A phase named `wait…` waits for something outside (a voice worker's upload): looked at again after this (s). */
+    public const WAIT_SECONDS = 30;
 
     public function __construct(private App $app) {}
 
@@ -43,7 +45,11 @@ final class Runner
                 'lines' => $this->app->lines()->runPhase($job),
                 default => null,
             };
-            $jobs->advance($job, $next);
+            if ($next !== null && str_starts_with($next, 'wait')) {
+                $jobs->defer($job, $next, self::WAIT_SECONDS);
+            } else {
+                $jobs->advance($job, $next);
+            }
         } catch (BudgetExceeded $e) {
             // Not the job's fault: the tick ran out of time mid-phase.
             $jobs->retry($job, $e->getMessage(), false);

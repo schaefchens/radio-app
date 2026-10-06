@@ -21,6 +21,7 @@ final class Routes
         $r = new Router();
         $p = static fn(string $m) => static fn(Context $c, array $a) => (new PublicApi($c))->$m($a);
         $m = static fn(string $method) => static fn(Context $c, array $a) => (new ModApi($c))->$method($a);
+        $w = static fn(string $method) => static fn(Context $c, array $a) => (new WorkerApi($c))->$method($a);
 
         // --- listeners -------------------------------------------------------------
         $r->add('GET', '/time', $p('time'));
@@ -69,6 +70,15 @@ final class Routes
         $r->add('DELETE', '/mod/hosts/{id}', $m('hostDelete'));
         $r->add('POST', '/mod/hosts/{id}/avatar', $m('hostAvatar'));
         $r->add('PATCH', '/mod/hosts/{id}/lines', $m('hostLineOptions'));
+        $r->add('GET', '/mod/hosts/try/{id}', $m('hostTryResult'));
+        // Voice workers (Host\Workers): admins add them; the workers themselves pull tasks.
+        $r->add('GET', '/mod/workers', $m('workers'));
+        $r->add('POST', '/mod/workers', $m('workerCreate'));
+        $r->add('PATCH', '/mod/workers/{id}', $m('workerUpdate'));
+        $r->add('DELETE', '/mod/workers/{id}', $m('workerDelete'));
+        $r->add('POST', '/worker/poll', $w('poll'));
+        $r->add('POST', '/worker/tasks/{id}/audio', $w('audio'));
+        $r->add('POST', '/worker/tasks/{id}/fail', $w('fail'));
         // Recorded host lines (Host\Lines); the fixed paths before {id}.
         $r->add('GET', '/mod/lines/overview', $m('linesOverview'));
         $r->add('POST', '/mod/lines/write', $m('linesWrite'));

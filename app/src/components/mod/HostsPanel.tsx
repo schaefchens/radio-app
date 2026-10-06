@@ -2,12 +2,13 @@ import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
-import type { Lang, VoiceProvider } from '@arche/shared';
+import { VOICE_PROVIDERS, type Lang, type VoiceProvider } from '@arche/shared';
 import { api } from '@/lib/api';
 import { localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
-import { HOST_DEFAULTS, MODELS, VOICES, modError, type HostSettings, type ModHost, type VoiceCatalog } from './modApi';
+import { HOST_DEFAULTS, MODELS, VOICES, modError, type HostSettings, type ModHost, type VoiceCatalog, type WorkerTry } from './modApi';
 import { HostAvatar } from './HostLineup';
+import { WorkersSection } from './WorkersSection';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
 
 /** What the editor changes; the key is typed separately and never comes back. */
@@ -62,9 +63,10 @@ function bodyOf(d: Draft): Record<string, unknown> {
 /**
  * /mod › Hosts (admins): the station's on-air hosts — the persona listeners
  * see (picture, name, color, a few words), private style notes for the
- * writer, and the voice: OpenAI or ElevenLabs with its key, model, voice,
- * direction and settings, and a daily character limit. Programs and channels
- * pick from them (HostLineup).
+ * writer, and the voice: OpenAI or ElevenLabs with its key, or Qwen on one
+ * of our own computers (no key: the computers fetch the work themselves),
+ * with model, voice, direction and settings, and a daily character limit.
+ * Programs and channels pick from them (HostLineup). Below, the computers.
  */
 export function HostsPanel() {
   const { t } = useTranslation();
@@ -125,6 +127,7 @@ export function HostsPanel() {
           </ul>
         </Section>
       )}
+      {editing === null && <WorkersSection />}
     </div>
   );
 }
@@ -136,6 +139,8 @@ function HostState({ host: h }: { host: ModHost }) {
   if (!h.active) return <Pill>{t('mod.common.inactive')}</Pill>;
   if (h.speaks) return <Pill tone="good">{t('mod.hosts.state.speaks')}</Pill>;
   if (h.resting_until > 0) return <Pill tone="warn">{t('mod.hosts.state.resting', { time: localTime(h.resting_until * 1000, lang) })}</Pill>;
+  // Our own computers need no key: one has to be online with the host's voice.
+  if (h.provider === 'worker') return h.worker_online === false ? <Pill tone="warn">{t('mod.hosts.state.noWorker')}</Pill> : <Pill tone="warn">{t('mod.hosts.state.capReached')}</Pill>;
   if (h.key_unreadable) return <Pill tone="bad">{t('mod.hosts.state.keyUnreadable')}</Pill>;
   if (!h.key_set && !h.station_key) return <Pill tone="bad">{t('mod.hosts.state.noKey')}</Pill>;
   if (h.provider === 'elevenlabs' && h.max_chars_day <= 0) return <Pill tone="bad">{t('mod.hosts.state.noCap')}</Pill>;
@@ -157,6 +162,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]): void => setD((x) => ({ ...x, [k]: v }));
   const setting = <K extends keyof HostSettings>(k: K, v: HostSettings[K]): void => setD((x) => ({ ...x, settings: { ...x.settings, [k]: v } }));
   const eleven = d.provider === 'elevenlabs';
+  const worker = d.provider === 'worker';
   // The other provider's key would only fail there: switched, it goes with the save.
   const keyGoes = host !== null && host.provider !== d.provider;
 
@@ -237,7 +243,8 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
   };
 
   const models = [...new Set([...MODELS[d.provider], ...(catalog?.models.map((m) => m.id) ?? [])])];
-  const voiceOptions = eleven ? (catalog?.voices ?? []) : VOICES.map((v) => ({ id: v, name: v, labels: '' }));
+  const voiceOptions = d.provider === 'openai' ? VOICES.map((v) => ({ id: v, name: v, labels: '' })) : (catalog?.voices ?? []);
+  const modelHint = eleven ? t('mod.hosts.modelHintElevenLabs') : worker ? t('mod.hosts.modelHintWorker') : t('mod.hosts.modelHintOpenAi');
 
   return (
     <Section title={host ? t('mod.hosts.edit', { name: host.name }) : t('mod.hosts.new')}>
@@ -276,7 +283,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
         <div className="card-inset flex flex-col gap-3 p-3">
           <p className="label">{t('mod.hosts.voice')}</p>
           <div className="flex flex-wrap gap-4" role="radiogroup" aria-label={t('mod.hosts.provider')}>
-            {(['openai', 'elevenlabs'] as const).map((p) => (
+            {VOICE_PROVIDERS.map((p) => (
               <label key={p} className="flex items-center gap-2 text-sm">
                 <input type="radio" name="host-provider" className="accent-accent-fill" checked={d.provider === p} onChange={() => switchTo(p)} />
                 {t(`mod.hosts.providers.${p}`)}
@@ -284,6 +291,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
             ))}
           </div>
 
+          {!worker && (
           <div className="flex flex-col gap-1">
             <p className="label">{t('mod.hosts.key')}</p>
             {host?.key_set && !replaceKey && !keyGoes ? (
@@ -314,9 +322,11 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
               {eleven ? t('mod.hosts.keyHintElevenLabs') : t('mod.hosts.keyHintOpenAi')}
             </span>
           </div>
+          )}
+          {worker && keyGoes && host?.key_set && <p className="text-xs text-ink-faint">{t('mod.hosts.keyGoes')}</p>}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label={t('mod.hosts.model')} hint={eleven ? t('mod.hosts.modelHintElevenLabs') : t('mod.hosts.modelHintOpenAi')}>
+            <Field label={t('mod.hosts.model')} hint={modelHint}>
               <input className="field font-mono" list={modelsId} value={d.model} onChange={(e) => set('model', e.target.value.trim())} />
               <datalist id={modelsId}>
                 {models.map((m) => (
@@ -324,14 +334,20 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
                 ))}
               </datalist>
             </Field>
-            <VoicePicker label={t('mod.hosts.voiceId')} value={d.voice} options={voiceOptions} eleven={eleven} onChange={(v) => set('voice', v)} />
+            <VoicePicker label={t('mod.hosts.voiceId')} value={d.voice} options={voiceOptions} provider={d.provider} onChange={(v) => set('voice', v)} />
           </div>
-          {eleven && (
+          {(eleven || worker) && (
             <div className="flex flex-col gap-1.5">
-              <button type="button" className="btn-ghost self-start px-3 py-1.5 text-sm" disabled={busy || (!key.trim() && !(host?.key_set && host.provider === 'elevenlabs'))} onClick={() => void loadVoices()}>
-                {t('mod.hosts.loadVoices')}
+              <button
+                type="button"
+                className="btn-ghost self-start px-3 py-1.5 text-sm"
+                disabled={busy || (eleven && !key.trim() && !(host?.key_set && host.provider === 'elevenlabs'))}
+                onClick={() => void loadVoices()}
+              >
+                {worker ? t('mod.hosts.loadVoicesWorker') : t('mod.hosts.loadVoices')}
               </button>
-              {catalog?.stub && <p className="text-xs text-ink-faint">{t('mod.hosts.catalogStub')}</p>}
+              {eleven && catalog?.stub && <p className="text-xs text-ink-faint">{t('mod.hosts.catalogStub')}</p>}
+              {worker && catalog?.workers_online === 0 && <Notice>{t('mod.hosts.noWorkerOnline')}</Notice>}
               {catalog?.account && (
                 <p className="text-xs text-ink-muted">
                   {t('mod.hosts.account', {
@@ -349,10 +365,10 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
             </div>
           )}
           <Check label={t('mod.hosts.otherDe')} checked={d.otherDe} onChange={(v) => set('otherDe', v)} />
-          {d.otherDe && <VoicePicker label={t('mod.hosts.voiceDe')} value={d.voiceDe} options={voiceOptions} eleven={eleven} onChange={(v) => set('voiceDe', v)} />}
+          {d.otherDe && <VoicePicker label={t('mod.hosts.voiceDe')} value={d.voiceDe} options={voiceOptions} provider={d.provider} onChange={(v) => set('voiceDe', v)} />}
 
           {!eleven && (
-            <Field label={t('mod.hosts.direction')} hint={d.model.startsWith('tts-1') ? t('mod.hosts.directionIgnored') : t('mod.hosts.directionHint')}>
+            <Field label={t('mod.hosts.direction')} hint={worker ? t('mod.hosts.directionHintWorker') : d.model.startsWith('tts-1') ? t('mod.hosts.directionIgnored') : t('mod.hosts.directionHint')}>
               <textarea className="field min-h-[64px]" maxLength={500} value={d.instructions} onChange={(e) => set('instructions', e.target.value)} />
             </Field>
           )}
@@ -361,14 +377,24 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
               <Slider label={t('mod.hosts.settings.stability')} hint={t('mod.hosts.settings.stabilityHint')} min={0} max={1} step={0.05} value={d.settings.stability ?? 0.5} onChange={(v) => setting('stability', v)} />
               <Slider label={t('mod.hosts.settings.similarity')} min={0} max={1} step={0.05} value={d.settings.similarity ?? 0.75} onChange={(v) => setting('similarity', v)} />
               <Slider label={t('mod.hosts.settings.style')} hint={t('mod.hosts.settings.styleHint')} min={0} max={1} step={0.05} value={d.settings.style ?? 0} onChange={(v) => setting('style', v)} />
-              <Slider label={t('mod.hosts.settings.speed')} min={0.7} max={1.2} step={0.05} value={d.settings.speed} onChange={(v) => setting('speed', v)} />
+              <Slider label={t('mod.hosts.settings.speed')} min={0.7} max={1.2} step={0.05} value={d.settings.speed ?? 1} onChange={(v) => setting('speed', v)} />
               <Check label={t('mod.hosts.settings.speakerBoost')} checked={d.settings.speaker_boost ?? true} onChange={(v) => setting('speaker_boost', v)} />
               <Check label={t('mod.hosts.settings.language')} checked={d.settings.language ?? true} onChange={(v) => setting('language', v)} />
             </div>
+          ) : worker ? (
+            <Slider
+              label={t('mod.hosts.settings.temperature')}
+              hint={t('mod.hosts.settings.temperatureHint')}
+              min={0.1}
+              max={1.2}
+              step={0.1}
+              value={d.settings.temperature ?? 0.7}
+              onChange={(v) => setting('temperature', v)}
+            />
           ) : (
-            <Slider label={t('mod.hosts.settings.speed')} min={0.5} max={2} step={0.05} value={d.settings.speed} onChange={(v) => setting('speed', v)} />
+            <Slider label={t('mod.hosts.settings.speed')} min={0.5} max={2} step={0.05} value={d.settings.speed ?? 1} onChange={(v) => setting('speed', v)} />
           )}
-          <Field label={t('mod.hosts.cap')} hint={eleven ? t('mod.hosts.capHintElevenLabs') : t('mod.hosts.capHintOpenAi')}>
+          <Field label={t('mod.hosts.cap')} hint={eleven ? t('mod.hosts.capHintElevenLabs') : worker ? t('mod.hosts.capHintWorker') : t('mod.hosts.capHintOpenAi')}>
             <input type="number" min={0} max={1000000} className="field w-40" value={d.max_chars_day} onChange={(e) => set('max_chars_day', Math.max(0, Number(e.target.value) || 0))} />
           </Field>
           <Check label={t('mod.hosts.active')} checked={d.active} onChange={(v) => set('active', v)} />
@@ -403,32 +429,45 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
 /** The list entry that opens the field for an id of one's own. */
 const OTHER_VOICE = '__other';
 
+/** The words for a voice of one's own, by provider. */
+const OTHER_VOICE_LABEL: Record<VoiceProvider, string> = {
+  openai: 'mod.hosts.otherVoiceOpenAi',
+  elevenlabs: 'mod.hosts.otherVoiceElevenLabs',
+  worker: 'mod.hosts.otherVoiceWorker',
+};
+
 /**
  * A voice: every voice there is to choose in a list — OpenAI's thirteen with
- * a few words about each, or the ElevenLabs account's once loaded — and a
- * field for anything else (a custom voice_… id, an ElevenLabs id pasted). A
- * list, not a text field with suggestions: browsers suggest only what matches
- * the text already in the field, so the other voices never showed.
+ * a few words about each, the ElevenLabs account's or the Qwen voices our
+ * computers offer once loaded — and a field for anything else (a custom
+ * voice_… id, an ElevenLabs id pasted, a Qwen voice while no computer is
+ * online). A list, not a text field with suggestions: browsers suggest only
+ * what matches the text already in the field, so the other voices never showed.
  */
 function VoicePicker({
   label,
   value,
   options,
-  eleven,
+  provider,
   onChange,
 }: {
   label: string;
   value: string;
   options: VoiceCatalog['voices'];
-  eleven: boolean;
+  provider: VoiceProvider;
   onChange: (v: string) => void;
 }) {
   const { t } = useTranslation();
   const [typing, setTyping] = useState(false);
+  const openai = provider === 'openai';
   const listed = options.some((o) => o.id === value);
   const own = typing || (!listed && value !== '');
   const known = options.find((o) => o.id === value);
-  const hint = eleven ? (known ? `${known.name}${known.labels ? ` · ${known.labels}` : ''}` : t('mod.hosts.voiceHintElevenLabs')) : t('mod.hosts.voiceHintOpenAi');
+  const hint = openai
+    ? t('mod.hosts.voiceHintOpenAi')
+    : known
+      ? `${known.name}${known.labels ? ` · ${known.labels}` : ''}`
+      : t(provider === 'worker' ? 'mod.hosts.voiceHintWorker' : 'mod.hosts.voiceHintElevenLabs');
   return (
     <Field label={label} hint={hint}>
       {options.length > 0 && (
@@ -444,10 +483,10 @@ function VoicePicker({
           {value === '' && !own && <option value="">{t('mod.common.choose')}</option>}
           {options.map((o) => (
             <option key={o.id} value={o.id}>
-              {eleven ? `${o.name}${o.labels ? ` · ${o.labels}` : ''}` : `${o.id} – ${t(`mod.hosts.voiceNames.${o.id}`)}`}
+              {openai ? `${o.id} – ${t(`mod.hosts.voiceNames.${o.id}`)}` : `${o.name}${o.labels ? ` · ${o.labels}` : ''}`}
             </option>
           ))}
-          <option value={OTHER_VOICE}>{t(eleven ? 'mod.hosts.otherVoiceElevenLabs' : 'mod.hosts.otherVoiceOpenAi')}</option>
+          <option value={OTHER_VOICE}>{t(OTHER_VOICE_LABEL[provider])}</option>
         </select>
       )}
       {(own || options.length === 0) && (
@@ -455,8 +494,8 @@ function VoicePicker({
           className={clsx('field font-mono', options.length > 0 && 'mt-2')}
           value={value}
           spellCheck={false}
-          placeholder={eleven ? 'voice id' : 'voice_…'}
-          aria-label={t(eleven ? 'mod.hosts.otherVoiceElevenLabs' : 'mod.hosts.otherVoiceOpenAi')}
+          placeholder={provider === 'worker' ? 'Sohee' : provider === 'elevenlabs' ? 'voice id' : 'voice_…'}
+          aria-label={t(OTHER_VOICE_LABEL[provider])}
           onChange={(e) => onChange(e.target.value.trim())}
         />
       )}
@@ -472,10 +511,18 @@ function Slider({ label, hint, min, max, step, value, onChange }: { label: strin
   );
 }
 
+/** How often a try on our own computers is asked after, and for how long. */
+const TRY_POLL_MS = 1500;
+const TRY_GIVE_UP_MS = 90_000;
+
+const wait = (ms: number): Promise<void> => new Promise((done) => setTimeout(done, ms));
+
 /**
  * A sample in the host's voice, with the editor's unsaved changes — how a
  * direction or a setting sounds before it is saved. It costs what a moment
  * costs (ElevenLabs: characters of the account) and counts against the cap.
+ * On our own computers it is a job like a moment's: the answer is a task,
+ * asked after until a computer has spoken it (or 90 s have passed).
  */
 function TryVoice({ host, draft, keyBody }: { host: ModHost; draft: Draft; keyBody: () => Record<string, unknown> }) {
   const { t, i18n } = useTranslation();
@@ -486,17 +533,46 @@ function TryVoice({ host, draft, keyBody }: { host: ModHost; draft: Draft; keyBo
     de: t('mod.hosts.try.sampleDe', { name: host.name }),
   }));
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<'waiting' | 'speaking' | null>(null);
   const [result, setResult] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const playing = useRef<HTMLAudioElement | null>(null);
+
+  /** A task on our own computers, asked after until it is spoken. Null: it failed (the result says why). */
+  const awaitTask = async (task: number): Promise<{ audio: string; ms: number } | null> => {
+    const until = Date.now() + TRY_GIVE_UP_MS;
+    for (;;) {
+      const s = await api<WorkerTry>(`/mod/hosts/try/${task}`);
+      if (s.state === 'done' && s.audio) return { audio: s.audio, ms: s.ms ?? 0 };
+      if (s.state === 'failed' || s.state === 'cancelled') {
+        setResult({ tone: 'error', text: t('mod.hosts.try.failed', { error: s.error ?? s.state }) });
+        return null;
+      }
+      setProgress(s.state === 'leased' ? 'speaking' : 'waiting');
+      if (Date.now() >= until) {
+        setResult({ tone: 'error', text: t('mod.hosts.try.gaveUp') });
+        return null;
+      }
+      await wait(TRY_POLL_MS);
+    }
+  };
 
   const play = async (): Promise<void> => {
     setBusy(true);
     setResult(null);
+    setProgress(null);
     playing.current?.pause();
     try {
-      const r = await api<{ audio: string; ms: number; provider: string; voice: string; model: string }>('/mod/hosts/try', {
+      const sent = await api<{ audio?: string; ms?: number; task?: number; provider: string; voice: string; model: string }>('/mod/hosts/try', {
         body: { host_id: host.id, lang, text: text[lang], draft: { ...bodyOf(draft), ...keyBody() } },
       });
+      // Our own computers answer with a task (202), the others with the clip.
+      let clip: { audio: string; ms: number } | null = { audio: sent.audio ?? '', ms: sent.ms ?? 0 };
+      if (typeof sent.task === 'number') {
+        setProgress('waiting');
+        clip = await awaitTask(sent.task);
+      }
+      if (clip === null) return;
+      const r = { ...sent, ...clip };
       setResult({ tone: 'ok', text: t('mod.hosts.try.played', { seconds: (r.ms / 1000).toFixed(1), chars: text[lang].length, voice: r.voice, model: r.model }) });
       const audio = new Audio(`data:audio/mpeg;base64,${r.audio}`);
       playing.current = audio;
@@ -508,6 +584,7 @@ function TryVoice({ host, draft, keyBody }: { host: ModHost; draft: Draft; keyBo
       setResult({ tone: 'error', text: modError(e) });
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -530,7 +607,14 @@ function TryVoice({ host, draft, keyBody }: { host: ModHost; draft: Draft; keyBo
         <span className="sr-only">{t('mod.hosts.try.text')}</span>
         <textarea id={ids.text} className="field min-h-[56px]" maxLength={300} value={text[lang]} onChange={(e) => setText((x) => ({ ...x, [lang]: e.target.value }))} />
       </label>
-      <p className="text-xs text-ink-faint">{draft.provider === 'elevenlabs' ? t('mod.hosts.try.costElevenLabs') : t('mod.hosts.try.costOpenAi')}</p>
+      <p className="text-xs text-ink-faint">
+        {draft.provider === 'elevenlabs' ? t('mod.hosts.try.costElevenLabs') : draft.provider === 'worker' ? t('mod.hosts.try.costWorker') : t('mod.hosts.try.costOpenAi')}
+      </p>
+      {progress && (
+        <p className="text-sm text-ink-muted" role="status">
+          {progress === 'speaking' ? t('mod.hosts.try.speaking') : t('mod.hosts.try.waiting')}
+        </p>
+      )}
       {result && <Notice tone={result.tone}>{result.text}</Notice>}
     </div>
   );

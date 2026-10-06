@@ -474,7 +474,9 @@
       "cdnOff": "Nicht in Betrieb: Die App lädt Programm und Medien von dieser Seite.",
       "cdnQueued": "ausstehende Löschungen: {{n}}",
       "cdnListeners": "Hörer laut CDN-Protokoll ({{channel}})",
-      "cdnNoApi": "Kein BUNNY_API_KEY oder BUNNY_PULL_ZONE_ID auf dem Server: Gelöschte Medien bleiben im CDN, das CDN-Protokoll wird nicht gezählt."
+      "cdnNoApi": "Kein BUNNY_API_KEY oder BUNNY_PULL_ZONE_ID auf dem Server: Gelöschte Medien bleiben im CDN, das CDN-Protokoll wird nicht gezählt.",
+      "workers_one": "Rechner: {{online}} von {{total}} online, {{count}} Auftrag wartet",
+      "workers_other": "Rechner: {{online}} von {{total}} online, {{count}} Aufträge warten"
     },
     "library": {
       "search": "Titel, Interpret oder Video-ID suchen",
@@ -929,7 +931,8 @@
       "provider": "Stimmen-Dienst",
       "providers": {
         "openai": "OpenAI",
-        "elevenlabs": "ElevenLabs"
+        "elevenlabs": "ElevenLabs",
+        "worker": "Eigener Rechner (Qwen)"
       },
       "key": "API-Schlüssel",
       "keySaved": "Schlüssel gespeichert ({{hint}})",
@@ -942,10 +945,14 @@
       "model": "Modell",
       "modelHintOpenAi": "gpt-4o-mini-tts folgt der Sprechanweisung, tts-1 und tts-1-hd nicht.",
       "modelHintElevenLabs": "eleven_flash_v2_5 kostet halb so viele Zeichen; eleven_multilingual_v2 und eleven_v3 klingen voller.",
+      "modelHintWorker": "Das Modell, das unsere Rechner nutzen: qwen3-tts-1.7b-customvoice.",
       "voiceId": "Stimme",
       "voiceHintOpenAi": "Vergleiche sie nacheinander: Die Frauenstimmen liegen nah beieinander, und dieselbe Sprechanweisung macht sie sich noch ähnlicher.",
       "voiceHintElevenLabs": "Eine Stimmen-ID aus deinem ElevenLabs-Konto: Liste laden oder die ID einfügen.",
+      "voiceHintWorker": "Eine Qwen-Stimme, die unsere Rechner anbieten: Liste laden oder den Namen eintippen. Keine spricht von Haus aus Deutsch; Sohee und Serena klingen auf Deutsch gut.",
       "loadVoices": "Stimmen von ElevenLabs laden",
+      "loadVoicesWorker": "Stimmen unserer Rechner laden",
+      "noWorkerOnline": "Gerade ist kein Rechner verbunden. Eine Stimme kannst du trotzdem eintippen; die Moderation spricht, sobald ein Rechner mit dieser Stimme online ist.",
       "catalogStub": "Testbetrieb: ElevenLabs wird hier nicht gefragt. Füge eine Stimmen-ID ein.",
       "account": "Noch {{left}} von {{limit}} Zeichen in diesem Monat (ab {{date}} wieder voll).",
       "otherDe": "Eigene Stimme für Deutsch",
@@ -953,6 +960,7 @@
       "direction": "Wie die Stimme klingt",
       "directionHint": "Wird der Stimme gesagt, nicht in die Worte geschrieben – z. B. warm und ruhig, mit einem Lächeln, nicht zu schnell.",
       "directionIgnored": "tts-1-Modelle ignorieren das: wähle dafür gpt-4o-mini-tts.",
+      "directionHintWorker": "Stil für Qwen, z. B. warm und ruhig, sanft, nicht zu schnell.",
       "settings": {
         "stability": "Stabilität",
         "stabilityHint": "Niedriger: lebendiger, abwechslungsreicher. Höher: gleichmäßiger.",
@@ -961,11 +969,14 @@
         "styleHint": "Mehr Ausdruck, etwas langsamer erzeugt.",
         "speed": "Tempo",
         "speakerBoost": "Stimmverstärkung",
-        "language": "Der Stimme die Sprache sagen (eleven_multilingual_v2 nimmt das nicht an)"
+        "language": "Der Stimme die Sprache sagen (eleven_multilingual_v2 nimmt das nicht an)",
+        "temperature": "Temperatur",
+        "temperatureHint": "Niedriger liest ruhiger und genauer am Text, höher klingt lebendiger."
       },
       "cap": "Zeichen pro Tag",
       "capHintOpenAi": "0: keine eigene Grenze (das tägliche KI-Budget des Senders gilt trotzdem).",
       "capHintElevenLabs": "Nötig: Mit 0 spricht diese Moderation nie. Etwa die Zeichen deines Monatsplans ÷ 30; sind sie aufgebraucht, übernimmt die nächste Moderation.",
+      "capHintWorker": "0: keine eigene Grenze. Unsere Rechner kosten nichts pro Zeichen.",
       "active": "Aktiv",
       "restingNotice": "Pausiert bis {{time}} nach einem Fehler: {{error}}. Speichern versucht es sofort wieder.",
       "lastError": "Letzter Fehler: {{error}}",
@@ -980,7 +991,8 @@
         "keyUnreadable": "Schlüssel neu eingeben",
         "noCap": "Keine Tagesgrenze: spricht nie",
         "resting": "Pausiert bis {{time}}",
-        "capReached": "Zeichen für heute aufgebraucht"
+        "capReached": "Zeichen für heute aufgebraucht",
+        "noWorker": "Kein Rechner online"
       },
       "try": {
         "title": "Stimme ausprobieren",
@@ -994,7 +1006,12 @@
         "costOpenAi": "Mit den ungespeicherten Änderungen. Kostet so viel wie ein Moderationsmoment.",
         "costElevenLabs": "Mit den ungespeicherten Änderungen. Verbraucht Zeichen des ElevenLabs-Kontos und zählt zur Tagesgrenze.",
         "sampleEn": "Hello, this is {{name}} on ARCHE. Up next, a song for everyone listening around the world.",
-        "sampleDe": "Hallo, hier ist {{name}} bei ARCHE. Gleich geht es weiter mit einem Lied für alle, die gerade zuhören."
+        "sampleDe": "Hallo, hier ist {{name}} bei ARCHE. Gleich geht es weiter mit einem Lied für alle, die gerade zuhören.",
+        "costWorker": "Nutzt die ungespeicherten Änderungen. Wird auf einem unserer Rechner gesprochen und kostet nichts.",
+        "waiting": "Wartet auf einen Rechner …",
+        "speaking": "Wird auf dem Rechner gesprochen …",
+        "failed": "Der Rechner konnte es nicht sprechen: {{error}}",
+        "gaveUp": "Nach 90 Sekunden keine Antwort von einem Rechner."
       },
       "lineup": {
         "programTitle": "Moderation dieser Sendung",
@@ -1048,8 +1065,44 @@
       },
       "otherVoiceOpenAi": "Eigene Stimmen-Kennung (voice_…)",
       "otherVoiceElevenLabs": "Andere Stimmen-ID",
+      "otherVoiceWorker": "Andere Qwen-Stimme",
       "linesCount_one": "{{count}} Sprechtext",
       "linesCount_other": "{{count}} Sprechtexte"
+    },
+    "workers": {
+      "title": "Rechner",
+      "intro": "Unsere eigenen Macs, die für Moderationen mit der Stimme „Eigener Rechner (Qwen)“ sprechen. Jeder holt seine Aufträge selbst beim Sender ab und braucht deshalb keine öffentliche Adresse – nur Internet und einen Schlüssel von hier.",
+      "empty": "Noch kein Rechner. Ein Rechner ist ein Mac, der mit Qwen für die Moderationen spricht; er holt seine Aufträge selbst beim Sender ab.",
+      "name": "Name des Rechners",
+      "namePlaceholder": "z. B. MacBook Chris",
+      "add": "Rechner hinzufügen",
+      "online": "Online",
+      "offline": "Offline",
+      "lastSeen": "zuletzt gesehen {{when}}",
+      "never": "noch nicht gesehen",
+      "voices": "Stimmen: {{list}}",
+      "tasks": "Heute {{done}} gesprochen, {{failed}} fehlgeschlagen · {{queued}} wartend",
+      "keyHint": "Schlüssel …{{hint}}",
+      "rename": "Umbenennen",
+      "deactivate": "Abschalten",
+      "activate": "Einschalten",
+      "newKey": "Neuer Schlüssel",
+      "newKeyConfirm": "{{name}} einen neuen Schlüssel geben? Der alte gilt sofort nicht mehr.",
+      "keyRenewed": "Neuer Schlüssel erstellt.",
+      "deleteConfirm": "{{name}} entfernen? Sein Schlüssel gilt nicht mehr; seine wartenden Aufträge übernimmt ein anderer Rechner.",
+      "deleted": "Rechner entfernt.",
+      "saved": "Rechner gespeichert.",
+      "keyTitle": "Schlüssel für {{name}}",
+      "keyOnce": "Dieser Schlüssel wird nur jetzt angezeigt. Füge diese Zeilen auf dem Mac in ~/.config/arche-worker/config.toml ein (siehe worker/README.md).",
+      "snippet": "Zeilen für die Einstellungen des Rechners",
+      "snippetHint": "Das Worker-Programm fragt mit dem Schlüssel bei dieser Adresse nach; niemand muss den Mac erreichen.",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "keyDone": "Erledigt, ich habe ihn",
+      "errors": {
+        "worker_name": "Ein Rechner braucht einen Namen mit höchstens 60 Zeichen.",
+        "no_worker": "Gerade ist kein Rechner mit dieser Stimme online. Starte den Worker auf einem Mac und versuch es dann noch einmal."
+      }
     },
     "lines": {
       "intro": "Einmal aufgenommene Sprechtexte einer Moderation, etwa Begrüßungen, Verabschiedungen und Ermutigungen. Die KI wählt einen passenden aus, statt jedes Mal neue Worte zu schreiben und zu vertonen. Ein Sprechtext kostet nur beim Aufnehmen Zeichen.",

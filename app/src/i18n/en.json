@@ -474,7 +474,9 @@
       "cdnOff": "Not in use: the app reads the program and media from this site.",
       "cdnQueued": "pending purges: {{n}}",
       "cdnListeners": "Listeners by the CDN log ({{channel}})",
-      "cdnNoApi": "No BUNNY_API_KEY or BUNNY_PULL_ZONE_ID on the server: deleted media stays at the edge and the CDN log is not counted."
+      "cdnNoApi": "No BUNNY_API_KEY or BUNNY_PULL_ZONE_ID on the server: deleted media stays at the edge and the CDN log is not counted.",
+      "workers_one": "Computers: {{online}} of {{total}} online, {{count}} job waiting",
+      "workers_other": "Computers: {{online}} of {{total}} online, {{count}} jobs waiting"
     },
     "library": {
       "search": "Search title, artist or video id",
@@ -929,7 +931,8 @@
       "provider": "Voice service",
       "providers": {
         "openai": "OpenAI",
-        "elevenlabs": "ElevenLabs"
+        "elevenlabs": "ElevenLabs",
+        "worker": "Own computer (Qwen)"
       },
       "key": "API key",
       "keySaved": "Key saved ({{hint}})",
@@ -942,10 +945,14 @@
       "model": "Model",
       "modelHintOpenAi": "gpt-4o-mini-tts follows the voice direction; tts-1 and tts-1-hd do not.",
       "modelHintElevenLabs": "eleven_flash_v2_5 costs half as many characters; eleven_multilingual_v2 and eleven_v3 sound richer.",
+      "modelHintWorker": "The model our computers run: qwen3-tts-1.7b-customvoice.",
       "voiceId": "Voice",
       "voiceHintOpenAi": "Hear them side by side: the women's voices are close to each other, and the same direction makes them closer still.",
       "voiceHintElevenLabs": "A voice id from your ElevenLabs account: load the list, or paste the id.",
+      "voiceHintWorker": "A Qwen voice our computers offer: load the list, or type its name. None speaks German natively; Sohee and Serena sound good in German.",
       "loadVoices": "Load voices from ElevenLabs",
+      "loadVoicesWorker": "Load voices from our computers",
+      "noWorkerOnline": "No computer is connected right now. You can still type a voice; the host speaks once a computer with it is online.",
       "catalogStub": "Test mode: ElevenLabs is not asked here. Paste a voice id.",
       "account": "{{left}} of {{limit}} characters left this month (starts over on {{date}}).",
       "otherDe": "Another voice for German",
@@ -953,6 +960,7 @@
       "direction": "How the voice sounds",
       "directionHint": "Told to the voice, not written into the words: e.g. warm and calm, a smile in the voice, not too fast.",
       "directionIgnored": "tts-1 models ignore this: choose gpt-4o-mini-tts for it.",
+      "directionHintWorker": "Style for Qwen, e.g. warm and calm, gentle, not too fast.",
       "settings": {
         "stability": "Stability",
         "stabilityHint": "Lower: livelier, more varied. Higher: steadier.",
@@ -961,11 +969,14 @@
         "styleHint": "More expression, and a little slower to make.",
         "speed": "Speed",
         "speakerBoost": "Speaker boost",
-        "language": "Tell the voice the language (eleven_multilingual_v2 does not take it)"
+        "language": "Tell the voice the language (eleven_multilingual_v2 does not take it)",
+        "temperature": "Temperature",
+        "temperatureHint": "Lower reads steadier and closer to the words; higher sounds livelier."
       },
       "cap": "Characters per day",
       "capHintOpenAi": "0: no limit of its own (the station's daily AI budget still applies).",
       "capHintElevenLabs": "Needed: with 0 this host never speaks. Roughly your plan's monthly characters ÷ 30; when they are used up, the next host steps in.",
+      "capHintWorker": "0: no limit of its own. Our computers cost nothing per character.",
       "active": "Active",
       "restingNotice": "Paused until {{time}} after an error: {{error}}. Saving the host tries again now.",
       "lastError": "Last error: {{error}}",
@@ -980,7 +991,8 @@
         "keyUnreadable": "Enter the key again",
         "noCap": "No daily limit: never speaks",
         "resting": "Paused until {{time}}",
-        "capReached": "Today's characters used up"
+        "capReached": "Today's characters used up",
+        "noWorker": "No computer online"
       },
       "try": {
         "title": "Try the voice",
@@ -994,7 +1006,12 @@
         "costOpenAi": "Uses the unsaved changes. Costs what a host moment costs.",
         "costElevenLabs": "Uses the unsaved changes. Spends characters of the ElevenLabs account and counts toward today's limit.",
         "sampleEn": "Hello, this is {{name}} on ARCHE. Up next, a song for everyone listening around the world.",
-        "sampleDe": "Hallo, hier ist {{name}} bei ARCHE. Gleich geht es weiter mit einem Lied für alle, die gerade zuhören."
+        "sampleDe": "Hallo, hier ist {{name}} bei ARCHE. Gleich geht es weiter mit einem Lied für alle, die gerade zuhören.",
+        "costWorker": "Uses the unsaved changes. Spoken on one of our computers; costs nothing.",
+        "waiting": "Waiting for a computer …",
+        "speaking": "Being spoken on the computer …",
+        "failed": "The computer could not speak it: {{error}}",
+        "gaveUp": "No answer from a computer after 90 seconds."
       },
       "lineup": {
         "programTitle": "Hosts of this program",
@@ -1048,8 +1065,44 @@
       },
       "otherVoiceOpenAi": "A voice id of your own (voice_…)",
       "otherVoiceElevenLabs": "Another voice id",
+      "otherVoiceWorker": "Another Qwen voice",
       "linesCount_one": "{{count}} recorded line",
       "linesCount_other": "{{count}} recorded lines"
+    },
+    "workers": {
+      "title": "Computers",
+      "intro": "Our own Macs that speak for hosts with the voice \"Own computer (Qwen)\". Each fetches its jobs from the station by itself, so it needs no public address — only internet and a key from here.",
+      "empty": "No computer yet. A computer is a Mac that speaks for the hosts with Qwen; it fetches its jobs from the station by itself.",
+      "name": "Name of the computer",
+      "namePlaceholder": "e.g. MacBook Chris",
+      "add": "Add computer",
+      "online": "Online",
+      "offline": "Offline",
+      "lastSeen": "last seen {{when}}",
+      "never": "not seen yet",
+      "voices": "voices: {{list}}",
+      "tasks": "Today {{done}} spoken, {{failed}} failed · {{queued}} waiting",
+      "keyHint": "key …{{hint}}",
+      "rename": "Rename",
+      "deactivate": "Switch off",
+      "activate": "Switch on",
+      "newKey": "New key",
+      "newKeyConfirm": "Give {{name}} a new key? The old one stops working at once.",
+      "keyRenewed": "New key made.",
+      "deleteConfirm": "Remove {{name}}? Its key stops working; its waiting jobs go to another computer.",
+      "deleted": "Computer removed.",
+      "saved": "Computer saved.",
+      "keyTitle": "Key for {{name}}",
+      "keyOnce": "This key is shown only now. Paste these lines into ~/.config/arche-worker/config.toml on the Mac (see worker/README.md).",
+      "snippet": "Lines for the computer's config",
+      "snippetHint": "The worker program polls this address with the key; nobody needs to reach the Mac.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "keyDone": "Done, I have it",
+      "errors": {
+        "worker_name": "A computer needs a name of at most 60 characters.",
+        "no_worker": "No computer is online with this voice right now. Start the worker on a Mac, then try again."
+      }
     },
     "lines": {
       "intro": "Lines a host recorded once, such as welcomes, goodbyes and encouragements. The AI picks a fitting one instead of writing and voicing new words each time. A line costs characters only when it is recorded.",

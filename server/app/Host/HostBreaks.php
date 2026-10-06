@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Host;
 
 use Arche\App;
+use Arche\Ai\Voice;
 use Arche\Ai\VoiceError;
 use Arche\Audio\Mp3;
 use Arche\Program\PrayerHour;
@@ -107,6 +108,8 @@ final class HostBreaks
             [$why, $why, $this->app->clock->now(), $id],
         );
         $this->app->jobs()->cancel('host', $id);
+        // What a voice worker was asked for it: not wanted any more.
+        $this->app->workers()->cancelFor('break', $id);
     }
 
     /**
@@ -169,6 +172,7 @@ final class HostBreaks
             $hb = $this->get($id);
             if ($hb === null) continue;
             $this->deleteClips($hb['audio']);
+            $this->app->workers()->forget('break', $id);
             $ctx = array_diff_key($hb['context'], array_flip(self::PERSONAL));
             foreach (['submission_id', 'again_id'] as $k) {
                 if (isset($ctx[$k]) && in_array((int) $ctx[$k], $erased, true)) unset($ctx[$k]);
@@ -370,6 +374,8 @@ final class HostBreaks
                 $host = $hosts->get((int) ($hb['context']['host_id'] ?? 0));
                 // Deleted, switched off, resting or out of characters since its script: the next who can.
                 if ($host === null || !$hosts->canSpeak($host, mb_strlen($text))) return $this->switchHost($hb, $host, null);
+                // A voice worker's (Host\Workers): asked for every language at once; its uploads finish the moment.
+                if (Voice::async($host)) return $this->askWorkers($hb, $host);
                 try {
                     $spoken = $this->app->voice()->speak($host, $text, $lang);
                     $name = sprintf('%d-%s.%s.mp3', $hb['id'], Ids::short(6), $lang);
@@ -401,7 +407,85 @@ final class HostBreaks
             $this->saveIfPending($hb['id'], ['state' => 'ready']);
             return null;
         }
+
+        if ($phase === 'wait') {
+            // Ready meanwhile: runPhase returned above. Still open: a worker is on
+            // it, or will be — unless none that offers this voice is online and
+            // nobody holds a task. A task given up (a clip that did not fit its
+            // words twice, the commit too near): the next host who can.
+            // This round's tasks only: an earlier host's were cancelled when it was left.
+            $round = array_map('intval', (array) ($hb['context']['tasks'] ?? []));
+            $tasks = array_filter($this->app->workers()->tasksFor('break', $hb['id']), fn($t) => in_array($t['id'], $round, true));
+            $open = array_filter($tasks, fn($t) => in_array($t['state'], ['queued', 'leased'], true));
+            $gone = array_filter($tasks, fn($t) => in_array($t['state'], ['failed', 'cancelled'], true));
+            $host = $this->app->hosts()->get((int) ($hb['context']['host_id'] ?? 0));
+            $held = array_filter($open, fn($t) => $t['state'] === 'leased');
+            $nobody = $host === null || !$this->app->hosts()->canSpeak($host);
+            if ($gone || ($open && !$held && $nobody)) {
+                $this->app->workers()->cancelFor('break', $hb['id']);
+                return $this->switchHost($this->get($hb['id']) ?? $hb, $host, null);
+            }
+            if (!$open) {
+                // Every task done, and still not ready: a language never asked for.
+                $this->readyIfComplete($hb['id']);
+                $now = $this->get($hb['id']);
+                if ($now !== null && $now['state'] === 'pending' && $host !== null) return $this->askWorkers($now, $host);
+                return null;
+            }
+            return 'wait';
+        }
         return null;
+    }
+
+    /**
+     * A worker host's moment: every language without a clip asked of the voice
+     * workers at once, due before the commit comes near (Workers::deadlineFor).
+     *
+     * @param array<string,mixed> $hb
+     * @param array<string,mixed> $host
+     */
+    private function askWorkers(array $hb, array $host): string
+    {
+        $workers = $this->app->workers();
+        $workers->cancelFor('break', $hb['id']);
+        $start = (int) ($this->app->store()->value('SELECT est_start FROM timeline_items WHERE host_break_id = ? ORDER BY id DESC LIMIT 1', [$hb['id']]) ?? 0);
+        $deadline = $start > 0 ? Workers::deadlineFor($start) : $this->app->clock->now() + 240;
+        $ids = [];
+        foreach ($this->app->config->stationLangs() as $l) {
+            $text = trim((string) ($hb['texts'][$l] ?? ''));
+            if ($text !== '' && !isset($hb['audio'][$l])) $ids[] = $workers->request('break', $hb['id'], $host, $l, $text, $deadline);
+        }
+        $this->app->store()->query(
+            "UPDATE host_breaks SET context = json_set(context, '$.tasks', json(?)), updated = ? WHERE id = ? AND state = 'pending'",
+            [json_encode($ids), $this->app->clock->now(), $hb['id']],
+        );
+        return 'wait';
+    }
+
+    /**
+     * A clip of a language arrived from a voice worker (Host\Workers::complete):
+     * merged in one statement (two languages may arrive at the same moment),
+     * and the moment is ready once every language with words has its clip.
+     * False: the moment is not pending any more (the caller drops the clip).
+     */
+    public function voiced(int $id, string $lang, string $url, int $ms): bool
+    {
+        $saved = $this->app->store()->query(
+            "UPDATE host_breaks SET audio = json_set(audio, '$.' || ?, ?), durations = json_set(durations, '$.' || ?, ?), updated = ? WHERE id = ? AND state = 'pending'",
+            [$lang, $url, $lang, $ms, $this->app->clock->now(), $id],
+        )->rowCount() === 1;
+        if ($saved) $this->readyIfComplete($id);
+        return $saved;
+    }
+
+    private function readyIfComplete(int $id): void
+    {
+        $hb = $this->get($id);
+        if ($hb === null || $hb['state'] !== 'pending' || !$hb['audio']) return;
+        foreach ($this->app->config->stationLangs() as $l) {
+            if (trim((string) ($hb['texts'][$l] ?? '')) !== '' && !isset($hb['audio'][$l])) return;
+        }
+        $this->saveIfPending($id, ['state' => 'ready']);
     }
 
     /**
@@ -417,6 +501,7 @@ final class HostBreaks
      */
     private function switchHost(array $hb, ?array $from, ?VoiceError $error): ?string
     {
+        $this->app->workers()->cancelFor('break', $hb['id']);
         $tried = self::tried($hb);
         if ($from !== null && !in_array($from['id'], $tried, true)) $tried[] = $from['id'];
         $next = count($tried) < self::MAX_TRIED ? $this->app->hosts()->forBreak($hb, $tried) : null;

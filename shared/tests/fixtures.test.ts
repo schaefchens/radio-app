@@ -216,6 +216,18 @@ describe('program file fixtures', () => {
     expect(parseDayFile({ ...dayRaw, programs: { night: { ...dayRaw.programs.night, hosts: many } } })?.programs.night?.hosts).toHaveLength(6);
   });
 
+  it('a host speaking on the station\'s own computer keeps that voice, and a program voiced by it says so', () => {
+    const raw = load('slot.json') as { items: Record<string, unknown>[]; programs: Record<string, Record<string, unknown>> };
+    const slot = parseSlotFile({
+      ...raw,
+      programs: { ...raw.programs, worship: { ...raw.programs.worship!, voicedBy: ['worker', 'openai', 'worker'] } },
+      items: [{ ...raw.items[1], host: { name: 'Grace', voice: 'worker' } }],
+    });
+    const item = slot?.items[0];
+    expect(item?.type === 'host' ? item.host?.voice : undefined).toBe('worker');
+    expect(slot?.programs.worship?.voicedBy).toEqual(['worker', 'openai']);
+  });
+
   it('a song item without a kind is a song; a format or kind it does not know reads as music and a song', () => {
     const raw = load('slot.json') as { items: Record<string, unknown>[]; programs: Record<string, Record<string, unknown>> };
     const { kind: _kind, ...song } = raw.items[0]!;

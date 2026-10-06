@@ -704,6 +704,100 @@ final class Schema
               updated INTEGER NOT NULL
             );
             SQL,
+            // 15 — voice workers (Host\Workers): Macs of our own that speak
+            // for hosts with Qwen3-TTS, pulling voice tasks over HTTPS (they
+            // have no public address). `hosts.provider` learns `worker`: a
+            // CHECK only changes with a rebuilt table, and dropping `hosts`
+            // with foreign keys on would cascade-delete every lineup, line and
+            // option — PRAGMA foreign_keys cannot change inside migrate()'s
+            // transaction. So the children and the id sequence (AUTOINCREMENT:
+            // a deleted host's id never comes back) wait in TEMP tables while
+            // the table is rebuilt. Replayed, it simply rebuilds again.
+            // `workers.key_mac`: an HMAC of the key, which is shown once.
+            // `voice_tasks.text` holds listeners' words: blanked and purged soon.
+            <<<'SQL'
+            DROP TABLE IF EXISTS hosts_new;
+            CREATE TEMP TABLE keep_lineups AS SELECT * FROM host_lineups;
+            CREATE TEMP TABLE keep_lines AS SELECT * FROM host_lines;
+            CREATE TEMP TABLE keep_options AS SELECT * FROM host_line_options;
+            CREATE TEMP TABLE keep_seq AS SELECT seq FROM sqlite_sequence WHERE name = 'hosts';
+            CREATE TABLE hosts_new (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              avatar TEXT,
+              color TEXT NOT NULL DEFAULT '#2f7bff',
+              about_en TEXT NOT NULL DEFAULT '',
+              about_de TEXT NOT NULL DEFAULT '',
+              style TEXT NOT NULL DEFAULT '',
+              provider TEXT NOT NULL DEFAULT 'openai' CHECK (provider IN ('openai', 'elevenlabs', 'worker')),
+              api_key TEXT NOT NULL DEFAULT '',
+              key_hint TEXT NOT NULL DEFAULT '',
+              model TEXT NOT NULL DEFAULT '',
+              voices TEXT NOT NULL DEFAULT '{}',
+              instructions TEXT NOT NULL DEFAULT '',
+              settings TEXT NOT NULL DEFAULT '{}',
+              max_chars_day INTEGER NOT NULL DEFAULT 0,
+              active INTEGER NOT NULL DEFAULT 1,
+              resting_until INTEGER NOT NULL DEFAULT 0,
+              fail_count INTEGER NOT NULL DEFAULT 0,
+              last_error TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            INSERT INTO hosts_new (id, name, avatar, color, about_en, about_de, style, provider, api_key, key_hint, model, voices,
+                                   instructions, settings, max_chars_day, active, resting_until, fail_count, last_error, created, updated)
+            SELECT id, name, avatar, color, about_en, about_de, style, provider, api_key, key_hint, model, voices,
+                   instructions, settings, max_chars_day, active, resting_until, fail_count, last_error, created, updated
+            FROM hosts;
+            DROP TABLE hosts;
+            ALTER TABLE hosts_new RENAME TO hosts;
+            INSERT INTO sqlite_sequence (name, seq) SELECT 'hosts', seq FROM temp.keep_seq
+              WHERE NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'hosts');
+            UPDATE sqlite_sequence SET seq = MAX(seq, COALESCE((SELECT seq FROM temp.keep_seq), 0)) WHERE name = 'hosts';
+            INSERT INTO host_lineups SELECT * FROM temp.keep_lineups;
+            INSERT INTO host_lines SELECT * FROM temp.keep_lines;
+            INSERT INTO host_line_options SELECT * FROM temp.keep_options;
+            DROP TABLE temp.keep_lineups;
+            DROP TABLE temp.keep_lines;
+            DROP TABLE temp.keep_options;
+            DROP TABLE temp.keep_seq;
+            CREATE TABLE IF NOT EXISTS workers (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              key_mac TEXT NOT NULL UNIQUE,
+              key_hint TEXT NOT NULL DEFAULT '',
+              active INTEGER NOT NULL DEFAULT 1,
+              voices TEXT NOT NULL DEFAULT '[]',
+              engine TEXT NOT NULL DEFAULT '{}',
+              languages TEXT NOT NULL DEFAULT '[]',
+              version TEXT NOT NULL DEFAULT '',
+              last_seen INTEGER NOT NULL DEFAULT 0,
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS voice_tasks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              purpose TEXT NOT NULL CHECK (purpose IN ('break', 'line', 'try')),
+              ref_id INTEGER NOT NULL DEFAULT 0,
+              host_id INTEGER NOT NULL,
+              lang TEXT NOT NULL,
+              text TEXT NOT NULL,
+              request TEXT NOT NULL DEFAULT '{}',
+              state TEXT NOT NULL DEFAULT 'queued' CHECK (state IN ('queued', 'leased', 'done', 'failed', 'cancelled')),
+              worker_id INTEGER,
+              lease_until INTEGER NOT NULL DEFAULT 0,
+              attempts INTEGER NOT NULL DEFAULT 0,
+              priority INTEGER NOT NULL DEFAULT 50,
+              deadline INTEGER NOT NULL DEFAULT 0,
+              audio TEXT NOT NULL DEFAULT '',
+              ms INTEGER NOT NULL DEFAULT 0,
+              error TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS voice_tasks_queue ON voice_tasks(state, priority, deadline, id);
+            CREATE INDEX IF NOT EXISTS voice_tasks_ref ON voice_tasks(purpose, ref_id);
+            SQL,
         ];
     }
 }

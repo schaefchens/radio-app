@@ -38,6 +38,8 @@ final class Voice
     public function speak(array $host, string $text, string $lang, #[\SensitiveParameter] ?string $key = null, ?string $usageKind = null): array
     {
         $provider = (string) $host['provider'];
+        // Asked of a worker as a task (Host\Workers::request): a call here would go to OpenAI by mistake.
+        if (self::async($host)) throw new \LogicException('A worker voice is a task, not a call');
         $voice = Hosts::voiceFor($host, $lang);
         $settings = Hosts::settings($provider, (array) $host['settings']);
         if ($this->app->config->stubAi()) {
@@ -61,6 +63,12 @@ final class Voice
         }
         $this->record($host, $text, $provider === 'openai' ? self::micros((string) $host['model']) : 0, $usageKind);
         return ['bytes' => $bytes, 'provider' => $provider];
+    }
+
+    /** Whether this host's clips come from a worker (Host\Workers): queued, not called. @param array<string,mixed> $host */
+    public static function async(array $host): bool
+    {
+        return ($host['provider'] ?? '') === 'worker';
     }
 
     /**

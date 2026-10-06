@@ -89,9 +89,11 @@ export interface LineupEntry {
   role: 'main' | 'fallback';
 }
 
-/** What a provider can be told (Host\Hosts::SETTINGS): OpenAI only `speed`. */
+/** What a provider can be told (Host\Hosts::SETTINGS): OpenAI only `speed`, our own computers (`worker`) only `temperature`. */
 export interface HostSettings {
-  speed: number;
+  speed?: number;
+  /** Qwen on our own computers: lower reads steadier and closer to the words. */
+  temperature?: number;
   stability?: number;
   similarity?: number;
   style?: number;
@@ -132,6 +134,32 @@ export interface ModHost {
   used_in: { channel: string; program: number | null; title: { en: string; de: string }; role: LineupEntry['role'] }[];
   /** Its recorded lines on air; missing from a server older than them. */
   lines_active?: number;
+  /** A host speaking on our own computers: one that offers its voice was online in the last 90 s (absent for other providers). */
+  worker_online?: boolean;
+}
+
+/** One of the station's own computers that speaks for the hosts with Qwen (/mod › Hosts › Computers). */
+export interface ModWorker {
+  id: number;
+  name: string;
+  active: boolean;
+  online: boolean;
+  /** Unix seconds; 0 = never. */
+  last_seen: number;
+  version: string;
+  engine: { model?: string; checkpoint?: string; revision?: string };
+  voices: { id: string; label: string }[];
+  languages: string[];
+  key_hint: string;
+  tasks: { done_today: number; failed_today: number; queued: number };
+}
+
+/** A try of a voice on our own computers, while it is being made (GET /mod/hosts/try/{task}). */
+export interface WorkerTry {
+  state: 'queued' | 'leased' | 'done' | 'failed' | 'cancelled';
+  audio?: string;
+  ms?: number;
+  error?: string;
 }
 
 /** One recorded line of a host (/mod › Lines): its words and a clip per language. */
@@ -210,6 +238,8 @@ export interface VoiceCatalog {
   account: { used: number; limit: number; resets: number; tier: string } | null;
   errors: string[];
   stub?: boolean;
+  /** Our own computers (`worker`): how many are online now. */
+  workers_online?: number;
 }
 
 export interface Overview {
@@ -364,6 +394,8 @@ const KNOWN: Record<string, string> = {
   voice_timeout: 'mod.hosts.errors.voice_timeout',
   invalid_color: 'mod.hosts.errors.invalid_color',
   invalid_image: 'mod.hosts.errors.invalid_image',
+  worker_name: 'mod.workers.errors.worker_name',
+  no_worker: 'mod.workers.errors.no_worker',
   ...Object.fromEntries(LINE_ERRORS.map((code) => [code, `mod.lines.errors.${code}`])),
 };
 
@@ -385,10 +417,12 @@ export { VOICES } from './voices';
 export const MODELS: Record<VoiceProvider, readonly string[]> = {
   openai: ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd'],
   elevenlabs: ['eleven_multilingual_v2', 'eleven_flash_v2_5', 'eleven_v3'],
+  worker: ['qwen3-tts-1.7b-customvoice'],
 };
 
 /** What a new host of each provider starts with (Host\Hosts::SETTINGS and DEFAULT_MODEL). */
 export const HOST_DEFAULTS: Record<VoiceProvider, { model: string; settings: HostSettings }> = {
   openai: { model: 'gpt-4o-mini-tts', settings: { speed: 1 } },
   elevenlabs: { model: 'eleven_flash_v2_5', settings: { stability: 0.5, similarity: 0.75, style: 0, speaker_boost: true, speed: 1, language: true } },
+  worker: { model: 'qwen3-tts-1.7b-customvoice', settings: { temperature: 0.7 } },
 };

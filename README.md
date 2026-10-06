@@ -335,6 +335,16 @@ a deploy.
   logo opens it): what ARCHE is, the imprint and the privacy policy, in
   `app/src/content/legal.ts` (German binding, English for convenience).
 
+## Voice workers (Qwen3-TTS on our own Macs)
+
+Hosts can speak with a voice made on a Mac of ours (provider "Eigener Rechner").
+The Mac pulls voice jobs from the station, so it needs no public address.
+Add a worker in /mod › KI-Moderation › Rechner (the key is shown once), then
+follow `worker/README.md` on the Mac: `worker/setup.sh`, put the key in
+`~/.config/arche-worker/config.toml`, `worker/run.sh check`, `worker/run.sh`.
+One worker may serve production and the dev station. With no worker online, a
+worker host's moments go to the next host in the lineup.
+
 ## Settings
 
 Everything is an `.env` key (defaults in `server/config/defaults.php`, names in

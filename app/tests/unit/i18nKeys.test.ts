@@ -77,6 +77,9 @@ describe('i18n', () => {
         'host_name', 'host_about', 'host_style', 'host_instructions', 'host_model', 'host_voice', 'host_key', 'host_provider', 'host_lineup',
         'host_in_use', 'last_host', 'host_try_text', 'host_no_room', 'voice_timeout', 'voice_failed', 'invalid_color', 'invalid_image',
       ].map((code) => `mod.hosts.errors.${code}`),
+      // The voice picker's words per provider, and our own computers' errors.
+      ...['otherVoiceOpenAi', 'otherVoiceElevenLabs', 'otherVoiceWorker', 'voiceHintElevenLabs', 'voiceHintWorker'].map((k) => `mod.hosts.${k}`),
+      ...['worker_name', 'no_worker'].map((code) => `mod.workers.errors.${code}`),
       // /mod › Lines: every list a line is shown or filtered by, and modError's map of the server's line errors.
       ...LINE_KINDS.map((k) => `mod.lines.kinds.${k}`),
       ...LINE_TIMES.map((x) => `mod.lines.times.${x}`),

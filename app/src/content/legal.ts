@@ -52,7 +52,8 @@ const de = (host: string): StationTexts => ({
       h: 'Unsere Moderation ist eine KI',
       p:
         `Jede Moderation bei Arche Radio, auch ${host}, ist eine KI: Die Moderationstexte schreibt ein KI-Modell (von OpenAI), ` +
-        'gesprochen werden sie von einer synthetischen Stimme – von OpenAI oder, bei einzelnen Moderationen, von ElevenLabs. ' +
+        'gesprochen werden sie von einer synthetischen Stimme – von OpenAI oder, bei einzelnen Moderationen, von ElevenLabs ' +
+        'oder von Qwen3-TTS, einem offenen Sprachmodell auf unseren eigenen Rechnern. ' +
         'Welche Songs und Sendungen laufen, entscheidet unser Team. Einsendungen werden automatisch geprüft, bevor sie auf ' +
         'Sendung gehen.',
     },
@@ -251,7 +252,8 @@ const de = (host: string): StationTexts => ({
       h: 'KI-Dienste (OpenAI)',
       p:
         'Für die Prüfung der Einsendungen, die Moderationstexte und – außer bei Moderationen mit einer Stimme von ' +
-        'ElevenLabs (siehe unten) – ihre Stimme (auch beim Vorlesen von Gebetsanliegen und Gebeten) und die ' +
+        'ElevenLabs oder von unseren eigenen Rechnern (siehe unten) – ihre Stimme (auch beim Vorlesen von ' +
+        'Gebetsanliegen und Gebeten) und die ' +
         'Verschriftlichung von Aufnahmen ' +
         'nutzen wir die Programmierschnittstelle der OpenAI Ireland Limited, 1st Floor, The Liffey Trust Centre, ' +
         '117–126 Sheriff Street Upper, Dublin 1, D01 YC43, Irland, die in unserem Auftrag tätig ist. Dabei ' +
@@ -279,6 +281,18 @@ const de = (host: string): StationTexts => ({
         'EU-Kommission. Rechtsgrundlage sind Ihre Einwilligung zur Einsendung (Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 ' +
         'lit. a DSGVO) und unser berechtigtes Interesse an einem moderierten Programm (Art. 6 Abs. 1 lit. f DSGVO). ' +
         'Mehr: https://elevenlabs.io/privacy-policy',
+    },
+    {
+      h: 'KI-Stimmen auf unseren eigenen Rechnern',
+      p:
+        'Einzelne Moderationen sprechen mit einer Stimme, die wir mit Qwen3-TTS, einem offenen Sprachmodell, auf ' +
+        'unseren eigenen Rechnern erzeugen. Der Text, den die Moderation spricht, geht dafür verschlüsselt von unserem ' +
+        'Server zu unserem Rechner und kommt als Aufnahme zurück; an einen fremden Dienst geht er nicht. Dieser Text ' +
+        'kann Ihren Vornamen und Ort enthalten, bei Songwünschen und Videovorschlägen die Widmung bzw. Begründung, ' +
+        'Gebetsanliegen und Gebete, die wörtlich vorgelesen werden, und Community-Stimmen. Der Rechner behält weder ' +
+        'Text noch Aufnahme; auf unserem Server werden die Aufträge nach spätestens zwei Tagen gelöscht. ' +
+        'Rechtsgrundlage sind Ihre Einwilligung zur Einsendung (Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 lit. a DSGVO) und ' +
+        'unser berechtigtes Interesse an einem moderierten Programm (Art. 6 Abs. 1 lit. f DSGVO).',
     },
     {
       h: 'Community-Räume',
@@ -360,7 +374,8 @@ const en = (host: string): StationTexts => ({
       h: 'Our hosts are AI',
       p:
         `Every host on Arche Radio, ${host} too, is an AI: their words are written by an AI model (from OpenAI) and ` +
-        'spoken by a synthetic voice — from OpenAI or, for some hosts, from ElevenLabs. Our team decides which songs ' +
+        'spoken by a synthetic voice — from OpenAI or, for some hosts, from ElevenLabs or from Qwen3-TTS, an open ' +
+        'speech model on our own computers. Our team decides which songs ' +
         'and programs run. Submissions are checked automatically before they go on air.',
     },
     {
@@ -533,7 +548,8 @@ const en = (host: string): StationTexts => ({
     {
       h: 'AI services (OpenAI)',
       p:
-        "To check submissions, for the hosts' words and — except for hosts with a voice from ElevenLabs (see below) — " +
+        "To check submissions, for the hosts' words and — except for hosts with a voice from ElevenLabs or from our own " +
+        'computers (see below) — ' +
         'their voice (also when they read out prayer requests and prayers) and to transcribe recordings we use the API of OpenAI ' +
         'Ireland Limited, 1st Floor, The Liffey Trust Centre, 117–126 Sheriff Street Upper, Dublin 1, D01 YC43, ' +
         'Ireland, on our behalf. We send your text or recording and its transcript, first name and place, for song ' +
@@ -557,6 +573,17 @@ const en = (host: string): StationTexts => ({
         "under the EU-US Data Privacy Framework, with the EU Commission's standard contractual clauses in addition. " +
         'Legal basis: your consent to the submission (Art. 6(1)(a), Art. 9(2)(a) GDPR) and our legitimate interest in a ' +
         'moderated program (Art. 6(1)(f) GDPR). More: https://elevenlabs.io/privacy-policy',
+    },
+    {
+      h: 'AI voices on our own computers',
+      p:
+        'Some hosts speak with a voice we generate with Qwen3-TTS, an open speech model, on our own computers. For it ' +
+        'the text the host speaks goes encrypted from our server to our computer and comes back as a recording; it ' +
+        'goes to no outside service. This text can contain your first name and place, for song requests and video ' +
+        'suggestions the dedication or reason, prayer requests and prayers read out word for word, and community ' +
+        'voices. The computer keeps neither the text nor the recording; on our server the jobs are deleted after two ' +
+        'days at the latest. Legal basis: your consent to the submission (Art. 6(1)(a), Art. 9(2)(a) GDPR) and our ' +
+        'legitimate interest in a moderated program (Art. 6(1)(f) GDPR).',
     },
     {
       h: 'Community rooms',

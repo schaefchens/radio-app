@@ -30,18 +30,23 @@ use Arche\Support\Sealed;
  */
 final class Hosts
 {
-    public const PROVIDERS = ['openai', 'elevenlabs'];
+    /** `worker`: a Mac of our own with Qwen3-TTS (Host\Workers) — no key, asynchronous. */
+    public const PROVIDERS = ['openai', 'elevenlabs', 'worker'];
     /** OpenAI's built-in voices; the tts-1 models lack ballad, marin and cedar. */
     public const OPENAI_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse', 'marin', 'cedar'];
     public const OPENAI_MODELS = ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd'];
     public const ELEVENLABS_MODELS = ['eleven_multilingual_v2', 'eleven_flash_v2_5', 'eleven_v3'];
-    private const DEFAULT_MODEL = ['openai' => 'gpt-4o-mini-tts', 'elevenlabs' => 'eleven_flash_v2_5'];
+    private const DEFAULT_MODEL = ['openai' => 'gpt-4o-mini-tts', 'elevenlabs' => 'eleven_flash_v2_5', 'worker' => Workers::MODEL];
     /** @var array<string,array<string,float|bool>> what each provider can be told, with its defaults */
     private const SETTINGS = [
         'openai' => ['speed' => 1.0],
         // `language`: send the language code — eleven_multilingual_v2 refuses one.
         'elevenlabs' => ['stability' => 0.5, 'similarity' => 0.75, 'style' => 0.0, 'speaker_boost' => true, 'speed' => 1.0, 'language' => true],
+        // Lower reads steadier: Qwen's own 0.9 skipped or repeated a word more often.
+        'worker' => ['temperature' => 0.7],
     ];
+    /** A worker host's voices until told otherwise: what the station's owner chose by ear. */
+    private const WORKER_VOICES = ['en' => 'Ryan', 'de' => 'Sohee'];
     private const MAX_LINEUP = 8;
     /** Temporary failures in a row before a host rests, and for how long (s). */
     private const TEMP_FAILS = 3;
@@ -112,6 +117,12 @@ final class Hosts
         return array_values($this->byId());
     }
 
+    /** Who can speak may have changed outside (a voice worker came online or went quiet). */
+    public function refresh(): void
+    {
+        $this->changed();
+    }
+
     private function changed(): void
     {
         $this->cache = null;
@@ -135,6 +146,8 @@ final class Hosts
         if ($provider === 'elevenlabs') {
             foreach (['stability', 'similarity', 'style'] as $k) $out[$k] = max(0.0, min(1.0, (float) $out[$k]));
             $out['speed'] = max(0.7, min(1.2, (float) $out['speed']));
+        } elseif ($provider === 'worker') {
+            $out['temperature'] = max(0.1, min(1.2, (float) $out['temperature']));
         } else {
             $out['speed'] = max(0.25, min(4.0, (float) $out['speed']));
         }
@@ -194,6 +207,7 @@ final class Hosts
             'used_in' => $this->usedIn($h['id']),
             'lines_active' => $this->app->lines()->activeCount($h['id']),
         ];
+        if ($h['provider'] === 'worker') $view['worker_online'] = $this->app->workers()->online(self::voiceFor($h, $this->app->config->stationLangs()[0]), (string) $h['model']);
         if ($admin) $view['key_hint'] = (string) $h['key_hint'];
         return $view;
     }
@@ -336,14 +350,18 @@ final class Hosts
             foreach ($this->app->config->stationLangs() as $l) {
                 $v = trim((string) ($given[$l] ?? ''));
                 if ($v === '') continue;
-                $ok = $provider === 'elevenlabs'
-                    ? preg_match('/^[A-Za-z0-9]{8,40}$/', $v)
-                    : preg_match('/^(?:[a-z]{2,16}|voice_[A-Za-z0-9_-]{4,64})$/', $v);
+                $ok = match ($provider) {
+                    'elevenlabs' => preg_match('/^[A-Za-z0-9]{8,40}$/', $v),
+                    // Qwen's presets: Ryan, Sohee, Ono_Anna …
+                    'worker' => preg_match('/^[A-Za-z0-9_-]{1,40}$/', $v),
+                    default => preg_match('/^(?:[a-z]{2,16}|voice_[A-Za-z0-9_-]{4,64})$/', $v),
+                };
                 if (!$ok) throw new ApiError(422, 'host_voice');
                 $voices[$l] = $v;
             }
             // A new OpenAI host speaks with coral until it is told otherwise.
             if (!$voices && $provider === 'openai') $voices = array_fill_keys($this->app->config->stationLangs(), 'coral');
+            if (!$voices && $provider === 'worker') $voices = array_intersect_key(self::WORKER_VOICES, array_flip($this->app->config->stationLangs()));
             $row['voices'] = json_encode((object) $voices, JSON_UNESCAPED_UNICODE);
         }
         if (array_key_exists('settings', $data) || $before === null || $switched) {
@@ -352,7 +370,11 @@ final class Hosts
         }
         if (array_key_exists('max_chars_day', $data)) $row['max_chars_day'] = max(0, min(1_000_000, (int) $data['max_chars_day']));
         if (array_key_exists('active', $data)) $row['active'] = $data['active'] ? 1 : 0;
-        if (array_key_exists('api_key', $data)) {
+        if ($provider === 'worker') {
+            // A worker speaks with no key: one kept from another provider would only sit there.
+            $row['api_key'] = '';
+            $row['key_hint'] = '';
+        } elseif (array_key_exists('api_key', $data)) {
             $key = trim((string) $data['api_key']);
             if ($key !== '' && !preg_match('/^[\x21-\x7e]{8,200}$/', $key)) throw new ApiError(422, 'host_key');
             $row['api_key'] = $key === '' ? '' : $this->sealed()->seal($key);
@@ -549,10 +571,12 @@ final class Hosts
     public function canSpeak(array $h, int $chars = 0): bool
     {
         if ($chars <= 0 && isset($this->speaks[$h['id']])) return $this->speaks[$h['id']];
+        $voice = self::voiceFor($h, $this->app->config->stationLangs()[0]);
         $ok = $h['active'] === 1
             && $h['resting_until'] <= $this->app->clock->now()
-            && self::voiceFor($h, $this->app->config->stationLangs()[0]) !== ''
-            && ($this->app->config->stubAi() || $this->key($h) !== '')
+            && $voice !== ''
+            // A worker host needs no key but a worker online that offers its voice (not stubbed: our own hardware).
+            && ($h['provider'] === 'worker' ? $this->app->workers()->online($voice, (string) $h['model']) : ($this->app->config->stubAi() || $this->key($h) !== ''))
             && ($h['provider'] !== 'elevenlabs' || $h['max_chars_day'] > 0)
             && ($h['max_chars_day'] <= 0 || $this->usedToday($h['id']) + max(1, $chars) <= $h['max_chars_day']);
         if ($chars <= 0) $this->speaks[$h['id']] = $ok;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Arche\Api;
 
 use Arche\ApiError;
+use Arche\Ai\Voice;
 use Arche\Ai\VoiceError;
 use Arche\Audio\Mp3;
 use Arche\Host\Hosts;
@@ -104,6 +105,7 @@ final class ModApi
             'ai' => $this->aiSetup(),
             'realtime' => $app->nodes()->status(),
             'cdn' => $app->cdn()->status(),
+            'workers' => $app->workers()->summary(),
             'audit' => $store->all('SELECT time, actor, event, detail FROM audit ORDER BY id DESC LIMIT 60'),
         ];
     }
@@ -691,6 +693,11 @@ final class ModApi
         $provider = (string) ($in['provider'] ?? 'openai');
         $list = fn(array $ids): array => array_map(fn($v) => ['id' => $v, 'name' => $v], $ids);
         if ($provider === 'openai') return ['voices' => $list(Hosts::OPENAI_VOICES), 'models' => $list(Hosts::OPENAI_MODELS), 'account' => null, 'errors' => []];
+        if ($provider === 'worker') {
+            // What the voice workers online offer (they report it with every poll).
+            $c = $app->workers()->catalog();
+            return ['voices' => $c['voices'], 'models' => $c['models'], 'account' => null, 'errors' => [], 'workers_online' => $c['online']];
+        }
         if ($provider !== 'elevenlabs') throw new ApiError(422, 'host_provider');
         $models = $list(Hosts::ELEVENLABS_MODELS);
         if ($app->config->stubAi()) return ['voices' => [], 'models' => $models, 'account' => null, 'errors' => [], 'stub' => true];
@@ -720,7 +727,7 @@ final class ModApi
      * the host's characters like any clip, and a daily cap still applies — an
      * ElevenLabs host without one is never voiced. 20 an hour per admin.
      */
-    public function hostTry(): array
+    public function hostTry(): array|Response
     {
         $this->admin();
         $app = $this->c->app;
@@ -735,6 +742,15 @@ final class ModApi
         $draft = $hosts->draft($host, $changes);
         $key = trim((string) ($changes['api_key'] ?? ''));
         if (!$hosts->mayTry($draft, mb_strlen($text))) throw new ApiError(422, 'host_no_room');
+        // A voice worker's: asked of the workers, the editor polls for the clip (hostTryResult).
+        if (Voice::async($draft)) {
+            $voice = Hosts::voiceFor($draft, $lang);
+            if (!$app->workers()->online($voice, (string) $draft['model'])) throw new ApiError(409, 'no_worker');
+            if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], 20, 3600)) throw new ApiError(429, 'rate_limited');
+            $task = $app->workers()->request('try', 0, $draft, $lang, $text, $app->clock->now() + 120);
+            $app->store()->audit($this->actor(), 'Host voice tried', $host['id'] . ' ' . $host['name'] . ' (' . $lang . ', ' . mb_strlen($text) . ' characters, worker)');
+            return new Response(['task' => $task, 'provider' => 'worker', 'voice' => $voice, 'model' => (string) $draft['model']], 202);
+        }
         if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], 20, 3600)) throw new ApiError(429, 'rate_limited');
         try {
             $spoken = $app->voice()->speak($draft, $text, $lang, $key !== '' ? $key : null);
@@ -752,6 +768,43 @@ final class ModApi
         // Which voice and model spoke: what the editor shows, so a choice can be checked by ear and by name.
         return ['audio' => base64_encode($spoken['bytes']), 'ms' => $mp3['ms'], 'provider' => $spoken['provider'],
             'voice' => Hosts::voiceFor($draft, $lang), 'model' => (string) $draft['model']];
+    }
+
+    /** @param array<string,string> $a */
+    public function hostTryResult(array $a): array
+    {
+        $this->admin();
+        return $this->c->app->workers()->tryResult($this->id($a));
+    }
+
+    // --- voice workers (Host\Workers, admins) ----------------------------------------------------
+
+    public function workers(): array
+    {
+        $this->admin();
+        return ['workers' => $this->c->app->workers()->list()];
+    }
+
+    /** A new worker: its key is in this answer only. */
+    public function workerCreate(): array
+    {
+        $this->admin();
+        return $this->c->app->workers()->create((string) ($this->c->req->json()['name'] ?? ''), $this->actor());
+    }
+
+    /** @param array<string,string> $a */
+    public function workerUpdate(array $a): array
+    {
+        $this->admin();
+        return $this->c->app->workers()->update($this->id($a), $this->c->req->json(), $this->actor());
+    }
+
+    /** @param array<string,string> $a */
+    public function workerDelete(array $a): array
+    {
+        $this->admin();
+        $this->c->app->workers()->delete($this->id($a), $this->actor());
+        return ['ok' => true];
     }
 
     // --- users (admin) -----------------------------------------------------------------------------

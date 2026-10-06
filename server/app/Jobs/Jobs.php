@@ -76,6 +76,20 @@ final class Jobs
     }
 
     /** The phase succeeded; continue with $next (null = finished). */
+    /**
+     * Back to the queue, but not before $seconds: as a running row whose
+     * lease runs out then (lease() takes it up again) — the attempts start
+     * over, a wait is no failure. A phase returned at once would come straight
+     * back in the same tick, again and again.
+     *
+     * @param array<string,mixed> $job
+     */
+    public function defer(array $job, string $phase, int $seconds): void
+    {
+        $now = $this->app->clock->now();
+        $this->app->store()->update('jobs', ['status' => 'running', 'phase' => $phase, 'attempts' => 0, 'lease_until' => $now + $seconds, 'updated' => $now], 'id = ?', [$job['id']]);
+    }
+
     public function advance(array $job, ?string $next): void
     {
         $set = $next === null
