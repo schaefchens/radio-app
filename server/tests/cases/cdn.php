@@ -80,10 +80,12 @@ test('cdn: deleted media is purged at the edge; a failed purge stays queued; not
 
 test('cdn: host clips removed by retention are purged at the edge too', function () {
     $app = TestKit::app(CDN_ENV);
-    $clip = $app->media()->put('host', 'hostclip0001.mp3', 'Jenny from Munich');
+    // Where HostBreaks writes them: a folder per day.
+    $clip = $app->media()->put('host/20260920', 'hostclip0001.mp3', 'Jenny from Munich');
     touch((string) $app->media()->path($clip), (int) (TestKit::T0 / 1000) - 3 * 86400);
-    $app->set('http', new FakeHttp());
+    $app->set('http', new FakeHttp()); // every purge fails, so the queue keeps what was asked
     $app->tick()->run('test');
     check(!is_file((string) $app->media()->path($clip)), 'deleted here after 48 h');
-    check(in_array($clip, (array) $app->store()->get('cdn_purge'), true) || $app->store()->get('cdn_purge') === [], 'queued for the edge (or already purged in the same tick)');
+    eq($clip, '/media/host/20260920/hostclip0001.mp3', 'a clip of that day');
+    check(in_array($clip, (array) $app->store()->get('cdn_purge'), true), 'queued for the edge under its own path, day folder included');
 });

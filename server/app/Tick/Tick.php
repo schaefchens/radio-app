@@ -173,8 +173,11 @@ final class Tick
             $removed += Files::prune($this->app->publicPath("program/{$ch['slug']}/days"), $now - $c->int('RETAIN_DAY_FILES_DAYS', 60) * 86400, 500 - $removed);
         }
         // Host clips can name a listener: purged at the edge too, not just here.
-        $removed += Files::prune($this->app->publicPath('media/host'), $now - $c->int('RETAIN_HOST_AUDIO_HOURS', 48) * 3600, max(0, 500 - $removed),
-            fn(string $path) => $this->app->cdn()->forget('/media/host/' . basename($path)));
+        // They sit in a folder per day, which the URL keeps (a basename alone
+        // purged a path that never existed, and the edge kept the clip).
+        $hostDir = $this->app->publicPath('media/host');
+        $removed += Files::prune($hostDir, $now - $c->int('RETAIN_HOST_AUDIO_HOURS', 48) * 3600, max(0, 500 - $removed),
+            fn(string $path) => $this->app->cdn()->forget('/media/host/' . ltrim(str_replace('\\', '/', substr($path, strlen($hostDir))), '/')));
         // Who prayed along with a request no wall shows any more (only the number stays).
         $removed += $this->app->submissions()->forgetPrayedAlong();
         return $removed;

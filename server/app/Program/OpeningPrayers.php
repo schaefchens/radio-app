@@ -11,7 +11,8 @@ use Arche\Audio\Mp3;
  * Opening prayers a moderator prepared for a prayer hour: a recording in
  * their own voice, or a text the host voice reads word for word (no AI
  * writing, only in the languages filled in). Each airing of the program takes
- * the oldest one waiting; with none, the AI host prays. One is marked aired
+ * the oldest one waiting; with none, the hour has no opening prayer (the AI
+ * host never prays). One is marked aired
  * when it is committed, so a plan thrown away, a gate or a voice not ready in
  * time leaves it waiting for the next airing.
  *
