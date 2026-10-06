@@ -39,6 +39,8 @@ final class StubText implements TextModel
         $this->calls[] = ['kind' => $kind, 'user' => $user];
         if (isset($this->responders[$kind])) {
             $data = ($this->responders[$kind])($system, $user);
+            // A test's own failure (a timeout is 'error'), or its answer.
+            if ($data instanceof TextResult) return $data;
             return new TextResult($data, $data === null ? 'refusal' : 'ok', 'stub');
         }
         return new TextResult($this->default($kind, $user), 'ok', 'stub');

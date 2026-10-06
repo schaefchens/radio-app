@@ -244,25 +244,57 @@
   justify-content: center;
   gap: 8px;
 }
-/* "More from …" after an item of a library group (StageVisual), during the
-   host's word — the player is parked off screen then, so these links are
-   never in front of it. The links wear the gold pills of the stage. */
-.stage-notice {
+/* Right after an item of a library group (StageVisual GroupMoment) the host
+   speaks about them, so they fill the stage: their name big, their few words,
+   their links in the stage's gold pills; the host small above. The player is
+   parked off screen then, so these links are never in front of it. */
+.stage-group {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  max-width: 34rem;
+  gap: 12px;
+  max-width: 40rem;
 }
-.stage-notice-text {
+.stage-group-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stage-group-name {
   margin: 0;
   color: rgb(var(--ink));
-  font-size: 14px;
-  line-height: 1.4;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-wrap: balance;
+  text-shadow: 0 2px 12px #0008;
+}
+.stage-group-about {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: rgb(var(--ink));
+  font-size: 18px;
+  line-height: 1.45;
   text-wrap: balance;
   text-shadow: 0 1px 6px #0006;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
-.stage-notice .stage-prayer-share {
+.stage-group-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.stage-group-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
   text-decoration: none;
 }
 /* A few words about the host speaking, under their name (full stage only). */
@@ -1596,20 +1628,39 @@
     -webkit-line-clamp: 2;
     line-clamp: 2;
   }
-  /* A notice: the host's label, who it was from and the links fit; the
-     host's face and words and the few words about them do not. */
-  .stage-host.has-notice .stage-host-avatar,
-  .stage-host.has-notice .stage-host-text,
-  .stage-host.has-notice .stage-host-about,
-  .stage-notice-text {
+  /* A group on a phone's stage: their name, two lines about them and the
+     links fit; the host above does not (the song bar names who speaks). */
+  .stage-group {
+    gap: 6px;
+  }
+  .stage-group-host {
     display: none;
+  }
+  .stage-group-name {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 19px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  .stage-group-about {
+    font-size: 13px;
+    line-height: 1.35;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  .stage-group-links {
+    gap: 6px;
+    margin-top: 2px;
   }
   /* A phone's stage has room for the host's words or the few about them: the words. */
   .stage-host-about {
     display: none;
   }
-  .stage-notice .stage-prayer-share {
-    padding: 6px 12px;
+  .stage-group-link {
+    gap: 6px;
+    padding: 5px 12px;
     font-size: 13px;
   }
 }

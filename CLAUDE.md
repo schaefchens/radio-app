@@ -107,12 +107,16 @@ four https links. A video belongs to one by its YouTube channel
 hourly `channels` job, 50 per call, in the runner's budget) or because a
 moderator put it there (`group_id`); one channel belongs to one group. With
 `notice`, the host's moment right after one of its items (`break`, `outro`
-or a video's introduction — never in a prayer hour) gets `previous_group`:
-one sentence pointing to more from them, nothing beyond `about`, never a web
-address. The committed host item carries `notice` for the stage
-(`HostBreaks::payload`, only while the item before is still theirs): the card
-shows while the host speaks — no host, no notice; older apps ignore the field,
-and the parser keeps https links only. `blocked` is for those who asked not to
+or a video's introduction — never in a prayer hour) gets `previous_group`
+(name, `about`, `find`: its links' kinds) and is about them: the host presents
+them from `about` and makes listeners curious to find more on their YouTube
+channel or website — nothing beyond `about`, never a web address, never "in
+the app"; without the model the template does the same (`about` left out if
+it prays). The committed host item carries `notice` for the stage
+(`HostBreaks::payload`, only while the item before is still theirs): while
+the host speaks they fill the stage (`GroupMoment`: their name big, `about`,
+link buttons; the host small above, not on a phone) — no host, no notice;
+older apps ignore the field, and the parser keeps https links only. `blocked` is for those who asked not to
 be on our platform. Blocking also matches the artist a title names, exactly as
 the group lists its names, to catch re-uploads of their songs on other
 channels: a suggestion is "not accepted" (`group_blocked`, which no moderator
@@ -138,7 +142,11 @@ Opus 5, hard timeouts through a Guzzle transport, no SDK retries), otherwise
 OpenAI Chat Completions (`gpt-5.4-mini` by default) — an OpenAI key alone runs the
 whole station. Both answer through a strict JSON schema; every failure is a
 result without data, never an exception (except `BudgetExceeded`, which the job
-runner retries without counting an attempt). Voiced by the moment's host
+runner retries without counting an attempt). A script the model did not answer
+(`error`: a timeout, a dropped connection) is asked again 30 s later, twice at
+most, while its moment is more than `COMMIT` + 3 min away
+(`HostBreaks::mayAskAgain`): the break after a long video is written an hour
+early, and one timeout put its template on air. Voiced by the moment's host
 (below), with OpenAI or ElevenLabs. The German text may
 say "heute Abend"; the English one is heard worldwide and stays time-neutral.
 All language versions share one slot length: the longest one plus padding.
@@ -728,8 +736,9 @@ for a mission program that also takes testimonies, a suggestion airing as
 what it was suggested as, format changes, a video suggested twice, the
 limits per type and the one rate limit, /mod's kinds, the migration, the
 host's words per kind, every format in every list), library groups
-(`groups.php`: the notice after a group's item — the model gets the group,
-never its id —, items joining by channel, one channel one group, blocking by
+(`groups.php`: the moment after a group's item — the model gets the group and
+where to find more, never its id; the template presenting them; a script
+asked again after a timeout, not when its minutes are near —, items joining by channel, one channel one group, blocking by
 channel, by a fan upload's artist and by a library item, never overruled,
 pulled from air and back, the channel backfill in one call, links https only,
 the migration), hosts (`hosts.php`: the migration from the channels' hosts and
@@ -768,8 +777,8 @@ written instead, both endpoints, the yes never ticked in advance, staying
 anonymous), our audio not starting a clip over in its quiet, nor taken for paused while it loads, nor refused when a re-entry overtakes its start, the prayer
 sheet's wall box (and in a prayer hour, the wall after it), the video
 sheet's picker (open kinds only, the program's own kind first, a kind in use
-kept with its notice) and `allowedForFormat`, the stage's notice card (its
-links and labels, none on the compact stage), the big stage (the slot there
+kept with its notice) and `allowedForFormat`, a group filling the stage (its
+name, words, links and labels, the host small, not the compact stage), the big stage (the slot there
 and back, the browser's way out, no Fullscreen API, the page left, a phone's
 turns, Android's back; its bar veiled when quiet, back on a move or the next
 song, kept while the emoji strip is open) and which shells turn, "Stay anonymous"

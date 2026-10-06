@@ -38,7 +38,7 @@ function groupStation(array $env = []): array
     return [$app, $http];
 }
 
-test('groups: after a preaching of a group that wants it, the host points to more from them and the stage shows their links — the model gets the group, not its id', function () {
+test('groups: after a preaching of a group that wants it, the host presents them and where there is more from them while the stage shows them — the model gets the group, not its id', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);
     [$preaching] = libraryVideos($app, 'preaching', [20], 'PreGrp');
@@ -46,9 +46,11 @@ test('groups: after a preaching of a group that wants it, the host points to mor
         'links' => [['kind' => 'youtube', 'url' => 'https://www.youtube.com/@gracechapel'], ['kind' => 'website', 'url' => 'https://gracechapel.example']]], 'test');
     $app->library()->update($preaching, ['group_id' => $g['id']], 'test');
     $seen = [];
-    $app->text()->respond('host_break', function (string $system, string $user) use (&$seen): array {
+    $told = '';
+    $app->text()->respond('host_break', function (string $system, string $user) use (&$seen, &$told): array {
         $seen[] = $user;
-        return ['en' => ['text' => 'More from them in the app.'], 'de' => ['text' => 'Mehr von ihnen in der App.']];
+        $told = (string) preg_replace('/\s+/', ' ', $system);
+        return ['en' => ['text' => 'Grace Chapel is a church in Accra.'], 'de' => ['text' => 'Grace Chapel ist eine Gemeinde in Accra.']];
     });
     $p = videoProgram($app, 'preaching', 12 * 60 + 5, 60);
     ticks($app, 40);
@@ -57,8 +59,9 @@ test('groups: after a preaching of a group that wants it, the host points to mor
     $at = (int) array_key_first(array_filter($run, fn($i) => $i['library_id'] === $preaching));
     $break = $run[$at + 1];
     eq([$break['type'], $break['payload']['kind'] ?? ''], ['host', 'break'], 'the host speaks after the preaching');
-    eq(hostContext($app, $break)['previous_group'] ?? null, ['name' => 'Grace Chapel', 'about' => ['en' => 'A church in Accra.', 'de' => 'Eine Gemeinde in Accra.']],
-        'its words know whose it was');
+    eq(hostContext($app, $break)['previous_group'] ?? null, ['name' => 'Grace Chapel', 'about' => ['en' => 'A church in Accra.', 'de' => 'Eine Gemeinde in Accra.'], 'find' => ['youtube', 'website']],
+        'its words know whose it was, and where there is more from them — by kind, never an address');
+    check(str_contains($told, 'Make them the heart of this moment') && str_contains($told, 'do not mention the app'), 'the host presents them and never sends listeners to the app');
     $prompt = (string) (array_values(array_filter($seen, fn(string $u) => str_contains($u, 'previous_group')))[0] ?? '');
     check($prompt !== '' && !str_contains($prompt, '"group_id"'), 'the model gets the group, never its id');
     $slot = json_decode((string) file_get_contents($app->publicPath(Timing::slotPath('main', $break['start_ms'] + 1000))), true);
@@ -77,6 +80,55 @@ test('groups: after a preaching of a group that wants it, the host points to mor
     $song = TestKit::committed($app)[0];
     check(!isset($app->hostBreaks()->payload($hb, $song)['notice']), 'committed after another item than its own, the break shows none');
     check(isset($app->hostBreaks()->payload($hb, $run[$at])['notice']), 'after its own, it does');
+});
+
+test('groups: a script the model did not answer is asked again while the moment is far off; without the model the template presents the group — never "in the app"', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    [$preaching] = libraryVideos($app, 'preaching', [20], 'PreTry');
+    $g = $app->groups()->save(null, ['name' => 'Grace Chapel', 'about_en' => 'A church in Accra', 'about_de' => 'Eine Gemeinde in Accra', 'notice' => true,
+        'links' => [['kind' => 'youtube', 'url' => 'https://www.youtube.com/@gracechapel']]], 'test');
+    $app->library()->update($preaching, ['group_id' => $g['id']], 'test');
+    $answers = 0;
+    $failures = 1;
+    $app->text()->respond('host_break', function (string $system, string $user) use (&$answers, &$failures): array|Arche\Ai\TextResult {
+        if (!str_contains($user, 'previous_group')) return ['en' => ['text' => 'Stay with us.'], 'de' => ['text' => 'Bleibt dran.']];
+        $answers++;
+        // A timeout, as the HTTP transport reports it: no data, 'error'.
+        if ($failures-- > 0) return new Arche\Ai\TextResult(null, 'error', 'stub');
+        return ['en' => ['text' => 'Grace Chapel is a church in Accra.'], 'de' => ['text' => 'Grace Chapel ist eine Gemeinde in Accra.']];
+    });
+    $p = videoProgram($app, 'preaching', 12 * 60 + 5, 60);
+    ticks($app, 40);
+    $run = array_values(array_filter(TestKit::committed($app), fn($i) => $i['program_id'] === (int) $p['id']));
+    $at = (int) array_key_first(array_filter($run, fn($i) => $i['library_id'] === $preaching));
+    $break = $run[$at + 1];
+    eq([$break['type'], $answers], ['host', 2], 'the model was asked a second time');
+    eq($break['payload']['text']['de'] ?? '', 'Grace Chapel ist eine Gemeinde in Accra.', 'and its words air, not the template');
+    eq(hostContext($app, $break)['script_retries'] ?? null, 1, 'once');
+
+    // Without the model at all: the template presents them — their own few words and where to find more.
+    $c = ['program' => ['title' => ['en' => 'Sermons', 'de' => 'Predigten']], 'previous' => ['title' => 'Hope', 'kind' => 'preaching'],
+        'previous_group' => ['name' => 'Grace Chapel', 'about' => ['en' => 'A church in Accra', 'de' => 'Eine Gemeinde in Accra'], 'find' => ['youtube', 'website']]];
+    $t = Arche\Host\Templates::texts('break', $c);
+    foreach (['en' => ['A church in Accra.', 'their YouTube channel and their website'], 'de' => ['Eine Gemeinde in Accra.', 'auf ihrem YouTube-Kanal und auf ihrer Website']] as $l => [$about, $where]) {
+        check(str_starts_with($t[$l], 'That was Grace Chapel.') || str_starts_with($t[$l], 'You just heard Grace Chapel.') || str_starts_with($t[$l], 'Das war Grace Chapel.') || str_starts_with($t[$l], 'Gerade habt ihr Grace Chapel gehört.'), "$l opens with them: {$t[$l]}");
+        check(str_contains($t[$l], $about) && str_contains($t[$l], $where), "$l: who they are and where there is more: {$t[$l]}");
+        check(!preg_match('/\bApp\b|\bapp\b|Link/u', $t[$l]), "$l: never the app or links: {$t[$l]}");
+    }
+    $none = Arche\Host\Templates::texts('outro', ['previous_group' => ['name' => 'Grace Chapel', 'about' => ['en' => '', 'de' => ''], 'find' => []]] + $c);
+    check(str_contains($none['de'], 'Von ihnen gibt es noch mehr zu entdecken.') && str_contains($none['de'], 'Danke'), 'no words, no links: still them first, then the outro');
+    $praying = Arche\Host\Templates::texts('break', ['previous_group' => ['name' => 'Grace Chapel', 'about' => ['en' => 'We pray for you. Amen.', 'de' => 'Wir beten für dich. Amen.'], 'find' => []]] + $c);
+    check(!Arche\Host\HostWriter::prays($praying['en']) && !Arche\Host\HostWriter::prays($praying['de']), 'about words that pray are left out: the host never prays');
+
+    // Too close to its minutes: no time to ask again — the template airs at once.
+    $hb = $app->hostBreaks()->get((int) $break['host_break_id']) ?? [];
+    $app->store()->query("UPDATE host_breaks SET state = 'pending', context = json_remove(context, '$.script_retries') WHERE id = ?", [$hb['id']]);
+    $app->store()->query('UPDATE timeline_items SET est_start = ? WHERE host_break_id = ?', [$app->clock->nowMs() + Timing::COMMIT + 60_000, $hb['id']]);
+    $failures = 5;
+    $next = $app->hostBreaks()->runPhase(['id' => 0, 'ref_id' => $hb['id'], 'phase' => 'script', 'attempts' => 0]);
+    check($next !== 'wait:script', 'not asked again');
+    eq((string) ($app->hostBreaks()->get($hb['id'])['source'] ?? ''), 'template:error', 'its template instead');
 });
 
 test('groups: a channel joins its items to a group — added, suggested, or already in the library — but never moves what a moderator put elsewhere; one channel belongs to one group', function () {

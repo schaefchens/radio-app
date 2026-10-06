@@ -133,6 +133,19 @@ export const PlayIcon = (p: IconProps) => (
     <path d="M7 4.5v15l12-7.5-12-7.5Z" fill="currentColor" />
   </Icon>
 );
+/** A website: a globe. */
+export const GlobeIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+  </Icon>
+);
+/** A link that leaves the app. */
+export const ExternalIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  </Icon>
+);
 export const PauseIcon = (p: IconProps) => (
   <Icon {...p}>
     <rect x="6.5" y="5" width="3.6" height="14" rx="1.2" fill="currentColor" stroke="none" />

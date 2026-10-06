@@ -11,7 +11,7 @@ import { useBlocks } from '@/store/blocks';
 import { useServerNow } from '@/components/home/useServerNow';
 import { CdnImg } from '@/components/common/CdnImg';
 import { speakingHost } from '@/lib/host';
-import { RadioIcon } from '@/components/common/icons';
+import { ExternalIcon, GlobeIcon, PlayIcon, RadioIcon } from '@/components/common/icons';
 
 /**
  * Our own stage, under the player: the program's visual, the host speaking,
@@ -27,8 +27,9 @@ import { RadioIcon } from '@/components/common/icons';
  * shows as theirs, never as the host's. The compact stage of other pages has
  * no sheets to open, so no buttons.
  *
- * Right after an item of a library group that wants it, the host's word comes
- * with the group's notice: who it was from and links to more (full stage only).
+ * Right after an item of a library group that wants it, the host speaks
+ * about them, and they fill the stage: their name, their few words and links
+ * to more, the host small above (full stage only).
  */
 export function StageVisual({ engine, compact = false }: { engine: EngineState; compact?: boolean }) {
   const { t, i18n } = useTranslation();
@@ -61,15 +62,11 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
             {engine.hostText && <p className="text-balance text-base leading-snug text-ink drop-shadow sm:text-xl">{engine.hostText}</p>}
           </div>
         )}
-        {engine.mode === 'host' && onAir.length === 0 && hostKind !== 'intercession' && (
-          <HostMoment
-            host={host}
-            text={engine.hostText}
-            label={t('stage.hostSpeaking', { name: host.name })}
-            notice={!compact && item?.type === 'host' ? item.notice : null}
-            compact={compact}
-            lang={lang}
-          />
+        {engine.mode === 'host' && onAir.length === 0 && hostKind !== 'intercession' && !compact && item?.type === 'host' && item.notice && (
+          <GroupMoment host={host} label={t('stage.hostSpeaking', { name: host.name })} notice={item.notice} lang={lang} />
+        )}
+        {engine.mode === 'host' && onAir.length === 0 && hostKind !== 'intercession' && (compact || item?.type !== 'host' || !item.notice) && (
+          <HostMoment host={host} text={engine.hostText} label={t('stage.hostSpeaking', { name: host.name })} compact={compact} lang={lang} />
         )}
         {engine.mode === 'contrib' && item?.type === 'contrib' && (
           <div className="max-w-lg animate-fly-in">
@@ -274,26 +271,12 @@ function Logo() {
  * The host speaking: their picture (or initial) in rings of their color,
  * who they are — a few words about them on the full stage — and what they say.
  */
-function HostMoment({
-  host,
-  text,
-  label,
-  notice,
-  compact,
-  lang,
-}: {
-  host: HostInfo;
-  text: string | null;
-  label: string;
-  notice: GroupNotice | null;
-  compact: boolean;
-  lang: Lang;
-}) {
+function HostMoment({ host, text, label, compact, lang }: { host: HostInfo; text: string | null; label: string; compact: boolean; lang: Lang }) {
   const about = host.about[lang] || host.about.en;
   // #rrggbb (the parser's promise) plus an alpha: the rings fade like the accent's did.
   const ring = (alpha: string): React.CSSProperties => ({ borderColor: `${host.color}${alpha}` });
   return (
-    <div className={clsx('stage-host flex max-w-xl flex-col items-center gap-3 animate-fly-in', notice && 'has-notice')}>
+    <div className="stage-host flex max-w-xl flex-col items-center gap-3 animate-fly-in">
       <div className="stage-host-avatar relative h-20 w-20 sm:h-24 sm:w-24">
         <span className="absolute inset-0 animate-ring rounded-full border-2" style={ring('99')} />
         <span className="absolute inset-0 animate-ring rounded-full border-2 [animation-delay:0.7s]" style={ring('66')} />
@@ -313,7 +296,6 @@ function HostMoment({
         {!compact && about && <p className="stage-host-about">{about}</p>}
       </div>
       {text && <p className="stage-host-text text-balance text-base leading-snug text-ink drop-shadow sm:text-xl">{text}</p>}
-      {notice && <NoticeCard notice={notice} lang={lang} />}
     </div>
   );
 }
@@ -327,26 +309,45 @@ function linkHost(url: string): string {
   }
 }
 
+const LINK_ICONS = { youtube: PlayIcon, website: GlobeIcon, other: ExternalIcon } as const;
+
 /**
- * Who the item before was from — a preacher, a church, a ministry, an artist
- * — a few words about them and where to find more. The links open outside
- * the app (a new tab; the system browser in the store apps), and are https
- * only: the parser drops anything else.
+ * Right after an item of a library group — a preacher, a church, a ministry,
+ * an artist — the host speaks about them, so they are the stage: their name
+ * big, the few words a moderator wrote, and where to find more; the host
+ * small above, still the one speaking. The links open outside the app (a new
+ * tab; the system browser in the store apps), and are https only: the parser
+ * drops anything else.
  */
-function NoticeCard({ notice, lang }: { notice: GroupNotice; lang: Lang }) {
+function GroupMoment({ host, label, notice, lang }: { host: HostInfo; label: string; notice: GroupNotice; lang: Lang }) {
   const { t } = useTranslation();
   const about = notice.text[lang] || notice.text.en;
   return (
-    <div className="stage-notice">
-      <p className="eyebrow">{t('stage.moreFrom', { name: notice.name })}</p>
-      {about && <p className="stage-notice-text">{about}</p>}
+    <div className="stage-group animate-fly-in">
+      <div className="stage-group-host">
+        {host.avatar ? (
+          <CdnImg src={host.avatar} className="h-8 w-8 rounded-full border-2 object-cover" style={{ borderColor: host.color }} />
+        ) : (
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold" style={{ borderColor: host.color }}>
+            {host.name.slice(0, 1)}
+          </span>
+        )}
+        <p className="eyebrow">{label}</p>
+      </div>
+      <p className="eyebrow">{t('stage.moreFrom')}</p>
+      <h2 className="stage-group-name">{notice.name}</h2>
+      {about && <p className="stage-group-about">{about}</p>}
       {notice.links.length > 0 && (
-        <div className="stage-prayer-actions">
-          {notice.links.map((l, i) => (
-            <a key={`${i}-${l.url}`} className="stage-prayer-share" href={l.url} target="_blank" rel="noopener noreferrer">
-              {l.kind === 'other' ? linkHost(l.url) : t(`stage.link.${l.kind}`)}
-            </a>
-          ))}
+        <div className="stage-group-links">
+          {notice.links.map((l, i) => {
+            const LinkIcon = LINK_ICONS[l.kind];
+            return (
+              <a key={`${i}-${l.url}`} className="stage-prayer-share stage-group-link" href={l.url} target="_blank" rel="noopener noreferrer">
+                <LinkIcon size={18} />
+                {l.kind === 'other' ? linkHost(l.url) : t(`stage.link.${l.kind}`)}
+              </a>
+            );
+          })}
         </div>
       )}
     </div>

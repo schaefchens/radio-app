@@ -32,6 +32,9 @@ final class HostBreaks
 {
     /** Hosts one moment may go through before it gives up. */
     private const MAX_TRIED = 4;
+    /** A script the model did not answer: asked again this often, while its moment is this far beyond the commit. */
+    private const SCRIPT_RETRIES = 2;
+    private const RETRY_LEAD_MS = 180_000;
     /** What a script pass wrote into the context, gone before the next pass writes its own. */
     private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution'];
 
@@ -309,6 +312,8 @@ final class HostBreaks
         $hb = $this->get((int) $job['ref_id']);
         if ($hb === null || $hb['state'] !== 'pending') return null;
         $phase = $job['phase'] === 'start' ? 'script' : (string) $job['phase'];
+        // Written again after the model did not answer (below).
+        if ($phase === 'wait:script') $phase = 'script';
 
         if ($phase === 'script') {
             $library = $this->libraryCovers($hb);
@@ -340,6 +345,16 @@ final class HostBreaks
             }
             $context = $this->app->hostWriter()->context($hb, $host);
             $written = $this->app->hostWriter()->write($hb, $context, $host);
+            // The model did not answer (a timeout, a dropped connection) while the
+            // moment is still far off — after a long video an hour away: asked
+            // again in half a minute, twice at most, before its template airs.
+            if ($written['source'] === 'template:error' && $this->mayAskAgain($hb)) {
+                $this->app->store()->query(
+                    "UPDATE host_breaks SET context = json_set(context, '$.script_retries', ?), updated = ? WHERE id = ? AND state = 'pending'",
+                    [(int) ($hb['context']['script_retries'] ?? 0) + 1, $this->app->clock->now(), $hb['id']],
+                );
+                return 'wait:script';
+            }
             // A switch before writing again: the clips of the one before go.
             $this->deleteClips($hb['audio']);
             // The model takes seconds: an account deleted meanwhile has had this break forgotten.
@@ -435,6 +450,20 @@ final class HostBreaks
             return 'wait';
         }
         return null;
+    }
+
+    /**
+     * Whether a script the model did not answer may be asked again: twice at
+     * most, and only while there is time to write and voice it before its
+     * minutes are fixed.
+     *
+     * @param array<string,mixed> $hb
+     */
+    private function mayAskAgain(array $hb): bool
+    {
+        if ((int) ($hb['context']['script_retries'] ?? 0) >= self::SCRIPT_RETRIES) return false;
+        $start = (int) ($this->app->store()->value('SELECT est_start FROM timeline_items WHERE host_break_id = ? ORDER BY id DESC LIMIT 1', [$hb['id']]) ?? 0);
+        return $start - $this->app->clock->nowMs() > Timing::COMMIT + self::RETRY_LEAD_MS;
     }
 
     /**

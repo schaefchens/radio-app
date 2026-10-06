@@ -82,13 +82,52 @@ final class Templates
     public static function texts(string $kind, array $c): array
     {
         $texts = self::plain($kind, $c);
-        // After an item of a group whose links the stage shows now.
-        $group = trim((string) ($c['previous_group']['name'] ?? ''));
-        if ($group === '') return $texts;
-        return [
-            'en' => $texts['en'] . " More from $group: the links are in the app now.",
-            'de' => $texts['de'] . " Mehr von $group – die Links findest du jetzt in der App.",
-        ];
+        // After an item of a group the stage now shows: them first, then the moment's own words.
+        $group = self::group($c);
+        if ($group === null) return $texts;
+        return ['en' => $group['en'] . ' ' . $texts['en'], 'de' => $group['de'] . ' ' . $texts['de']];
+    }
+
+    /** Where there is more from a group, by the kinds of its links. */
+    private const PLACES = [
+        'en' => ['youtube' => 'their YouTube channel', 'website' => 'their website', 'other' => 'their other pages'],
+        'de' => ['youtube' => 'auf ihrem YouTube-Kanal', 'website' => 'auf ihrer Website', 'other' => 'auf ihren anderen Seiten'],
+    ];
+
+    /**
+     * A group, presented: who they are in the few words a moderator wrote
+     * for listeners (`about`), and where there is more from them — by kind,
+     * never an address, never "in the app" (the stage shows the links).
+     *
+     * @param array<string,mixed> $c
+     * @return array<string,string>|null
+     */
+    private static function group(array $c): ?array
+    {
+        $g = (array) ($c['previous_group'] ?? []);
+        $name = trim((string) ($g['name'] ?? ''));
+        if ($name === '') return null;
+        // Two ways to say it, the same for the same group and item: a group heard often is not presented alike every time.
+        $v = crc32($name . '|' . (string) ($c['previous']['title'] ?? '')) % 2;
+        $out = [];
+        foreach (['en', 'de'] as $l) {
+            $places = array_values(array_filter(array_map(fn($k) => self::PLACES[$l][(string) $k] ?? null, (array) ($g['find'] ?? []))));
+            $where = implode($l === 'de' ? ' und ' : ' and ', $places);
+            $about = trim((string) ($g['about'][$l] ?? ''));
+            // Their words become the host's, and the host never prays: words that pray are left out.
+            if ($about !== '' && HostWriter::prays($about)) $about = '';
+            if ($about !== '' && !preg_match('/[.!?…]$/u', $about)) $about .= '.';
+            $open = $l === 'de' ? ($v ? "Gerade habt ihr $name gehört." : "Das war $name.") : ($v ? "You just heard $name." : "That was $name.");
+            $invite = match (true) {
+                $l === 'de' && $where !== '' => $v ? "Wenn dich das angesprochen hat: Mehr von ihnen findest du $where." : "Mehr von ihnen gibt es $where zu entdecken.",
+                $l === 'de' => $v ? 'Wenn dich das angesprochen hat: Von ihnen gibt es noch mehr zu entdecken.' : 'Von ihnen gibt es noch mehr zu entdecken.',
+                $where !== '' => $v ? "If that spoke to you, you'll find more from them on $where." : "There's more from them to discover on $where.",
+                default => $v ? "If that spoke to you, there's more from them to discover." : "There's more from them to discover.",
+            };
+            $out[$l] = trim("$open $about $invite");
+            $out[$l] = (string) preg_replace('/\s+/u', ' ', $out[$l]);
+        }
+        return $out;
     }
 
     /** @param array<string,mixed> $c @return array<string,string> */
