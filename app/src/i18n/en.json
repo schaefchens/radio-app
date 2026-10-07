@@ -1067,6 +1067,28 @@
         "marin": "female, natural — best quality",
         "cedar": "male, natural — best quality"
       },
+      "qwenVoices": {
+        "Ryan": "male, dynamic, rhythmic",
+        "Aiden": "male, sunny, American",
+        "Vivian": "female, bright, young",
+        "Serena": "female, warm, gentle",
+        "Uncle_Fu": "male, low, mellow",
+        "Dylan": "male, youthful, clear",
+        "Eric": "male, lively, slightly husky",
+        "Ono_Anna": "female, playful, light",
+        "Sohee": "female, warm, emotional"
+      },
+      "qwenVoiceDetails": {
+        "Ryan": "A dynamic male voice with a strong rhythmic drive. Native language: English.",
+        "Aiden": "A sunny American male voice with a clear midrange. Native language: English (American).",
+        "Vivian": "A bright, slightly edgy young female voice. Native language: Chinese.",
+        "Serena": "A warm, gentle young female voice. Native language: Chinese. Sounds good in German.",
+        "Uncle_Fu": "A seasoned male voice with a low, mellow timbre. Native language: Chinese.",
+        "Dylan": "A youthful male voice from Beijing with a clear, natural timbre. Native language: Chinese (Beijing dialect).",
+        "Eric": "A lively male voice from Chengdu with a slightly husky brightness. Native language: Chinese (Sichuan dialect).",
+        "Ono_Anna": "A playful Japanese female voice with a light, nimble timbre. Native language: Japanese.",
+        "Sohee": "A warm Korean female voice with rich emotion. Native language: Korean. Sounds good in German."
+      },
       "otherVoiceOpenAi": "A voice id of your own (voice_…)",
       "otherVoiceElevenLabs": "Another voice id",
       "otherVoiceWorker": "Another Qwen voice",

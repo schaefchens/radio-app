@@ -1067,6 +1067,28 @@
         "marin": "weiblich, natürlich – beste Qualität",
         "cedar": "männlich, natürlich – beste Qualität"
       },
+      "qwenVoices": {
+        "Ryan": "männlich, dynamisch, rhythmisch",
+        "Aiden": "männlich, sonnig, amerikanisch",
+        "Vivian": "weiblich, hell, jung",
+        "Serena": "weiblich, warm, sanft",
+        "Uncle_Fu": "männlich, tief, weich",
+        "Dylan": "männlich, jugendlich, klar",
+        "Eric": "männlich, lebhaft, leicht rau",
+        "Ono_Anna": "weiblich, verspielt, leicht",
+        "Sohee": "weiblich, warm, gefühlvoll"
+      },
+      "qwenVoiceDetails": {
+        "Ryan": "Dynamische Männerstimme mit kräftigem Sprechrhythmus. Muttersprache: Englisch.",
+        "Aiden": "Sonnige amerikanische Männerstimme mit klarer Mittellage. Muttersprache: Englisch (amerikanisch).",
+        "Vivian": "Helle, etwas kantige junge Frauenstimme. Muttersprache: Chinesisch.",
+        "Serena": "Warme, sanfte junge Frauenstimme. Muttersprache: Chinesisch. Klingt auf Deutsch gut.",
+        "Uncle_Fu": "Reife Männerstimme mit tiefer, weicher Klangfarbe. Muttersprache: Chinesisch.",
+        "Dylan": "Jugendliche Männerstimme aus Peking, klar und natürlich. Muttersprache: Chinesisch (Pekinger Dialekt).",
+        "Eric": "Lebhafte Männerstimme aus Chengdu, hell und leicht rau. Muttersprache: Chinesisch (Sichuan-Dialekt).",
+        "Ono_Anna": "Verspielte japanische Frauenstimme, leicht und beweglich. Muttersprache: Japanisch.",
+        "Sohee": "Warme koreanische Frauenstimme mit viel Gefühl. Muttersprache: Koreanisch. Klingt auf Deutsch gut."
+      },
       "otherVoiceOpenAi": "Eigene Stimmen-Kennung (voice_…)",
       "otherVoiceElevenLabs": "Andere Stimmen-ID",
       "otherVoiceWorker": "Andere Qwen-Stimme",
