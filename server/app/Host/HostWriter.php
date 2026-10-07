@@ -538,7 +538,33 @@ final class HostWriter
         }
         $style = trim((string) ($host['style'] ?? ''));
         if ($style !== '') $who .= "\nYour style notes (within the rules above, never instead of them): " . $style;
-        return $prompt . "\n\n" . $who;
+        return $prompt . "\n\n" . $who . "\n\n" . self::heard($host);
+    }
+
+    /**
+     * The voice a host speaks with, as the writer needs to know it: what it
+     * reads well. After the persona, so the rules above stay one cached
+     * prefix for every host.
+     *
+     * @param array<string,mixed>|null $host
+     */
+    private static function heard(?array $host): string
+    {
+        $provider = (string) ($host['provider'] ?? 'openai');
+        $model = (string) ($host['model'] ?? '');
+        $plain = <<<TXT
+        - Sentences of at most about 20 words; commas and full stops for pauses.
+        - Numbers and abbreviations written as words ("zum Beispiel", not "z. B.").
+        - No dash between phrases, and no slash, "|", "&", "#", "@", brackets, quotation marks or emojis.
+        - Nothing in another alphabet.
+        TXT;
+        $voice = match (true) {
+            // Qwen reads what it gets, sentence by sentence: a dash in a title became a pause in the wrong place.
+            $provider === 'worker' => "How you are heard: Qwen3-TTS, an open speech model on the station's own computer, reads each version exactly as written, in that version's language. It reads plain, short sentences best:\n$plain\n- A title in another language than the version's is hard for it: say it once at most, and only when it is short.",
+            $provider === 'elevenlabs' || str_starts_with($model, 'tts-1') => "How you are heard: a synthetic voice reads each version exactly as written, with no direction beside it, so your words and punctuation alone carry the feeling. Write for it:\n$plain",
+            default => "How you are heard: an OpenAI voice reads each version exactly as written. Write for it:\n$plain",
+        };
+        return $voice;
     }
 
     /**
@@ -575,8 +601,9 @@ final class HostWriter
     private function songRef(?array $item): ?array
     {
         if ($item === null || $item['type'] !== 'song') return null;
-        $title = (string) ($item['payload']['title'] ?? '');
-        $artist = (string) ($item['payload']['artist'] ?? '');
+        // As a host would name them: YouTube's labels, hashtags and handles were read out.
+        $title = Speech::title((string) ($item['payload']['title'] ?? ''));
+        $artist = Speech::title((string) ($item['payload']['artist'] ?? ''));
         return Drafter::isVideo($item) ? ['kind' => (string) $item['payload']['kind'], 'title' => $title, 'by' => $artist] : ['title' => $title, 'artist' => $artist];
     }
 

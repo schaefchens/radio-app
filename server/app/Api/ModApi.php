@@ -8,6 +8,7 @@ use Arche\Ai\Voice;
 use Arche\Ai\VoiceError;
 use Arche\Audio\Mp3;
 use Arche\Host\Hosts;
+use Arche\Host\Speech;
 use Arche\Http\Context;
 use Arche\Http\Response;
 use Arche\Identity\Identities;
@@ -742,6 +743,8 @@ final class ModApi
         $draft = $hosts->draft($host, $changes);
         $key = trim((string) ($changes['api_key'] ?? ''));
         if (!$hosts->mayTry($draft, mb_strlen($text))) throw new ApiError(422, 'host_no_room');
+        // As listeners would hear it: what the voice cannot say made speakable.
+        $text = Speech::forVoice($text, $lang);
         // A voice worker's: asked of the workers, the editor polls for the clip (hostTryResult).
         if (Voice::async($draft)) {
             $voice = Hosts::voiceFor($draft, $lang);

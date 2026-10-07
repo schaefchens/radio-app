@@ -38,7 +38,7 @@ printf("script (%s, %.1f s)\n", $written['source'], microtime(true) - $t0);
 foreach ($written['texts'] as $lang => $text) {
     echo "  [$lang] $text\n";
     $t1 = microtime(true);
-    $voice = $app->voice()->speak($host, $text, $lang);
+    $voice = $app->voice()->speak($host, Arche\Host\Speech::forVoice($text, $lang), $lang);
     $tmp = tempnam(sys_get_temp_dir(), 'tts');
     file_put_contents($tmp, $voice['bytes']);
     $mp3 = Arche\Audio\Mp3::inspect($tmp);

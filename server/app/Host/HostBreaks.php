@@ -392,7 +392,7 @@ final class HostBreaks
                 // A voice worker's (Host\Workers): asked for every language at once; its uploads finish the moment.
                 if (Voice::async($host)) return $this->askWorkers($hb, $host);
                 try {
-                    $spoken = $this->app->voice()->speak($host, $text, $lang);
+                    $spoken = $this->app->voice()->speak($host, Speech::forVoice($text, $lang, self::theirs($hb)), $lang);
                     $name = sprintf('%d-%s.%s.mp3', $hb['id'], Ids::short(6), $lang);
                     $url = $this->app->media()->put('host/' . gmdate('Ymd', $this->app->clock->now()), $name, $spoken['bytes']);
                     $check = Mp3::inspect((string) $this->app->media()->path($url));
@@ -482,7 +482,7 @@ final class HostBreaks
         $ids = [];
         foreach ($this->app->config->stationLangs() as $l) {
             $text = trim((string) ($hb['texts'][$l] ?? ''));
-            if ($text !== '' && !isset($hb['audio'][$l])) $ids[] = $workers->request('break', $hb['id'], $host, $l, $text, $deadline);
+            if ($text !== '' && !isset($hb['audio'][$l])) $ids[] = $workers->request('break', $hb['id'], $host, $l, Speech::forVoice($text, $l, self::theirs($hb)), $deadline);
         }
         $this->app->store()->query(
             "UPDATE host_breaks SET context = json_set(context, '$.tasks', json(?)), updated = ? WHERE id = ? AND state = 'pending'",
@@ -555,6 +555,18 @@ final class HostBreaks
         if ($rewrite) return 'script';
         $first = $this->nextLang($hb['texts'], null);
         return $first !== null ? 'tts:' . $first : 'script';
+    }
+
+    /**
+     * Whether a moment's words are people's own — a listener's request or
+     * prayer read out, a moderator's opening prayer — which the voice gets
+     * with only their typography made speakable (Speech::forVoice).
+     *
+     * @param array<string,mixed> $hb
+     */
+    private static function theirs(array $hb): bool
+    {
+        return in_array((string) $hb['source'], ['listener', 'moderator'], true);
     }
 
     /** @param array<string,mixed> $hb @return list<int> hosts this moment already failed with */
