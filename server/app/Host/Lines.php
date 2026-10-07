@@ -452,7 +452,8 @@ final class Lines
             'moment' => self::MEANS[$kind] ?? $kind,
             'program' => $program !== null ? [
                 'title' => ['en' => $program['title_en'], 'de' => $program['title_de']],
-                'subtitle' => ['en' => $program['subtitle_en'] ?? '', 'de' => $program['subtitle_de'] ?? ''],
+                // What it is about, never part of its name ("Welcome to Prayer Hour, We pray together").
+                'description' => HostWriter::about($program) ?? ['en' => '', 'de' => ''],
                 'format' => (string) ($program['settings']['format'] ?? 'music'),
                 'themes' => $program['themes'] ?? [],
             ] : null,

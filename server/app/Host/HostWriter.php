@@ -9,6 +9,7 @@ use Arche\Program\Drafter;
 use Arche\Program\PrayerHour;
 use Arche\Program\SubmissionWindow;
 use Arche\Submission\Submissions;
+use Arche\Support\BudgetExceeded;
 
 /**
  * Writes what the AI host says: one script per station language, from the
@@ -37,6 +38,12 @@ final class HostWriter
      * the script.
      */
     private const NOT_FOR_MODEL = ['previous_id', 'community_by', 'group_id'];
+    /** The moments that open and close a program: the only ones told what it is about. */
+    private const DESCRIBED = ['intro', 'outro'];
+    /** Seconds a script must have left of the tick: a call cut short airs the template (asked again only when its moment is far). */
+    private const MODEL_RESERVE = 12.0;
+    /** What the moment's data follows in the writer's message (after the show so far). */
+    public const MOMENT = "The next on-air moment, as JSON data:\n";
 
     public function __construct(private App $app) {}
 
@@ -60,19 +67,27 @@ final class HostWriter
         $prev = $item ? $timeline->before((int) $hb['channel_id'], $item['seq']) : null;
         $next = $item ? $timeline->after((int) $hb['channel_id'], $item['seq']) : null;
 
+        $at = (int) ($item['est_start'] ?? $this->app->clock->nowMs());
         $ctx = [
             'kind' => (string) $hb['kind'],
             'host_name' => (string) ($host['name'] ?? 'Hope'),
             'program' => $program ? [
                 'title' => ['en' => $program['title_en'], 'de' => $program['title_de']],
-                'subtitle' => ['en' => $program['subtitle_en'], 'de' => $program['subtitle_de']],
+            ] + (in_array($hb['kind'], self::DESCRIBED, true) && ($about = self::about($program)) !== null ? [
+                // Its subtitle, given to every moment, was read as part of the name each time:
+                // "Welcome to Prayer Hour, We pray together", three times in eleven minutes.
+                'description' => $about,
+            ] : []) + [
                 'themes' => $program['themes'],
             ] : null,
-            'time_of_day_de' => $this->timeOfDayDe($channel, (int) ($item['est_start'] ?? $this->app->clock->nowMs())),
+            'time_of_day_de' => $this->timeOfDayDe($channel, $at),
+            // The moment's own time, to find its way in the show so far (never said).
+            'now' => (new \DateTimeImmutable('@' . intdiv($at, 1000)))->setTimezone($this->app->resolver()->zone($channel))->format('H:i'),
             'previous' => $this->songRef($prev),
             'next' => $this->songRef($next),
             'next_uid' => '',
         ];
+        if ($ctx['next'] === null && ($then = $this->followedBy($hb, $next, $program)) !== '') $ctx['followed_by'] = $then;
         // Only a break that names the next song (or introduces the video after
         // it — a video program's own moment, named after its kind) pins it:
         // the committer drops the break if anything else ends up following it.
@@ -261,9 +276,10 @@ final class HostWriter
      * @param array<string,mixed> $hb
      * @param array<string,mixed> $context
      * @param array<string,mixed>|null $host who speaks it; null: the lineup's first
+     * @param array<string,mixed>|null $show the show so far (ShowLog); null: read now
      * @return array{texts:array<string,string>,source:string}
      */
-    public function write(array $hb, array $context, ?array $host = null): array
+    public function write(array $hb, array $context, ?array $host = null, ?array $show = null): array
     {
         $langs = $this->app->config->stationLangs();
         // A moderator's own prayer is read word for word, in the languages it
@@ -292,14 +308,22 @@ final class HostWriter
             ];
         }
         $schema = ['type' => 'object', 'properties' => $props, 'required' => $langs, 'additionalProperties' => false];
-        $user = json_encode(self::forModel($context), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        $user = self::MOMENT . json_encode(self::forModel($context), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        $show ??= $this->app->showLog()->forBreak($hb, (string) ($host['name'] ?? ''));
+        // The show so far comes first: it grows from one moment to the next, so
+        // the provider's prompt cache serves all of it but the newest entries again.
+        if ($show) $user = "The show so far (oldest first; its times only to find your way, never to be said), as JSON data:\n"
+            . json_encode($show, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n" . $user;
+        // Too little of the tick left: cut short, the call would air the template.
+        // The runner retries a BudgetExceeded on the next tick without counting it.
+        if ($this->app->budget->left() < self::MODEL_RESERVE) throw new BudgetExceeded('Too little of the tick left for a script; the next tick writes it.');
 
         $model = $this->app->text();
         $result = $model->json(
             'host_' . $hb['kind'],
             'host',
             $this->system($host),
-            "The next on-air moment, as JSON data:\n" . $user,
+            $user,
             $schema,
             4096,
             'low',
@@ -437,17 +461,40 @@ final class HostWriter
         another; you are the host who invites them to. Their own prayer requests and prayers are
         read out by the station exactly as they wrote them, without you.
 
-        Voice and length:
+        Voice, length and shape:
         - Warm, joyful and sincere; never preachy, never salesy, never over the top.
         - Written for the ear: 1 to 3 short sentences, at most 45 words per language; a moment
           that also reacts to previous_request or presents previous_group up to 70.
+        - One thought per moment, and vary the shape from moment to moment: not every break names
+          both the song before and the next one; sometimes only one of them, sometimes a thought on
+          the program's theme or a word to the listeners.
+        - The program's name is "program.title". "program.description" (given to the intro and the
+          outro only) says what it is about and is never part of the name.
+        - "followed_by", when given, is what airs right after you instead of a song: lead into it.
+        - German: correct grammar and cases, natural spoken radio German, "ihr" for the listeners.
         - No emojis, hashtags, links, stage directions or quotation marks around the whole text.
+
+        The show so far, when given, is what aired before you in this program, oldest first
+        ("before": the last items before it began): songs and videos, and what you or another host
+        said ("said"; "planned": still to come before you). A moment that named a listener is only
+        summarized there, so it names nobody, and you name nobody from it. Its times, like "now",
+        are only for finding your way: never say a clock time. Build on it:
+        - After the intro, do not welcome the listeners again or introduce yourself again.
+        - Say the program's or the station's name at most about every 20 minutes, apart from the
+          intro and the outro.
+        - Never repeat an opening, a turn of phrase or an adjective from what was said; begin
+          differently each time.
+        - You may refer back to what played or was said ("earlier this hour").
 
         Facts and honesty:
         - You are an AI host. Never claim to be human or invent personal experiences.
         - Say nothing about a song or artist beyond the title and artist you are given, and nothing
           about a video beyond its title and who it is from ("by") — never what it says, teaches or
           shows.
+        - Titles and artists come from YouTube and may be swapped or carry extra words (a channel's
+          name, who is singing). Name the song and who sings it the way a host would; when unsure,
+          the title only. A title in another language than the version's: say it once at most, and
+          when it is long, say what it is instead ("a German hymn by Paul Gerhardt").
         - An item of the kind "preaching", "testimony", "mission" or "film" (in "previous", "next" or
           a request) is a video, never a song: a preaching; a testimony, in which someone tells
           their own story of faith (not a listener's recording — that comes as a "contribution"); a
@@ -605,6 +652,60 @@ final class HostWriter
         $title = Speech::title((string) ($item['payload']['title'] ?? ''));
         $artist = Speech::title((string) ($item['payload']['artist'] ?? ''));
         return Drafter::isVideo($item) ? ['kind' => (string) $item['payload']['kind'], 'title' => $title, 'by' => $artist] : ['title' => $title, 'artist' => $artist];
+    }
+
+    /**
+     * What a program is about, in its own words: its description, else its
+     * subtitle; null when it has neither.
+     *
+     * @param array<string,mixed> $program
+     * @return array{en:string,de:string}|null
+     */
+    public static function about(array $program): ?array
+    {
+        foreach (['description', 'subtitle'] as $f) {
+            $about = ['en' => trim((string) ($program[$f . '_en'] ?? '')), 'de' => trim((string) ($program[$f . '_de'] ?? ''))];
+            if ($about['en'] . $about['de'] !== '') return $about;
+        }
+        return null;
+    }
+
+    /**
+     * What airs right after the host when it is not a song, in plain words.
+     * The prayer hour plans only minutes ahead, so its presentation is
+     * written before its readings exist: then what its running order puts
+     * next. Without it, the presentation said "the prayer time begins" with
+     * the requests still to be read.
+     *
+     * @param array<string,mixed> $hb
+     * @param array<string,mixed>|null $next the timeline item after the moment
+     * @param array<string,mixed>|null $program
+     */
+    private function followedBy(array $hb, ?array $next, ?array $program): string
+    {
+        if ($next !== null) {
+            if ($next['program_id'] !== null && $hb['program_id'] !== null && (int) $next['program_id'] !== (int) $hb['program_id']) return 'the next program';
+            return match ((string) $next['type']) {
+                'host' => match ((string) ($next['payload']['kind'] ?? '')) {
+                    'reading' => 'prayer requests, read out word for word',
+                    'intercession' => "a listener's prayer, read out word for word",
+                    'opening' => 'the opening prayer',
+                    'announce' => "the announcement of a listener's request",
+                    'contrib' => "a listener's recording, introduced",
+                    default => 'another host moment',
+                },
+                'contrib' => !empty($next['payload']['opening']) ? 'the opening prayer, recorded' : "a listener's recording",
+                'silence' => PrayerHour::applies($program) ? 'silence for prayer' : 'a moment of silence',
+                'bed' => 'prayer music',
+                'jingle' => 'the station jingle',
+                default => '',
+            };
+        }
+        return match ((string) $hb['kind']) {
+            'present' => 'the prayer requests, read out word for word',
+            'prayertime' => "the prayer time: listeners' prayers, and quiet",
+            default => '',
+        };
     }
 
     /** @param array<string,mixed> $channel */

@@ -26,7 +26,7 @@ printf("host %s (%s, %s)\n", $host['name'], $host['provider'], $host['model']);
 $context = [
     'kind' => 'announce',
     'host_name' => $host['name'],
-    'program' => ['title' => ['en' => $program['title_en'], 'de' => $program['title_de']], 'subtitle' => ['en' => $program['subtitle_en'], 'de' => $program['subtitle_de']], 'themes' => $program['themes']],
+    'program' => ['title' => ['en' => $program['title_en'], 'de' => $program['title_de']], 'themes' => $program['themes']],
     'time_of_day_de' => 'Abend',
     'previous' => ['title' => 'Battle Belongs', 'artist' => 'Phil Wickham'],
     'next' => ['title' => '10,000 Reasons', 'artist' => 'Matt Redman'],

@@ -17,6 +17,7 @@ use Arche\Host\HostBreaks;
 use Arche\Host\HostWriter;
 use Arche\Host\Hosts;
 use Arche\Host\Lines;
+use Arche\Host\ShowLog;
 use Arche\Host\Workers;
 use Arche\Identity\Erasure;
 use Arche\Identity\Identities;
@@ -223,6 +224,11 @@ final class App
     public function hostWriter(): HostWriter
     {
         return $this->service('hostWriter', HostWriter::class, fn() => new HostWriter($this));
+    }
+
+    public function showLog(): ShowLog
+    {
+        return $this->service('showLog', ShowLog::class, fn() => new ShowLog($this));
     }
 
     public function lines(): Lines

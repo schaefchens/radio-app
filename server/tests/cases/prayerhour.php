@@ -550,11 +550,11 @@ test('prayer hour: the host\'s words explain, present and invite — never a pra
     prayerHour($app, 735, 60, ['collect' => ['songs' => 1, 'minutes' => 12]]);
     $contexts = [];
     $app->text()->respond('host_intro', function (string $system, string $user) use (&$contexts) {
-        $contexts['intro'] = json_decode(substr($user, strpos($user, '{')), true);
+        $contexts['intro'] = momentOf($user);
         return ['en' => ['text' => 'Welcome to the prayer hour.'], 'de' => ['text' => 'Willkommen zur Gebetsstunde.']];
     });
     $app->text()->respond('host_prayertime', function (string $system, string $user) use (&$contexts) {
-        $contexts['prayertime'] = json_decode(substr($user, strpos($user, '{')), true);
+        $contexts['prayertime'] = momentOf($user);
         return ['en' => ['text' => 'The prayer time begins.'], 'de' => ['text' => 'Die Gebetszeit beginnt.']];
     });
     for ($m = 0; $m < 40; $m++) {
