@@ -239,6 +239,8 @@ test('workers: a cancelled or forgotten moment\'s tasks are turned away and lose
     eq([$t['lang'], $t['text']], ['de', 'Bitte betet für meine Mutter, sie ist krank.'], 'a prayer request goes to the worker word for word');
     $app->hostBreaks()->forget([$read], []);
     eq($app->store()->value("SELECT text FROM voice_tasks WHERE id = ?", [(int) $t['id']]), '', 'an erased account\'s words leave the tasks');
+    $told = fn(int $taskId) => json_decode((string) $app->store()->value('SELECT request FROM voice_tasks WHERE id = ?', [$taskId]), true)['instruct'] ?? null;
+    eq([$told((int) $task['id']), $told((int) $t['id'])], ['', ''], 'and so does what the voice was told about them (a moment\'s delivery travels in the instruct)');
 });
 
 test('workers: a worker host\'s Sprechtexte are recorded by the workers, against its monthly recording — real recordings in every mode', function () {
@@ -252,6 +254,7 @@ test('workers: a worker host\'s Sprechtexte are recorded by the workers, against
     workerPoll($app, $key);
     runJobs($app, 3);
     eq(array_column($app->workers()->tasksFor('line', (int) $line['id']), 'lang'), ['en', 'de'], 'both languages asked of the workers');
+    check(str_ends_with((string) $app->workers()->tasksFor('line', (int) $line['id'])[0]['request']['instruct'], 'Calm and unhurried, softly warm.'), 'recorded in the mood it was written in');
     runJobs($app, 3);
     eq(count($app->workers()->tasksFor('line', (int) $line['id'])), 2, 'and not asked twice');
     speakAll($app, $key);

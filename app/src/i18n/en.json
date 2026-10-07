@@ -962,9 +962,9 @@
       "otherDe": "Another voice for German",
       "voiceDe": "Voice for German",
       "direction": "How the voice sounds",
-      "directionHint": "Told to the voice, not written into the words: e.g. warm and calm, a smile in the voice, not too fast.",
+      "directionHint": "The voice's basic character, told to the voice, not written into the words: e.g. warm and calm, a smile in the voice, not too fast. Each moment adds its own mood on top.",
       "directionIgnored": "tts-1 models ignore this: choose gpt-4o-mini-tts for it.",
-      "directionHintWorker": "Style for Qwen, e.g. warm and calm, gentle, not too fast.",
+      "directionHintWorker": "Qwen's basic style, e.g. warm and calm, gentle, not too fast. Each moment adds its own mood on top.",
       "settings": {
         "stability": "Stability",
         "stabilityHint": "Lower: livelier, more varied. Higher: steadier.",

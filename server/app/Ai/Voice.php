@@ -5,6 +5,7 @@ namespace Arche\Ai;
 
 use Arche\App;
 use Arche\Host\Hosts;
+use Arche\Host\Speech;
 use Arche\Support\BudgetExceeded;
 
 /**
@@ -31,11 +32,13 @@ final class Voice
      * @param ?string $key the key to use instead of the host's (an unsaved one being tried)
      * @param ?string $usageKind what it counts as (Host\Lines records under its own kind,
      *                           never against the host's daily cap for moments on air)
+     * @param string $delivery how this moment should sound, added to the host's own direction
+     *                         (Host\Speech::direction; '' leaves it alone)
      * @return array{bytes:string,provider:string}
      * @throws VoiceError the provider said no, or did not answer
      * @throws BudgetExceeded the tick's time ran out mid-call (not the host's fault)
      */
-    public function speak(array $host, string $text, string $lang, #[\SensitiveParameter] ?string $key = null, ?string $usageKind = null): array
+    public function speak(array $host, string $text, string $lang, #[\SensitiveParameter] ?string $key = null, ?string $usageKind = null, string $delivery = ''): array
     {
         $provider = (string) $host['provider'];
         // Asked of a worker as a task (Host\Workers::request): a call here would go to OpenAI by mistake.
@@ -53,7 +56,7 @@ final class Voice
         try {
             $bytes = $provider === 'elevenlabs'
                 ? $this->app->elevenLabs()->speech($key, (string) $host['model'], $voice, $text, $lang, $settings)
-                : $this->app->openai()->speech($key, (string) $host['model'], $voice, $text, $this->direction($host, $lang), (float) $settings['speed']);
+                : $this->app->openai()->speech($key, (string) $host['model'], $voice, $text, $this->direction($host, $lang, $delivery), (float) $settings['speed']);
         } catch (VoiceError | BudgetExceeded $e) {
             throw $e;
         } catch (\RuntimeException $e) {
@@ -73,15 +76,15 @@ final class Voice
 
     /**
      * What OpenAI's gpt-4o-mini-tts is told besides the text: the language
-     * (spoken natively, never with the other one's accent), then the host's
-     * own direction.
+     * (spoken natively, never with the other one's accent), the host's own
+     * direction, then how this moment should sound.
      *
      * @param array<string,mixed> $host
      */
-    private function direction(array $host, string $lang): string
+    private function direction(array $host, string $lang, string $delivery): string
     {
         $line = $lang === 'de' ? 'Sprich natürliches Deutsch.' : 'Speak natural English.';
-        return trim($line . ' ' . trim((string) ($host['instructions'] ?? '')));
+        return trim($line . ' ' . Speech::direction((string) ($host['instructions'] ?? ''), $delivery));
     }
 
     private static function micros(string $model): int

@@ -298,7 +298,7 @@ test('hosts: an ElevenLabs quota used up — the same persona on OpenAI voices t
     $app->hosts()->setLineup('program', (int) $program['id'], [['id' => $el['id'], 'role' => 'main'], ['id' => $hope['id'], 'role' => 'fallback']]);
     $id = breakNow($app);
     $http->answers = [
-        openaiAnswer(['en' => ['text' => 'Welcome back.'], 'de' => ['text' => 'Willkommen zurück.']]),
+        openaiAnswer(['en' => ['text' => 'Welcome back.'], 'de' => ['text' => 'Willkommen zurück.'], 'delivery' => 'Glad and bright, with a smile.']),
         new HttpResponse(401, (string) json_encode(['detail' => ['status' => 'quota_exceeded', 'message' => 'This request exceeds your quota of 10000. You have 3 credits remaining.']])),
         new HttpResponse(200, mp3()),
         new HttpResponse(200, mp3()),
@@ -312,8 +312,9 @@ test('hosts: an ElevenLabs quota used up — the same persona on OpenAI voices t
     // JSON numbers: 0.0 and 1.0 travel as 0 and 1.
     eq($http->body(1), ['text' => 'Welcome back.', 'model_id' => 'eleven_flash_v2_5', 'voice_settings' => ['stability' => 0.3, 'similarity_boost' => 0.75, 'style' => 0, 'use_speaker_boost' => true, 'speed' => 1], 'language_code' => 'en'], 'its model, settings and the language');
     eq([$http->sent[2]['url'], $http->sent[2]['headers']['Authorization'] ?? ''], ['https://api.openai.com/v1/audio/speech', 'Bearer sk-station-0123456789'], 'OpenAI with the station\'s key: Hope has none of her own');
-    eq($http->body(2), ['model' => 'gpt-4o-mini-tts', 'voice' => 'coral', 'input' => 'Welcome back.', 'response_format' => 'mp3', 'instructions' => 'Speak natural English. Warm and calm, like a Christian radio host.'], 'the voice and its direction');
-    check(str_starts_with((string) $http->body(3)['instructions'], 'Sprich natürliches Deutsch.'), 'German told as German');
+    eq($http->body(2), ['model' => 'gpt-4o-mini-tts', 'voice' => 'coral', 'input' => 'Welcome back.', 'response_format' => 'mp3',
+        'instructions' => 'Speak natural English. Warm and calm, like a Christian radio host. Glad and bright, with a smile.'], 'the voice, its direction, and how this moment sounds — kept for the next host');
+    check(str_starts_with((string) $http->body(3)['instructions'], 'Sprich natürliches Deutsch.') && str_ends_with((string) $http->body(3)['instructions'], 'Glad and bright, with a smile.'), 'German told as German, in the same mood');
     $after = $app->hosts()->get($el['id']) ?? [];
     eq($after['resting_until'], (intdiv($app->clock->now(), 86400) + 1) * 86400, 'ElevenLabs rests until the next UTC day');
     check(str_contains($after['last_error'], 'quota_exceeded') && !str_contains($after['last_error'], 'cdef'), 'with the reason, never the key');

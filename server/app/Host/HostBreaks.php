@@ -36,7 +36,7 @@ final class HostBreaks
     private const SCRIPT_RETRIES = 2;
     private const RETRY_LEAD_MS = 180_000;
     /** What a script pass wrote into the context, gone before the next pass writes its own. */
-    private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution'];
+    private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution', 'delivery'];
 
     public function __construct(private App $app) {}
 
@@ -151,7 +151,8 @@ final class HostBreaks
     }
 
     /** What a script is written from that names listeners (HostWriter::context). */
-    private const PERSONAL = ['request', 'contribution', 'previous_request', 'previous_id', 'prayers', 'community', 'community_by'];
+    /** `delivery` too: written with the rest, it could name someone the sanitizer did not know of. */
+    private const PERSONAL = ['request', 'contribution', 'previous_request', 'previous_id', 'prayers', 'community', 'community_by', 'delivery'];
 
     /**
      * An account deleted by its owner (Identity\Erasure): these host breaks
@@ -358,8 +359,10 @@ final class HostBreaks
             // A switch before writing again: the clips of the one before go.
             $this->deleteClips($hb['audio']);
             // The model takes seconds: an account deleted meanwhile has had this break forgotten.
+            // How it should sound goes with the words (Speech::direction joins it to the host's own).
+            $delivery = $written['delivery'] !== '' ? ['delivery' => $written['delivery']] : [];
             if (!$this->saveIfPending($hb['id'], [
-                'context' => json_encode(['host_id' => $host['id']] + $context + array_diff_key($hb['context'], array_flip(self::WRITTEN)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'context' => json_encode(['host_id' => $host['id']] + $delivery + $context + array_diff_key($hb['context'], array_flip(self::WRITTEN)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'texts' => json_encode($written['texts'] ?: new \stdClass(), JSON_UNESCAPED_UNICODE),
                 'audio' => '{}',
                 'durations' => '{}',
@@ -392,7 +395,7 @@ final class HostBreaks
                 // A voice worker's (Host\Workers): asked for every language at once; its uploads finish the moment.
                 if (Voice::async($host)) return $this->askWorkers($hb, $host);
                 try {
-                    $spoken = $this->app->voice()->speak($host, Speech::forVoice($text, $lang, self::theirs($hb)), $lang);
+                    $spoken = $this->app->voice()->speak($host, Speech::forVoice($text, $lang, self::theirs($hb)), $lang, delivery: self::delivery($hb));
                     $name = sprintf('%d-%s.%s.mp3', $hb['id'], Ids::short(6), $lang);
                     $url = $this->app->media()->put('host/' . gmdate('Ymd', $this->app->clock->now()), $name, $spoken['bytes']);
                     $check = Mp3::inspect((string) $this->app->media()->path($url));
@@ -482,7 +485,7 @@ final class HostBreaks
         $ids = [];
         foreach ($this->app->config->stationLangs() as $l) {
             $text = trim((string) ($hb['texts'][$l] ?? ''));
-            if ($text !== '' && !isset($hb['audio'][$l])) $ids[] = $workers->request('break', $hb['id'], $host, $l, Speech::forVoice($text, $l, self::theirs($hb)), $deadline);
+            if ($text !== '' && !isset($hb['audio'][$l])) $ids[] = $workers->request('break', $hb['id'], $host, $l, Speech::forVoice($text, $l, self::theirs($hb)), $deadline, delivery: self::delivery($hb));
         }
         $this->app->store()->query(
             "UPDATE host_breaks SET context = json_set(context, '$.tasks', json(?)), updated = ? WHERE id = ? AND state = 'pending'",
@@ -567,6 +570,12 @@ final class HostBreaks
     private static function theirs(array $hb): bool
     {
         return in_array((string) $hb['source'], ['listener', 'moderator'], true);
+    }
+
+    /** How the moment's words should sound ('' leaves the host's own direction alone). @param array<string,mixed> $hb */
+    private static function delivery(array $hb): string
+    {
+        return (string) ($hb['context']['delivery'] ?? '');
     }
 
     /** @param array<string,mixed> $hb @return list<int> hosts this moment already failed with */

@@ -88,3 +88,45 @@ test('speech: the writer is told how its host\'s voice reads, after who the host
     check(str_contains($w->system(['name' => 'Hope', 'provider' => 'openai', 'model' => 'tts-1']), 'words and punctuation alone carry the feeling'), 'a voice without direction');
     check(str_contains($w->system(['name' => 'Hope', 'provider' => 'openai', 'model' => 'gpt-4o-mini-tts']), 'an OpenAI voice reads'), 'an OpenAI voice');
 });
+
+test('speech: each moment tells the voice how it should sound, on top of the host\'s own direction', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    workerHope($app);
+    $key = newWorker($app);
+    workerPoll($app, $key);
+    $app->text()->respond('host_break', fn() => ['en' => ['text' => 'What a joy.'], 'de' => ['text' => 'Was für eine Freude.'], 'delivery' => '  Glad and "bright", with a smile; stress the title. ']);
+    $id = breakNow($app);
+    runJobs($app, 2);
+    eq($app->hostBreaks()->get($id)['context']['delivery'] ?? null, 'Glad and bright, with a smile; stress the title.', 'kept with the moment, cleaned');
+    eq(array_column(array_column($app->workers()->tasksFor('break', $id), 'request'), 'instruct'),
+        array_fill(0, 2, 'Warm and calm, like a Christian radio host. Glad and bright, with a smile; stress the title.'), 'Qwen is told both, the host\'s own direction first');
+    $app->text()->respond('host_outro', fn() => ['en' => ['text' => 'Goodbye.'], 'de' => ['text' => 'Tschüss.']]);
+    $out = breakNow($app, 'outro');
+    runJobs($app, 2);
+    eq(array_column(array_column($app->workers()->tasksFor('break', $out), 'request'), 'instruct'), array_fill(0, 2, 'Warm and calm, like a Christian radio host.'), 'an answer without one leaves the host\'s direction alone');
+    eq(Speech::direction('Warm and calm', ''), 'Warm and calm', 'nothing added without a delivery');
+});
+
+test('speech: a delivery is one clean line, capped, and never names a listener or prays', function () {
+    $long = Speech::delivery(str_repeat('Warm and glad, ', 30));
+    check(mb_strlen($long) <= 201 && str_ends_with($long, '.'), 'capped at a word: ' . $long);
+    eq(Speech::delivery("Tender\nand [softly] calm"), 'Tender and softly calm', 'one line, no brackets');
+    eq(Speech::delivery('Warm, thank Anna warmly', ['previous_request' => ['name' => 'Anna', 'place' => 'Köln']]), '', 'a listener\'s name drops it');
+    eq(Speech::delivery('As if from Köln', ['request' => ['name' => 'Anna', 'place' => 'Köln']]), '', 'so does a place');
+    eq(Speech::delivery(['not', 'a string']), '', 'only text');
+    $app = TestKit::app(['STATION_LANGS' => 'en,de']);
+    $app->text()->respond('host_break', fn() => ['en' => ['text' => 'Hello.'], 'de' => ['text' => 'Hallo.'], 'delivery' => 'Solemn, then say Amen.']);
+    eq($app->hostWriter()->write(['id' => 0, 'kind' => 'break', 'channel_id' => (int) TestKit::main($app)['id'], 'program_id' => null, 'context' => []], ['kind' => 'break'])['delivery'], '', 'a delivery that prays is dropped');
+});
+
+test('speech: words the model does not write are told how to sound by the station', function () {
+    $app = TestKit::app();
+    $main = (int) TestKit::main($app)['id'];
+    $opening = $app->hostWriter()->write(['id' => 0, 'kind' => 'opening', 'channel_id' => $main, 'program_id' => null, 'context' => ['fixed' => ['en' => 'Gracious God, we come to you.']]], []);
+    eq([$opening['source'], $opening['delivery']], ['moderator', Speech::fixedDelivery('opening')], 'a moderator\'s opening prayer: calm and reverent');
+    check(str_contains(Speech::fixedDelivery('reading'), 'compassionate') && str_contains(Speech::fixedDelivery('intercession'), 'heartfelt'), 'people\'s requests and prayers read gently');
+    eq(Speech::fixedDelivery('break'), '', 'the model\'s moments bring their own');
+    eq(Speech::moodDelivery('joyful'), 'Glad and bright, with a smile in the voice; lively but not rushed.', 'a recorded line by its mood');
+    eq(Speech::moodDelivery(''), '', 'a line without a mood: the host\'s own direction');
+});

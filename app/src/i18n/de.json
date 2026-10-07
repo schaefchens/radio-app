@@ -962,9 +962,9 @@
       "otherDe": "Eigene Stimme für Deutsch",
       "voiceDe": "Stimme für Deutsch",
       "direction": "Wie die Stimme klingt",
-      "directionHint": "Wird der Stimme gesagt, nicht in die Worte geschrieben – z. B. warm und ruhig, mit einem Lächeln, nicht zu schnell.",
+      "directionHint": "Der Grundton der Stimme – ihr gesagt, nicht in die Worte geschrieben: z. B. warm und ruhig, mit einem Lächeln, nicht zu schnell. Jeder Moment gibt seine eigene Stimmung dazu.",
       "directionIgnored": "tts-1-Modelle ignorieren das: wähle dafür gpt-4o-mini-tts.",
-      "directionHintWorker": "Stil für Qwen, z. B. warm und ruhig, sanft, nicht zu schnell.",
+      "directionHintWorker": "Grundstil für Qwen, z. B. warm und ruhig, sanft, nicht zu schnell. Jeder Moment gibt seine eigene Stimmung dazu.",
       "settings": {
         "stability": "Stabilität",
         "stabilityHint": "Niedriger: lebendiger, abwechslungsreicher. Höher: gleichmäßiger.",

@@ -277,7 +277,8 @@ final class HostWriter
      * @param array<string,mixed> $context
      * @param array<string,mixed>|null $host who speaks it; null: the lineup's first
      * @param array<string,mixed>|null $show the show so far (ShowLog); null: read now
-     * @return array{texts:array<string,string>,source:string}
+     * @return array{texts:array<string,string>,source:string,delivery:string} `delivery`: how the
+     *         voice is told the moment should sound ('' leaves the host's own direction alone)
      */
     public function write(array $hb, array $context, ?array $host = null, ?array $show = null): array
     {
@@ -290,13 +291,15 @@ final class HostWriter
                 $t = trim((string) ($hb['context']['fixed'][$l] ?? ''));
                 if ($t !== '') $texts[$l] = $t;
             }
-            if ($texts) return ['texts' => $texts, 'source' => 'moderator'];
+            if ($texts) return ['texts' => $texts, 'source' => 'moderator', 'delivery' => Speech::fixedDelivery('opening')];
         }
         // An opening prayer is a moderator's or none: the AI never writes one
         // (not even when a prepared text is in no language the station speaks).
-        if ($hb['kind'] === 'opening') return ['texts' => [], 'source' => 'moderator'];
+        if ($hb['kind'] === 'opening') return ['texts' => [], 'source' => 'moderator', 'delivery' => ''];
         // People's own words, read out as they were written — no model.
-        if (in_array($hb['kind'], self::READINGS, true)) return ['texts' => $this->reading($hb), 'source' => 'listener'];
+        if (in_array($hb['kind'], self::READINGS, true)) {
+            return ['texts' => $this->reading($hb), 'source' => 'listener', 'delivery' => Speech::fixedDelivery((string) $hb['kind'])];
+        }
         $host ??= $this->defaultHost($hb);
         $props = [];
         foreach ($langs as $l) {
@@ -307,7 +310,8 @@ final class HostWriter
                 'additionalProperties' => false,
             ];
         }
-        $schema = ['type' => 'object', 'properties' => $props, 'required' => $langs, 'additionalProperties' => false];
+        // `delivery` last: written after the words, it describes them.
+        $schema = ['type' => 'object', 'properties' => $props + ['delivery' => ['type' => 'string']], 'required' => [...$langs, 'delivery'], 'additionalProperties' => false];
         $user = self::MOMENT . json_encode(self::forModel($context), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $show ??= $this->app->showLog()->forBreak($hb, (string) ($host['name'] ?? ''));
         // The show so far comes first: it grows from one moment to the next, so
@@ -330,7 +334,7 @@ final class HostWriter
         );
 
         $fallback = Templates::texts((string) $hb['kind'], $context);
-        if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason];
+        if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason, 'delivery' => ''];
 
         $max = self::maxChars((string) $hb['kind']);
         $texts = [];
@@ -343,7 +347,10 @@ final class HostWriter
             $texts[$l] = ($t === '' || mb_strlen($t) > $max || in_array($l, $prayed, true)) ? $fallback[$l] : $t;
         }
         if ($prayed) $this->app->store()->audit('host', 'The script prayed; the template was used', $hb['kind'] . ' ' . implode(',', $prayed));
-        return ['texts' => $texts, 'source' => $model->provider()];
+        // How it should sound, for the voice: never a listener's name (Speech::delivery), never a prayer.
+        $delivery = Speech::delivery($result->data['delivery'] ?? '', $context);
+        if (count($prayed) === count($langs) || self::prays($delivery)) $delivery = '';
+        return ['texts' => $texts, 'source' => $model->provider(), 'delivery' => $delivery];
     }
 
     /** The longest a moment of this kind may be, per language. */
@@ -605,13 +612,24 @@ final class HostWriter
         - No dash between phrases, and no slash, "|", "&", "#", "@", brackets, quotation marks or emojis.
         - Nothing in another alphabet.
         TXT;
+        $directed = !($provider === 'elevenlabs' || str_starts_with($model, 'tts-1'));
         $voice = match (true) {
             // Qwen reads what it gets, sentence by sentence: a dash in a title became a pause in the wrong place.
             $provider === 'worker' => "How you are heard: Qwen3-TTS, an open speech model on the station's own computer, reads each version exactly as written, in that version's language. It reads plain, short sentences best:\n$plain\n- A title in another language than the version's is hard for it: say it once at most, and only when it is short.",
-            $provider === 'elevenlabs' || str_starts_with($model, 'tts-1') => "How you are heard: a synthetic voice reads each version exactly as written, with no direction beside it, so your words and punctuation alone carry the feeling. Write for it:\n$plain",
+            !$directed => "How you are heard: a synthetic voice reads each version exactly as written, with no direction beside it, so your words and punctuation alone carry the feeling. Write for it:\n$plain",
             default => "How you are heard: an OpenAI voice reads each version exactly as written. Write for it:\n$plain",
         };
-        return $voice;
+        if (!$directed) return $voice . "\n\nWhen an answer asks for \"delivery\": one short line in English on the feeling of this moment. The voice is not given it; it is kept with the moment.";
+        // One standing direction made a joyful song, a welcome and a report about persecution sound alike.
+        $standing = trim((string) ($host['instructions'] ?? ''));
+        return $voice . "\n\n" . <<<TXT
+        When an answer asks for "delivery": one line in English, up to 25 words, that tells the voice how
+        this moment should sound — the feeling (for example glad and bright, tender and calm, quietly
+        serious, warm and inviting), the energy and pace, and what to stress. It is never spoken. It
+        adds to your voice's standing direction, so stay within it: the same person, only the mood
+        changes. Never whispering, shouting, singing, an accent or a character; no names, places or
+        words to be said.
+        TXT . ($standing !== '' ? "\nYour voice's standing direction: " . $standing : '');
     }
 
     /**

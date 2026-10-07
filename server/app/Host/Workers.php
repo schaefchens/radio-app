@@ -218,8 +218,10 @@ final class Workers
      *
      * @param array<string,mixed> $host decoded (or a draft from "Try voice")
      * @param array<string,mixed> $extra kept with the request (a line's voice signature)
+     * @param string $delivery how this moment should sound: Qwen's instruct is the host's own
+     *                         direction and this (Speech::direction)
      */
-    public function request(string $purpose, int $refId, array $host, string $lang, string $text, int $deadline = 0, array $extra = []): int
+    public function request(string $purpose, int $refId, array $host, string $lang, string $text, int $deadline = 0, array $extra = [], string $delivery = ''): int
     {
         $settings = Hosts::settings('worker', (array) $host['settings']);
         $now = $this->app->clock->now();
@@ -232,7 +234,7 @@ final class Workers
             'request' => json_encode([
                 'model' => (string) ($host['model'] ?: self::MODEL),
                 'voice' => Hosts::voiceFor($host, $lang),
-                'instruct' => trim((string) ($host['instructions'] ?? '')),
+                'instruct' => Speech::direction((string) ($host['instructions'] ?? ''), $delivery),
                 'temperature' => (float) $settings['temperature'],
                 'seed' => 0,
             ] + $extra, JSON_UNESCAPED_UNICODE),
@@ -257,7 +259,7 @@ final class Workers
     public function cancelFor(string $purpose, int $refId): void
     {
         $this->app->store()->query(
-            "UPDATE voice_tasks SET state = 'cancelled', text = '', updated = ? WHERE purpose = ? AND ref_id = ? AND state IN ('queued', 'leased')",
+            "UPDATE voice_tasks SET state = 'cancelled', text = '', request = json_set(request, '$.instruct', ''), updated = ? WHERE purpose = ? AND ref_id = ? AND state IN ('queued', 'leased')",
             [$this->app->clock->now(), $purpose, $refId],
         );
     }
@@ -266,7 +268,7 @@ final class Workers
     public function forget(string $purpose, int $refId): void
     {
         $this->cancelFor($purpose, $refId);
-        $this->app->store()->query("UPDATE voice_tasks SET text = '' WHERE purpose = ? AND ref_id = ?", [$purpose, $refId]);
+        $this->app->store()->query("UPDATE voice_tasks SET text = '', request = json_set(request, '$.instruct', '') WHERE purpose = ? AND ref_id = ?", [$purpose, $refId]);
     }
 
     /**
@@ -412,7 +414,7 @@ final class Workers
         };
         if ($handed === null) {
             // Its owner no longer wants it (cancelled meanwhile): turned away, nothing kept.
-            $this->app->store()->update('voice_tasks', ['state' => 'cancelled', 'text' => '', 'updated' => $this->app->clock->now()], 'id = ?', [$t['id']]);
+            $this->app->store()->query("UPDATE voice_tasks SET state = 'cancelled', text = '', request = json_set(request, '$.instruct', ''), updated = ? WHERE id = ?", [$this->app->clock->now(), $t['id']]);
             throw new ApiError(409, 'task_gone');
         }
         $this->app->store()->update('voice_tasks', ['state' => 'done', 'audio' => $handed, 'ms' => $check['ms'], 'error' => '', 'updated' => $this->app->clock->now()], 'id = ?', [$t['id']]);
@@ -506,14 +508,15 @@ final class Workers
             $requeued++;
         }
         $expired = $store->query(
-            "UPDATE voice_tasks SET state = 'cancelled', error = 'too late', text = '', updated = ? WHERE state = 'queued' AND deadline > 0 AND deadline <= ?",
+            "UPDATE voice_tasks SET state = 'cancelled', error = 'too late', text = '', request = json_set(request, '$.instruct', ''), updated = ? WHERE state = 'queued' AND deadline > 0 AND deadline <= ?",
             [$now, $now],
         )->rowCount();
         foreach ($store->all("SELECT id, audio FROM voice_tasks WHERE purpose = 'try' AND audio != '' AND updated < ?", [$now - self::TRY_KEEP]) as $r) {
             @unlink((string) $r['audio']);
             $store->update('voice_tasks', ['audio' => ''], 'id = ?', [(int) $r['id']]);
         }
-        $store->query("UPDATE voice_tasks SET text = '' WHERE text != '' AND state NOT IN ('queued', 'leased') AND updated < ?", [$now - 86400]);
+        // The moment's delivery travels in the instruct: it goes with the words.
+        $store->query("UPDATE voice_tasks SET text = '', request = json_set(request, '$.instruct', '') WHERE text != '' AND state NOT IN ('queued', 'leased') AND updated < ?", [$now - 86400]);
         return ['requeued' => $requeued, 'expired' => $expired];
     }
 

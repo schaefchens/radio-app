@@ -56,6 +56,8 @@ final class StubText implements TextModel
             str_starts_with($kind, 'host') => [
                 'en' => ['text' => 'You are listening to ARCHE. Stay with us for more worship.'],
                 'de' => ['text' => 'Ihr hört ARCHE. Bleibt dran für mehr Lobpreis.'],
+                // So dev and e2e carry a moment's delivery to the voice, as the model's answers do.
+                'delivery' => 'Warm and relaxed, with a smile in the voice.',
             ],
             $kind === 'moderate_song', $kind === 'moderate_preaching', $kind === 'moderate_testimony_video', $kind === 'moderate_mission',
             $kind === 'moderate_film', $kind === 'moderate_audio', $kind === 'moderate_prayer', $kind === 'moderate_intercession' => [

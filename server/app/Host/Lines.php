@@ -546,7 +546,7 @@ final class Lines
         $text = (string) $line['texts'][$lang];
         if ($this->room($host) < mb_strlen($text)) return null; // this month's allowance: the rest waits for the next
         try {
-            $spoken = $this->app->voice()->speak($host, Speech::forVoice($text, $lang), $lang, null, self::usageKind((int) $host['id']));
+            $spoken = $this->app->voice()->speak($host, Speech::forVoice($text, $lang), $lang, null, self::usageKind((int) $host['id']), Speech::moodDelivery((string) ($line['tags']['mood'] ?? '')));
             $url = $this->app->media()->put('lines', sprintf('%d-%s.%s.mp3', $line['id'], substr(hash('sha256', $spoken['bytes']), 0, 12), $lang), $spoken['bytes']);
             $check = Mp3::inspect((string) $this->app->media()->path($url));
             if (!$check['ok']) {
@@ -600,7 +600,7 @@ final class Lines
                     continue 2;
                 }
                 if ($room < mb_strlen($text)) return; // this month's allowance: the rest waits for the next
-                $workers->request('line', $line['id'], $host, $l, Speech::forVoice($text, $l), 0, ['signature' => $voice]);
+                $workers->request('line', $line['id'], $host, $l, Speech::forVoice($text, $l), 0, ['signature' => $voice], Speech::moodDelivery((string) ($line['tags']['mood'] ?? '')));
                 $room -= mb_strlen($text);
             }
         }
