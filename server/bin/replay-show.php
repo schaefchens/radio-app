@@ -112,7 +112,6 @@ foreach ($items as $i => $it) {
     if ($it['type'] !== 'host' || $spent >= $max) continue;
     $kind = (string) ($it['kind'] ?? '');
     $prog = (array) ($programs[$it['p']] ?? []);
-    $program = ['title_en' => $prog['title']['en'] ?? '', 'title_de' => $prog['title']['de'] ?? '', 'settings' => ['format' => $prog['format'] ?? 'music']];
     $name = (string) ($it['host']['name'] ?? 'Faith');
     [$provider, $voice] = $voices[mb_strtolower($name)] ?? ['worker', 'Sohee'];
     $host = ['id' => 0, 'name' => $name, 'about_en' => (string) ($it['host']['about']['en'] ?? ''), 'about_de' => (string) ($it['host']['about']['de'] ?? ''),
@@ -128,23 +127,13 @@ foreach ($items as $i => $it) {
         // People's own words: read as written; only the way they are spoken is new.
         $written = ['texts' => $old, 'delivery' => Speech::fixedDelivery($kind), 'source' => 'listener', 'seconds' => 0.0];
     } else {
-        $hour = (int) $local->format('G');
-        $ctx = [
-            'kind' => $kind,
-            'host_name' => $name,
-            'program' => ['title' => $prog['title'] ?? ['en' => '', 'de' => '']]
-                + (in_array($kind, ['intro', 'outro'], true) && ($about = HostWriter::about(['description_en' => $prog['description']['en'] ?? '', 'description_de' => $prog['description']['de'] ?? '',
-                    'subtitle_en' => $prog['subtitle']['en'] ?? '', 'subtitle_de' => $prog['subtitle']['de'] ?? ''])) !== null ? ['description' => $about] : [])
-                + ['themes' => []],
-            'time_of_day_de' => match (true) { $hour >= 5 && $hour < 10 => 'Morgen', $hour < 12 && $hour >= 10 => 'Vormittag', $hour >= 12 && $hour < 14 => 'Mittag',
-                $hour >= 14 && $hour < 18 => 'Nachmittag', $hour >= 18 && $hour < 22 => 'Abend', default => 'Nacht' },
-            'now' => $local->format('H:i'),
-            'previous' => HostWriter::songRef($prev !== null ? $asItem($prev, $i - 1) : null),
-            'next' => HostWriter::songRef($next !== null ? $asItem($next, $i + 1) : null),
-            'next_uid' => '',
-        ];
-        $then = $ctx['next'] === null ? HostWriter::followedBy(['kind' => $kind, 'program_id' => ($programIds[$it['p']] ?? 0) + 1], $next !== null ? $asItem($next, $i + 1) : null, $program) : '';
-        if ($then !== '') $ctx['followed_by'] = $then;
+        // The same frame the live writer starts every moment with (HostWriter::frame).
+        $row = ['title_en' => $prog['title']['en'] ?? '', 'title_de' => $prog['title']['de'] ?? '', 'themes' => [], 'settings' => ['format' => $prog['format'] ?? 'music']];
+        foreach (['description', 'subtitle'] as $f) {
+            foreach (['en', 'de'] as $l) $row["{$f}_$l"] = (string) ($prog[$f][$l] ?? '');
+        }
+        $ctx = $app->hostWriter()->frame(['kind' => $kind, 'program_id' => ($programIds[$it['p']] ?? 0) + 1], $name, $row, $main, $at,
+            $prev !== null ? $asItem($prev, $i - 1) : null, $next !== null ? $asItem($next, $i + 1) : null);
         if ($kind === 'outro' && $next !== null && ($next['p'] ?? '') !== $it['p']) $ctx['after'] = $programs[$next['p']]['title'] ?? null;
         if ($kind === 'announce' && $requested($next)) $ctx['request'] = ['name' => $next['request']['name'] ?? '', 'place' => $next['request']['place'] ?? '', 'message' => ''];
         if (in_array($kind, ['announce', 'contrib', 'break', 'outro'], true) && $requested($prev)) {

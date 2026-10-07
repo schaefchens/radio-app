@@ -67,27 +67,7 @@ final class HostWriter
         $prev = $item ? $timeline->before((int) $hb['channel_id'], $item['seq']) : null;
         $next = $item ? $timeline->after((int) $hb['channel_id'], $item['seq']) : null;
 
-        $at = (int) ($item['est_start'] ?? $this->app->clock->nowMs());
-        $ctx = [
-            'kind' => (string) $hb['kind'],
-            'host_name' => (string) ($host['name'] ?? 'Hope'),
-            'program' => $program ? [
-                'title' => ['en' => $program['title_en'], 'de' => $program['title_de']],
-            ] + (in_array($hb['kind'], self::DESCRIBED, true) && ($about = self::about($program)) !== null ? [
-                // Its subtitle, given to every moment, was read as part of the name each time:
-                // "Welcome to Prayer Hour, We pray together", three times in eleven minutes.
-                'description' => $about,
-            ] : []) + [
-                'themes' => $program['themes'],
-            ] : null,
-            'time_of_day_de' => $this->timeOfDayDe($channel, $at),
-            // The moment's own time, to find its way in the show so far (never said).
-            'now' => (new \DateTimeImmutable('@' . intdiv($at, 1000)))->setTimezone($this->app->resolver()->zone($channel))->format('H:i'),
-            'previous' => self::songRef($prev),
-            'next' => self::songRef($next),
-            'next_uid' => '',
-        ];
-        if ($ctx['next'] === null && ($then = self::followedBy($hb, $next, $program)) !== '') $ctx['followed_by'] = $then;
+        $ctx = $this->frame($hb, (string) ($host['name'] ?? 'Hope'), $program, $channel, (int) ($item['est_start'] ?? $this->app->clock->nowMs()), $prev, $next);
         // Only a break that names the next song (or introduces the video after
         // it — a video program's own moment, named after its kind) pins it:
         // the committer drops the break if anything else ends up following it.
@@ -156,6 +136,45 @@ final class HostWriter
             }
         }
         if (PrayerHour::applies($program)) $this->prayerHour($ctx, $hb, $channel, $program, $item);
+        return $ctx;
+    }
+
+    /**
+     * What every moment's context begins with, in this order — the order is
+     * the prompt: its kind and host, the program (what it is about only for
+     * intro and outro), the time, the songs either side, and what follows
+     * when that is no song. Shared with Host\Scenarios (/mod's test moments)
+     * and bin/replay-show.php, so a test is written as the air would be.
+     *
+     * @param array<string,mixed> $hb at least `kind` and `program_id`
+     * @param array<string,mixed>|null $program
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed>|null $prev the timeline item before the moment
+     * @param array<string,mixed>|null $next the item after it
+     * @return array<string,mixed>
+     */
+    public function frame(array $hb, string $hostName, ?array $program, array $channel, int $atMs, ?array $prev, ?array $next): array
+    {
+        $ctx = [
+            'kind' => (string) $hb['kind'],
+            'host_name' => $hostName,
+            'program' => $program ? [
+                'title' => ['en' => $program['title_en'], 'de' => $program['title_de']],
+            ] + (in_array($hb['kind'], self::DESCRIBED, true) && ($about = self::about($program)) !== null ? [
+                // Its subtitle, given to every moment, was read as part of the name each time:
+                // "Welcome to Prayer Hour, We pray together", three times in eleven minutes.
+                'description' => $about,
+            ] : []) + [
+                'themes' => $program['themes'] ?? [],
+            ] : null,
+            'time_of_day_de' => $this->timeOfDayDe($channel, $atMs),
+            // The moment's own time, to find its way in the show so far (never said).
+            'now' => (new \DateTimeImmutable('@' . intdiv($atMs, 1000)))->setTimezone($this->app->resolver()->zone($channel))->format('H:i'),
+            'previous' => self::songRef($prev),
+            'next' => self::songRef($next),
+            'next_uid' => '',
+        ];
+        if ($ctx['next'] === null && ($then = self::followedBy($hb, $next, $program)) !== '') $ctx['followed_by'] = $then;
         return $ctx;
     }
 
@@ -277,10 +296,12 @@ final class HostWriter
      * @param array<string,mixed> $context
      * @param array<string,mixed>|null $host who speaks it; null: the lineup's first
      * @param array<string,mixed>|null $show the show so far (ShowLog); null: read now
+     * @param ?string $effort how hard the model thinks; null: HOST_EFFORT (a test in /mod compares)
+     * @param ?string $usageKind what the call counts as; null: `host_<kind>` (a test in /mod is `host_try_<kind>`)
      * @return array{texts:array<string,string>,source:string,delivery:string} `delivery`: how the
      *         voice is told the moment should sound ('' leaves the host's own direction alone)
      */
-    public function write(array $hb, array $context, ?array $host = null, ?array $show = null): array
+    public function write(array $hb, array $context, ?array $host = null, ?array $show = null, ?string $effort = null, ?string $usageKind = null): array
     {
         $langs = $this->app->config->stationLangs();
         // A moderator's own prayer is read word for word, in the languages it
@@ -324,13 +345,13 @@ final class HostWriter
 
         $model = $this->app->text();
         $result = $model->json(
-            'host_' . $hb['kind'],
+            $usageKind ?? 'host_' . $hb['kind'],
             'host',
             $this->system($host),
             $user,
             $schema,
             4096,
-            self::effort($this->app->config->get('HOST_EFFORT', 'low')),
+            self::effort($effort ?? $this->app->config->get('HOST_EFFORT', 'low')),
         );
 
         $fallback = Templates::texts((string) $hb['kind'], $context);

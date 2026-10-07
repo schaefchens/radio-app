@@ -163,3 +163,27 @@ test('erasure: a later script that copied the show so far names nobody once the 
     check(!str_contains((string) json_encode($app->store()->all('SELECT context, texts FROM host_breaks')), 'Mia'), 'no script names her, not even one written from the memory later');
     check(!str_contains((string) json_encode($app->store()->all('SELECT payload FROM timeline_items')), 'Mia'), 'nor any item of the plan');
 });
+
+test('show: every moment\'s data begins the same way, in the same order — the order is the prompt', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    programChangeAt($app, 12 * 60 + 30);
+    ticks($app, 50);
+    $frame = ['kind', 'host_name', 'program', 'time_of_day_de', 'now', 'previous', 'next', 'next_uid'];
+    $seen = [];
+    foreach (['host_intro', 'host_break', 'host_outro'] as $kind) {
+        foreach (writerMessages($app, $kind) as $u) {
+            $keys = array_keys(momentOf($u));
+            eq(array_slice($keys, 0, count($frame)), $frame, "$kind begins with its frame");
+            $seen[$kind] = true;
+        }
+    }
+    // (No outro: the program before the evening one had no room for one here.)
+    check(isset($seen['host_intro'], $seen['host_break']), 'intros and breaks were written');
+    $hour = TestKit::app();
+    TestKit::songs($hour, 12);
+    prayerHour($hour, 735);
+    ticks($hour, 40);
+    $welcome = writerMessages($hour, 'host_intro');
+    check($welcome !== [] && array_slice(array_keys(momentOf(end($welcome))), 0, count($frame)) === $frame, 'a prayer hour\'s welcome too');
+});
