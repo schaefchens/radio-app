@@ -33,6 +33,10 @@ recordings, prayer requests and prayers read out) and a prayer hour's order
 written before its listeners tune in. Open Doors' daily prayer request is
 fetched hourly (`OPENDOORS_FEED_URL`; `off` turns it off). One real
 host break without touching the program: see `server/bin/try-host.php`.
+Before changing the host's words (prompt, model, effort), write a real
+stretch of the published program again and read it beside what aired:
+`server/bin/replay-show.php` (about a cent a moment; `--stub` costs nothing),
+then listen to its `cases.json` with the voice worker's `lab` (worker/README.md).
 
 First admin, exactly as in production: open http://localhost:5180/profile,
 create a passphrase, then open /setup and enter `ADMIN_SETUP_KEY` from `.env`.
@@ -354,7 +358,9 @@ Everything is an `.env` key (defaults in `server/config/defaults.php`, names in
 |---|---|---|
 | `AI_MODE` | `live` | `stub` = no network AI (tests, offline dev) |
 | `AI_TEXT_PROVIDER` | `auto` | who writes and moderates: `auto` (Claude if `ANTHROPIC_KEY` is set, else OpenAI), `anthropic`, `openai` |
-| `OPENAI_HOST_MODEL`, `OPENAI_MODERATION_MODEL` | `gpt-5.4-mini` | OpenAI model ids (when OpenAI writes and moderates); a new one also needs its price in `Ai\Usage` |
+| `OPENAI_HOST_MODEL` | `gpt-6.1-sol` | the OpenAI model that writes the host's words; a new one also needs its price in `Ai\Usage` |
+| `OPENAI_MODERATION_MODEL` | `gpt-5.4-mini` | the OpenAI model that checks submissions |
+| `HOST_EFFORT` | `low` | how hard the host's writer thinks: `low`, `medium` (better, twice as slow) or `high` |
 | `HOST_MODEL`, `MODERATION_MODEL` | `claude-opus-5` | Claude model ids (when Claude does) |
 | `STATION_LANGS` | `en,de` | languages every host break is voiced in |
 | `TICK_BUDGET` | `22` | seconds of network time per tick (from the probe) |

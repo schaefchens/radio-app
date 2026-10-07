@@ -139,15 +139,20 @@ evergreen loop for that span.
 `Ai\TextModel` (`App::text()`): Claude via the Anthropic PHP SDK when
 `ANTHROPIC_KEY` is set (`claude-opus-5` by default, `fallbacks: 'default'` on
 Opus 5, hard timeouts through a Guzzle transport, no SDK retries), otherwise
-OpenAI Chat Completions (`gpt-5.4-mini` by default) — an OpenAI key alone runs the
-whole station. Both answer through a strict JSON schema; every failure is a
-result without data, never an exception (except `BudgetExceeded`, which the job
-runner retries without counting an attempt). A script the model did not answer
-(`error`: a timeout, a dropped connection) is asked again 30 s later, twice at
-most, while its moment is more than `COMMIT` + 3 min away
-(`HostBreaks::mayAskAgain`): the break after a long video is written an hour
-early, and one timeout put its template on air. Voiced by the moment's host
-(below), with OpenAI or ElevenLabs. The German text may
+OpenAI Chat Completions — an OpenAI key alone runs the whole station: the host's
+words with `gpt-6.1-sol` (station decision 2026-10-07; `HOST_EFFORT`, low by
+default — medium wrote a little better and took twice as long, up to 15 s),
+the checks with `gpt-5.4-mini`. Both answer through a strict JSON schema; every
+failure is a result without data, never an exception (except `BudgetExceeded`,
+which the job runner retries without counting an attempt — a script starts
+only with 12 s of the tick left, since a call cut short airs the template). A
+script the model did not answer (`error`: a timeout, a dropped connection) is
+asked again 30 s later, twice at most, while its moment is more than `COMMIT` +
+2 min away (`HostBreaks::mayAskAgain`): the break after a long video is
+written an hour early, and one timeout put its template on air; scripts are
+written about eight minutes ahead, so three minutes left a first attempt no
+retry. Voiced by the moment's host (below), with OpenAI, ElevenLabs or a
+voice worker. The German text may
 say "heute Abend"; the English one is heard worldwide and stays time-neutral.
 All language versions share one slot length: the longest one plus padding.
 Cost gates (listeners ≥ `HOST_MIN_LISTENERS`, daily cap, `AI_DAILY_BUDGET_USD`)
@@ -159,6 +164,44 @@ for everyone who came on time; the hour's order must not depend on who
 listens. People's words read out (`reading`, `intercession`, a prepared
 opening prayer) are neither stopped nor counted by the daily cap. The job
 voices only the languages that have text (`HostBreaks::nextLang`).
+
+**The show so far, speakable words, a tone per moment** (station decision
+2026-10-07: the host "got lost while talking" — the prayer hour welcomed three
+times in eleven minutes, YouTube titles read raw, one tone for everything).
+`Host\ShowLog` gives the writer what played and what was said since the
+program's run began (`context.show`; by blocks and `seq`, never by times:
+estimates move), plus the two items before it, oldest first, at the channel's
+`HH:MM` — absolute, so one moment's memory is the start of the next one's and
+the prompt cache serves it again (cut at a half hour when over 16,000
+characters). It comes before the moment in the user message, is passed to
+`HostWriter::write()` on its own and never stored. It names nobody: a moment
+whose context named a listener (`ShowLog::quotable`: any key erasure looks
+for, a `prayers` list, people's words, a moderator's) is summarized, so no
+later script can copy a name that erasure would not find. The moment gains
+`now`, `followed_by` (what airs after it when not a song; a prayer hour's
+presentation, written before its readings exist, knows they come), and only
+intro and outro are told what a program is about (`program.description`: its
+description, else its subtitle — read as part of the name, it aired in every
+moment). `Host\Speech::forVoice` prepares every clip's text right before it
+is made (HostBreaks, Lines, "Try voice"): emoji, other alphabets, `#`/`@`, a
+dash or `|` between parts (Qwen paused there), `&`, `/`, capitals that would
+be spelled, brackets, quotes, a few abbreviations; people's own words lose
+typography only. The stage still shows the words as written, and a worker
+task carries the prepared text, so the length check measures what is spoken.
+`Speech::title` gives the writer titles without YouTube's labels, hashtags
+and handles; `system()` ends with how the host's voice reads (Qwen: plain
+short sentences, no symbols; after the persona, so the rules stay one cached
+prefix). The answer's last field is `delivery`: one English line on feeling,
+energy, pace and stress, joined to the host's own `instructions`
+(`Speech::direction`) as Qwen's instruct and OpenAI's direction; ElevenLabs and
+`tts-1` ignore it. It is dropped when it names a listener of the moment or
+prays, stored as `context.delivery` (in `WRITTEN` and `PERSONAL`), and blanked
+in `voice_tasks.request` wherever the words are. People's words read out and
+a moderator's prayer get a fixed delivery, recorded lines one from their
+mood; without one, the host's direction stays as it was. `bin/replay-show.php`
+rebuilds a stretch of the published program from its public files and
+writes it again beside what aired (and the worker lab's cases); run it before
+changing the host's words.
 
 **Hosts** (`Host\Hosts`, /mod › Hosts, admins; station decision 2026-10-05).
 Each host is a persona — picture, name, color, a few words in en/de that
@@ -268,6 +311,9 @@ words too, with that check. Recorded lines go to workers the same way
 the whole loop. Cancelling or forgetting a moment cancels its tasks and blanks
 their words; tasks lose their words after a day and go after two (privacy
 policy). One worker may serve several stations (production first, then dev).
+Each piece of a text is a take of its own whose delivery starts afresh
+(`[engine] chunk_chars`, 300 as the demo had it); `run-arche-worker.sh lab`
+speaks a replay's cases in several cuts and temperatures, for choosing by ear.
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
 while the minute file says `open`/`closing` (checked again server-side). Every
@@ -763,7 +809,19 @@ take, then the next host; a lease that ran out, a Mac gone quiet, a deadline;
 cancelled and forgotten moments' tasks turned away and blanked; a prayer
 request voiced word for word; Sprechtexte recorded by a worker, never stubbed;
 "Try voice" by task; no tick from worker routes; the purge; migration 15
-keeping hosts, lineups, lines, options and the id sequence), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+keeping hosts, lineups, lines, options and the id sequence), the show so far
+(`show.php`: the songs and words aired, oldest first, in both languages; one
+moment's memory the start of the next one's; dropped and pulled items left
+out; an intro given the end of the program before; only intro and outro told
+what a program is about; a moment that named a listener summarized, nobody's
+name, place or dedication in it; a long show cut at a half hour; a later
+script that copied it naming nobody once the account is gone), speech
+(`speech.php`: today's titles, symbols, dashes and capitals made speakable,
+people's words keeping every word, every template and lead-in intact, the
+voice given the prepared text while the stage keeps the words, how the host
+is heard after the persona, the delivery joined to the host's direction for
+Qwen and OpenAI and kept across a host switch, cleaned, capped, dropped when
+it names a listener or prays, fixed for people's words, a line's mood), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -875,4 +933,5 @@ on 2027-01-06 (announced 2026-10-01); its named successor,
 then fails with a lasting error and rests, so only ElevenLabs hosts speak —
 unless OpenAI offers a successor: the host editor takes any model id.
 `gpt-5-mini` goes on 2026-12-11 and `gpt-4o-transcribe` on 2027-02-26; the
-defaults are `gpt-5.4-mini` and `gpt-transcribe` (which takes `languages[]`).
+defaults are `gpt-6.1-sol` (the host), `gpt-5.4-mini` (the checks) and
+`gpt-transcribe` (which takes `languages[]`).
