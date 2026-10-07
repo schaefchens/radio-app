@@ -1077,14 +1077,6 @@
 .host-message strong {
   font-size: 14px;
 }
-/* A few words about the host, under their name. */
-.host-about {
-  display: block;
-  margin-top: 2px;
-  color: rgb(var(--ink-faint));
-  font-size: 11px;
-  line-height: 1.35;
-}
 .host-message p {
   margin: 8px 0 0;
   color: rgb(var(--ink-muted));

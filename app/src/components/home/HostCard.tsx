@@ -25,15 +25,18 @@ export function HostCard() {
   );
 }
 
-/** The host's face, name and words: the current ones, or the last ones while music plays. */
+/**
+ * The host's face, name and words: the current ones, or the last ones while
+ * music plays. No words about the host here: the stage shows them while the
+ * host speaks, and the schedule per program.
+ */
 export function HostBody() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const engine = useRadio((s) => s.engine);
   const channel = useSession((s) => s.channels?.channels.find((c) => c.id === engine.channel));
   // Who speaks now — or spoke last: several hosts share the station.
   const host = speakingHost(engine.item, engine.lastHost, channel);
   const name = host.name;
-  const about = host.about[i18n.language === 'de' ? 'de' : 'en'] || host.about.en;
   const speaking = engine.hostText !== null;
   // A prayer hour has no songs to come back between.
   const text = engine.hostText ?? engine.lastHost?.text ?? t(engine.program?.format === 'prayer' ? 'host.idlePrayer' : 'host.idle', { name });
@@ -44,7 +47,6 @@ export function HostBody() {
       </div>
       <div className="host-message">
         <strong>{name}</strong>
-        {about && <small className="host-about">{about}</small>}
         <div className={clsx('waveform', speaking && 'is-speaking')} aria-hidden="true">
           {BARS.map((h, i) => (
             <i key={i} style={{ '--bar': `${h}%`, animationDelay: `${(i % 7) * -0.13}s` } as React.CSSProperties} />

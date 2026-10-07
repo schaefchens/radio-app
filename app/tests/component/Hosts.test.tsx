@@ -91,11 +91,11 @@ describe('who speaks, on the stage', () => {
 });
 
 describe('who speaks, in the host card and the song row', () => {
-  it('the card shows who spoke last while music plays', () => {
+  it('the card shows who spoke last while music plays — their name and words, not the few words about them', () => {
     useRadio.setState({ engine: engineWith(song, { lastHost: { text: 'That was for Jenny.', at: 0, host: david } }) });
     render(<HostBody />);
     expect(screen.getByText('David')).toBeTruthy();
-    expect(screen.getByText('Mornings and your requests.')).toBeTruthy();
+    expect(screen.queryByText('Mornings and your requests.')).toBeNull();
     expect(screen.getByText('That was for Jenny.')).toBeTruthy();
   });
 
