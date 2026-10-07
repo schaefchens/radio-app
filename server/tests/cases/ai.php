@@ -80,7 +80,7 @@ test('ai: OpenAI answers are schema-bound JSON; refusals, cut-offs and errors ar
     eq($http->sent[0]['url'], 'https://api.openai.com/v1/chat/completions', 'Chat Completions');
     eq($http->sent[0]['headers']['Authorization'] ?? '', 'Bearer sk-test', 'the key as a Bearer header');
     $body = $http->body(0);
-    eq($body['model'], 'gpt-5.4-mini', 'the host model');
+    eq($body['model'], 'gpt-6.1-sol', 'the host model');
     eq($body['messages'][0], ['role' => 'system', 'content' => 'You are Hope.'], 'the system prompt');
     eq($body['response_format']['type'], 'json_schema', 'structured output');
     eq($body['response_format']['json_schema']['strict'], true, 'strict');
@@ -110,6 +110,13 @@ test('ai: OpenAI answers are schema-bound JSON; refusals, cut-offs and errors ar
     $older->text()->json('host_break', 'host', 's', 'u', $schema);
     check(!array_key_exists('reasoning_effort', $http2->body(0)), 'no effort for a model that rejects it');
 
+    foreach (['gpt-6.1-sol' => true, 'gpt-6-luna' => true, 'gpt-5.4-mini' => true, 'o4-mini' => true, 'gpt-4o' => false, 'gpt-4.1-mini' => false, 'gpt-5-chat-latest' => false] as $m => $takes) {
+        eq(OpenAiText::reasons($m), $takes, "an effort for $m: " . ($takes ? 'yes' : 'no'));
+    }
+    // The show so far makes long prompts whose start OpenAI has cached: 8,000 of 10,000 at a tenth of the price.
+    eq($app->usage()->openaiCost('gpt-6.1-sol-2026-09-01', 10_000, 500, 8_000), 2_000 * 2 + 8_000 / 10 + 500 * 10, 'cached input priced as such');
+    eq($app->usage()->openaiCost('gpt-6.1-sol', 10_000, 500), 10_000 * 2 + 500 * 10, 'none cached: the full price');
+
     $broke = TestKit::app(['OPENAI_KEY' => 'sk-test', 'AI_DAILY_BUDGET_USD' => '0'] + LIVE_NO_KEYS);
     $http3 = new FakeHttp();
     $broke->set('http', $http3);
@@ -123,10 +130,21 @@ test('ai: with OpenAI alone the host speaks both languages and a prayer is judge
     $app->set('http', $http);
     $ch = TestKit::main($app);
 
-    $http->answers[] = openaiAnswer(['en' => ['text' => 'Welcome to ARCHE.'], 'de' => ['text' => 'Willkommen bei ARCHE.']]);
+    $http->answers[] = openaiAnswer(['en' => ['text' => 'Welcome to ARCHE.'], 'de' => ['text' => 'Willkommen bei ARCHE.'], 'delivery' => 'Warm and bright.']);
     $written = $app->hostWriter()->write(['id' => 0, 'kind' => 'break', 'channel_id' => $ch['id']], ['kind' => 'break']);
     eq($written['source'], 'openai', 'written by OpenAI');
     eq($written['texts'], ['en' => 'Welcome to ARCHE.', 'de' => 'Willkommen bei ARCHE.'], 'in both station languages');
+    eq($written['delivery'], 'Warm and bright.', 'and how it should sound');
+    eq([$http->body(0)['model'], $http->body(0)['reasoning_effort']], ['gpt-6.1-sol', 'low'], 'by the host model, thinking little by default (HOST_EFFORT)');
+    eq($http->body(0)['response_format']['json_schema']['schema']['required'], ['en', 'de', 'delivery'], 'the delivery last, written after the words');
+    foreach (['medium' => 'medium', 'xhigh' => 'low'] as $setting => $sent) {
+        $e = TestKit::app(['OPENAI_KEY' => 'sk-test', 'HOST_EFFORT' => $setting] + LIVE_NO_KEYS);
+        $eh = new FakeHttp();
+        $e->set('http', $eh);
+        $eh->answers[] = openaiAnswer(['en' => ['text' => 'Hi.'], 'de' => ['text' => 'Hallo.'], 'delivery' => '']);
+        $e->hostWriter()->write(['id' => 0, 'kind' => 'break', 'channel_id' => $ch['id']], ['kind' => 'break']);
+        eq($eh->body(0)['reasoning_effort'], $sent, "HOST_EFFORT=$setting: $sent");
+    }
 
     [$d, $s] = device();
     $me = $app->identities()->resolve($d, $s, true);

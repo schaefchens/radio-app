@@ -15,24 +15,27 @@ use Arche\App;
  */
 final class Usage
 {
-    /** @var array<string,array{0:float,1:float}> input, output USD per 1M tokens */
+    /** @var array<string,array{0:float,1:float,2:float}> input, output, cached input — USD per 1M tokens */
     private const OPENAI = [
-        'gpt-5-nano' => [0.05, 0.4],
-        'gpt-5-mini' => [0.25, 2.0],
-        'gpt-5.4-mini' => [0.75, 4.5],
-        'gpt-5.6-luna' => [0.2, 1.2],
-        'gpt-5.6-terra' => [2.0, 12.0],
-        'gpt-5.6-sol' => [4.0, 20.0],
-        'gpt-6-luna' => [0.1, 0.5],
-        'gpt-5' => [1.25, 10.0],
-        'gpt-4.1-nano' => [0.1, 0.4],
-        'gpt-4.1-mini' => [0.4, 1.6],
-        'gpt-4.1' => [2.0, 8.0],
-        'gpt-4o-mini' => [0.15, 0.6],
-        'gpt-4o' => [2.5, 10.0],
+        'gpt-5-nano' => [0.05, 0.4, 0.005],
+        'gpt-5-mini' => [0.25, 2.0, 0.025],
+        'gpt-5.4-mini' => [0.75, 4.5, 0.075],
+        'gpt-5.6-luna' => [0.2, 1.2, 0.02],
+        'gpt-5.6-terra' => [2.0, 12.0, 0.2],
+        'gpt-5.6-sol' => [4.0, 20.0, 0.4],
+        'gpt-6-luna' => [0.1, 0.5, 0.01],
+        'gpt-6-sol' => [2.0, 10.0, 0.2],
+        'gpt-6.1-sol' => [2.0, 10.0, 0.1],
+        'gpt-6-astra' => [10.0, 50.0, 1.0],
+        'gpt-5' => [1.25, 10.0, 0.125],
+        'gpt-4.1-nano' => [0.1, 0.4, 0.025],
+        'gpt-4.1-mini' => [0.4, 1.6, 0.1],
+        'gpt-4.1' => [2.0, 8.0, 0.5],
+        'gpt-4o-mini' => [0.15, 0.6, 0.075],
+        'gpt-4o' => [2.5, 10.0, 1.25],
     ];
     /** A model not listed above is priced high on purpose: the cap must not be too generous. */
-    private const OPENAI_UNKNOWN = [5.0, 30.0];
+    private const OPENAI_UNKNOWN = [5.0, 30.0, 5.0];
     /** @var array<string,array{0:float,1:float}> input, output USD per 1M tokens */
     private const CLAUDE = [
         'claude-fable-5-1' => [10.0, 50.0],
@@ -61,9 +64,10 @@ final class Usage
 
     /**
      * OpenAI answers with a dated snapshot ("gpt-5-mini-2025-08-07"): the
-     * longest listed name it starts with sets the price.
+     * longest listed name it starts with sets the price. `$cached`: of the
+     * input, what the provider served from its prompt cache.
      */
-    public function openaiCost(string $model, int $in, int $out): int
+    public function openaiCost(string $model, int $in, int $out, int $cached = 0): int
     {
         $price = self::OPENAI_UNKNOWN;
         $best = 0;
@@ -74,7 +78,8 @@ final class Usage
                 $price = $p;
             }
         }
-        return (int) round($in * $price[0] + $out * $price[1]);
+        $cached = max(0, min($cached, $in));
+        return (int) round(($in - $cached) * $price[0] + $cached * $price[2] + $out * $price[1]);
     }
 
     public function record(string $kind, int $in, int $out, int $costMicros): void

@@ -28,11 +28,13 @@ test('host: the guard catches a prayer in the host\'s words and leaves invitatio
         'Lord, hear our prayers.', 'Herr, erhöre uns.', 'We are grateful. Father, thank you.', 'Let us pray for Maria.', "Let's all pray together.",
         'Lasst uns für Maria beten.', 'Lass uns beten.', 'God bless you all.', 'Gott segne dich.', 'Wir wünschen dir Gottes Segen.',
         "We ask this in Jesus' name.", 'Darum bitten wir in Jesu Namen.', 'Amen.', 'Vater, wir danken dir.',
+        "Let's take a moment to pray for them.", 'Lasst uns gemeinsam in der Stille für sie beten.',
     ] as $t) check(HostWriter::prays($t), "caught: $t");
     foreach ([
         'Bete mit für Maria.', 'In dieser Stunde betet ihr füreinander.', 'Schickt eure Gebete über die App.', 'Please pray for Maria.',
         'Pray along on the prayer wall.', 'Herr Müller, schön dass du da bist.', 'Thank you for every request and every prayer.', 'Einen schönen Abend!',
         'Take a moment to pray for this request.', 'A prayer request from Open Doors for persecuted Christians in Nigeria:',
+        "Let's listen to the next song. Pray along on the wall.", 'Lasst uns zuhören. Betet gern mit.',
     ] as $t) check(!HostWriter::prays($t), "left alone: $t");
 });
 

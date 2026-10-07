@@ -35,10 +35,11 @@ $context = [
 $t0 = microtime(true);
 $written = $app->hostWriter()->write(['id' => 0, 'kind' => 'announce', 'channel_id' => $channel['id']], $context, $host);
 printf("script (%s, %.1f s)\n", $written['source'], microtime(true) - $t0);
+printf("  delivery: %s\n", $written['delivery'] ?: '(none: the host\'s own direction)');
 foreach ($written['texts'] as $lang => $text) {
     echo "  [$lang] $text\n";
     $t1 = microtime(true);
-    $voice = $app->voice()->speak($host, Arche\Host\Speech::forVoice($text, $lang), $lang);
+    $voice = $app->voice()->speak($host, Arche\Host\Speech::forVoice($text, $lang), $lang, delivery: $written['delivery']);
     $tmp = tempnam(sys_get_temp_dir(), 'tts');
     file_put_contents($tmp, $voice['bytes']);
     $mp3 = Arche\Audio\Mp3::inspect($tmp);

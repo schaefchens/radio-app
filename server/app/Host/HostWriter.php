@@ -330,7 +330,7 @@ final class HostWriter
             $user,
             $schema,
             4096,
-            'low',
+            self::effort($this->app->config->get('HOST_EFFORT', 'low')),
         );
 
         $fallback = Templates::texts((string) $hb['kind'], $context);
@@ -351,6 +351,13 @@ final class HostWriter
         $delivery = Speech::delivery($result->data['delivery'] ?? '', $context);
         if (count($prayed) === count($langs) || self::prays($delivery)) $delivery = '';
         return ['texts' => $texts, 'source' => $model->provider(), 'delivery' => $delivery];
+    }
+
+    /** HOST_EFFORT as both providers take it; anything else thinks little and answers fast. */
+    private static function effort(string $setting): string
+    {
+        $e = strtolower(trim($setting));
+        return in_array($e, ['low', 'medium', 'high'], true) ? $e : 'low';
     }
 
     /** The longest a moment of this kind may be, per language. */
@@ -381,8 +388,9 @@ final class HostWriter
     {
         return preg_match(
             '/\bamen\b'
-            . '|\blet(?:\s+us|[\'’]s)\s+(?:\p{L}+\s+){0,3}pray\b'
-            . '|\blasst?\s+uns\s+(?:[\p{L}-]+\s+){0,4}beten\b'
+            // Within one sentence: a fluent writer says "let's take a moment to pray for them".
+            . '|\blet(?:\s+us|[\'’]s)\b[^.!?…]{0,80}?\bpray\b'
+            . '|\blasst?\s+uns\b[^.!?…]{0,80}?\bbeten\b'
             . '|\bgod\s+bless|\bbless\s+(?:you|us)\b|\bgott\s+segne|\bgottes\s+segen|\bsegne\s+(?:dich|euch|uns|sie)\b'
             . '|\bin\s+jesu\s+namen\b|\bin\s+jesus[\'’]?\s+name\b'
             . '|(?:^|[.!?…:;]\s*)(?:lord|father|jesus|god|herr|vater|gott)\s*[,!]/iu',

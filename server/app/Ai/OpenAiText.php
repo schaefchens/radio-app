@@ -80,7 +80,9 @@ final class OpenAiText implements TextModel
         $usage = is_array($data['usage'] ?? null) ? $data['usage'] : [];
         $in = (int) ($usage['prompt_tokens'] ?? 0);
         $out = (int) ($usage['completion_tokens'] ?? 0);
-        $this->app->usage()->record('text:' . $kind, $in, $out, $this->app->usage()->openaiCost($answered, $in, $out));
+        // The show so far makes long prompts whose start the provider has cached: priced as such.
+        $cached = (int) ($usage['prompt_tokens_details']['cached_tokens'] ?? 0);
+        $this->app->usage()->record('text:' . $kind, $in, $out, $this->app->usage()->openaiCost($answered, $in, $out, $cached));
 
         $choice = is_array($data['choices'][0] ?? null) ? $data['choices'][0] : [];
         $message = is_array($choice['message'] ?? null) ? $choice['message'] : [];
@@ -91,10 +93,13 @@ final class OpenAiText implements TextModel
         return is_array($parsed) ? new TextResult($parsed, 'ok', $answered) : new TextResult(null, 'unparsable', $answered);
     }
 
-    /** gpt-5… and o… take `reasoning_effort`; gpt-4… and the gpt-5 chat models reject it. */
+    /**
+     * gpt-5 and later, and o…, take `reasoning_effort`; gpt-4… and the chat
+     * models reject it. Without it gpt-6.1-sol thinks at its default, medium.
+     */
     public static function reasons(string $model): bool
     {
-        return (bool) preg_match('/^(o\d|gpt-5)/', $model) && !str_contains($model, 'chat');
+        return (bool) preg_match('/^(o\d|gpt-(?:[5-9]|\d{2,}))/', $model) && !str_contains($model, 'chat');
     }
 
     /** OpenAI wants a schema name of letters, digits, `_` and `-`, at most 64. */

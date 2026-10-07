@@ -17,8 +17,12 @@ return [
     'MODERATION_MODEL' => 'claude-opus-5',
     // gpt-5-mini is switched off on 2026-12-11; a model missing from
     // Ai\Usage::OPENAI is priced high and eats AI_DAILY_BUDGET_USD early.
-    'OPENAI_HOST_MODEL' => 'gpt-5.4-mini',
+    // The host's words: OpenAI's balanced model of 2026 (decided 2026-10-07 —
+    // gpt-5.4-mini's German slipped, and it lost the thread of a show).
+    'OPENAI_HOST_MODEL' => 'gpt-6.1-sol',
     'OPENAI_MODERATION_MODEL' => 'gpt-5.4-mini',
+    // How hard the writer thinks: low | medium | high (both providers take these).
+    'HOST_EFFORT' => 'low',
     // Jingles made with OpenAI's voice in /mod. The hosts' voices — OpenAI or
     // ElevenLabs, model, voice, key, a daily cap — are set per host in /mod › Hosts.
     'TTS_MODEL' => 'gpt-4o-mini-tts',
