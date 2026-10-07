@@ -32,9 +32,14 @@ final class HostBreaks
 {
     /** Hosts one moment may go through before it gives up. */
     private const MAX_TRIED = 4;
-    /** A script the model did not answer: asked again this often, while its moment is this far beyond the commit. */
+    /**
+     * A script the model did not answer: asked again this often, while its
+     * moment is this far beyond the commit. Scripts are written about eight
+     * minutes ahead (DRAFT), so a lead of three minutes left a first attempt
+     * no retry at all; two still leave a voice worker over a minute.
+     */
     private const SCRIPT_RETRIES = 2;
-    private const RETRY_LEAD_MS = 180_000;
+    private const RETRY_LEAD_MS = 120_000;
     /** What a script pass wrote into the context, gone before the next pass writes its own. */
     private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution', 'delivery'];
 

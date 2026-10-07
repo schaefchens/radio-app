@@ -83,11 +83,11 @@ final class HostWriter
             'time_of_day_de' => $this->timeOfDayDe($channel, $at),
             // The moment's own time, to find its way in the show so far (never said).
             'now' => (new \DateTimeImmutable('@' . intdiv($at, 1000)))->setTimezone($this->app->resolver()->zone($channel))->format('H:i'),
-            'previous' => $this->songRef($prev),
-            'next' => $this->songRef($next),
+            'previous' => self::songRef($prev),
+            'next' => self::songRef($next),
             'next_uid' => '',
         ];
-        if ($ctx['next'] === null && ($then = $this->followedBy($hb, $next, $program)) !== '') $ctx['followed_by'] = $then;
+        if ($ctx['next'] === null && ($then = self::followedBy($hb, $next, $program)) !== '') $ctx['followed_by'] = $then;
         // Only a break that names the next song (or introduces the video after
         // it — a video program's own moment, named after its kind) pins it:
         // the committer drops the break if anything else ends up following it.
@@ -388,8 +388,9 @@ final class HostWriter
     {
         return preg_match(
             '/\bamen\b'
-            // Within one sentence: a fluent writer says "let's take a moment to pray for them".
-            . '|\blet(?:\s+us|[\'’]s)\b[^.!?…]{0,80}?\bpray\b'
+            // Within one sentence: a fluent writer says "let's take a moment to pray for them",
+            // and "let's keep praying" aired on 2026-10-07.
+            . '|\blet(?:\s+us|[\'’]s)\b[^.!?…]{0,80}?\bpray(?:ing)?\b'
             . '|\blasst?\s+uns\b[^.!?…]{0,80}?\bbeten\b'
             . '|\bgod\s+bless|\bbless\s+(?:you|us)\b|\bgott\s+segne|\bgottes\s+segen|\bsegne\s+(?:dich|euch|uns|sie)\b'
             . '|\bin\s+jesu\s+namen\b|\bin\s+jesus[\'’]?\s+name\b'
@@ -653,11 +654,11 @@ final class HostWriter
         $sub = $this->app->submissions()->get((int) $item['submission_id']);
         if ($sub === null) return null;
         if ($sub['type'] === 'song') {
-            return ['kind' => 'song request', 'name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message'], 'song' => $this->songRef($item)];
+            return ['kind' => 'song request', 'name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message'], 'song' => self::songRef($item)];
         }
         if (in_array($sub['type'], Submissions::SUGGESTION_TYPES, true)) {
             $kind = Submissions::libraryKind((string) $sub['type']);
-            return ['kind' => "$kind suggestion", 'name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message'], $kind => $this->songRef($item)];
+            return ['kind' => "$kind suggestion", 'name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message'], $kind => self::songRef($item)];
         }
         $meta = json_decode((string) $sub['meta'], true) ?: [];
         return ['kind' => $sub['type'], 'name' => $sub['name'], 'place' => $sub['place'], 'summary' => (string) ($meta['host_context'] ?? '')];
@@ -671,7 +672,7 @@ final class HostWriter
      * @param array<string,mixed>|null $item
      * @return array{title:string,artist:string}|array{kind:string,title:string,by:string}|null
      */
-    private function songRef(?array $item): ?array
+    public static function songRef(?array $item): ?array
     {
         if ($item === null || $item['type'] !== 'song') return null;
         // As a host would name them: YouTube's labels, hashtags and handles were read out.
@@ -707,7 +708,7 @@ final class HostWriter
      * @param array<string,mixed>|null $next the timeline item after the moment
      * @param array<string,mixed>|null $program
      */
-    private function followedBy(array $hb, ?array $next, ?array $program): string
+    public static function followedBy(array $hb, ?array $next, ?array $program): string
     {
         if ($next !== null) {
             if ($next['program_id'] !== null && $hb['program_id'] !== null && (int) $next['program_id'] !== (int) $hb['program_id']) return 'the next program';
