@@ -7,8 +7,10 @@ import { VOICE_PROVIDERS, type Lang, type VoiceProvider } from '@arche/shared';
 import { api } from '@/lib/api';
 import { localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
-import { HOST_DEFAULTS, MODELS, QWEN_VOICES, VOICES, modError, type HostSettings, type ModHost, type VoiceCatalog, type WorkerTry } from './modApi';
+import { HOST_DEFAULTS, MODELS, QWEN_VOICES, VOICES, modError, type HostSettings, type ModHost, type VoiceCatalog } from './modApi';
 import { HostAvatar } from './HostLineup';
+import { HostScenario } from './HostScenario';
+import { playClip, speakTry, tryError } from './voiceTry';
 import { WorkersSection } from './WorkersSection';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
 
@@ -415,6 +417,7 @@ function HostEditor({ host, onDone, onCancel }: { host: ModHost | null; onDone: 
         </div>
 
         {host && <TryVoice host={host} draft={d} keyBody={keyBody} />}
+        {host && <HostScenario host={host} provider={d.provider} draftBody={() => ({ ...bodyOf(d), ...keyBody() })} />}
         {host && host.used_in.length > 0 && (
           <p className="text-xs text-ink-muted">
             {t('mod.hosts.usedIn', {
@@ -603,18 +606,12 @@ function Slider({ label, hint, min, max, step, value, onChange }: { label: strin
   );
 }
 
-/** How often a try on our own computers is asked after, and for how long. */
-const TRY_POLL_MS = 1500;
-const TRY_GIVE_UP_MS = 90_000;
-
-const wait = (ms: number): Promise<void> => new Promise((done) => setTimeout(done, ms));
-
 /**
  * A sample in the host's voice, with the editor's unsaved changes — how a
  * direction or a setting sounds before it is saved. It costs what a moment
  * costs (ElevenLabs: characters of the account) and counts against the cap.
  * On our own computers it is a job like a moment's: the answer is a task,
- * asked after until a computer has spoken it (or 90 s have passed).
+ * asked after until a computer has spoken it (speakTry).
  */
 function TryVoice({ host, draft, keyBody }: { host: ModHost; draft: Draft; keyBody: () => Record<string, unknown> }) {
   const { t, i18n } = useTranslation();
@@ -629,51 +626,17 @@ function TryVoice({ host, draft, keyBody }: { host: ModHost; draft: Draft; keyBo
   const [result, setResult] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const playing = useRef<HTMLAudioElement | null>(null);
 
-  /** A task on our own computers, asked after until it is spoken. Null: it failed (the result says why). */
-  const awaitTask = async (task: number): Promise<{ audio: string; ms: number } | null> => {
-    const until = Date.now() + TRY_GIVE_UP_MS;
-    for (;;) {
-      const s = await api<WorkerTry>(`/mod/hosts/try/${task}`);
-      if (s.state === 'done' && s.audio) return { audio: s.audio, ms: s.ms ?? 0 };
-      if (s.state === 'failed' || s.state === 'cancelled') {
-        setResult({ tone: 'error', text: t('mod.hosts.try.failed', { error: s.error ?? s.state }) });
-        return null;
-      }
-      setProgress(s.state === 'leased' ? 'speaking' : 'waiting');
-      if (Date.now() >= until) {
-        setResult({ tone: 'error', text: t('mod.hosts.try.gaveUp') });
-        return null;
-      }
-      await wait(TRY_POLL_MS);
-    }
-  };
-
   const play = async (): Promise<void> => {
     setBusy(true);
     setResult(null);
     setProgress(null);
     playing.current?.pause();
     try {
-      const sent = await api<{ audio?: string; ms?: number; task?: number; provider: string; voice: string; model: string }>('/mod/hosts/try', {
-        body: { host_id: host.id, lang, text: text[lang], draft: { ...bodyOf(draft), ...keyBody() } },
-      });
-      // Our own computers answer with a task (202), the others with the clip.
-      let clip: { audio: string; ms: number } | null = { audio: sent.audio ?? '', ms: sent.ms ?? 0 };
-      if (typeof sent.task === 'number') {
-        setProgress('waiting');
-        clip = await awaitTask(sent.task);
-      }
-      if (clip === null) return;
-      const r = { ...sent, ...clip };
+      const r = await speakTry({ host_id: host.id, lang, text: text[lang], draft: { ...bodyOf(draft), ...keyBody() } }, setProgress);
       setResult({ tone: 'ok', text: t('mod.hosts.try.played', { seconds: (r.ms / 1000).toFixed(1), chars: text[lang].length, voice: r.voice, model: r.model }) });
-      const audio = new Audio(`data:audio/mpeg;base64,${r.audio}`);
-      playing.current = audio;
-      // The clip was made (and paid for) either way; a browser that will not play it says so in its own way.
-      void Promise.resolve()
-        .then(() => audio.play())
-        .catch(() => undefined);
+      playing.current = playClip(r.audio, playing.current);
     } catch (e) {
-      setResult({ tone: 'error', text: modError(e) });
+      setResult({ tone: 'error', text: tryError(e, t) });
     } finally {
       setBusy(false);
       setProgress(null);

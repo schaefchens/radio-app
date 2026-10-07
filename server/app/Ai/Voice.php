@@ -87,6 +87,21 @@ final class Voice
         return trim($line . ' ' . Speech::direction((string) ($host['instructions'] ?? ''), $delivery));
     }
 
+    /**
+     * What a host's voice is told besides the words, as /mod shows it after a
+     * try: Qwen's instruct, OpenAI's direction — none for ElevenLabs and the
+     * tts-1 models, which take no direction.
+     *
+     * @param array<string,mixed> $host
+     */
+    public function directionFor(array $host, string $lang, string $delivery): string
+    {
+        $provider = (string) ($host['provider'] ?? 'openai');
+        if ($provider === 'worker') return Speech::direction((string) ($host['instructions'] ?? ''), $delivery);
+        if ($provider === 'elevenlabs' || str_starts_with((string) ($host['model'] ?? ''), 'tts-1')) return '';
+        return $this->direction($host, $lang, $delivery);
+    }
+
     private static function micros(string $model): int
     {
         foreach (self::OPENAI_MICROS as $name => $micros) {

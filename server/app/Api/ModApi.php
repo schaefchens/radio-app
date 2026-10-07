@@ -7,7 +7,9 @@ use Arche\ApiError;
 use Arche\Ai\Voice;
 use Arche\Ai\VoiceError;
 use Arche\Audio\Mp3;
+use Arche\Host\HostWriter;
 use Arche\Host\Hosts;
+use Arche\Host\Scenarios;
 use Arche\Host\Speech;
 use Arche\Http\Context;
 use Arche\Http\Response;
@@ -722,11 +724,19 @@ final class ModApi
         return $out;
     }
 
+    /** "Try voice" and a test moment's words (Host\Scenarios): at most this long — a prayer hour's welcome runs to 1,100. */
+    private const TRY_MAX = 1200;
+    /** Tries an hour per admin: a test moment is one per language, and spoken again after a change. */
+    private const TRIES_HOUR = 60;
+
     /**
-     * "Try voice": a sample in a host's voice with the editor's unsaved
-     * changes (voice, direction, settings, a key typed in). Counted against
-     * the host's characters like any clip, and a daily cap still applies — an
-     * ElevenLabs host without one is never voiced. 20 an hour per admin.
+     * "Try voice": words in a host's voice with the editor's unsaved changes
+     * (voice, direction, settings, a key typed in) — a sample, or a test
+     * moment's words with the delivery it was written with (`delivery`;
+     * `theirs`: people's own words, made speakable in their typography
+     * only). Counted against the host's characters like any clip, and a
+     * daily cap still applies — an ElevenLabs host without one is never
+     * voiced. The answer says what the voice got: the words and its direction.
      */
     public function hostTry(): array|Response
     {
@@ -736,7 +746,7 @@ final class ModApi
         $hosts = $app->hosts();
         $host = $hosts->get((int) ($in['host_id'] ?? 0)) ?? throw new ApiError(404, 'not_found');
         $text = trim((string) preg_replace('/\s+/u', ' ', (string) ($in['text'] ?? '')));
-        if ($text === '' || mb_strlen($text) > 300) throw new ApiError(422, 'host_try_text');
+        if ($text === '' || mb_strlen($text) > self::TRY_MAX) throw new ApiError(422, 'host_try_text');
         $langs = $app->config->stationLangs();
         $lang = in_array($in['lang'] ?? '', $langs, true) ? (string) $in['lang'] : $langs[0];
         $changes = is_array($in['draft'] ?? null) ? $in['draft'] : [];
@@ -744,19 +754,23 @@ final class ModApi
         $key = trim((string) ($changes['api_key'] ?? ''));
         if (!$hosts->mayTry($draft, mb_strlen($text))) throw new ApiError(422, 'host_no_room');
         // As listeners would hear it: what the voice cannot say made speakable.
-        $text = Speech::forVoice($text, $lang);
+        $text = Speech::forVoice($text, $lang, !empty($in['theirs']));
+        $delivery = Speech::delivery($in['delivery'] ?? '');
+        if (HostWriter::prays($delivery)) $delivery = '';
+        $told = ['spoken' => $text, 'direction' => $app->voice()->directionFor($draft, $lang, $delivery)];
         // A voice worker's: asked of the workers, the editor polls for the clip (hostTryResult).
         if (Voice::async($draft)) {
             $voice = Hosts::voiceFor($draft, $lang);
             if (!$app->workers()->online($voice, (string) $draft['model'])) throw new ApiError(409, 'no_worker');
-            if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], 20, 3600)) throw new ApiError(429, 'rate_limited');
-            $task = $app->workers()->request('try', 0, $draft, $lang, $text, $app->clock->now() + 120);
+            if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], self::TRIES_HOUR, 3600)) throw new ApiError(429, 'rate_limited');
+            // Longer words take longer: about two characters a second to make, and a queue before them.
+            $task = $app->workers()->request('try', 0, $draft, $lang, $text, $app->clock->now() + 120 + intdiv(mb_strlen($text), 2), delivery: $delivery);
             $app->store()->audit($this->actor(), 'Host voice tried', $host['id'] . ' ' . $host['name'] . ' (' . $lang . ', ' . mb_strlen($text) . ' characters, worker)');
-            return new Response(['task' => $task, 'provider' => 'worker', 'voice' => $voice, 'model' => (string) $draft['model']], 202);
+            return new Response(['task' => $task, 'provider' => 'worker', 'voice' => $voice, 'model' => (string) $draft['model']] + $told, 202);
         }
-        if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], 20, 3600)) throw new ApiError(429, 'rate_limited');
+        if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], self::TRIES_HOUR, 3600)) throw new ApiError(429, 'rate_limited');
         try {
-            $spoken = $app->voice()->speak($draft, $text, $lang, $key !== '' ? $key : null);
+            $spoken = $app->voice()->speak($draft, $text, $lang, $key !== '' ? $key : null, delivery: $delivery);
         } catch (VoiceError $e) {
             throw new ApiError(502, 'voice_failed', ['reason' => $e->getMessage()]);
         } catch (BudgetExceeded) {
@@ -770,7 +784,41 @@ final class ModApi
         $app->store()->audit($this->actor(), 'Host voice tried', $host['id'] . ' ' . $host['name'] . ' (' . $lang . ', ' . mb_strlen($text) . ' characters)');
         // Which voice and model spoke: what the editor shows, so a choice can be checked by ear and by name.
         return ['audio' => base64_encode($spoken['bytes']), 'ms' => $mp3['ms'], 'provider' => $spoken['provider'],
-            'voice' => Hosts::voiceFor($draft, $lang), 'model' => (string) $draft['model']];
+            'voice' => Hosts::voiceFor($draft, $lang), 'model' => (string) $draft['model']] + $told;
+    }
+
+    /** "Test a moment" (Host\Scenarios): the station's programs with their moments, and the efforts a test may use. */
+    public function hostScenarios(): array
+    {
+        $this->admin();
+        $app = $this->c->app;
+        $effort = strtolower($app->config->get('HOST_EFFORT', 'low'));
+        return ['programs' => $app->scenarios()->list(), 'efforts' => Scenarios::EFFORTS, 'effort' => in_array($effort, Scenarios::EFFORTS, true) ? $effort : 'low'];
+    }
+
+    /**
+     * A test moment, written by the real writer with the editor's unsaved
+     * host (Host\Scenarios). Spoken afterwards through hostTry, one
+     * language at a time. 30 an hour per admin; the day's AI budget applies
+     * as on air.
+     */
+    public function hostScenario(): array
+    {
+        $this->admin();
+        $app = $this->c->app;
+        $in = $this->c->req->json();
+        $host = $app->hosts()->get((int) ($in['host_id'] ?? 0)) ?? throw new ApiError(404, 'not_found');
+        if (!$app->rateLimit()->hit('host-scenario:' . $this->me['id'], 30, 3600)) throw new ApiError(429, 'rate_limited');
+        $draft = $app->hosts()->draft($host, is_array($in['draft'] ?? null) ? $in['draft'] : []);
+        // A /mod request never ticks: the writer may take what a tick gives one script.
+        $app->budget->restart($app->config->int('TICK_BUDGET', 22));
+        try {
+            $out = $app->scenarios()->write($draft, $in);
+        } catch (BudgetExceeded) {
+            throw new ApiError(503, 'host_try_timeout');
+        }
+        $app->store()->audit($this->actor(), 'Host moment tested', $host['id'] . ' ' . $host['name'] . ' (' . $out['moment'] . ', ' . $out['source'] . ')');
+        return $out;
     }
 
     /** @param array<string,string> $a */

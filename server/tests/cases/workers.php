@@ -280,7 +280,7 @@ test('workers: "Try voice" for a worker host is asked of the workers; the editor
     eq([$s, $d['provider'], $d['voice']], [202, 'worker', 'Serena'], 'asked of a worker, in the editor\'s unsaved voice');
     eq(call($app, 'GET', "/api/mod/hosts/try/{$d['task']}", [], $admin)[1], ['state' => 'queued'], 'not spoken yet');
     $t = workerPoll($app, $key)[1]['task'];
-    eq([$t['id'], $t['voice']], [$d['task'], 'Serena'], 'a try goes first');
+    eq([$t['id'], $t['voice']], [$d['task'], 'Serena'], 'the try is given out');
     workerUpload($app, $key, (int) $t['id']);
     [, $r] = call($app, 'GET', "/api/mod/hosts/try/{$d['task']}", [], $admin);
     eq([$r['state'], base64_decode((string) $r['audio']) === mp3()], ['done', true], 'the clip, for the editor to play');

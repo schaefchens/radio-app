@@ -241,8 +241,21 @@ program refs `voicedBy`: with `elevenlabs` in it the forms' privacy note says
 an ElevenLabs voice may read out what is sent (privacy policy, `legal.ts`),
 and the song bar credits "voice: elevenlabs.io" (the free plan's attribution).
 Stub mode calls no voice provider for any host; "Try voice" in /mod speaks
-the editor's unsaved changes and counts against the cap. The channels'
-`host_*` columns are unused since migration 13.
+the editor's unsaved changes and counts against the cap (60 an hour, up to
+1,200 characters, with a delivery and people's words as such; a worker try
+waits behind live moments, priority 30, and keeps no words once spoken).
+"Test a moment" (`Host\Scenarios`, `GET /mod/hosts/scenarios`, `POST
+/mod/hosts/scenario`, `HostScenario.tsx`; station decision 2026-10-07) writes a
+moment of a real program — its format's moments and what it lets listeners
+send — with the editor's unsaved host, library songs (random or searched)
+and made-up listeners, through `HostWriter::frame()` and `write()` (usage
+`host_try_<kind>`, effort low or medium); readings come from the lead-ins
+without the model. A test show the editor keeps (at most ten moments) is
+the next moment's memory; the server takes only moments, song ids and words
+from it and marks itself which moments named a listener. Only the editor's
+language is spoken by itself (an ElevenLabs host: nothing), the words and
+the delivery can be changed and spoken again, and nothing reaches the
+program. The channels' `host_*` columns are unused since migration 13.
 
 **Lines** (`Host\Lines`, /mod › Lines, moderators; station decision
 2026-10-06, after OpenAI announced its speech models' end for 2027-01-06).
@@ -821,7 +834,15 @@ people's words keeping every word, every template and lead-in intact, the
 voice given the prepared text while the stage keeps the words, how the host
 is heard after the persona, the delivery joined to the host's direction for
 Qwen and OpenAI and kept across a host switch, cleaned, capped, dropped when
-it names a listener or prays, fixed for people's words, a line's mood), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+it names a listener or prays, fixed for people's words, a line's mood),
+test moments (`scenarios.php`: each program's moments by format and what it
+takes, written with the unsaved host and the library's songs and a made-up
+listener without touching the program, the test show remembered with its
+requests summarized and nothing else taken from the editor, at most ten
+moments, readings without the model, the prayer hour's order and its
+welcome's collection, effort low or medium, wrong moments and programs, the
+rate limit; a try with a delivery, people's words and a long text, a worker
+try behind a live moment and keeping no words), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -848,7 +869,11 @@ sent only as it came, the host editor's model list (any other id still
 taken, one list after a provider switch), the worker provider in it (no key,
 the temperature, Qwen's presets and the voices the workers offer, asked
 without a click, the try that polls, "no worker") and the Rechner section (the key and its config shown once, a new key and
-delete behind a confirm); the store apps: platform
+delete behind a confirm), testing a moment (programs asked only once opened, each program's
+moments, written with the unsaved settings and spoken in the editor's language with its
+delivery, edited words spoken as edited, the test show sent back and started over, a library
+pick, the fallback words said as such, a worker's task polled, nothing spoken by itself for
+ElevenLabs); the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background
 signal only in the apps, the entry script for iOS updates, reminder plans

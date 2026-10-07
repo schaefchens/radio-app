@@ -162,6 +162,52 @@ export interface WorkerTry {
   error?: string;
 }
 
+/** A program to test a host's moments in (GET /mod/hosts/scenarios), with the moments it has. */
+export interface ScenarioProgram {
+  id: number;
+  channel: string;
+  title: Record<Lang, string>;
+  format: string;
+  moments: string[];
+}
+
+export interface ScenarioCatalog {
+  programs: ScenarioProgram[];
+  efforts: string[];
+  effort: string;
+}
+
+/** A song or video a test moment is about. */
+export interface ScenarioSong {
+  id: number;
+  title: string;
+  artist: string;
+  kind: string;
+}
+
+/** A test moment as the writer wrote it (POST /mod/hosts/scenario). */
+export interface ScenarioResult {
+  moment: string;
+  kind: string;
+  texts: Partial<Record<Lang, string>>;
+  delivery: string;
+  /** The writer's provider, `template:<why>` when it did not answer, `listener` for people's own words. */
+  source: string;
+  theirs: boolean;
+  seconds: number;
+  spoken: Partial<Record<Lang, string>>;
+  songs: { previous: ScenarioSong | null; next: ScenarioSong | null };
+  given: { moment: Record<string, unknown>; show: Record<string, unknown> };
+}
+
+/** A moment of a test show, sent back so the next one remembers it. */
+export interface TestMoment {
+  moment: string;
+  previous_id?: number;
+  next_id?: number;
+  texts: Partial<Record<Lang, string>>;
+}
+
 /** One recorded line of a host (/mod › Lines): its words and a clip per language. */
 export interface ModLine {
   id: number;
@@ -392,6 +438,9 @@ const KNOWN: Record<string, string> = {
   host_try_text: 'mod.hosts.errors.host_try_text',
   host_no_room: 'mod.hosts.errors.host_no_room',
   voice_timeout: 'mod.hosts.errors.voice_timeout',
+  host_try_timeout: 'mod.hosts.errors.host_try_timeout',
+  scenario_program: 'mod.hosts.errors.scenario_program',
+  scenario_moment: 'mod.hosts.errors.scenario_moment',
   invalid_color: 'mod.hosts.errors.invalid_color',
   invalid_image: 'mod.hosts.errors.invalid_image',
   worker_name: 'mod.workers.errors.worker_name',

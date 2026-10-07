@@ -405,14 +405,14 @@ test('hosts: "Try voice" speaks unsaved changes and counts them; an ElevenLabs h
     eq(hope($app)['instructions'], 'Warm and calm, like a Christian radio host.', 'nothing saved');
     $free = makeHost($app, ['name' => 'Free', 'provider' => 'elevenlabs', 'api_key' => EL_KEY, 'voices' => ['en' => EL_VOICE]]);
     eq(call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $free['id'], 'lang' => 'en', 'text' => 'Hello.'], $admin), [422, ['error' => 'host_no_room']], 'ElevenLabs needs a cap');
-    eq(call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'lang' => 'en', 'text' => str_repeat('x', 301)], $admin), [422, ['error' => 'host_try_text']], 'at most 300 characters');
+    eq(call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'lang' => 'en', 'text' => str_repeat('x', 1201)], $admin), [422, ['error' => 'host_try_text']], 'at most 1,200 characters (a prayer hour\'s welcome runs to 1,100)');
     eq(call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'text' => 'Hi.'], moderatorHeaders($app))[0], 403, 'admins only');
     [$st, $cat] = call($app, 'POST', '/api/mod/hosts/catalog', ['provider' => 'elevenlabs', 'host_id' => $free['id']], $admin);
     eq([$st, $cat['stub'] ?? false, $cat['voices']], [200, true, []], 'stub mode: ElevenLabs is not asked');
     [$st, $cat] = call($app, 'POST', '/api/mod/hosts/catalog', ['provider' => 'openai'], $admin);
     eq([$st, count($cat['voices'])], [200, 13], 'OpenAI\'s voices, marin and cedar among them');
-    for ($i = 0; $i < 19; $i++) call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'lang' => 'en', 'text' => 'Hi.'], $admin);
-    eq(call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'lang' => 'en', 'text' => 'Hi.'], $admin), [429, ['error' => 'rate_limited']], 'twenty an hour');
+    for ($i = 0; $i < 59; $i++) call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'lang' => 'en', 'text' => 'Hi.'], $admin);
+    eq(call($app, 'POST', '/api/mod/hosts/try', ['host_id' => $hope['id'], 'lang' => 'en', 'text' => 'Hi.'], $admin), [429, ['error' => 'rate_limited']], 'sixty an hour (a test moment is one per language)');
 });
 
 test('hosts: a moment written again for a deleted account\'s sake finds its host anew', function () {

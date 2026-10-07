@@ -17,6 +17,7 @@ use Arche\Host\HostBreaks;
 use Arche\Host\HostWriter;
 use Arche\Host\Hosts;
 use Arche\Host\Lines;
+use Arche\Host\Scenarios;
 use Arche\Host\ShowLog;
 use Arche\Host\Workers;
 use Arche\Identity\Erasure;
@@ -229,6 +230,11 @@ final class App
     public function showLog(): ShowLog
     {
         return $this->service('showLog', ShowLog::class, fn() => new ShowLog($this));
+    }
+
+    public function scenarios(): Scenarios
+    {
+        return $this->service('scenarios', Scenarios::class, fn() => new Scenarios($this));
     }
 
     public function lines(): Lines

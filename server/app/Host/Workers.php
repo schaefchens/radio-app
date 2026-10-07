@@ -47,7 +47,12 @@ final class Workers
     private const MAX_CPS = 30.0;
     /** Below this many characters a short clip is fine (a pause, a name). */
     private const SHORT_TEXT = 40;
-    private const PRIORITY = ['try' => 5, 'break' => 10, 'line' => 50];
+    /**
+     * Live moments first: a test in /mod (a try) is two takes of up to 1,100
+     * characters, and queued ahead of a break it could make the break miss its
+     * deadline and go to a fallback voice.
+     */
+    private const PRIORITY = ['break' => 10, 'try' => 30, 'line' => 50];
 
     public function __construct(private App $app) {}
 
@@ -417,7 +422,9 @@ final class Workers
             $this->app->store()->query("UPDATE voice_tasks SET state = 'cancelled', text = '', request = json_set(request, '$.instruct', ''), updated = ? WHERE id = ?", [$this->app->clock->now(), $t['id']]);
             throw new ApiError(409, 'task_gone');
         }
-        $this->app->store()->update('voice_tasks', ['state' => 'done', 'audio' => $handed, 'ms' => $check['ms'], 'error' => '', 'updated' => $this->app->clock->now()], 'id = ?', [$t['id']]);
+        $this->app->store()->update('voice_tasks', ['state' => 'done', 'audio' => $handed, 'ms' => $check['ms'], 'error' => '', 'updated' => $this->app->clock->now()]
+            // A try's words are needed by nobody once spoken (a test's may be anything typed in /mod).
+            + ($t['purpose'] === 'try' ? ['text' => '', 'request' => json_encode(['instruct' => ''] + $t['request'], JSON_UNESCAPED_UNICODE)] : []), 'id = ?', [$t['id']]);
         // Its characters: a line's against the host's monthly recording, a moment's against its day.
         $this->app->usage()->record($t['purpose'] === 'line' ? Lines::usageKind($t['host_id']) : Hosts::usageKind($t['host_id']), mb_strlen($t['text']), 0, 0);
         return ['ok' => true];

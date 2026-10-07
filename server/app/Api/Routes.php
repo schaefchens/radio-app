@@ -66,6 +66,8 @@ final class Routes
         $r->add('POST', '/mod/hosts', $m('hostCreate'));
         $r->add('POST', '/mod/hosts/catalog', $m('hostCatalog'));
         $r->add('POST', '/mod/hosts/try', $m('hostTry'));
+        $r->add('GET', '/mod/hosts/scenarios', $m('hostScenarios'));
+        $r->add('POST', '/mod/hosts/scenario', $m('hostScenario'));
         $r->add('PATCH', '/mod/hosts/{id}', $m('hostUpdate'));
         $r->add('DELETE', '/mod/hosts/{id}', $m('hostDelete'));
         $r->add('POST', '/mod/hosts/{id}/avatar', $m('hostAvatar'));
