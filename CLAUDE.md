@@ -100,7 +100,19 @@ air allows: its submission types, themes/moods, host density, silence, jingles.
 supplies duration/embeddability/region (oEmbed has no duration, and the client
 is not trusted). Approved requests graduate automatically (tags only — never the
 dedication). Playback errors disable an item only for codes 100/101/150 from ≥ 3
-identities *and* when YouTube confirms.
+identities *and* when YouTube confirms. A moderator's add is checked for what
+is likely the same song or video already there (`Library::duplicates`; another
+upload of a film came in beside the one there, 2026-10-08): the words of its
+names without who it is by (the look-up's real title and the original's title
+too, never its writers — two films by the same writers matched), numbers must
+agree (sequels), a strong word match needs lengths near and a one-word match
+lengths to the seconds, songs and videos apart. Found, it is shown and added
+only on purpose (`allow_duplicate`, else 409 `possible_duplicate`); /mod's
+list names the other of each pair and filters for pairs. A request still joins
+as itself (it airs from its own item). A switched-off song or video can be
+deleted for good (`Library::delete`): what is planned with it dropped, every
+link to its id cleared (SQLite may give the id to the next item), its
+reactions and playback errors gone, its look-up kept for 30 days.
 
 **Groups** (`Library\Groups`, /mod › Groups): a preacher, a church, a
 ministry or an artist, with a few words (en/de, ≤ 200 characters) and up to
@@ -938,7 +950,12 @@ try behind a live moment and keeping no words), the station setup
 (`setup.php`: an admin's file without listeners' data or keys, a local stack
 taking it and keeping its admin and computers, its media fetched, a broken
 file changing nothing, the library's look-ups travelling and an older file
-still importing), song and video knowledge (`knowledge.php`: the backfill, both
+still importing), the library's housekeeping (`library.php`: another upload of
+a film or a song found before adding, sequels, one-word films and songs
+sharing a word not, the look-up's names but never its writers, added only on
+purpose, /mod's pairs and their filter; deleting only what is switched off,
+its planned airing dropped, no link left for a reused id, roles), song and
+video knowledge (`knowledge.php`: the backfill, both
 background calls asked again and deleted, a fact only with a consulted page,
 timeouts and failures, a budget of its own, clean names only while YouTube's
 stand, the host's facts and their rest, one fact a moment and a quarter hour
@@ -965,7 +982,10 @@ and back, the browser's way out, no Fullscreen API, the page left, a phone's
 turns, Android's back; its bar veiled when quiet, back on a move or the next
 song, kept while the emoji strip is open) and which shells turn, "Stay anonymous"
 on every form hiding name and place and sending neither, and the
-rules on the first post, the install sheet's single-use prompt, /mod › Lines (the
+rules on the first post, the install sheet's single-use prompt, /mod › Library's duplicates (shown
+before adding, "Add anyway", one the server finds after a change of kind, the
+pair beside an item and its filter) and deleting (only a switched-off song or
+video, after a confirm), /mod › Lines (the
 filters' query, play, recording again only after a confirm, bulk selection,
 the options for admins only, the write form), a program's "host's words"
 sent only as it came, the host editor's model list (any other id still

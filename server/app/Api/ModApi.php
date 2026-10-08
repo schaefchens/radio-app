@@ -149,6 +149,11 @@ final class ModApi
         unset($item);
         $filter = (string) ($q['knowledge'] ?? '');
         if ($filter !== '') $items = array_values(array_filter($items, fn($i) => self::knowledgeFilter($i, $filter)));
+        // What else in the library is likely the same song or video (another upload, another language).
+        $pairs = $this->c->app->library()->duplicatePairs();
+        foreach ($items as &$item) $item['duplicates'] = $pairs[(int) $item['id']] ?? [];
+        unset($item);
+        if (($q['dupes'] ?? '') === '1') $items = array_values(array_filter($items, fn($i) => $i['duplicates'] !== []));
         return ['items' => $items];
     }
 
@@ -265,7 +270,8 @@ final class ModApi
     public function libraryLookup(): array
     {
         $this->mod();
-        return ['video' => $this->c->app->library()->lookup((string) $this->c->req->input('url', ''))];
+        $req = $this->c->req;
+        return ['video' => $this->c->app->library()->lookup((string) $req->input('url', ''), (string) $req->input('kind', ''))];
     }
 
     /** A song, or with `kind` a video of a video program (Library::VIDEO_KINDS), by its YouTube link. */
@@ -283,6 +289,19 @@ final class ModApi
     {
         $this->mod();
         return ['item' => $this->c->app->library()->update($this->id($a), $this->c->req->json(), $this->actor())];
+    }
+
+    /**
+     * Delete a switched-off song or video for good (Library::delete).
+     *
+     * @param array<string,string> $a
+     */
+    public function libraryDelete(array $a): array
+    {
+        $this->mod();
+        $id = $this->id($a);
+        $this->c->app->library()->delete($id, $this->actor());
+        return ['deleted' => $id];
     }
 
     /**

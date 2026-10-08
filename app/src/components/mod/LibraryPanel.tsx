@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import clsx from 'clsx';
 import { isVideoFormat, type VideoFormat } from '@arche/shared';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { clockDuration } from '@/lib/format';
 import { useApi } from './useApi';
 import { NO_CHANNELS, useOverview } from './overview';
-import { modError, VOICES, type LibraryGroup, type LibraryItem, type VideoLookup } from './modApi';
+import { modError, VOICES, type LibraryDuplicate, type LibraryGroup, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { KnowledgeEditor, KnowledgePill, KnowledgeSettingsSection } from './KnowledgePanel';
 import { BookIcon, MusicIcon } from '@/components/common/icons';
@@ -45,8 +45,9 @@ export function LibraryPanel() {
   const [kind, setKind] = useState<Kind>('');
   const [group, setGroup] = useState('');
   const [known, setKnown] = useState('');
+  const [dupes, setDupes] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const path = `/mod/library?limit=200&q=${encodeURIComponent(query)}&kind=${kind}&group=${group}&knowledge=${known}`;
+  const path = `/mod/library?limit=200&q=${encodeURIComponent(query)}&kind=${kind}&group=${group}&knowledge=${known}${dupes ? '&dupes=1' : ''}`;
   const { data, error, reload } = useApi<{ items: LibraryItem[] }>(path);
   const groups = useApi<{ groups: LibraryGroup[] }>('/mod/groups').data?.groups ?? NO_GROUPS;
 
@@ -100,6 +101,7 @@ export function LibraryPanel() {
               <option value="none">{t('mod.knowledge.filter.none')}</option>
               <option value="failed">{t('mod.knowledge.filter.failed')}</option>
             </select>
+            <Check label={t('mod.library.onlyDuplicates')} checked={dupes} onChange={setDupes} />
             <button type="submit" className="btn-ghost px-3 py-1.5">
               {t('mod.common.search')}
             </button>
@@ -138,14 +140,18 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
   const [attrs, setAttrs] = useState<{ themes: string[]; moods: string[]; languages: string[]; program_ids: number[] }>({ themes: [], moods: [], languages: [], program_ids: [] });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** What in the library is likely the same (another upload of a film once came in beside the one there): shown, and added only on purpose. */
+  const [dups, setDups] = useState<LibraryDuplicate[]>([]);
 
   const lookup = async (): Promise<void> => {
     setBusy(true);
     setError(null);
     setVideo(null);
+    setDups([]);
     try {
-      const r = await api<{ video: VideoLookup }>('/mod/library/lookup', { body: { url } });
+      const r = await api<{ video: VideoLookup }>('/mod/library/lookup', { body: { url, kind } });
       setVideo(r.video);
+      setDups(r.video.duplicates ?? []);
       setTitle(r.video.title);
       setArtist(byOf(kind, r.video));
     } catch (e) {
@@ -159,13 +165,16 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await api('/mod/library', { body: { kind, url, title, artist, ...attrs } });
+      await api('/mod/library', { body: { kind, url, title, artist, ...attrs, ...(dups.length > 0 ? { allow_duplicate: true } : {}) } });
       setUrl('');
       setVideo(null);
+      setDups([]);
       setAttrs({ themes: [], moods: [], languages: [], program_ids: [] });
       onAdded();
     } catch (e) {
-      setError(modError(e));
+      // Found for the kind it is added as (the kind may have changed since the lookup): shown, and added on the second tap.
+      if (e instanceof ApiError && e.code === 'possible_duplicate' && Array.isArray(e.detail.duplicates)) setDups(e.detail.duplicates as LibraryDuplicate[]);
+      else setError(modError(e));
     } finally {
       setBusy(false);
     }
@@ -189,6 +198,8 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
             // A "by" still as the lookup suggested it follows the kind; one the moderator typed stays.
             if (video && artist === byOf(kind, video)) setArtist(byOf(next, video));
             setKind(next);
+            // Songs and videos are compared apart: what the lookup found may not be what this kind finds.
+            setDups([]);
           }}
           aria-label={t('mod.library.addKind')}
         >
@@ -228,8 +239,22 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
           {kind === 'mission' && <p className="text-xs text-ink-faint">{t('mod.library.missionHint')}</p>}
           {kind === 'film' && <p className="text-xs text-ink-faint">{t('mod.library.filmHint')}</p>}
           <AttrsEditor value={attrs} onChange={setAttrs} />
+          {dups.length > 0 && (
+            <div role="status" className="rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
+              <p className="font-semibold text-warn">{t('mod.library.duplicatesFound')}</p>
+              <ul className="mt-1 flex flex-col gap-0.5 text-ink-muted">
+                {dups.map((d) => (
+                  <li key={d.id}>
+                    {d.title}
+                    {d.artist ? ` · ${d.artist}` : ''} · {clockDuration(d.duration_ms)}
+                    {Number(d.active) === 1 ? '' : ` · ${t('mod.common.inactive')}`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <button type="button" className="btn-primary self-start" disabled={!usable || busy} onClick={() => void add()}>
-            {t('mod.library.add')}
+            {dups.length > 0 ? t('mod.library.addAnyway') : t('mod.library.add')}
           </button>
         </div>
       )}
@@ -317,6 +342,18 @@ function LibraryRow({
     }
   };
 
+  const remove = async (): Promise<void> => {
+    setBusy(true);
+    try {
+      await api(`/mod/library/${item.id}`, { method: 'DELETE' });
+      onChanged(t('mod.library.deleted'));
+    } catch (e) {
+      onChanged(modError(e), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const pull = async (): Promise<void> => {
     setBusy(true);
     try {
@@ -350,6 +387,11 @@ function LibraryRow({
             {item.kind === 'song' && <Pill>{item.source === 'submission' ? t('mod.library.source.submission') : t('mod.library.source.curated')}</Pill>}
             {isVideoFormat(item.kind) && <Pill>{item.source === 'submission' ? t('mod.library.source.suggestion') : t('mod.library.source.curated')}</Pill>}
             {item.knowledge && <KnowledgePill k={item.knowledge} />}
+            {item.duplicates?.map((d) => (
+              <Pill key={d.id} tone="warn">
+                {t('mod.library.maybeSame', { title: d.title })}
+              </Pill>
+            ))}
             <Pill>
               {t('mod.library.plays')} {item.plays}
             </Pill>
@@ -378,6 +420,10 @@ function LibraryRow({
         </button>
         {active && item.kind !== 'contrib' && item.kind !== 'bed' && (
           <ConfirmButton className="btn-ghost px-3 py-1.5 text-xs text-heart" label={t('mod.library.pull')} question={t('mod.library.pullConfirm')} onConfirm={() => void pull()} disabled={busy} />
+        )}
+        {/* For good, and only once switched off: Deactivate is what takes it off air. */}
+        {!active && item.yt_id !== null && (item.kind === 'song' || isVideoFormat(item.kind)) && (
+          <ConfirmButton className="btn-ghost px-3 py-1.5 text-xs text-heart" label={t('mod.library.delete')} question={t('mod.library.deleteConfirm')} onConfirm={() => void remove()} disabled={busy} />
         )}
       </div>
       {knowing && <KnowledgeEditor item={item} onChanged={onChanged} />}

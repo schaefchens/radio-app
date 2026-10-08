@@ -562,7 +562,17 @@
       "beds": "Background music",
       "bedsHint": "Quiet music for a prayer hour's collection time, played on its own (never under the host). An MP3 of 20 seconds to 10 minutes, at most 8 MB — about 128 kbps for 5 minutes. Choose it in Programs.",
       "uploadBed": "Upload background music (MP3)",
-      "bedTitle": "Name, e.g. Quiet piano"
+      "bedTitle": "Name, e.g. Quiet piano",
+      "onlyDuplicates": "Only possible duplicates",
+      "duplicatesFound": "Possibly in the library already — the same song or video, uploaded again or in another language:",
+      "addAnyway": "Add anyway",
+      "maybeSame": "Same as “{{title}}”?",
+      "delete": "Delete",
+      "deleteConfirm": "Delete it from the library for good? What already aired stays in the history.",
+      "deleted": "Deleted.",
+      "duplicateError": "Possibly in the library already. Look it up again to see what.",
+      "deleteActive": "Switch it off first.",
+      "notDeletable": "Only songs and videos can be deleted here."
     },
     "knowledge": {
       "title": "Song and video knowledge",

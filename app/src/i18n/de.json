@@ -562,7 +562,17 @@
       "beds": "Hintergrundmusik",
       "bedsHint": "Ruhige Musik für die Sammelzeit einer Gebetsstunde, für sich gespielt (nie unter der Moderation). Eine MP3 von 20 Sekunden bis 10 Minuten, höchstens 8 MB – etwa 128 kbit/s für 5 Minuten. Ausgewählt wird sie unter Sendungen.",
       "uploadBed": "Hintergrundmusik hochladen (MP3)",
-      "bedTitle": "Name, z. B. Ruhiges Klavier"
+      "bedTitle": "Name, z. B. Ruhiges Klavier",
+      "onlyDuplicates": "Nur mögliche Doppelte",
+      "duplicatesFound": "Möglicherweise schon in der Bibliothek – dasselbe Lied oder Video, noch einmal hochgeladen oder in einer anderen Sprache:",
+      "addAnyway": "Trotzdem hinzufügen",
+      "maybeSame": "Dasselbe wie „{{title}}“?",
+      "delete": "Löschen",
+      "deleteConfirm": "Endgültig aus der Bibliothek löschen? Was schon gesendet wurde, bleibt im Verlauf.",
+      "deleted": "Gelöscht.",
+      "duplicateError": "Möglicherweise schon in der Bibliothek. Noch einmal nachschlagen zeigt, was.",
+      "deleteActive": "Erst deaktivieren.",
+      "notDeletable": "Hier lassen sich nur Lieder und Videos löschen."
     },
     "knowledge": {
       "title": "Wissen zu Liedern und Videos",

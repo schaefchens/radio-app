@@ -326,6 +326,8 @@ export interface LibraryItem {
   yt_channel: string | null;
   /** What was looked up about it (Library\Knowledge), in short; null for what has nothing to know (a jingle). */
   knowledge?: KnowledgeSummary | null;
+  /** What else in the library is likely the same song or video. */
+  duplicates?: LibraryDuplicate[];
 }
 
 export type KnowledgeState = 'none' | 'queued' | 'working' | 'ready' | 'failed';
@@ -453,6 +455,20 @@ export interface VideoLookup {
   age_restricted: boolean;
   playable: boolean;
   existing: number | null;
+  /** What in the library is likely the same song or video (another upload, another language); asked for with the kind. */
+  duplicates?: LibraryDuplicate[];
+}
+
+/** A library item that is likely the same as another (Library::duplicates). */
+export interface LibraryDuplicate {
+  id: number;
+  kind: LibraryItem['kind'];
+  yt_id: string;
+  title: string;
+  artist: string;
+  duration_ms: number;
+  active: number;
+  thumb: string | null;
 }
 
 export interface DayPlanBlock {
@@ -494,6 +510,9 @@ const KNOWN: Record<string, string> = {
   youtube_not_configured: 'mod.library.noYoutube',
   video_not_embeddable: 'mod.library.notEmbeddable',
   already_in_library: 'mod.library.existing',
+  possible_duplicate: 'mod.library.duplicateError',
+  still_active: 'mod.library.deleteActive',
+  not_deletable: 'mod.library.notDeletable',
   video_duration: 'mod.library.badDuration',
   video_unplayable: 'mod.review.blockers.video_unplayable',
   recording_deleted: 'mod.review.blockers.recording_deleted',

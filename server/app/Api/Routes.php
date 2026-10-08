@@ -53,6 +53,7 @@ final class Routes
         $r->add('POST', '/mod/library/lookup', $m('libraryLookup'));
         $r->add('POST', '/mod/library', $m('libraryAdd'));
         $r->add('PATCH', '/mod/library/{id}', $m('libraryUpdate'));
+        $r->add('DELETE', '/mod/library/{id}', $m('libraryDelete'));
         $r->add('POST', '/mod/library/{id}/pull', $m('libraryPull'));
         $r->add('GET', '/mod/library/{id}/knowledge', $m('libraryKnowledge'));
         $r->add('PATCH', '/mod/library/{id}/knowledge', $m('libraryKnowledgeSave'));

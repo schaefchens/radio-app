@@ -6,6 +6,7 @@ namespace Arche\Library;
 use Arche\ApiError;
 use Arche\App;
 use Arche\Audio\Mp3;
+use Arche\Host\Speech;
 use Arche\Plan\Catalog;
 
 /**
@@ -106,11 +107,12 @@ final class Library
 
     /**
      * Look a video up for the "add to library" form: YouTube metadata plus
-     * whether it is already in the pool.
+     * whether it is already in the pool — this upload, or with `$kind`, what
+     * is likely the same song or video (duplicates()).
      *
      * @return array<string,mixed>
      */
-    public function lookup(string $input): array
+    public function lookup(string $input, string $kind = ''): array
     {
         $id = YouTube::parseId($input);
         if ($id === null) throw new ApiError(422, 'invalid_youtube_url');
@@ -119,10 +121,11 @@ final class Library
         $v = $yt->video($id);
         if (!$v['ok']) throw new ApiError(422, 'video_' . $v['error']);
         [$artist, $title] = YouTube::splitTitle($v['title'], $v['channel']);
-        return [
+        $info = [
             'id' => $id,
             'title' => $title,
             'artist' => $artist,
+            'full_title' => $v['title'],
             'channel' => $v['channel'],
             'channel_id' => $v['channel_id'],
             'duration_ms' => $v['duration_ms'],
@@ -133,6 +136,196 @@ final class Library
             'playable' => YouTube::playableIn($v, $this->app->config->list('SUBMISSION_MARKETS')),
             'existing' => $this->byYouTube($id)['id'] ?? null,
         ];
+        return $info + ['duplicates' => $kind !== '' ? $this->duplicates($info, $kind) : []];
+    }
+
+    /** Words that say nothing about which song or video it is: YouTube's labels, formats and filler. */
+    private const NOISE = [
+        'the', 'and', 'with', 'feat', 'featuring', 'official', 'video', 'videos', 'music', 'musik', 'lyric', 'lyrics', 'audio', 'live',
+        'version', 'full', 'movie', 'film', 'films', 'filme', 'kinofilm', 'spielfilm', 'christian', 'christlich', 'christliche',
+        'christlicher', 'christlichen', 'drama', 'deutsch', 'german', 'english', 'englisch', 'subtitles', 'untertitel', 'song', 'lied',
+        'worship', 'lobpreis', 'mit', 'und', 'der', 'die', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einen', 'einem', 'einer', 'von',
+        'vom', 'zum', 'zur', 'fur', 'fuer', 'auf', 'aus', 'bei', 'uber', 'ueber', 'new', 'neu', 'neue', 'you', 'your', 'are', 'for',
+        'our', 'his', 'ist', 'bist', 'sind', 'mein', 'meine', 'dein', 'deine', 'unser', 'unsere', 'wir', 'ihr', 'sie', 'not', 'nicht',
+        'all', 'alle', 'was', 'wie', 'what', 'how', 'who', 'wer', 'this', 'that', 'dies', 'diese', 'dieser', 'part', 'teil',
+    ];
+    private const FOLD = ['ä' => 'a', 'ö' => 'o', 'ü' => 'u', 'ß' => 'ss', 'à' => 'a', 'á' => 'a', 'â' => 'a', 'å' => 'a', 'é' => 'e',
+        'è' => 'e', 'ê' => 'e', 'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ø' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ñ' => 'n', 'ç' => 'c', 'æ' => 'ae', 'œ' => 'oe', 'ý' => 'y', 'ÿ' => 'y'];
+
+    /** Roman part numbers, as a sequel's title writes them. */
+    private const ROMAN = ['ii' => '2', 'iii' => '3', 'iv' => '4', 'vi' => '6'];
+
+    /** @return list<string> a name's telling words, once each — numbers too (a sequel's part, a hymn's), never a year */
+    private static function words(string $name): array
+    {
+        $s = strtr(mb_strtolower(Speech::title($name)), self::FOLD);
+        $out = [];
+        foreach (preg_split('/[^\p{L}\p{N}]+/u', $s) ?: [] as $w) {
+            $w = self::ROMAN[$w] ?? $w;
+            if (ctype_digit($w) ? preg_match('/^(19|20)\d\d$/', $w) === 1
+                : mb_strlen($w) < 3 || in_array($w, self::NOISE, true) || preg_match('/^\d+p$/', $w) === 1) continue;
+            $out[$w] = true;
+        }
+        // Keys that look like numbers come back as ints ("3" → 3): the part numbers must stay words.
+        return array_map('strval', array_keys($out));
+    }
+
+    /**
+     * The numbers in any of a song's or video's names: "Gott ist nicht tot"
+     * and its parts 2, 3 and 4 share every other word.
+     *
+     * @param list<list<string>> $sets
+     * @return list<string>
+     */
+    private static function numbers(array $sets): array
+    {
+        $n = array_values(array_unique(array_filter(array_merge(...($sets ?: [[]])), 'ctype_digit')));
+        sort($n);
+        return $n;
+    }
+
+    /**
+     * Each name a song or video goes by, as words without who it is by: a
+     * title split from YouTube's "Artist - Title" and one kept whole compare
+     * alike, and two songs by one artist do not match by the artist.
+     *
+     * @param list<string> $names
+     * @return list<list<string>>
+     */
+    private static function nameSets(array $names, string $by): array
+    {
+        $byWords = self::words($by);
+        $sets = [];
+        foreach ($names as $name) {
+            $w = array_values(array_diff(self::words($name), $byWords));
+            if ($w) $sets[] = $w;
+        }
+        return $sets;
+    }
+
+    /**
+     * Whether two songs, or two videos, are likely the same — another upload,
+     * another language, a re-release: their names share three quarters or
+     * more of the shorter one's words, two at least, and their lengths are
+     * near (a song within 20 %, a video within 10 %: a song in a longer
+     * version is another recording); or the shorter name is one word of the
+     * other's and the lengths agree to the seconds (a song within 5 s or 3 %,
+     * a video within 15 s or 0.5 %: two films of one word and one length are
+     * rare, two of one word common). Different numbers are different parts,
+     * and a song is never a film. Tried on the station's library (2026-10-08):
+     * one shared word and a similar length took "Saved by Grace" for "Amish
+     * Grace", and sequels for each other.
+     *
+     * @param array{sets:list<list<string>>,nums:list<string>,ms:int} $a
+     * @param array{sets:list<list<string>>,nums:list<string>,ms:int} $b
+     */
+    private static function same(array $a, array $b, bool $songs): bool
+    {
+        if ($a['nums'] !== $b['nums']) return false;
+        $diff = abs($a['ms'] - $b['ms']);
+        $longer = max($a['ms'], $b['ms']);
+        $near = $diff <= ($songs ? 0.2 : 0.1) * $longer;
+        $tight = $diff <= max($songs ? 5_000 : 15_000, ($songs ? 0.03 : 0.005) * $longer);
+        foreach ($a['sets'] as $x) {
+            foreach ($b['sets'] as $y) {
+                $shared = array_values(array_intersect($x, $y));
+                if (!$shared) continue;
+                $overlap = count($shared) / min(count($x), count($y));
+                if ($overlap >= 0.75 && count($shared) >= 2 && $near) return true;
+                if ($overlap >= 0.999 && $tight && max(array_map('mb_strlen', $shared)) >= 4) return true;
+            }
+        }
+        return false;
+    }
+
+    /** The original's title, without who wrote it ("Forgiven; Drehbuch von …", "Goodness of God, written by …"). */
+    private static function originalTitle(string $original): string
+    {
+        return trim((string) preg_split('/[;,]/u', $original)[0]);
+    }
+
+    /**
+     * The YouTube items of the library with every name they go by — their
+     * own and, when looked up (Library\Knowledge), the real title and the
+     * original of a translation.
+     *
+     * @return list<array<string,mixed>>
+     */
+    private function named(): array
+    {
+        $rows = $this->app->store()->all(
+            'SELECT l.id, l.kind, l.yt_id, l.title, l.artist, l.duration_ms, l.active, l.thumb, json_extract(l.meta, \'$.channel\') AS channel,
+                    k.title AS k_title, k.artist AS k_artist,
+                    json_extract(k.research, \'$.identity.original\') AS k_original
+             FROM library_items l LEFT JOIN video_knowledge k ON k.yt_id = l.yt_id AND k.state = \'ready\'
+             WHERE l.yt_id IS NOT NULL AND l.kind IN (' . implode(',', array_fill(0, count(self::VIDEO_KINDS), '?')) . ')',
+            array_keys(self::VIDEO_KINDS),
+        );
+        foreach ($rows as &$r) {
+            $r['sets'] = [...self::nameSets([(string) $r['title']], (string) $r['artist']),
+                // A video's title split like a song's ("Vergeben - Forgiven …" → by "Vergeben"): whole again, without its channel.
+                ...($r['kind'] !== 'song' ? self::nameSets([$r['artist'] . ' ' . $r['title']], (string) ($r['channel'] ?? $r['artist'])) : []),
+                ...self::nameSets(array_filter([(string) $r['k_title'], self::originalTitle((string) $r['k_original'])]), (string) $r['k_artist'])];
+            $r['nums'] = self::numbers($r['sets']);
+            $r['ms'] = (int) $r['duration_ms'];
+        }
+        unset($r);
+        return $rows;
+    }
+
+    /** @param array<string,mixed> $r @return array<string,mixed> */
+    private static function brief(array $r): array
+    {
+        return ['id' => (int) $r['id'], 'kind' => (string) $r['kind'], 'yt_id' => (string) $r['yt_id'], 'title' => (string) $r['title'],
+            'artist' => (string) $r['artist'], 'duration_ms' => (int) $r['duration_ms'], 'active' => (int) $r['active'], 'thumb' => $r['thumb']];
+    }
+
+    /**
+     * What in the library is likely the same song or video as one about to
+     * be added (another upload of a film once came in beside the one there):
+     * a moderator sees them and adds it anyway only on purpose.
+     *
+     * @param array<string,mixed> $video a lookup: id, title, full_title, artist, channel, duration_ms
+     * @return list<array<string,mixed>>
+     */
+    public function duplicates(array $video, string $kind): array
+    {
+        $songs = $kind === 'song';
+        $known = $this->app->knowledge()->get((string) ($video['id'] ?? ''));
+        $sets = [...self::nameSets([(string) ($video['title'] ?? ''), (string) ($video['full_title'] ?? '')], (string) ($video['artist'] ?? '')),
+            ...self::nameSets([(string) ($video['full_title'] ?? '')], (string) ($video['channel'] ?? '')),
+            ...($known !== null && $known['state'] === 'ready' ? self::nameSets(array_filter([(string) $known['title'],
+                self::originalTitle((string) ($known['research']['identity']['original'] ?? ''))]), (string) $known['artist']) : [])];
+        $new = ['sets' => $sets, 'nums' => self::numbers($sets), 'ms' => (int) ($video['duration_ms'] ?? 0)];
+        $out = [];
+        foreach ($this->named() as $r) {
+            if ($r['yt_id'] === ($video['id'] ?? null) || ($r['kind'] === 'song') !== $songs) continue;
+            if (self::same($new, $r, $songs)) $out[] = self::brief($r);
+        }
+        return array_slice($out, 0, 5);
+    }
+
+    /**
+     * Every pair in the library that is likely the same song or video, for
+     * /mod's list: id → the others.
+     *
+     * @return array<int,list<array<string,mixed>>>
+     */
+    public function duplicatePairs(): array
+    {
+        $rows = $this->named();
+        $out = [];
+        foreach ($rows as $i => $a) {
+            for ($j = $i + 1; $j < count($rows); $j++) {
+                $b = $rows[$j];
+                $songs = $a['kind'] === 'song';
+                if (($b['kind'] === 'song') !== $songs || !self::same($a, $b, $songs)) continue;
+                $out[(int) $a['id']][] = self::brief($b);
+                $out[(int) $b['id']][] = self::brief($a);
+            }
+        }
+        return $out;
     }
 
     /**
@@ -148,7 +341,7 @@ final class Library
     public function addVideo(string $kind, string $input, array $attrs, string $actor): array
     {
         [$min, $max] = self::VIDEO_KINDS[$kind] ?? throw new ApiError(422, 'bad_kind');
-        $info = $this->lookup($input);
+        $info = $this->lookup($input, $kind);
         if ($info['existing'] !== null) throw new ApiError(409, 'already_in_library', ['id' => $info['existing']]);
         // Its creator asked not to be on our platform.
         $blocked = $this->app->groups()->blocking($info);
@@ -157,6 +350,8 @@ final class Library
             throw new ApiError(422, 'video_not_embeddable');
         }
         if ($info['duration_ms'] < $min || $info['duration_ms'] > $max) throw new ApiError(422, 'video_duration');
+        // Another upload of what is there already: only when the moderator says so.
+        if ($info['duplicates'] && empty($attrs['allow_duplicate'])) throw new ApiError(409, 'possible_duplicate', ['duplicates' => $info['duplicates']]);
         $now = $this->app->clock->now();
         $id = $this->app->store()->insert('library_items', [
             'kind' => $kind,
@@ -215,6 +410,33 @@ final class Library
         }
         $this->app->store()->audit($actor, 'Library edit', (string) $id . ' ' . $item['title']);
         return $this->get($id) ?? throw new ApiError(404, 'not_found');
+    }
+
+    /**
+     * Delete a song or video for good — only one switched off (Deactivate is
+     * the step that takes it off air; this one also takes it off the list,
+     * e.g. another upload of a film already there). What is planned with it
+     * goes (Timeline::dropDraftsOf, a request with its whole unit); what aired
+     * keeps its own title and link. SQLite may give the id to the next item
+     * added, so nothing may point at it any more: the timeline's and the
+     * requests' links are cleared, its reactions and playback errors go. Its
+     * look-up stays for 30 days (Tick::purge), so adding it again costs nothing.
+     */
+    public function delete(int $id, string $actor): void
+    {
+        $item = $this->get($id) ?? throw new ApiError(404, 'not_found');
+        if (!isset(self::VIDEO_KINDS[$item['kind']]) || $item['yt_id'] === null) throw new ApiError(422, 'not_deletable');
+        if ($item['active']) throw new ApiError(409, 'still_active');
+        $this->app->timeline()->dropDraftsOf($id);
+        $store = $this->app->store();
+        $store->tx(function () use ($store, $id): void {
+            $store->query('UPDATE timeline_items SET library_id = NULL WHERE library_id = ?', [$id]);
+            $store->query('UPDATE submissions SET library_id = NULL WHERE library_id = ?', [$id]);
+            $store->query('DELETE FROM reactions WHERE library_id = ?', [$id]);
+            $store->query('DELETE FROM playback_errors WHERE library_id = ?', [$id]);
+            $store->query('DELETE FROM library_items WHERE id = ?', [$id]);
+        });
+        $store->audit($actor, 'Library delete' . ($item['kind'] === 'song' ? '' : " {$item['kind']}"), $item['yt_id'] . ' ' . $item['title']);
     }
 
     /** A jingle / station ident from an uploaded MP3. @return array<string,mixed> */
