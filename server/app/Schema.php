@@ -798,6 +798,42 @@ final class Schema
             CREATE INDEX IF NOT EXISTS voice_tasks_queue ON voice_tasks(state, priority, deadline, id);
             CREATE INDEX IF NOT EXISTS voice_tasks_ref ON voice_tasks(purpose, ref_id);
             SQL,
+            // 16 — what the station knows about a YouTube video (Library\Knowledge):
+            // who and what it really is, found on the web with its sources, and
+            // what is sung or said in it, heard by a model — for the check
+            // (Christian? biblical? does it fit?) and the host (what it is
+            // about, one fact). One row per video, in the library or only
+            // requested, so a known song is never looked up twice. No foreign
+            // key: a rebuilt `library_items` would empty it (see 15). Public
+            // data about the video only, never a listener's name or words.
+            // `work` holds what a look-up in progress needs — YouTube's data
+            // (YouTube's terms: kept no longer than needed) and the ids of its
+            // open calls; `text` only a public-domain one.
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS video_knowledge (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              yt_id TEXT NOT NULL UNIQUE,
+              kind TEXT NOT NULL DEFAULT 'song',
+              state TEXT NOT NULL DEFAULT 'queued' CHECK (state IN ('queued', 'working', 'ready', 'failed')),
+              work TEXT NOT NULL DEFAULT '{}',
+              yt_title TEXT NOT NULL DEFAULT '',
+              yt_artist TEXT NOT NULL DEFAULT '',
+              title TEXT NOT NULL DEFAULT '',
+              artist TEXT NOT NULL DEFAULT '',
+              research TEXT NOT NULL DEFAULT '{}',
+              analysis TEXT NOT NULL DEFAULT '{}',
+              facts_told TEXT NOT NULL DEFAULT '{}',
+              text TEXT NOT NULL DEFAULT '',
+              text_source TEXT NOT NULL DEFAULT '',
+              cost_micros INTEGER NOT NULL DEFAULT 0,
+              error TEXT NOT NULL DEFAULT '',
+              edited_by TEXT NOT NULL DEFAULT '',
+              researched INTEGER NOT NULL DEFAULT 0,
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS video_knowledge_state ON video_knowledge(state, updated);
+            SQL,
         ];
     }
 }

@@ -43,6 +43,7 @@ final class Runner
                 'opendoors' => $this->app->openDoors()->runPhase($job),
                 'channels' => $this->app->library()->runChannels($job),
                 'lines' => $this->app->lines()->runPhase($job),
+                'knowledge' => $this->app->knowledge()->runPhase($job),
                 default => null,
             };
             if ($next !== null && str_starts_with($next, 'wait')) {
@@ -67,6 +68,8 @@ final class Runner
             'host' => $this->app->store()->query("UPDATE host_breaks SET state = 'failed', source = 'error' WHERE id = ? AND state = 'pending'", [$id]),
             // Fail closed: a submission we could not check is not accepted.
             'moderate' => $this->app->submissions()->rejectAfterError($id),
+            // A look-up that could not start: failed, said so; a check waiting on it stops waiting.
+            'knowledge' => $this->app->knowledge()->giveUp($id, (string) ($job['last_error'] ?? 'gave up')),
             default => null,
         };
     }

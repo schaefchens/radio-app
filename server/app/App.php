@@ -9,9 +9,13 @@ use Arche\Ai\OpenAi;
 use Arche\Ai\OpenAiText;
 use Arche\Ai\StubOpenAi;
 use Arche\Ai\StubText;
+use Arche\Ai\StubVideoListener;
+use Arche\Ai\StubWebResearch;
 use Arche\Ai\TextModel;
 use Arche\Ai\Usage;
+use Arche\Ai\VideoListener;
 use Arche\Ai\Voice;
+use Arche\Ai\WebResearch;
 use Arche\Cdn\Bunny;
 use Arche\Host\HostBreaks;
 use Arche\Host\HostWriter;
@@ -26,6 +30,7 @@ use Arche\Identity\RateLimit;
 use Arche\Jobs\Jobs;
 use Arche\Jobs\Runner;
 use Arche\Library\Groups;
+use Arche\Library\Knowledge;
 use Arche\Library\Library;
 use Arche\Library\Media;
 use Arche\Library\YouTube;
@@ -132,6 +137,18 @@ final class App
         return $this->service('openai', OpenAi::class, fn() => $this->config->stubAi() ? new StubOpenAi($this) : new OpenAi($this));
     }
 
+    /** OpenAI's web search, for a video's look-up (Library\Knowledge). */
+    public function research(): WebResearch
+    {
+        return $this->service('research', WebResearch::class, fn() => $this->config->stubAi() ? new StubWebResearch($this) : new WebResearch($this));
+    }
+
+    /** Gemini watching a public YouTube video, for a video's look-up (Library\Knowledge). */
+    public function listener(): VideoListener
+    {
+        return $this->service('listener', VideoListener::class, fn() => $this->config->stubAi() ? new StubVideoListener($this) : new VideoListener($this));
+    }
+
     public function voice(): Voice
     {
         return $this->service('voice', Voice::class, fn() => new Voice($this));
@@ -165,6 +182,11 @@ final class App
     public function library(): Library
     {
         return $this->service('library', Library::class, fn() => new Library($this));
+    }
+
+    public function knowledge(): Knowledge
+    {
+        return $this->service('knowledge', Knowledge::class, fn() => new Knowledge($this));
     }
 
     public function groups(): Groups

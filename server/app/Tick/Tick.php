@@ -121,6 +121,8 @@ final class Tick
         if ($this->due('channels', 3600)) $this->app->library()->queueChannels();
         // Hosts' recorded lines: written and recorded where a pool runs low, in the runner's budget.
         if ($this->due('lines', 600)) $this->app->lines()->queue();
+        // What the station knows about its songs and videos: the library looked up a few at a time.
+        if ($this->due('knowledge', 600)) $this->app->knowledge()->queue();
         if ($this->due('cdn', 60)) {
             try {
                 $out['cdn'] = $this->app->cdn()->maintain();
@@ -210,6 +212,8 @@ final class Tick
             'host_lines' => $this->app->lines()->purge($now - $c->int('RETAIN_TIMELINE_DAYS', 30) * 86400),
             // Voice workers' tasks held listeners' words: two days at most.
             'voice_tasks' => $this->app->workers()->purge($now - 2 * 86400),
+            // A turned-down request's video: nobody needs what was looked up any more.
+            'video_knowledge' => $this->app->knowledge()->purge($now - 30 * 86400),
             'attempts' => $store->query('DELETE FROM attempts WHERE time < ?', [$now - 2 * 86400])->rowCount(),
             'presence' => $store->query('DELETE FROM presence WHERE seen < ?', [$now - 86400])->rowCount(),
             'audit' => $store->query('DELETE FROM audit WHERE time < ?', [$now - 90 * 86400])->rowCount(),

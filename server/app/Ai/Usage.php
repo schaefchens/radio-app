@@ -102,9 +102,10 @@ final class Usage
         $this->record('stt', 0, 0, intdiv($ms, 1000) * self::STT_MICROS_PER_SECOND);
     }
 
+    /** Today's spend on the host and the checks; looking videos up has a budget of its own (Library\Knowledge). */
     public function spentTodayMicros(): int
     {
-        return (int) $this->app->store()->value('SELECT COALESCE(SUM(cost_micros), 0) FROM ai_usage WHERE day = ?', [$this->day()]);
+        return (int) $this->app->store()->value("SELECT COALESCE(SUM(cost_micros), 0) FROM ai_usage WHERE day = ? AND kind NOT LIKE 'knowledge:%'", [$this->day()]);
     }
 
     public function callsToday(string $kind): int

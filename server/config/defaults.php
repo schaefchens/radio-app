@@ -32,6 +32,13 @@ return [
     // Rough USD cap across all AI calls per UTC day. Host breaks and
     // moderation both stop (template / reject-later) when it is reached.
     'AI_DAILY_BUDGET_USD' => '5',
+    // What the station knows about each song and video (Library\Knowledge):
+    // looked up once per video — OpenAI's web search finds who and what it
+    // is, Gemini (GEMINI_API_KEY) watches the public video and reports what is
+    // sung or said. A budget of its own, so a film never starves the host.
+    'OPENAI_RESEARCH_MODEL' => 'gpt-6.1-sol',
+    'GEMINI_MODEL' => 'gemini-3.8-flash',
+    'KNOWLEDGE_DAILY_BUDGET_USD' => '5',
     'HOST_MAX_BREAKS_PER_DAY' => '300',
     // Below this many listeners a channel plays music only: no AI cost while
     // nobody is there (an idle dev deploy costs nothing).

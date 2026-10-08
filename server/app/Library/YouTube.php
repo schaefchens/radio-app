@@ -35,16 +35,19 @@ class YouTube
 
     /**
      * @return array{ok:bool,error:string,id:string,title:string,channel:string,channel_id:string,description:string,tags:list<string>,
-     *   duration_ms:int,embeddable:bool,public:bool,live:bool,age_restricted:bool,blocked:list<string>,allowed:list<string>|null}
+     *   duration_ms:int,embeddable:bool,public:bool,live:bool,age_restricted:bool,blocked:list<string>,allowed:list<string>|null,
+     *   topics:list<string>,language:string,published:string}
      */
     public function video(string $id): array
     {
         $empty = ['ok' => false, 'error' => '', 'id' => $id, 'title' => '', 'channel' => '', 'channel_id' => '', 'description' => '', 'tags' => [],
             'duration_ms' => 0, 'embeddable' => false, 'public' => false, 'live' => false, 'age_restricted' => false,
-            'blocked' => [], 'allowed' => null];
+            'blocked' => [], 'allowed' => null, 'topics' => [], 'language' => '', 'published' => ''];
         if (!$this->configured()) return ['error' => 'not_configured'] + $empty;
         $url = rtrim($this->app->config->get('YOUTUBE_API_BASE'), '/') . '/videos?' . http_build_query([
-            'part' => 'snippet,contentDetails,status',
+            // topicDetails costs nothing more (a call is one unit): YouTube's own
+            // "Christian music" or "Rock music" helps the look-up (Library\Knowledge).
+            'part' => 'snippet,contentDetails,status,topicDetails',
             'id' => $id,
             'key' => $this->app->config->get('YOUTUBE_API_KEY'),
         ]);
@@ -79,6 +82,10 @@ class YouTube
             'age_restricted' => (($details['contentRating']['ytRating'] ?? '') === 'ytAgeRestricted'),
             'blocked' => array_map('strval', (array) ($region['blocked'] ?? [])),
             'allowed' => isset($region['allowed']) ? array_map('strval', (array) $region['allowed']) : null,
+            // Wikipedia topics as names: "Christian_music", "Rock_music".
+            'topics' => array_values(array_map(fn($t) => (string) preg_replace('~^.*/~', '', (string) $t), (array) ($item['topicDetails']['topicCategories'] ?? []))),
+            'language' => (string) ($snippet['defaultAudioLanguage'] ?? $snippet['defaultLanguage'] ?? ''),
+            'published' => substr((string) ($snippet['publishedAt'] ?? ''), 0, 10),
         ];
     }
 
