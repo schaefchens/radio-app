@@ -327,6 +327,18 @@ policy). One worker may serve several stations (production first, then dev).
 Each piece of a text is a take of its own whose delivery starts afresh
 (`[engine] chunk_chars`, 300 as the demo had it); `run-arche-worker.sh lab`
 speaks a replay's cases in several cuts and temperatures, for choosing by ear.
+A worker may also offer **voices of our own** (`worker/arche_worker/voices.py`;
+station decision 2026-10-08, Faith's "deep radio host voice"): a recording
+and its words per language in the worker's voices folder, cloned by Qwen's
+Base model in every take and offered by name after the presets, so the
+station picks one like a preset and needs no change of its own. The clone
+takes no direction: the host's `instructions` and a moment's delivery never
+reach it, and the words carry the feeling. Faith's recording is VoiceDesign's
+"design B, take 2". VoiceDesign alone made a slightly different woman in each
+take. Base's speaker encoder, with what all voices share taken out, scored
+two takes of one description 0.05–0.40, against 0.6 for one preset in two
+languages; the clone of a take scored 0.6–0.7 against it. So VoiceDesign
+designs the voice and the clone speaks it.
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
 while the minute file says `open`/`closing` (checked again server-side). Every
