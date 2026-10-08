@@ -76,6 +76,16 @@ test('host: no text that airs without the model prays', function () {
     }
 });
 
+test('host: German names people by the plain word — "Hörer", never "Hörerinnen und Hörer" — in what the writer, the check and the look-ups are told, and in every text that airs without the model', function () {
+    $app = TestKit::app();
+    // The model wrote "Hörerinnen und Hörern" and "Christinnen und Christen" on its own (replays, 2026-10-08).
+    check(str_contains($app->hostWriter()->system(null), 'never in paired forms or with a star'), "the writer's rule");
+    check(str_contains(Arche\Moderation\Policy::system(), '"Hörerin oder Hörer"'), "the check's captions");
+    check(str_contains(Arche\Library\Knowledge::researchInstructions(), 'never "Christinnen und Christen"'), 'the look-ups');
+    $templates = (string) file_get_contents(dirname(__DIR__, 2) . '/app/Host/Templates.php');
+    check(!preg_match('/(\p{Lu}\p{L}*)innen\s+(und|oder|bzw\.)\s+\1|\p{Lu}\p{L}*([*:_]|\/-?)in(nen)?\b/u', $templates, $m), 'no template or lead-in pairs them: ' . ($m[0] ?? ''));
+});
+
 test('host: lead-ins change from one reading to the next, and one for a sender without a name names nobody', function () {
     foreach (['prayer', 'prayer_anon', 'request', 'request_anon', 'opendoors'] as $case) {
         foreach (['en', 'de'] as $l) {

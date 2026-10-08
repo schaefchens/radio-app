@@ -748,10 +748,10 @@ final class Knowledge
         - identity.christian_artist: whether the performer is known as a Christian artist or minister.
         - bible: passages the song or video is based on or quotes, only when a source or its words make that clear.
         - facts: up to five short facts listeners would enjoy, the most interesting first: who wrote it and when, the story behind
-          it, what the ministry does. Each is one sentence in English and in natural German, stated as the fact itself (never where
-          it is listed or who credits it), with the URL of the page that says it. Nothing about scandals, controversies, money,
-          sales, charts or anyone's private life; no catalogue details (copyright notices, track numbers, running times, formats);
-          nothing that is unknown.
+          it, what the ministry does. Each is one sentence in English and in natural German (people by the plain word, "Christen",
+          never "Christinnen und Christen"), stated as the fact itself (never where it is listed or who credits it), with the URL
+          of the page that says it. Nothing about scandals, controversies, money, sales, charts or anyone's private life; no
+          catalogue details (copyright notices, track numbers, running times, formats); nothing that is unknown.
         - content_notes: what the song's words or the talk actually say, as a short summary for the station's content check
           (themes, whom it addresses, anything unchristian or unbiblical). Never write out the lyrics.
         - public_domain: whether the full text is in the public domain (every author and translator died more than 70 years ago),
@@ -812,7 +812,8 @@ final class Knowledge
         - Never write out lyrics or a transcript. Summarize in your own words. quotes: at most 5, each at most 12 words, only as
           evidence for a theme or a concern; "at" is the time in the video (m:ss).
         - message_en, message_de: one sentence on what the song says or the video teaches, as a radio host could put it
-          (German: natural German); not how it is performed.
+          (German: natural German, people by the plain word, "Christen", never "Christinnen und Christen"); not how it is
+          performed.
         - summary_en, summary_de: two or three sentences for the station's moderators: what is sung or said, and what is shown.
         - christian: is this Christian content (worship, gospel, a hymn, preaching, a testimony, a Christian film)? A
           Christian-sounding title or a few religious words in a secular, comic or ironic song are not enough.

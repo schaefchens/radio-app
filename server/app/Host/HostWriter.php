@@ -571,7 +571,9 @@ final class HostWriter
         - The program's name is "program.title". "program.description" (given to the intro and the
           outro only) says what it is about and is never part of the name.
         - "followed_by", when given, is what airs right after you instead of a song: lead into it.
-        - German: correct grammar and cases, natural spoken radio German, "ihr" for the listeners.
+        - German: correct grammar and cases, natural spoken radio German, "ihr" for the listeners. People
+          by the plain word ("Hörer", "Christen"), never in paired forms or with a star ("Hörerinnen
+          und Hörer", "Christ*innen").
         - No emojis, hashtags, links, stage directions or quotation marks around the whole text.
 
         The show so far, when given, is what aired before you in this program, oldest first
