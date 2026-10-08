@@ -484,3 +484,40 @@ test('knowledge: the show memory notes whose fact a moment told when it only sum
     $json = (string) json_encode($memory);
     check(!str_contains($json, 'Jenny') && !str_contains($json, 'Munich') && !str_contains($json, 'mum'), 'naming nobody');
 });
+
+test('knowledge: /mod — moderators read an item\'s look-up, correct it, take its names and look it up again; only admins set the switches, the budget and the standard; the list filters by concerns', function () {
+    $app = TestKit::app();
+    $ids = TestKit::songs($app, 2);
+    $app->listener()->respond(fn($yt) => $yt === (string) $app->library()->get($ids[1])['yt_id']
+        ? ['biblical' => 'no', 'concerns' => [['what' => 'A prayer to Mary', 'why' => 'Not the standard', 'quote' => 'Segne du Maria']]] + StubVideoListener::fixed()
+        : StubVideoListener::fixed());
+    $app->research()->respond(fn() => knResearch(['sources' => ['https://www.gerth.de/person/langner-timo.html', 'https://made-up.example/never-searched']]));
+    foreach ($ids as $id) $app->knowledge()->ensure((string) $app->library()->get($id)['yt_id'], 'song');
+    runJobs($app);
+    $mod = moderatorHeaders($app);
+    [$st, $d] = modGet($app, '/api/mod/library', ['kind' => 'song'], $mod);
+    eq($st, 200, 'the list');
+    $byId = array_column($d['items'], 'knowledge', 'id');
+    eq([$byId[$ids[0]]['state'], $byId[$ids[0]]['concern'], $byId[$ids[1]]['biblical'], $byId[$ids[1]]['concern']], ['ready', false, 'no', true], 'each with its knowledge in short');
+    eq($byId[$ids[0]]['names'], ['title' => 'Ein Gott, der das Meer teilt', 'artist' => 'Timo Langner'], "research's names offered");
+    [, $d] = modGet($app, '/api/mod/library', ['kind' => 'song', 'knowledge' => 'concerns'], $mod);
+    eq(array_column($d['items'], 'id'), [$ids[1]], 'filtered by concerns');
+
+    [$st, $d] = call($app, 'GET', "/api/mod/library/{$ids[0]}/knowledge", [], $mod);
+    eq([$st, isset($d['knowledge']['work'])], [200, false], 'the whole record, without what a look-up in progress keeps');
+    [$st, $d] = call($app, 'PATCH', "/api/mod/library/{$ids[0]}/knowledge", ['about' => ['en' => 'About trust.', 'de' => 'Über Vertrauen.']], $mod);
+    eq([$st, $d['knowledge']['analysis']['message_de']], [200, 'Über Vertrauen.'], 'corrected');
+    [$st, $d] = call($app, 'POST', "/api/mod/library/{$ids[0]}/knowledge/names", [], $mod);
+    eq([$st, $d['item']['title']], [200, 'Ein Gott, der das Meer teilt'], 'the names taken over');
+    [$st, $d] = call($app, 'POST', "/api/mod/library/{$ids[0]}/knowledge/again", [], $mod);
+    eq($st, 200, 'looked up again');
+
+    eq(call($app, 'GET', '/api/mod/knowledge', [], $mod)[0], 403, 'the settings: admins only');
+    eq(call($app, 'PUT', '/api/mod/knowledge', ['checks' => true], $mod)[0], 403, 'and their saving');
+    $admin = modHeaders($app);
+    [$st, $d] = call($app, 'GET', '/api/mod/knowledge', [], $admin);
+    eq([$st, $d['settings']['checks'], $d['standardDefault']], [200, false, Knowledge::STANDARD], 'admins read them');
+    [$st, $d] = call($app, 'PUT', '/api/mod/knowledge', ['checks' => true, 'air' => true, 'budget_usd' => 12, 'standard' => 'Scripture only.'], $admin);
+    eq([$st, $d['settings']], [200, ['checks' => true, 'air' => true, 'budget_usd' => 12.0, 'standard' => 'Scripture only.']], 'and set them');
+    eq(call($app, 'GET', '/api/mod/library', [], authHeaders())[0], 403, 'listeners see none of it');
+});

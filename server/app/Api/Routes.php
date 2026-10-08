@@ -54,6 +54,12 @@ final class Routes
         $r->add('POST', '/mod/library', $m('libraryAdd'));
         $r->add('PATCH', '/mod/library/{id}', $m('libraryUpdate'));
         $r->add('POST', '/mod/library/{id}/pull', $m('libraryPull'));
+        $r->add('GET', '/mod/library/{id}/knowledge', $m('libraryKnowledge'));
+        $r->add('PATCH', '/mod/library/{id}/knowledge', $m('libraryKnowledgeSave'));
+        $r->add('POST', '/mod/library/{id}/knowledge/again', $m('libraryKnowledgeAgain'));
+        $r->add('POST', '/mod/library/{id}/knowledge/names', $m('libraryKnowledgeNames'));
+        $r->add('GET', '/mod/knowledge', $m('knowledgeSettings'));
+        $r->add('PUT', '/mod/knowledge', $m('knowledgeSettingsSave'));
         $r->add('POST', '/mod/jingles', $m('jingleUpload'));
         $r->add('POST', '/mod/jingles/tts', $m('jingleTts'));
         $r->add('POST', '/mod/beds', $m('bedUpload'));

@@ -14,6 +14,7 @@ use Arche\Host\Speech;
 use Arche\Http\Context;
 use Arche\Http\Response;
 use Arche\Identity\Identities;
+use Arche\Library\Knowledge;
 use Arche\Plan\StationSetup;
 use Arche\Program\Timing;
 use Arche\Support\BudgetExceeded;
@@ -141,7 +142,107 @@ final class ModApi
     {
         $this->mod();
         $q = $this->c->req->query;
-        return ['items' => $this->c->app->library()->search((string) ($q['q'] ?? ''), (string) ($q['kind'] ?? ''), (int) ($q['limit'] ?? 200), (int) ($q['offset'] ?? 0), (int) ($q['group'] ?? 0))];
+        $items = $this->c->app->library()->search((string) ($q['q'] ?? ''), (string) ($q['kind'] ?? ''), (int) ($q['limit'] ?? 200), (int) ($q['offset'] ?? 0), (int) ($q['group'] ?? 0));
+        // What was looked up about each (Library\Knowledge), in short, for the list and its filter.
+        $known = $this->c->app->knowledge()->many(array_map(fn($i) => (string) ($i['yt_id'] ?? ''), $items));
+        foreach ($items as &$item) $item['knowledge'] = self::knowledgeSummary($item, $known[(string) ($item['yt_id'] ?? '')] ?? null);
+        unset($item);
+        $filter = (string) ($q['knowledge'] ?? '');
+        if ($filter !== '') $items = array_values(array_filter($items, fn($i) => self::knowledgeFilter($i, $filter)));
+        return ['items' => $items];
+    }
+
+    /**
+     * @param array<string,mixed> $item
+     * @param array<string,mixed>|null $row
+     * @return array<string,mixed>|null null: nothing to know (a jingle, a recording, prayer music)
+     */
+    private static function knowledgeSummary(array $item, ?array $row): ?array
+    {
+        if (!in_array($item['kind'], Knowledge::KINDS, true) || ($item['yt_id'] ?? null) === null) return null;
+        if ($row === null) return ['state' => 'none'];
+        $a = $row['analysis'];
+        $concern = $row['state'] === 'ready' && (($a['biblical'] ?? 'yes') !== 'yes' || ($a['christian'] ?? 'yes') !== 'yes' || !empty($a['explicit']));
+        return [
+            'state' => $row['state'],
+            'christian' => $a['christian'] ?? null,
+            'biblical' => $a['biblical'] ?? null,
+            'explicit' => (bool) ($a['explicit'] ?? false),
+            'concern' => $concern,
+            'facts' => count($row['research']['facts'] ?? []),
+            // research's names, when they differ from the item's: a suggestion to use
+            'names' => $row['title'] !== '' && ($row['title'] !== $item['title'] || ($row['artist'] !== '' && $row['artist'] !== $item['artist']))
+                ? ['title' => $row['title'], 'artist' => $row['artist']] : null,
+            'error' => $row['error'],
+        ];
+    }
+
+    /** @param array<string,mixed> $item */
+    private static function knowledgeFilter(array $item, string $filter): bool
+    {
+        $k = $item['knowledge'];
+        return match ($filter) {
+            'none' => $k !== null && in_array($k['state'], ['none', 'queued', 'working'], true),
+            'concerns' => $k !== null && !empty($k['concern']),
+            'failed' => $k !== null && $k['state'] === 'failed',
+            'names' => $k !== null && !empty($k['names']),
+            default => true,
+        };
+    }
+
+    /** What was looked up about a library item, whole, for its editor. @param array<string,string> $a */
+    public function libraryKnowledge(array $a): array
+    {
+        $this->mod();
+        $item = $this->c->app->library()->get($this->id($a)) ?? throw new ApiError(404, 'not_found');
+        $row = $item['yt_id'] !== null ? $this->c->app->knowledge()->get((string) $item['yt_id']) : null;
+        // While gathering, `work` holds YouTube's raw data and the calls' ids: not for the editor.
+        return ['item' => $item, 'knowledge' => $row !== null ? array_diff_key($row, ['work' => 1]) : null];
+    }
+
+    /** A moderator's corrections. @param array<string,string> $a */
+    public function libraryKnowledgeSave(array $a): array
+    {
+        $this->mod();
+        $item = $this->c->app->library()->get($this->id($a)) ?? throw new ApiError(404, 'not_found');
+        $row = $this->c->app->knowledge()->edit((string) ($item['yt_id'] ?? ''), $this->c->req->json(), $this->actor());
+        return ['knowledge' => array_diff_key($row, ['work' => 1])];
+    }
+
+    /** @param array<string,string> $a */
+    public function libraryKnowledgeAgain(array $a): array
+    {
+        $this->mod();
+        $item = $this->c->app->library()->get($this->id($a)) ?? throw new ApiError(404, 'not_found');
+        $row = $this->c->app->knowledge()->again((string) ($item['yt_id'] ?? ''), $this->actor());
+        return ['knowledge' => array_diff_key($row, ['work' => 1])];
+    }
+
+    /** The names research found, into the item ("Use"). @param array<string,string> $a */
+    public function libraryKnowledgeNames(array $a): array
+    {
+        $this->mod();
+        $app = $this->c->app;
+        $item = $app->library()->get($this->id($a)) ?? throw new ApiError(404, 'not_found');
+        $row = $item['yt_id'] !== null ? $app->knowledge()->get((string) $item['yt_id']) : null;
+        if ($row === null || $row['title'] === '') throw new ApiError(409, 'no_names');
+        return ['item' => $app->library()->update((int) $item['id'], ['title' => $row['title'], 'artist' => $row['artist'] !== '' ? $row['artist'] : $item['artist']], $this->actor())];
+    }
+
+    /** The admins' switches, the day's budget and the standard; what was spent today; which keys are there. */
+    public function knowledgeSettings(): array
+    {
+        $this->admin();
+        $app = $this->c->app;
+        return ['settings' => $app->knowledge()->settings(), 'standardDefault' => Knowledge::STANDARD, 'spentMicros' => $app->knowledge()->spentToday(),
+            'configured' => ['research' => $app->research()->configured(), 'listen' => $app->listener()->configured()],
+            'counts' => $app->store()->all('SELECT state, COUNT(*) AS n FROM video_knowledge GROUP BY state')];
+    }
+
+    public function knowledgeSettingsSave(): array
+    {
+        $this->admin();
+        return ['settings' => $this->c->app->knowledge()->saveSettings($this->c->req->json(), $this->actor())];
     }
 
     public function libraryLookup(): array

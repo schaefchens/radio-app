@@ -324,6 +324,92 @@ export interface LibraryItem {
   group_id: number | null;
   /** Its YouTube channel, once known (older items learn it from a job). */
   yt_channel: string | null;
+  /** What was looked up about it (Library\Knowledge), in short; null for what has nothing to know (a jingle). */
+  knowledge?: KnowledgeSummary | null;
+}
+
+export type KnowledgeState = 'none' | 'queued' | 'working' | 'ready' | 'failed';
+
+export interface KnowledgeSummary {
+  state: KnowledgeState;
+  christian?: 'yes' | 'no' | 'unclear' | null;
+  biblical?: 'yes' | 'concern' | 'no' | null;
+  explicit?: boolean;
+  concern?: boolean;
+  facts?: number;
+  /** The names research found, when they differ from the item's. */
+  names?: { title: string; artist: string } | null;
+  error?: string;
+}
+
+export interface KnowledgeFact {
+  en: string;
+  de: string;
+  source: string;
+}
+
+/** A video's whole record, as /mod edits it. */
+export interface KnowledgeRecord {
+  yt_id: string;
+  kind: string;
+  state: KnowledgeState;
+  yt_title: string;
+  yt_artist: string;
+  title: string;
+  artist: string;
+  research: {
+    identity?: {
+      identified: boolean;
+      original: string;
+      writers: { name: string; role: string; died: string }[];
+      year: string;
+      artist_background: string;
+      christian_artist: string;
+    };
+    bible?: string[];
+    facts?: KnowledgeFact[];
+    content_notes?: string;
+    public_domain?: { is: boolean; why: string; url: string };
+    sources?: string[];
+  };
+  analysis: {
+    heard?: boolean;
+    message_en?: string;
+    message_de?: string;
+    summary_en?: string;
+    summary_de?: string;
+    addressed_to?: string;
+    themes?: string[];
+    moods?: string[];
+    energy?: string;
+    style?: string;
+    quotes?: { text: string; at: string }[];
+    bible_refs?: string[];
+    christian?: 'yes' | 'no' | 'unclear';
+    christian_why?: string;
+    biblical?: 'yes' | 'concern' | 'no';
+    concerns?: { what: string; why: string; quote: string }[];
+    explicit?: boolean;
+    age?: string;
+    fits?: string[];
+    speaker?: string;
+    points?: string[];
+  };
+  /** Fact index → when it was last told (ms). */
+  facts_told: Record<string, number>;
+  text: string;
+  text_source: string;
+  cost_micros: number;
+  error: string;
+  edited_by: string;
+  researched: number;
+}
+
+export interface KnowledgeSettings {
+  checks: boolean;
+  air: boolean;
+  budget_usd: number;
+  standard: string;
 }
 
 export interface GroupLink {
@@ -445,6 +531,13 @@ const KNOWN: Record<string, string> = {
   invalid_image: 'mod.hosts.errors.invalid_image',
   worker_name: 'mod.workers.errors.worker_name',
   no_worker: 'mod.workers.errors.no_worker',
+  knowledge_not_configured: 'mod.knowledge.errors.not_configured',
+  not_ready: 'mod.knowledge.errors.not_ready',
+  fact_needs_source: 'mod.knowledge.errors.fact_needs_source',
+  fact_prays: 'mod.knowledge.errors.fact_prays',
+  text_not_public_domain: 'mod.knowledge.errors.text_not_public_domain',
+  standard_too_long: 'mod.knowledge.errors.standard_too_long',
+  no_names: 'mod.knowledge.errors.no_names',
   ...Object.fromEntries(LINE_ERRORS.map((code) => [code, `mod.lines.errors.${code}`])),
 };
 

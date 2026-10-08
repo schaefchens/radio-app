@@ -9,6 +9,7 @@ import { useApi } from './useApi';
 import { NO_CHANNELS, useOverview } from './overview';
 import { modError, VOICES, type LibraryGroup, type LibraryItem, type VideoLookup } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
+import { KnowledgeEditor, KnowledgePill, KnowledgeSettingsSection } from './KnowledgePanel';
 import { BookIcon, MusicIcon } from '@/components/common/icons';
 
 type Kind = '' | 'song' | VideoFormat | 'jingle' | 'contrib' | 'bed';
@@ -43,8 +44,9 @@ export function LibraryPanel() {
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<Kind>('');
   const [group, setGroup] = useState('');
+  const [known, setKnown] = useState('');
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
-  const path = `/mod/library?limit=200&q=${encodeURIComponent(query)}&kind=${kind}&group=${group}`;
+  const path = `/mod/library?limit=200&q=${encodeURIComponent(query)}&kind=${kind}&group=${group}&knowledge=${known}`;
   const { data, error, reload } = useApi<{ items: LibraryItem[] }>(path);
   const groups = useApi<{ groups: LibraryGroup[] }>('/mod/groups').data?.groups ?? NO_GROUPS;
 
@@ -57,6 +59,7 @@ export function LibraryPanel() {
   return (
     <div className="flex flex-col gap-4">
       {youtube ? <AddVideo onAdded={() => done(t('mod.library.addedOk'))} /> : <Notice tone="error">{t('mod.library.noYoutube')}</Notice>}
+      <KnowledgeSettingsSection />
 
       <Section
         title={t('mod.nav.library')}
@@ -90,6 +93,13 @@ export function LibraryPanel() {
                 ))}
               </select>
             )}
+            <select className="field w-auto py-1.5" value={known} onChange={(e) => setKnown(e.target.value)} aria-label={t('mod.knowledge.filterLabel')}>
+              <option value="">{t('mod.knowledge.filter.all')}</option>
+              <option value="concerns">{t('mod.knowledge.filter.concerns')}</option>
+              <option value="names">{t('mod.knowledge.filter.names')}</option>
+              <option value="none">{t('mod.knowledge.filter.none')}</option>
+              <option value="failed">{t('mod.knowledge.filter.failed')}</option>
+            </select>
             <button type="submit" className="btn-ghost px-3 py-1.5">
               {t('mod.common.search')}
             </button>
@@ -285,6 +295,7 @@ function LibraryRow({
 }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
+  const [knowing, setKnowing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [artist, setArtist] = useState(item.artist);
   const [groupId, setGroupId] = useState<number | null>(item.group_id ?? null);
@@ -338,6 +349,7 @@ function LibraryRow({
             {group && <Pill tone={group.blocked === 1 ? 'bad' : 'default'}>{group.blocked === 1 ? t('mod.library.groupBlockedPill', { name: group.name }) : group.name}</Pill>}
             {item.kind === 'song' && <Pill>{item.source === 'submission' ? t('mod.library.source.submission') : t('mod.library.source.curated')}</Pill>}
             {isVideoFormat(item.kind) && <Pill>{item.source === 'submission' ? t('mod.library.source.suggestion') : t('mod.library.source.curated')}</Pill>}
+            {item.knowledge && <KnowledgePill k={item.knowledge} />}
             <Pill>
               {t('mod.library.plays')} {item.plays}
             </Pill>
@@ -356,6 +368,11 @@ function LibraryRow({
         <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setEditing((e) => !e)}>
           {t('mod.common.edit')}
         </button>
+        {item.knowledge && (
+          <button type="button" className="btn-ghost px-3 py-1.5 text-xs" aria-expanded={knowing} onClick={() => setKnowing((k) => !k)}>
+            {t('mod.knowledge.open')}
+          </button>
+        )}
         <button type="button" className="btn-ghost px-3 py-1.5 text-xs" disabled={busy} onClick={() => void patch({ active: !active }, t('mod.common.saved'))}>
           {active ? t('mod.library.deactivate') : t('mod.library.activate')}
         </button>
@@ -363,6 +380,7 @@ function LibraryRow({
           <ConfirmButton className="btn-ghost px-3 py-1.5 text-xs text-heart" label={t('mod.library.pull')} question={t('mod.library.pullConfirm')} onConfirm={() => void pull()} disabled={busy} />
         )}
       </div>
+      {knowing && <KnowledgeEditor item={item} onChanged={onChanged} />}
       {editing && (
         <div className="flex flex-col gap-3 border-t border-line/20 pt-3">
           <div className="grid gap-3 sm:grid-cols-2">
