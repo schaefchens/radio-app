@@ -60,6 +60,8 @@ final class Routes
         $r->add('POST', '/mod/library/{id}/knowledge/names', $m('libraryKnowledgeNames'));
         $r->add('GET', '/mod/knowledge', $m('knowledgeSettings'));
         $r->add('PUT', '/mod/knowledge', $m('knowledgeSettingsSave'));
+        $r->add('GET', '/mod/knowledge/export', $m('knowledgeExport'));
+        $r->add('POST', '/mod/knowledge/import', $m('knowledgeImport'));
         $r->add('POST', '/mod/jingles', $m('jingleUpload'));
         $r->add('POST', '/mod/jingles/tts', $m('jingleTts'));
         $r->add('POST', '/mod/beds', $m('bedUpload'));

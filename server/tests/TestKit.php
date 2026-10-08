@@ -35,6 +35,8 @@ final class TestKit
             'OPENDOORS_FEED_URL' => 'off',
             'REALTIME_DRIVER' => 'static',
             'THUMBS' => '0',
+            // Look-ups cost nothing in stub mode; the stations' default ($0: nothing looked up) is for real ones.
+            'KNOWLEDGE_DAILY_BUDGET_USD' => '5',
         ], $env), dirname(__DIR__), $dir . '/public', $dir . '/data');
         return new App($config, new FixedClock($nowMs));
     }

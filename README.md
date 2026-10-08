@@ -331,10 +331,14 @@ a deploy.
   up to 3 minutes for their look-up and need to be biblical; nothing heard is
   not accepted), **Use on air** (the host says what a song is about and tells
   a fact, its page linked on the stage; clean names replace YouTube's), the
-  day's budget ($5; the first backfill of a library takes a few days — raise
-  it for a day) and the standard's text. Both switches start off: read the
-  library first. Locally: `npm run library:research` looks the imported
-  library up for real (about 10 cents a song), then
+  day's budget (**$0 at first: nothing is looked up or spent until you set
+  one**) and the standard's text. Both switches start off: read the library
+  first. **Without paying twice**: "Download knowledge" on one station and
+  "Upload knowledge" on the other (local → live) — the other takes what it
+  does not know yet, checked again on the way in, and keeps its own unless
+  "Replace what is here" is ticked; only the songs' and videos' records
+  travel. Locally: `npm run library:research` looks the imported library up
+  for real (about 10 cents a song), then
   `replay-show.php --knowledge=/var/www/site/_arche/var/arche.sqlite` writes a
   show with what the host now knows.
 - **Groups** (/mod → Groups): a preacher, a church, a ministry or an

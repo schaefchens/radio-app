@@ -538,6 +538,9 @@ const KNOWN: Record<string, string> = {
   text_not_public_domain: 'mod.knowledge.errors.text_not_public_domain',
   standard_too_long: 'mod.knowledge.errors.standard_too_long',
   no_names: 'mod.knowledge.errors.no_names',
+  knowledge_no_budget: 'mod.knowledge.errors.no_budget',
+  not_knowledge_file: 'mod.knowledge.errors.not_knowledge_file',
+  missing_file: 'mod.knowledge.errors.missing_file',
   ...Object.fromEntries(LINE_ERRORS.map((code) => [code, `mod.lines.errors.${code}`])),
 };
 

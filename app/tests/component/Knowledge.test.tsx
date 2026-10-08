@@ -114,4 +114,27 @@ describe('/mod › Library: what was looked up', () => {
     // The default unchanged is sent as empty: the server keeps the default, also when it changes later.
     expect(asked.find((s) => s.method === 'PUT')!.body).toEqual({ checks: true, air: false, budget_usd: 8, standard: '' });
   });
+
+  it('admins take another station\'s look-ups by uploading its file, replacing what is here only when asked', async () => {
+    useSession.setState({ identity: { id: 'me0000001', role: 'admin', claimed: true } as never });
+    const forms: FormData[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const path = url.replace(/^\/api/, '');
+        if (path === '/mod/knowledge/import') {
+          forms.push(init?.body as FormData);
+          return json({ taken: 74, kept: 1, refused: 0 });
+        }
+        return json({ settings: { checks: false, air: false, budget_usd: 0, standard: 'S.' }, standardDefault: 'S.', spentMicros: 0, configured: { research: true, listen: true }, counts: [] });
+      }),
+    );
+    const { container } = render(<KnowledgeSettingsSection />);
+    expect(await screen.findByText(/At \$0 nothing is looked up/)).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Replace what is here'));
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['{}'], 'arche-knowledge-20261008.json', { type: 'application/json' })] } });
+    expect(await screen.findByText('Taken: 74 · kept here: 1 · refused: 0.')).toBeTruthy();
+    expect([(forms[0]!.get('file') as File).name, forms[0]!.get('replace')]).toEqual(['arche-knowledge-20261008.json', '1']);
+  });
 });

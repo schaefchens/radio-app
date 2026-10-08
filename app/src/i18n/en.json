@@ -572,6 +572,7 @@
       "air": "Use on air",
       "airHint": "The host may say what a song is about and tell a fact (its page is linked on the stage); clean names replace YouTube's.",
       "budget": "Daily budget for look-ups (USD)",
+      "budgetZero": "At $0 nothing is looked up: set a budget once this station has what it can take from another (upload below).",
       "spent": "spent today: ${{amount}}",
       "counts": "{{ready}} looked up, {{working}} under way, {{failed}} failed",
       "standard": "The station's standard: what \"biblical\" means",
@@ -637,6 +638,13 @@
       "again": "Look up again",
       "againConfirm": "Look this video up again? What was found is replaced (about 10 cents).",
       "againStarted": "Looking it up again — the answers come within a few minutes.",
+      "transfer": "Take look-ups to another station",
+      "transferHint": "Download what was looked up here and upload it on the other station (from your local stack to the live one, or back): it takes what it does not know yet, checked again on the way in, and only looks up what is new. Only the songs' and videos' records travel — nothing else of the station.",
+      "download": "Download knowledge",
+      "upload": "Upload knowledge",
+      "replace": "Replace what is here",
+      "downloaded": "Downloaded {{name}} — {{n}} songs and videos.",
+      "imported": "Taken: {{taken}} · kept here: {{kept}} · refused: {{refused}}.",
       "errors": {
         "not_configured": "Look-ups need GEMINI_API_KEY (and OPENAI_KEY) on the server.",
         "not_ready": "This look-up is not finished yet.",
@@ -644,7 +652,10 @@
         "fact_prays": "A fact the host tells never prays.",
         "text_not_public_domain": "Only a text in the public domain is kept whole.",
         "standard_too_long": "The standard is too long (at most 3,000 characters).",
-        "no_names": "The look-up found no names for this item."
+        "no_names": "The look-up found no names for this item.",
+        "no_budget": "Set a budget for look-ups first: without one nothing is looked up, and the checks could approve nothing.",
+        "not_knowledge_file": "This is not a file from \"Download knowledge\".",
+        "missing_file": "Choose a file first."
       }
     },
     "groups": {

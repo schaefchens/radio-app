@@ -38,7 +38,9 @@ return [
     // sung or said. A budget of its own, so a film never starves the host.
     'OPENAI_RESEARCH_MODEL' => 'gpt-6.1-sol',
     'GEMINI_MODEL' => 'gemini-3.8-flash',
-    'KNOWLEDGE_DAILY_BUDGET_USD' => '5',
+    // Nothing is looked up (or spent) until an admin sets a budget in /mod — a
+    // station may first take another station's look-ups (/mod: "Upload knowledge").
+    'KNOWLEDGE_DAILY_BUDGET_USD' => '0',
     'HOST_MAX_BREAKS_PER_DAY' => '300',
     // Below this many listeners a channel plays music only: no AI cost while
     // nobody is there (an idle dev deploy costs nothing).

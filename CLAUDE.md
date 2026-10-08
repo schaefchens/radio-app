@@ -149,11 +149,16 @@ ones, started together in one tick and collected in a later one (job
 a page the search consulted (`pageKey`: tracking stripped, a query that names
 the page kept), lose OpenAI's inline citations, never pray or talk charts.
 Only the video's public data goes out, never a listener's. A budget of its own
-(`KNOWLEDGE_DAILY_BUDGET_USD`, admins in /mod; `Usage::spentTodayMicros`
-leaves `knowledge:*` out), a backfill every 10 minutes (three at a time, most
-played first, $1 kept for requests), a moderator's library add looked up at
-once, `npm run library:research` for the local stack (live while it runs on
-stubs). Two admin switches, both off at first: **Use in checks** — a request
+(`KNOWLEDGE_DAILY_BUDGET_USD`, $0 by default — nothing is looked up until an
+admin sets one in /mod; `Usage::spentTodayMicros` leaves `knowledge:*` out), a
+backfill every 10 minutes (three at a time, most played first, $1 kept for
+requests), a moderator's library add looked up at once, `npm run
+library:research` for the local stack (live while it runs on stubs). One
+station's look-ups go to another as a file (/mod, admins: `export()` /
+`import()`, format `arche-knowledge`): taken where the other knows nothing,
+every record cleaned again on the way in (facts only with a page their own
+search consulted), the rotation started afresh — so the live station need
+not pay for what the local one looked up. Two admin switches, both off at first: **Use in checks** — a request
 or video suggestion waits for its look-up (`wait:knowledge`, 3 minutes for a
 song, 10 for a video; an approved request is announced ~8 minutes later, so it
 must be there by approval), the judge gets identity and what was heard, and

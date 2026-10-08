@@ -47,11 +47,14 @@ while ($todo || $running) {
     while ($todo && count($running) < $atOnce) {
         $item = array_shift($todo);
         $app->budget->restart(60);
-        // Started afresh: whatever was known (or made up) is replaced when the answers come.
+        // Started afresh: whatever was known (or made up) is replaced when the answers come; a look-up
+        // a crash left open has its calls cancelled first.
+        $old = $k->get((string) $item['yt_id']);
+        if ($old !== null && in_array($old['state'], ['queued', 'working'], true)) $k->giveUp((int) $old['id'], 'started again');
         $app->store()->update('video_knowledge', ['state' => 'failed'], 'yt_id = ?', [$item['yt_id']]);
         $row = $k->ensure((string) $item['yt_id'], (string) $item['kind'], 80, true, false);
         if ($row === null) continue;
-        $next = $k->runPhase(['ref_id' => $row['id'], 'phase' => 'start']);
+        $next = step($k, (int) $row['id'], 'start');
         if ($next !== null) $running[(int) $row['id']] = $item;
         else report($k, $item);
     }
@@ -59,13 +62,27 @@ while ($todo || $running) {
     sleep(10);
     foreach ($running as $id => $item) {
         $app->budget->restart(60);
-        if ($k->runPhase(['ref_id' => $id, 'phase' => 'wait']) === null) {
+        if (step($k, $id, 'wait') === null) {
             unset($running[$id]);
             report($k, $item);
         }
     }
 }
 printf("Done: about $%.2f for the look-ups.\n", ($k->spentToday() - $spent) / 1e6);
+
+/**
+ * One phase; what the station's runner would retry on a later tick (YouTube or a
+ * provider unreachable) ends this item's look-up here, said so — the rest go on.
+ */
+function step(Knowledge $k, int $id, string $phase): ?string
+{
+    try {
+        return $k->runPhase(['ref_id' => $id, 'phase' => $phase]);
+    } catch (Throwable $e) {
+        $k->giveUp($id, $e->getMessage());
+        return null;
+    }
+}
 
 /** @param array<string,mixed> $item */
 function report(Knowledge $k, array $item): void

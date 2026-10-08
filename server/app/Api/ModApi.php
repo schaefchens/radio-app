@@ -245,6 +245,23 @@ final class ModApi
         return ['settings' => $this->c->app->knowledge()->saveSettings($this->c->req->json(), $this->actor())];
     }
 
+    /** What is known of the library's songs and videos, as a file for another station. */
+    public function knowledgeExport(): array
+    {
+        $this->admin();
+        return $this->c->app->knowledge()->export();
+    }
+
+    /** Another station's look-ups (a file from "Download knowledge"), multipart: a library's is larger than a JSON body may be. */
+    public function knowledgeImport(): array
+    {
+        $this->admin();
+        $file = $this->c->req->file('file') ?? throw new ApiError(422, 'missing_file');
+        $data = json_decode((string) file_get_contents($file), true);
+        if (!is_array($data)) throw new ApiError(422, 'not_knowledge_file');
+        return $this->c->app->knowledge()->import($data, ($this->c->req->post['replace'] ?? '') === '1', $this->actor());
+    }
+
     public function libraryLookup(): array
     {
         $this->mod();

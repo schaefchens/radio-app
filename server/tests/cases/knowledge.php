@@ -533,3 +533,49 @@ test('knowledge: a request tries a video\'s failed look-up again once it is ten 
     TestKit::clock($app)->advance(11 * 60_000);
     eq(knRequest($app, 'FlakyVideo1')['status'], 'approved', 'ten minutes on, a new request looks it up again');
 });
+
+test('knowledge: one station\'s look-ups go to another as a file — taken where it knows nothing, its own kept unless replaced, every record checked again on the way in; nothing else of the station travels', function () {
+    $here = TestKit::app();
+    $ids = TestKit::songs($here, 2);
+    $here->research()->respond(fn() => knResearch(['sources' => ['https://www.gerth.de/person/langner-timo.html']]));
+    foreach ($ids as $id) $here->knowledge()->ensure((string) $here->library()->get($id)['yt_id'], 'song');
+    $here->knowledge()->ensure('NotInLib002', 'song');
+    runJobs($here);
+    $file = $here->knowledge()->export();
+    eq([$file['format'], count($file['rows'])], ['arche-knowledge', 2], "the library's, not a turned-down request's video");
+    check(!isset($file['rows'][0]['facts_told'], $file['rows'][0]['edited_by'], $file['rows'][0]['work']), 'no rotation, moderator or look-up under way');
+    // Tampered with on the way: a fact whose page the search never consulted, and a text that is no public domain.
+    $file['rows'][0]['research']['facts'][] = ['en' => 'Made up.', 'de' => 'Erfunden.', 'source' => 'https://made-up.example/x'];
+    $file['rows'][0]['text'] = 'All the lyrics';
+    $file['rows'][] = ['yt_id' => 'bad id', 'research' => [], 'analysis' => []];
+
+    $live = TestKit::app(['KNOWLEDGE_DAILY_BUDGET_USD' => '0']);
+    $live->store()->query('INSERT INTO library_items (kind, yt_id, title, artist, duration_ms, created, updated) SELECT kind, yt_id, title, artist, duration_ms, 1, 1 FROM library_items WHERE 0');
+    foreach ($file['rows'] as $r) {
+        if (preg_match('/^[A-Za-z0-9_-]{11}$/', $r['yt_id'])) $live->store()->insert('library_items', ['kind' => 'song', 'yt_id' => $r['yt_id'], 'title' => $r['yt_title'], 'artist' => $r['yt_artist'], 'duration_ms' => 200_000, 'created' => 1, 'updated' => 1]);
+    }
+    $hostsBefore = $live->store()->all('SELECT * FROM hosts');
+    eq($live->knowledge()->import($file, false, 'mod:test'), ['taken' => 2, 'kept' => 0, 'refused' => 1], 'taken, a broken row refused');
+    $row = $live->knowledge()->get($file['rows'][0]['yt_id']);
+    eq([$row['state'], $row['text'], $row['facts_told']], ['ready', '', []], 'checked again: the text gone, the rotation starts afresh');
+    eq(count($row['research']['facts']), count($file['rows'][0]['research']['facts']) - 1, 'the fact its search never consulted gone');
+    check(!in_array('Made up.', array_column($row['research']['facts'], 'en'), true), 'not that one');
+    eq($live->store()->all('SELECT * FROM hosts'), $hostsBefore, "the station's hosts untouched");
+    eq((int) $live->store()->value("SELECT COUNT(*) FROM jobs WHERE type = 'knowledge'"), 0, 'nothing looked up here: no budget yet');
+    $live->store()->update('video_knowledge', ['analysis' => json_encode(['heard' => true, 'message_en' => 'Mine.'] + StubVideoListener::fixed())], 'yt_id = ?', [$row['yt_id']]);
+    eq($live->knowledge()->import($file, false, 'mod:test')['kept'], 2, 'what it knows is kept');
+    eq($live->knowledge()->import($file, true, 'mod:test')['taken'], 2, '…unless replaced');
+    check(refuses(fn() => $live->knowledge()->import(['format' => 'arche-setup'], false, 'mod:test'), 'not_knowledge_file'), 'another file is refused');
+    check(refuses(fn() => $live->knowledge()->saveSettings(['checks' => true], 'mod:test'), 'knowledge_no_budget'), 'no checks without a budget to look anything up');
+});
+
+test('knowledge: /mod — only admins download and upload look-ups', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 1);
+    $app->knowledge()->ensure((string) $app->store()->value('SELECT yt_id FROM library_items'), 'song');
+    runJobs($app);
+    $mod = moderatorHeaders($app);
+    eq(call($app, 'GET', '/api/mod/knowledge/export', [], $mod)[0], 403, 'not moderators');
+    [$st, $d] = call($app, 'GET', '/api/mod/knowledge/export', [], modHeaders($app));
+    eq([$st, $d['format'], count($d['rows'])], [200, 'arche-knowledge', 1], 'admins download');
+});

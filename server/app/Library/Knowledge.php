@@ -34,6 +34,9 @@ final class Knowledge
         . "Not biblical, for example: prayer to or through Mary or the saints; salvation earned by works or rites; blessing or healing promised for money; "
         . "occult or esoteric practice; other gods, religions or spiritual paths mixed in; denying the Trinity, or that Jesus is God, died and rose again.\n"
         . "Questions Bible-believing Christians differ on (baptism, spiritual gifts, end times, worship style) are no reason to object.";
+    /** The file one station's look-ups travel in to another (local → live, without paying twice). */
+    public const FORMAT = 'arche-knowledge';
+    public const VERSION = 1;
     /** A fact rests this long once told: a song plays several times a day. */
     public const FACT_REST_HOURS = 72;
     private const MAX_FACTS = 5;
@@ -141,8 +144,9 @@ final class Knowledge
             // Empty: the default again.
             $new['standard'] = $standard !== '' ? $standard : self::STANDARD;
         }
-        // The checks lean on what was heard: without a listening key they could approve nothing.
+        // The checks lean on what was heard: without a listening key, or a budget to look anything up, they could approve nothing.
         if ($new['checks'] && !$old['checks'] && !$this->app->listener()->configured()) throw new ApiError(409, 'knowledge_not_configured');
+        if ($new['checks'] && $new['budget_usd'] <= 0) throw new ApiError(409, 'knowledge_no_budget');
         $this->app->store()->set('knowledge', ['standard' => $new['standard'] === self::STANDARD ? '' : $new['standard']] + $new);
         $this->app->store()->audit($actor, 'Knowledge settings', json_encode(array_diff_key($new, ['standard' => 1]) + ['standard_changed' => $new['standard'] !== $old['standard']]) ?: '');
         // Switched on air: the clean names of what is known already go into the library.
@@ -605,6 +609,94 @@ final class Knowledge
         if ($row !== null) $this->app->store()->update('video_knowledge', ['state' => 'failed', 'updated' => $this->app->clock->now()], 'id = ?', [$row['id']]);
         $this->app->store()->audit($actor, 'Knowledge look-up again', $ytId);
         return $this->ensure($ytId, $kind, 40, true) ?? throw new ApiError(409, 'knowledge_not_configured');
+    }
+
+    /**
+     * What is known of the library's songs and videos, as a file for another
+     * station: about public videos only, never a listener; no look-up under
+     * way, no rotation, no moderator.
+     *
+     * @return array<string,mixed>
+     */
+    public function export(): array
+    {
+        $kinds = implode(',', array_map(fn($k) => "'$k'", self::KINDS));
+        $rows = $this->app->store()->all(
+            "SELECT * FROM video_knowledge WHERE state = 'ready'
+               AND yt_id IN (SELECT yt_id FROM library_items WHERE yt_id IS NOT NULL AND kind IN ($kinds)) ORDER BY yt_id",
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $r = self::decode($row);
+            $out[] = ['yt_id' => $r['yt_id'], 'kind' => $r['kind'], 'yt_title' => $r['yt_title'], 'yt_artist' => $r['yt_artist'],
+                'research' => $r['research'], 'analysis' => $r['analysis'], 'text' => $r['text'], 'cost_micros' => $r['cost_micros'], 'researched' => $r['researched']];
+        }
+        return ['format' => self::FORMAT, 'version' => self::VERSION, 'site' => rtrim($this->app->config->get('SITE_BASE_URL'), '/'),
+            'exported' => $this->app->clock->now(), 'rows' => $out];
+    }
+
+    /**
+     * Another station's look-ups, taken where this one knows nothing yet (or,
+     * with $replace, over what it knows): checked again on the way in exactly
+     * as when they came from the providers — what another station kept is no
+     * excuse. Each fact keeps only a page its own search consulted.
+     *
+     * @param array<string,mixed> $data
+     * @return array{taken:int,kept:int,refused:int}
+     */
+    public function import(array $data, bool $replace, string $actor): array
+    {
+        if (($data['format'] ?? null) !== self::FORMAT || (int) ($data['version'] ?? 0) !== self::VERSION) throw new ApiError(422, 'not_knowledge_file');
+        $taken = $kept = $refused = 0;
+        $now = $this->app->clock->now();
+        foreach ((array) ($data['rows'] ?? []) as $r) {
+            $yt = is_array($r) ? (string) ($r['yt_id'] ?? '') : '';
+            if (!preg_match('/^[A-Za-z0-9_-]{11}$/', $yt) || !is_array($r['research'] ?? null) || !is_array($r['analysis'] ?? null)) {
+                $refused++;
+                continue;
+            }
+            $here = $this->get($yt);
+            if ($here !== null && !$replace && !self::incomplete($here)) {
+                $kept++;
+                continue;
+            }
+            $research = self::cleanResearch($r['research'], array_values(array_filter((array) ($r['research']['sources'] ?? []), 'is_string')), $yt);
+            $analysis = $r['analysis'] !== [] ? self::cleanAnalysis($r['analysis']) : [];
+            if (empty($research['identity']['identified']) && $research['facts'] === [] && empty($analysis['heard'])) {
+                $refused++;
+                continue;
+            }
+            // A look-up under way here: stopped, so its answers cannot overwrite what is taken now.
+            if ($here !== null && in_array($here['state'], ['queued', 'working'], true)) {
+                $this->cancelOpen($here);
+                $this->app->jobs()->cancel('knowledge', (int) $here['id']);
+            }
+            $identity = $research['identity'];
+            $set = [
+                'kind' => in_array($r['kind'] ?? '', self::KINDS, true) ? (string) $r['kind'] : 'song',
+                'state' => 'ready', 'work' => [], 'error' => '', 'edited_by' => '', 'facts_told' => [],
+                'yt_title' => mb_substr((string) ($r['yt_title'] ?? ''), 0, 120), 'yt_artist' => mb_substr((string) ($r['yt_artist'] ?? ''), 0, 120),
+                'title' => !empty($identity['identified']) ? (string) $identity['title'] : '',
+                'artist' => !empty($identity['identified']) ? (string) $identity['artist'] : '',
+                'research' => $research, 'analysis' => $analysis,
+                // Only a text in the public domain is kept whole.
+                'text' => !empty($research['public_domain']['is']) ? mb_substr(trim((string) ($r['text'] ?? '')), 0, 20_000) : '',
+                'text_source' => !empty($research['public_domain']['is']) && trim((string) ($r['text'] ?? '')) !== '' ? (string) $research['public_domain']['url'] : '',
+                'cost_micros' => max(0, (int) ($r['cost_micros'] ?? 0)),
+                'researched' => (int) ($r['researched'] ?? 0) ?: $now,
+            ];
+            if ($here === null) {
+                $id = $this->app->store()->insert('video_knowledge', ['yt_id' => $yt, 'created' => $now, 'updated' => $now]);
+            } else {
+                $id = (int) $here['id'];
+            }
+            $this->save($id, $set);
+            $taken++;
+            $row = $this->get($yt);
+            if ($row !== null) $this->applyNames($row);
+        }
+        $this->app->store()->audit($actor, 'Knowledge imported', sprintf('from %s: %d taken, %d kept, %d refused', mb_substr((string) ($data['site'] ?? '?'), 0, 80), $taken, $kept, $refused));
+        return ['taken' => $taken, 'kept' => $kept, 'refused' => $refused];
     }
 
     /** Rows no library item knows any more (a request's video that was turned down), after a while. */

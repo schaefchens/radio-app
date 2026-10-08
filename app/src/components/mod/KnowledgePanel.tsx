@@ -84,7 +84,7 @@ function SettingsForm({ data, onSaved }: { data: SettingsAnswer; onSaved: () => 
         <Check label={t('mod.knowledge.air')} checked={air} onChange={setAir} />
         <p className="pl-6 text-xs text-ink-muted">{t('mod.knowledge.airHint')}</p>
       </div>
-      <Field label={t('mod.knowledge.budget')}>
+      <Field label={t('mod.knowledge.budget')} hint={Number(budget) > 0 ? undefined : t('mod.knowledge.budgetZero')}>
         <input className="field w-32" type="number" min={0} max={100} step={0.5} value={budget} onChange={(e) => setBudget(e.target.value)} />
       </Field>
       <Field label={t('mod.knowledge.standard')} hint={t('mod.knowledge.standardHint')}>
@@ -96,6 +96,93 @@ function SettingsForm({ data, onSaved }: { data: SettingsAnswer; onSaved: () => 
           {t('mod.common.save')}
         </button>
       </div>
+      <Transfer onImported={onSaved} />
+    </div>
+  );
+}
+
+/** What GET /mod/knowledge/export answers (server: Library\Knowledge::export), as far as this page reads it. */
+interface KnowledgeFile {
+  exported: number;
+  rows: unknown[];
+}
+
+/**
+ * Another station's look-ups, without paying twice: downloaded on one
+ * (the local stack), uploaded on the other (the live one), which takes what
+ * it does not know yet — checked again on the way in.
+ */
+function Transfer({ onImported }: { onImported: () => void }) {
+  const { t } = useTranslation();
+  const [replace, setReplace] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+
+  const download = async (): Promise<void> => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const file = await api<KnowledgeFile>('/mod/knowledge/export');
+      const name = `arche-knowledge-${new Date(file.exported * 1000).toISOString().slice(0, 10).replaceAll('-', '')}.json`;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      // Revoked at once, some browsers would drop the download before it starts.
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setNotice({ tone: 'ok', text: t('mod.knowledge.downloaded', { name, n: file.rows.length }) });
+    } catch (e) {
+      setNotice({ tone: 'error', text: modError(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const upload = async (file: File): Promise<void> => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const form = new FormData();
+      form.set('file', file);
+      form.set('replace', replace ? '1' : '0');
+      const r = await api<{ taken: number; kept: number; refused: number }>('/mod/knowledge/import', { form });
+      setNotice({ tone: 'ok', text: t('mod.knowledge.imported', r) });
+      onImported();
+    } catch (e) {
+      setNotice({ tone: 'error', text: modError(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-line/20 pt-3">
+      <p className="font-medium">{t('mod.knowledge.transfer')}</p>
+      <p className="text-xs text-ink-muted">{t('mod.knowledge.transferHint')}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className="btn-ghost" disabled={busy} onClick={() => void download()}>
+          {t('mod.knowledge.download')}
+        </button>
+        <label className="btn-ghost cursor-pointer">
+          {t('mod.knowledge.upload')}
+          <input
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = '';
+              if (f) void upload(f);
+            }}
+          />
+        </label>
+        <Check label={t('mod.knowledge.replace')} checked={replace} onChange={setReplace} />
+      </div>
+      {notice && <Notice tone={notice.tone}>{notice.text}</Notice>}
     </div>
   );
 }

@@ -572,6 +572,7 @@
       "air": "Im Programm nutzen",
       "airHint": "Die Moderation darf sagen, wovon ein Lied handelt, und eine Angabe erzählen (ihre Seite wird auf der Bühne verlinkt); saubere Namen ersetzen die von YouTube.",
       "budget": "Tagesbudget für das Nachschlagen (USD)",
+      "budgetZero": "Bei 0 $ wird nichts nachgeschlagen: Leg ein Budget fest, sobald dieser Sender übernommen hat, was ein anderer schon weiß (unten hochladen).",
       "spent": "heute ausgegeben: {{amount}} $",
       "counts": "{{ready}} nachgeschlagen, {{working}} in Arbeit, {{failed}} fehlgeschlagen",
       "standard": "Maßstab des Senders: was „biblisch“ heißt",
@@ -637,6 +638,13 @@
       "again": "Neu nachschlagen",
       "againConfirm": "Dieses Video neu nachschlagen? Was gefunden wurde, wird ersetzt (etwa 10 Cent).",
       "againStarted": "Wird neu nachgeschlagen — die Antworten kommen in wenigen Minuten.",
+      "transfer": "Nachgeschlagenes zu einem anderen Sender bringen",
+      "transferHint": "Lade herunter, was hier nachgeschlagen wurde, und lade es beim anderen Sender hoch (vom lokalen Stack zum Live-Sender oder zurück): Er übernimmt, was er noch nicht weiß, prüft es dabei erneut und schlägt nur noch Neues nach. Es reisen nur die Einträge zu Liedern und Videos — nichts sonst vom Sender.",
+      "download": "Wissen herunterladen",
+      "upload": "Wissen hochladen",
+      "replace": "Vorhandenes ersetzen",
+      "downloaded": "{{name}} heruntergeladen — {{n}} Lieder und Videos.",
+      "imported": "Übernommen: {{taken}} · hier behalten: {{kept}} · abgelehnt: {{refused}}.",
       "errors": {
         "not_configured": "Zum Nachschlagen braucht der Server GEMINI_API_KEY (und OPENAI_KEY).",
         "not_ready": "Dieses Nachschlagen ist noch nicht fertig.",
@@ -644,7 +652,10 @@
         "fact_prays": "Eine Angabe der Moderation betet nie.",
         "text_not_public_domain": "Ganz behalten wird nur ein gemeinfreier Text.",
         "standard_too_long": "Der Maßstab ist zu lang (höchstens 3.000 Zeichen).",
-        "no_names": "Das Nachschlagen hat für diesen Eintrag keine Namen gefunden."
+        "no_names": "Das Nachschlagen hat für diesen Eintrag keine Namen gefunden.",
+        "no_budget": "Leg zuerst ein Budget fürs Nachschlagen fest: Ohne wird nichts nachgeschlagen, und die Prüfung könnte nichts annehmen.",
+        "not_knowledge_file": "Das ist keine Datei aus „Wissen herunterladen“.",
+        "missing_file": "Wähle zuerst eine Datei."
       }
     },
     "groups": {
