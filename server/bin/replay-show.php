@@ -15,7 +15,10 @@ declare(strict_types=1);
 // Options (times UTC): --from, --to; --channel (main); --site (SITE_BASE_URL);
 // --model (OPENAI_HOST_MODEL), --effort (HOST_EFFORT); --instructions, the
 // hosts' standing voice direction; --max, moments at most; --stub, the stub
-// writer instead of the model (a dry run that costs nothing).
+// writer instead of the model (a dry run that costs nothing); --knowledge, a
+// station's database or a setup file whose look-ups (Library\Knowledge) the
+// writer uses on air — replay the same stretch with and without to compare:
+//   … replay-show.php … --knowledge=/var/www/site/_arche/var/arche.sqlite
 //
 // What the minute files do not carry is guessed: a request's dedication,
 // a recording's summary, the prayer hour's counts and intake, a program's
@@ -28,7 +31,7 @@ if (PHP_SAPI !== 'cli') exit(1);
 use Arche\Host\HostWriter;
 use Arche\Host\Speech;
 
-$opt = getopt('', ['from:', 'to:', 'channel:', 'site:', 'model:', 'effort:', 'out:', 'instructions:', 'max:', 'stub']);
+$opt = getopt('', ['from:', 'to:', 'channel:', 'site:', 'model:', 'effort:', 'out:', 'instructions:', 'max:', 'stub', 'knowledge:']);
 $from = strtotime(($opt['from'] ?? '') . ' UTC');
 $to = strtotime(($opt['to'] ?? '') . ' UTC');
 if (!$from || !$to || $to <= $from || $to - $from > 12 * 3600) {
@@ -52,6 +55,23 @@ $max = (int) ($opt['max'] ?? 200);
 $standing = (string) ($opt['instructions'] ?? 'Warm and natural faithful christian speaker with gentle tone.');
 // The station's voices as the owner set them on 2026-10-06 (Faith: Sohee; Grace: Serena; Hope: OpenAI coral).
 $voices = ['faith' => ['worker', 'Sohee'], 'grace' => ['worker', 'Serena'], 'hope' => ['openai', 'coral']];
+
+// What a station looked up about its songs (Library\Knowledge): copied into the throwaway database, on air.
+if (isset($opt['knowledge'])) {
+    $src = (string) $opt['knowledge'];
+    $rows = str_ends_with($src, '.json')
+        ? (array) ((json_decode((string) @file_get_contents($src), true) ?: [])['tables']['video_knowledge'] ?? [])
+        : (new PDO('sqlite:' . $src, null, null, [Pdo\Sqlite::ATTR_OPEN_FLAGS => Pdo\Sqlite::OPEN_READONLY]))
+            ->query("SELECT * FROM video_knowledge WHERE state = 'ready'")->fetchAll(PDO::FETCH_ASSOC);
+    // Only the columns this one knows: a database a branch migrated may have others.
+    $columns = array_flip(array_column($app->store()->all('PRAGMA table_info(video_knowledge)'), 'name'));
+    foreach ($rows as $r) {
+        unset($r['id']);
+        $app->store()->insert('video_knowledge', array_intersect_key($r, $columns));
+    }
+    $app->knowledge()->saveSettings(['air' => true], 'replay');
+    fwrite(STDERR, count($rows) . " looked-up songs and videos from $src\n");
+}
 
 $get = static function (string $url): ?array {
     $c = curl_init($url);
@@ -92,7 +112,8 @@ $programIds = array_flip(array_values(array_unique(array_column($items, 'p'))));
 $asItem = static function (array $it, int $i, array $texts = []) use ($programIds): array {
     $type = (string) $it['type'];
     $payload = match ($type) {
-        'song' => ['kind' => (string) ($it['kind'] ?? 'song'), 'title' => (string) ($it['title'] ?? ''), 'artist' => (string) ($it['artist'] ?? ''), 'request' => $it['request'] ?? null],
+        // `yt`: what was looked up about it is found by it (--knowledge).
+        'song' => ['kind' => (string) ($it['kind'] ?? 'song'), 'yt' => (string) ($it['yt'] ?? ''), 'title' => (string) ($it['title'] ?? ''), 'artist' => (string) ($it['artist'] ?? ''), 'request' => $it['request'] ?? null],
         'host' => ['kind' => (string) ($it['kind'] ?? ''), 'text' => $texts ?: (array) ($it['text'] ?? []), 'host' => $it['host'] ?? null],
         'contrib' => ['kind' => (string) ($it['kind'] ?? ''), 'opening' => !empty($it['opening'])],
         default => [],
@@ -186,6 +207,9 @@ foreach ($items as $i => $it) {
         $t0 = microtime(true);
         $hb = ['id' => 0, 'kind' => $kind, 'channel_id' => (int) $main['id'], 'program_id' => null, 'context' => []];
         $written = $app->hostWriter()->write($hb, $ctx, $host, $memory) + ['seconds' => microtime(true) - $t0];
+        // A fact told rests, as on air: the next moments tell another or none.
+        $ref = $ctx['fact_refs'][$written['fact']] ?? null;
+        if ($written['fact'] !== '' && is_array($ref)) $app->knowledge()->told((string) $ref['yt'], (int) $ref['i'], $at);
         $new[$it['id']] = $written['texts'];
         $spent++;
     }
@@ -196,7 +220,7 @@ foreach ($items as $i => $it) {
         if (isset($old[$l])) $line .= "  aired $l: {$old[$l]}\n";
         if (isset($written['texts'][$l]) && ($written['texts'][$l] !== ($old[$l] ?? null))) $line .= "  new   $l: {$written['texts'][$l]}\n";
     }
-    $line .= '  delivery: ' . ($written['delivery'] ?: '(none)') . "\n";
+    $line .= '  delivery: ' . ($written['delivery'] ?: '(none)') . (($written['fact'] ?? '') !== '' ? "  · told the {$written['fact']} song's fact" : '') . "\n";
     $report[] = $line;
     echo $line, "\n";
 

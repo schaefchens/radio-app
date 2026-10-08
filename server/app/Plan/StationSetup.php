@@ -43,7 +43,13 @@ final class StationSetup
         'program_lines' => [],
         'host_line_options' => [],
         'host_lines' => ['created_by' => '', 'note' => '', 'error' => ''],
+        // What was looked up about the library's songs and videos (Library\Knowledge): about them, never a
+        // listener; no look-up in progress, no moderator's id.
+        'video_knowledge' => ['work' => '{}', 'edited_by' => '', 'error' => ''],
     ];
+
+    /** Tables a file from before them lacks: it still imports, and the local rows stay. */
+    private const OPTIONAL = ['video_knowledge'];
 
     /**
      * Rows that stay home: listeners' recordings, and lines that are not
@@ -52,6 +58,8 @@ final class StationSetup
     private const ONLY = [
         'library_items' => "kind <> 'contrib'",
         'host_lines' => "state IN ('active', 'paused', 'draft')",
+        // Only what is known of the library's items: never a turned-down request's video.
+        'video_knowledge' => "state = 'ready' AND yt_id IN (SELECT yt_id FROM library_items WHERE yt_id IS NOT NULL AND kind <> 'contrib')",
     ];
 
     /**
@@ -160,6 +168,7 @@ final class StationSetup
         $tables = [];
         foreach (array_keys(self::TABLES) as $table) {
             $rows = $data['tables'][$table] ?? null;
+            if ($rows === null && in_array($table, self::OPTIONAL, true)) continue;
             if (!is_array($rows) || !array_is_list($rows)) throw new \InvalidArgumentException("The setup has no $table.");
             $keep = [];
             foreach ($rows as $row) {

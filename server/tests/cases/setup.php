@@ -92,7 +92,7 @@ test('setup: an admin downloads the station\'s setup, nothing of its listeners a
     eq($status, 200, 'admins can');
     eq([$setup['format'], $setup['version'], $setup['site'], $setup['exported']], ['arche-station-setup', 1, 'https://radio.schaefchens.de', intdiv(TestKit::T0, 1000)], 'what it is, from where, when');
     eq(array_keys($setup['tables']), ['channels', 'programs', 'day_plans', 'day_plan_blocks', 'week_plan', 'special_days', 'library_groups',
-        'library_items', 'hosts', 'host_lineups', 'program_lines', 'host_line_options', 'host_lines'], 'the setup and nothing else');
+        'library_items', 'hosts', 'host_lineups', 'program_lines', 'host_line_options', 'host_lines', 'video_knowledge'], 'the setup and nothing else');
     eq(array_column($setup['tables']['programs'], 'slug'), ['live', 'morning'], 'the programs');
 
     $items = $setup['tables']['library_items'];
@@ -230,4 +230,25 @@ test('setup: only a local stack takes a setup, only a whole one, and a broken on
     $import($edited);
     eq((string) $local->store()->value('SELECT api_key FROM hosts ORDER BY id LIMIT 1'), '', 'no key comes in');
     eq((int) $local->store()->value("SELECT COUNT(*) FROM library_items WHERE kind = 'contrib'"), 0, 'no recording comes in');
+});
+
+test('setup: what was looked up about the library travels — never a turned-down request\'s video, a look-up under way or who corrected it; a file from before it still imports', function () {
+    $live = TestKit::app();
+    TestKit::songs($live, 2);
+    $yt = (string) $live->store()->value('SELECT yt_id FROM library_items LIMIT 1');
+    $live->knowledge()->ensure($yt, 'song');
+    $live->knowledge()->ensure('TurnedDown1', 'song');
+    runJobs($live);
+    $live->store()->update('video_knowledge', ['edited_by' => 'mod:QX7Z'], 'yt_id = ?', [$yt]);
+    $setup = (new StationSetup($live))->export();
+    eq(array_column($setup['tables']['video_knowledge'], 'yt_id'), [$yt], "only the library's");
+    eq([$setup['tables']['video_knowledge'][0]['edited_by'], $setup['tables']['video_knowledge'][0]['work']], ['', '{}'], 'no moderator, nothing under way');
+
+    $local = TestKit::app(['ARCHE_ENV' => 'local']);
+    $local->set('http', new SiteHttp());
+    (new StationSetup($local))->import($setup);
+    eq($local->knowledge()->get($yt)['state'] ?? null, 'ready', 'here now');
+    unset($setup['tables']['video_knowledge']);
+    (new StationSetup($local))->import($setup);
+    eq($local->knowledge()->get($yt)['state'] ?? null, 'ready', 'a file from before look-ups imports, and what is here stays');
 });
