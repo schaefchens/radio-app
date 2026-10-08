@@ -5,6 +5,7 @@ namespace Arche\Moderation;
 
 use Arche\App;
 use Arche\Config;
+use Arche\Library\Knowledge;
 use Arche\Library\YouTube;
 use Arche\Submission\Submissions;
 
@@ -40,6 +41,10 @@ final class Moderator
         'film' => [300, 10800],
     ];
 
+    /** How long a request's check waits for its video's look-up (seconds). */
+    private const KNOWLEDGE_WAIT_SONG = 180;
+    private const KNOWLEDGE_WAIT_VIDEO = 600;
+
     public function __construct(private App $app) {}
 
     /** @param array<string,mixed> $job */
@@ -58,6 +63,7 @@ final class Moderator
             };
         }
         if ($phase === 'youtube') return $this->checkVideo($sub);
+        if ($phase === 'knowledge' || $phase === 'wait:knowledge') return $this->awaitKnowledge($sub);
         if ($phase === 'transcribe') {
             $file = $this->app->config->dataDir . '/uploads/' . basename((string) $sub['upload']);
             if (!is_file($file)) {
@@ -87,7 +93,7 @@ final class Moderator
         }
         // The Data API is no AI: with a key it is asked even in stub mode (the
         // e2e stack points it at a fake); only without one does a stub answer.
-        $v = $yt->configured() ? $yt->video((string) $sub['yt_id']) : $this->stubVideo((string) $sub['yt_id'], (string) $sub['type']);
+        $v = $yt->configured() ? $yt->video((string) $sub['yt_id']) : self::stubVideo((string) $sub['yt_id'], (string) $sub['type']);
         // Our side or Google's being unreachable is retried by the job lease;
         // anything YouTube actually says about the video is final.
         if (!$v['ok'] && in_array($v['error'], ['unreachable', 'api_error'], true)) throw new \RuntimeException('YouTube ' . $v['error']);
@@ -121,7 +127,34 @@ final class Moderator
             ], 'moderator');
             return null;
         }
-        return 'judge';
+        return 'knowledge';
+    }
+
+    /**
+     * A request's video is looked up before it is judged (Library\Knowledge):
+     * what is really sung or said, not its title. The look-up starts in any
+     * case — the host may use it — but the check waits for it only while the
+     * admins use it in the checks: up to 3 minutes for a song, 10 for a video.
+     * An approved request is announced about 8 minutes later, right after
+     * approval, so the knowledge must be there by then. Waiting is no failure:
+     * the deadline is its own (a wait never counts as an attempt).
+     *
+     * @param array<string,mixed> $sub
+     */
+    private function awaitKnowledge(array $sub): string
+    {
+        $knowledge = $this->app->knowledge();
+        $kind = Submissions::libraryKind((string) $sub['type']);
+        $row = $knowledge->ensure((string) $sub['yt_id'], $kind, 25);
+        if (!$knowledge->settings()['checks'] || $row === null || Knowledge::settled($row)) return 'judge';
+        $meta = json_decode((string) $sub['meta'], true) ?: [];
+        $now = $this->app->clock->now();
+        if (!isset($meta['knowledge_since'])) {
+            $meta['knowledge_since'] = $now;
+            $this->app->store()->update('submissions', ['meta' => json_encode($meta, JSON_UNESCAPED_UNICODE)], 'id = ?', [$sub['id']]);
+        }
+        $limit = $kind === 'song' ? self::KNOWLEDGE_WAIT_SONG : self::KNOWLEDGE_WAIT_VIDEO;
+        return $now - (int) $meta['knowledge_since'] >= $limit ? 'judge' : 'wait:knowledge';
     }
 
     /**
@@ -184,10 +217,25 @@ final class Moderator
             ] : null,
             'listener' => ['name' => $sub['name'], 'place' => $sub['place']],
         ];
+        $settings = $this->app->knowledge()->settings();
+        $checks = $settings['checks'];
         if ($video) {
             $data['video'] = $meta['youtube'] ?? [];
             if (isset($data['video']['description'])) $data['video']['description'] = self::uploaderText((string) $data['video']['description']);
             $data['message'] = (string) $sub['message'];
+            if ($checks) {
+                $known = Knowledge::forJudge($this->app->knowledge()->get((string) $sub['yt_id']));
+                // Fails closed: what nobody heard is not put on air (a moderator may still look).
+                if ($known === null) {
+                    if ($c->bool('MODERATION_HUMAN_REVIEW')) {
+                        $subs->toReview($id, ['error' => 'no_knowledge', 'type_allowed' => true]);
+                        return;
+                    }
+                    $subs->reject($id, 'not_accepted', ['error' => 'no_knowledge'], 'moderator');
+                    return;
+                }
+                $data['knowledge'] = $known;
+            }
         } elseif ($sub['mode'] === 'audio') {
             $data['transcript'] = (string) $sub['transcript'];
             $data['language'] = (string) $sub['lang'];
@@ -200,9 +248,9 @@ final class Moderator
         $result = $this->app->text()->json(
             $kind,
             'moderation',
-            Policy::system(),
+            Policy::system($checks ? $settings['standard'] : null),
             "Judge this submission (JSON data):\n" . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
-            Policy::schema($sub['mode'] === 'audio'),
+            Policy::schema($sub['mode'] === 'audio', $checks),
             2048,
             'low',
         );
@@ -226,15 +274,19 @@ final class Moderator
         $fit = ($v['program_fit'] ?? false) === true;
         $messageOk = ($v['message_ok'] ?? false) === true || ($video && trim((string) $sub['message']) === '');
         $verdict = (string) ($v['verdict'] ?? 'uncertain');
+        // The station's standard, while the admins use it in the checks: missing counts as not biblical.
+        $biblical = !$checks || ($v['biblical'] ?? false) === true;
         $allowed = $program !== null && in_array($sub['type'], $program['allowed'], true);
         // Decided here, not by the model: kept with the verdict for the moderators.
         $v['type_allowed'] = $allowed;
+        // What was heard, beside the verdict: the moderators read why.
+        if (isset($data['knowledge'])) $v['heard'] = array_intersect_key($data['knowledge']['heard'], array_flip(['christian', 'biblical', 'concerns', 'explicit', 'age', 'summary_en']));
 
-        if ($verdict === 'approve' && $safe && $christian && $fit && $messageOk && $allowed) {
+        if ($verdict === 'approve' && $safe && $christian && $biblical && $fit && $messageOk && $allowed) {
             $subs->approve($id, $v, 'moderator');
             return;
         }
-        if ($safe && $christian && (!$fit || !$allowed) && $verdict !== 'uncertain') {
+        if ($safe && $christian && $biblical && (!$fit || !$allowed) && $verdict !== 'uncertain') {
             $subs->reject($id, 'not_program_fit', $v, 'moderator');
             return;
         }
@@ -298,7 +350,7 @@ final class Moderator
     }
 
     /** A video for each type, inside its length limits. @return array<string,mixed> */
-    private function stubVideo(string $id, string $type): array
+    public static function stubVideo(string $id, string $type): array
     {
         [$title, $channel, $tag, $ms] = match ($type) {
             'preaching' => ['Stub Preacher - Stub Sermon', 'Stub Church', 'sermon', 1_800_000],

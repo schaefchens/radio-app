@@ -397,9 +397,14 @@ final class Knowledge
         $yt = $this->app->youtube();
         if (!$yt->configured()) {
             if (!$this->app->config->stubAi()) return ['ok' => false, 'error' => 'youtube_not_configured'];
+            // Made up as the check makes it up for a request; a library item's own names otherwise.
             $item = $this->app->library()->byYouTube($ytId);
-            return ['ok' => true, 'error' => '', 'title' => (string) ($item['title'] ?? $ytId), 'channel' => (string) ($item['artist'] ?? ''), 'description' => '',
-                'tags' => [], 'topics' => [], 'language' => '', 'published' => '', 'duration_ms' => (int) ($item['duration_ms'] ?? 240_000)];
+            if ($item === null) {
+                $kind = (string) ($this->get($ytId)['kind'] ?? 'song');
+                return \Arche\Moderation\Moderator::stubVideo($ytId, $kind === 'testimony' ? 'testimony_video' : $kind) + ['topics' => [], 'language' => '', 'published' => ''];
+            }
+            return ['ok' => true, 'error' => '', 'title' => (string) $item['title'], 'channel' => (string) $item['artist'], 'description' => '',
+                'tags' => [], 'topics' => [], 'language' => '', 'published' => '', 'duration_ms' => (int) $item['duration_ms']];
         }
         $v = $yt->video($ytId);
         if (!$v['ok'] && in_array($v['error'], ['unreachable', 'api_error'], true)) return null;

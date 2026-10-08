@@ -63,6 +63,7 @@ final class StubText implements TextModel
             $kind === 'moderate_film', $kind === 'moderate_audio', $kind === 'moderate_prayer', $kind === 'moderate_intercession' => [
                 'safe' => true,
                 'christian' => true,
+                'biblical' => true,
                 'program_fit' => true,
                 'message_ok' => true,
                 'verdict' => 'approve',

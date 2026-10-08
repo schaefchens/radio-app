@@ -411,7 +411,7 @@ final class Submissions
         $split = in_array($kind, ['song', 'preaching'], true);
         $title = $split ? (string) ($v['title'] ?? '') : (string) ($v['full_title'] ?? $v['title'] ?? '');
         $by = $split ? (string) ($v['artist'] ?? '') : (string) ($v['channel'] ?? $v['artist'] ?? '');
-        return $this->app->store()->insert('library_items', [
+        $id = $this->app->store()->insert('library_items', [
             'kind' => $kind,
             'yt_id' => $sub['yt_id'],
             'title' => mb_substr($title !== '' ? $title : (string) $sub['yt_id'], 0, 120),
@@ -429,6 +429,10 @@ final class Submissions
             'created' => $now,
             'updated' => $now,
         ]);
+        // Looked up while it was checked (Library\Knowledge): its clean names, while they are on air.
+        $known = $this->app->knowledge()->get((string) $sub['yt_id']);
+        if ($known !== null) $this->app->knowledge()->applyNames($known);
+        return $id;
     }
 
     /** @param array<string,mixed> $sub @param array<string,mixed> $meta @param array<string,mixed> $verdict */

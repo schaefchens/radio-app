@@ -249,8 +249,13 @@ final class Groups
         }
         if ($group['blocked']) {
             $names = self::matchNames($group);
-            foreach ($store->all('SELECT id, artist FROM library_items WHERE group_id IS NULL AND yt_id IS NOT NULL') as $r) {
-                if (in_array(self::norm((string) $r['artist']), $names, true)) {
+            // YouTube's artist too: a clean name from a look-up (Library\Knowledge) must not let a blocked artist slip back in.
+            $rows = $store->all(
+                'SELECT l.id, l.artist, k.yt_artist FROM library_items l LEFT JOIN video_knowledge k ON k.yt_id = l.yt_id
+                 WHERE l.group_id IS NULL AND l.yt_id IS NOT NULL',
+            );
+            foreach ($rows as $r) {
+                if (array_intersect([self::norm((string) $r['artist']), self::norm((string) ($r['yt_artist'] ?? ''))], $names)) {
                     $n += $store->update('library_items', ['group_id' => (int) $group['id']], 'id = ?', [(int) $r['id']]);
                 }
             }

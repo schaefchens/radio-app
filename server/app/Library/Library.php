@@ -178,6 +178,8 @@ final class Library
             'updated' => $now,
         ]);
         $this->app->store()->audit($actor, 'Library add' . ($kind === 'song' ? '' : " $kind"), $info['id'] . ' ' . $info['title']);
+        // What it really is and says, looked up once (Library\Knowledge).
+        $this->app->knowledge()->ensure($info['id'], $kind, 60);
         return $this->get($id) ?? throw new \LogicException('insert vanished');
     }
 

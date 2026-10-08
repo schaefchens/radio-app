@@ -13,7 +13,34 @@ namespace Arche\Moderation;
  */
 final class Policy
 {
-    public static function system(): string
+    /**
+     * @param ?string $standard the station's standard (Library\Knowledge), while
+     *   the admins use what was looked up in the checks: then a request comes
+     *   with what was heard in its video, and everything is judged biblical or not
+     */
+    public static function system(?string $standard = null): string
+    {
+        return self::rules() . ($standard !== null ? "\n\n" . self::biblical($standard) : '');
+    }
+
+    private static function biblical(string $standard): string
+    {
+        return <<<TXT
+        A song or video suggestion may come with "knowledge": what the station found out about the video — who and what it
+        is ("identity", from the web) and what is actually sung or said in it ("heard", from a model that watched and
+        listened to the whole video). Judge by what was heard, not by the title: a Christian-sounding title or a few
+        religious words in a secular, comic or ironic song do not make it Christian. heard.christian and heard.biblical, with
+        their concerns and quotes, are your strongest evidence; when the web's identity contradicts what was heard, trust
+        what was heard. Its themes, moods, energy, age and fits tell you whether it suits the program.
+
+        biblical: the content agrees with the Bible as the station's standard says. It applies to everything that airs —
+        songs, videos, and a listener's own words, recorded or written: a prayer or a request is judged by what it says or
+        prays. The station's standard:
+        {$standard}
+        TXT;
+    }
+
+    private static function rules(): string
     {
         return <<<'TXT'
         You moderate submissions to ARCHE, a Christian community radio station heard worldwide by
@@ -130,12 +157,13 @@ final class Policy
         TXT;
     }
 
-    /** @return array<string,mixed> JSON schema of a verdict */
-    public static function schema(bool $recording): array
+    /** @return array<string,mixed> JSON schema of a verdict; `biblical` while the station's standard is used in the checks */
+    public static function schema(bool $recording, bool $biblical = false): array
     {
         $props = [
             'safe' => ['type' => 'boolean'],
             'christian' => ['type' => 'boolean'],
+        ] + ($biblical ? ['biblical' => ['type' => 'boolean']] : []) + [
             'program_fit' => ['type' => 'boolean'],
             'message_ok' => ['type' => 'boolean'],
             'verdict' => ['type' => 'string', 'enum' => ['approve', 'reject', 'uncertain']],

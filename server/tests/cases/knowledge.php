@@ -318,3 +318,104 @@ test('knowledge: a turned-down request\'s video is forgotten after 30 days; the 
     Arche\Schema::migrate($app->store(), $app->clock->nowMs());
     eq((int) $app->store()->value('SELECT COUNT(*) FROM video_knowledge'), 1, 'replayed: kept');
 });
+
+/** A song request sent and checked; $after: seconds that pass before the check runs again (its waits). */
+function knRequest(Arche\App $app, string $yt, int $after = 31): array
+{
+    $sub = $app->submissions()->submitSong(listener($app), TestKit::main($app), ['url' => "https://youtu.be/$yt", 'name' => 'Jenny', 'place' => 'Munich', 'message' => 'For my mum']);
+    runJobs($app);
+    TestKit::clock($app)->advance($after * 1000);
+    runJobs($app);
+    return $app->submissions()->byPublicId($sub['id']) ?? [];
+}
+
+function knCheckStation(array $env = []): Arche\App
+{
+    $app = TestKit::app($env);
+    TestKit::songs($app, 12);
+    $app->tick()->run('test');
+    $app->knowledge()->saveSettings(['checks' => true], 'mod:test');
+    return $app;
+}
+
+test('knowledge: used in the checks, a request waits for its video\'s look-up and is judged by what was heard — a Christian-sounding parody is turned down; a listener\'s name and message never go out', function () {
+    $app = knCheckStation();
+    $app->listener()->respond(fn() => ['christian' => 'no', 'biblical' => 'concern', 'explicit' => true, 'age' => 'adults',
+        'concerns' => [['what' => 'Profanity in a parody of a spiritual', 'why' => 'Not Christian content', 'quote' => 'the trouble I have seen']]] + StubVideoListener::fixed());
+    $seen = [];
+    $app->text()->respond('moderate_song', function (string $system, string $user) use (&$seen) {
+        $seen = [$system, $user];
+        $parody = str_contains($user, '"christian": "no"');
+        return ['safe' => true, 'christian' => !$parody, 'biblical' => !$parody, 'program_fit' => true, 'message_ok' => true, 'verdict' => $parody ? 'reject' : 'approve',
+            'themes' => [], 'moods' => [], 'languages' => ['en'], 'note' => $parody ? 'A profane parody of a spiritual.' : 'Fine.'];
+    });
+    $sub = $app->submissions()->submitSong(listener($app), TestKit::main($app), ['url' => 'https://youtu.be/KumbaYo0001', 'name' => 'Jenny', 'place' => 'Munich', 'message' => 'For my mum']);
+    runJobs($app);
+    eq($app->submissions()->byPublicId($sub['id'])['status'], 'checking', 'waiting for the look-up first');
+    TestKit::clock($app)->advance(31_000);
+    runJobs($app);
+    $row = $app->submissions()->byPublicId($sub['id']);
+    eq([$row['status'], $row['reason']], ['rejected', 'not_suitable'], 'judged by what was heard: turned down');
+    check(str_contains($seen[0], 'Scripture is the measure'), "the station's standard is in the check's rules");
+    check(str_contains($seen[1], '"heard"') && str_contains($seen[1], 'Profanity in a parody'), 'what was heard goes to the judge');
+    eq(json_decode((string) $row['verdict'], true)['heard']['christian'] ?? null, 'no', 'kept beside the verdict for the moderators');
+    check($app->research()->calls !== [], 'researched');
+    foreach ($app->research()->calls as $input) {
+        check(!str_contains($input, 'Jenny') && !str_contains($input, 'Munich') && !str_contains($input, 'For my mum'), "no listener's name, place or message in a look-up");
+    }
+});
+
+test('knowledge: used in the checks, a request whose video nobody could hear is not accepted — or goes to a moderator where they review; a look-up still running holds it 3 minutes at most', function () {
+    $app = knCheckStation();
+    $app->listener()->respond(fn() => null);
+    $row = knRequest($app, 'NotHeard001');
+    eq([$row['status'], $row['reason'], json_decode((string) $row['verdict'], true)['error'] ?? ''], ['rejected', 'not_accepted', 'no_knowledge'], 'nothing heard: not accepted (fails closed)');
+
+    $review = knCheckStation(['MODERATION_HUMAN_REVIEW' => '1']);
+    $review->listener()->respond(fn() => null);
+    eq(knRequest($review, 'NotHeard002')['status'], 'review', 'to a moderator where they review');
+
+    $slow = knCheckStation();
+    // A look-up under way that never ends in time (no job: its answers never come).
+    $slow->store()->insert('video_knowledge', ['yt_id' => 'StillSlow01', 'kind' => 'song', 'state' => 'working', 'created' => 1, 'updated' => 1]);
+    $row = knRequest($slow, 'StillSlow01', 60);
+    eq($row['status'], 'checking', 'still waiting after a minute');
+    for ($i = 0; $i < 5; $i++) {
+        TestKit::clock($slow)->advance(31_000);
+        runJobs($slow);
+    }
+    $row = $slow->submissions()->byPublicId($row['public_id']);
+    eq([$row['status'], $row['reason']], ['rejected', 'not_accepted'], 'after 3 minutes judged without it: not accepted');
+});
+
+test('knowledge: approval needs "biblical" while the standard is used — a Marian song is turned down; with the switch off the check is as it was', function () {
+    $marian = fn() => ['christian' => 'yes', 'biblical' => 'no', 'addressed_to' => 'Mary',
+        'concerns' => [['what' => 'A prayer to Mary', 'why' => 'Prayer to Mary is not biblical by the standard', 'quote' => 'Segne du, Maria']]] + StubVideoListener::fixed();
+    $judge = fn(string $system, string $user) => ['safe' => true, 'christian' => true, 'biblical' => false, 'program_fit' => true, 'message_ok' => true,
+        'verdict' => 'approve', 'themes' => [], 'moods' => [], 'languages' => ['de'], 'note' => 'A Catholic Marian hymn.'];
+    $app = knCheckStation();
+    $app->listener()->respond($marian);
+    $app->text()->respond('moderate_song', $judge);
+    $row = knRequest($app, 'SegneMaria1');
+    eq([$row['status'], $row['reason']], ['rejected', 'not_suitable'], 'not biblical: turned down, whatever else it is');
+
+    $off = TestKit::app();
+    TestKit::songs($off, 12);
+    $off->tick()->run('test');
+    $off->listener()->respond($marian);
+    $off->text()->respond('moderate_song', $judge);
+    $sub = $off->submissions()->submitSong(listener($off), TestKit::main($off), ['url' => 'https://youtu.be/SegneMaria2', 'name' => 'Jenny', 'place' => 'Munich']);
+    runJobs($off);
+    eq($off->submissions()->byPublicId($sub['id'])['status'], 'approved', 'off: as before, no wait and no standard');
+    check(!str_contains((string) json_encode($off->text()->calls), 'Scripture is the measure'), 'off: the standard is not in the rules');
+});
+
+test('knowledge: a request approved after its look-up joins the library with its clean names while they are on air', function () {
+    $app = knCheckStation();
+    $app->knowledge()->saveSettings(['air' => true], 'mod:test');
+    $app->research()->respond(fn() => knResearch(['sources' => ['https://www.gerth.de/person/langner-timo.html', 'https://made-up.example/never-searched']]));
+    $row = knRequest($app, 'CleanName01');
+    eq($row['status'], 'approved', 'approved');
+    $item = $app->library()->byYouTube('CleanName01');
+    eq([$item['title'], $item['artist']], ['Ein Gott, der das Meer teilt', 'Timo Langner'], "the clean names, not YouTube's split");
+});
