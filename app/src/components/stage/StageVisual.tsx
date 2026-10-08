@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import type { GroupNotice, HostInfo, Lang, SubmissionState, SubmissionType, Voice, WallEntry } from '@arche/shared';
+import type { Cite, GroupNotice, HostInfo, Lang, SubmissionState, SubmissionType, Voice, WallEntry } from '@arche/shared';
 import type { EngineState } from '@/lib/engine';
 import { useSession } from '@/store/session';
 import { useSheets } from '@/store/sheets';
@@ -66,7 +66,14 @@ export function StageVisual({ engine, compact = false }: { engine: EngineState; 
           <GroupMoment host={host} label={t('stage.hostSpeaking', { name: host.name })} notice={item.notice} lang={lang} />
         )}
         {engine.mode === 'host' && onAir.length === 0 && hostKind !== 'intercession' && (compact || item?.type !== 'host' || !item.notice) && (
-          <HostMoment host={host} text={engine.hostText} label={t('stage.hostSpeaking', { name: host.name })} compact={compact} lang={lang} />
+          <HostMoment
+            host={host}
+            text={engine.hostText}
+            cite={item?.type === 'host' ? item.cite : null}
+            label={t('stage.hostSpeaking', { name: host.name })}
+            compact={compact}
+            lang={lang}
+          />
         )}
         {engine.mode === 'contrib' && item?.type === 'contrib' && (
           <div className="max-w-lg animate-fly-in">
@@ -271,7 +278,22 @@ function Logo() {
  * The host speaking: their picture (or initial) in rings of their color,
  * who they are — a few words about them on the full stage — and what they say.
  */
-function HostMoment({ host, text, label, compact, lang }: { host: HostInfo; text: string | null; label: string; compact: boolean; lang: Lang }) {
+function HostMoment({
+  host,
+  text,
+  cite,
+  label,
+  compact,
+  lang,
+}: {
+  host: HostInfo;
+  text: string | null;
+  cite: Cite | null;
+  label: string;
+  compact: boolean;
+  lang: Lang;
+}) {
+  const { t } = useTranslation();
   const about = host.about[lang] || host.about.en;
   // #rrggbb (the parser's promise) plus an alpha: the rings fade like the accent's did.
   const ring = (alpha: string): React.CSSProperties => ({ borderColor: `${host.color}${alpha}` });
@@ -296,6 +318,12 @@ function HostMoment({ host, text, label, compact, lang }: { host: HostInfo; text
         {!compact && about && <p className="stage-host-about">{about}</p>}
       </div>
       {text && <p className="stage-host-text text-balance text-base leading-snug text-ink drop-shadow sm:text-xl">{text}</p>}
+      {/* A fact from the web is shown with its page (the station's look-up of the song). */}
+      {text && cite && (
+        <a className="stage-cite" href={cite.url} target="_blank" rel="noopener noreferrer">
+          {t('stage.source', { site: cite.title || linkHost(cite.url) })}
+        </a>
+      )}
     </div>
   );
 }

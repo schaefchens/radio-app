@@ -297,6 +297,14 @@
   font-size: 16px;
   text-decoration: none;
 }
+/* The page a fact the host told comes from: small and quiet, under the words. */
+.stage-cite {
+  color: rgb(var(--ink-muted));
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-shadow: 0 1px 6px #0006;
+}
 /* A few words about the host speaking, under their name (full stage only). */
 .stage-host-about {
   margin: 0;

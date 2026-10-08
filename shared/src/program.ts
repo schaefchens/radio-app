@@ -154,9 +154,19 @@ export interface HostItem extends ItemBase {
    *  to more, shown on the stage while the host speaks. null otherwise — and
    *  in every file of an older generator. */
   notice: GroupNotice | null;
+  /** The page a fact the host told comes from (the station's look-up of the
+   *  song, Library\Knowledge): shown as a link with the words — information
+   *  from the web is shown with its source. https only; null otherwise. */
+  cite: Cite | null;
   /** Who speaks it; null in files from before there were several hosts (the
    *  channel's host then, ChannelInfo.host). */
   host: HostInfo | null;
+}
+
+/** A host moment's source: the site's name and the page. */
+export interface Cite {
+  title: string;
+  url: string;
 }
 
 /** A group's "more from …" on the stage. Links are https only (a

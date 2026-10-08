@@ -30,6 +30,7 @@
     "evergreen": "Unsere Lieblingslieder, bis das Programm wieder da ist",
     "hostSpeaking": "{{name}} spricht",
     "moreFrom": "Mehr von",
+    "source": "Quelle: {{site}}",
     "link": {
       "youtube": "YouTube",
       "website": "Website"

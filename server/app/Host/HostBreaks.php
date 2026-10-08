@@ -41,7 +41,7 @@ final class HostBreaks
     private const SCRIPT_RETRIES = 2;
     private const RETRY_LEAD_MS = 120_000;
     /** What a script pass wrote into the context, gone before the next pass writes its own. */
-    private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution', 'delivery'];
+    private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution', 'delivery', 'fact_refs', 'fact_told', 'cite'];
 
     public function __construct(private App $app) {}
 
@@ -262,7 +262,9 @@ final class HostBreaks
             'prayers' => $this->wallRefs($hb),
             // Who speaks, as listeners see them; null once the host is gone.
             'host' => $this->app->hosts()->info((int) ($hb['context']['host_id'] ?? 0)),
-        ] + $this->notice($hb, $before);
+        ] + $this->notice($hb, $before)
+            // The page of a fact the words told: the stage links it (web information shown is cited).
+            + (isset($hb['context']['cite']['url']) ? ['cite' => $hb['context']['cite']] : []);
     }
 
     /**
@@ -366,8 +368,16 @@ final class HostBreaks
             // The model takes seconds: an account deleted meanwhile has had this break forgotten.
             // How it should sound goes with the words (Speech::direction joins it to the host's own).
             $delivery = $written['delivery'] !== '' ? ['delivery' => $written['delivery']] : [];
+            // A fact the words told rests from now, not from when it airs: a request block is written
+            // before any of it airs, and the moment after an announcement must not tell it again.
+            $told = [];
+            $ref = $context['fact_refs'][$written['fact']] ?? null;
+            if ($written['fact'] !== '' && is_array($ref)) {
+                $cite = $this->app->knowledge()->told((string) $ref['yt'], (int) $ref['i'], $this->app->clock->nowMs());
+                $told = ['fact_told' => $written['fact']] + ($cite !== null ? ['cite' => $cite] : []);
+            }
             if (!$this->saveIfPending($hb['id'], [
-                'context' => json_encode(['host_id' => $host['id']] + $delivery + $context + array_diff_key($hb['context'], array_flip(self::WRITTEN)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'context' => json_encode(['host_id' => $host['id']] + $delivery + $told + $context + array_diff_key($hb['context'], array_flip(self::WRITTEN)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'texts' => json_encode($written['texts'] ?: new \stdClass(), JSON_UNESCAPED_UNICODE),
                 'audio' => '{}',
                 'durations' => '{}',

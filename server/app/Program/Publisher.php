@@ -132,7 +132,9 @@ final class Publisher
                 // Who speaks (Host\Hosts::info); null in items committed before hosts existed.
                 'host' => $p['host'] ?? null,
             // After an item of a group that wants it: who, a few words, their links.
-            ] + (isset($p['notice']) ? ['notice' => $p['notice']] : []),
+            ] + (isset($p['notice']) ? ['notice' => $p['notice']] : [])
+              // The page of a fact the host told (Library\Knowledge): shown as a link on the stage.
+              + (isset($p['cite']['url']) ? ['cite' => ['title' => (string) ($p['cite']['title'] ?? ''), 'url' => (string) $p['cite']['url']]] : []),
             'jingle' => $base + ['audio' => (string) ($p['audio'] ?? '')],
             'bed' => $base + [
                 'audio' => (string) ($p['audio'] ?? ''),

@@ -45,7 +45,7 @@ const channels: ChannelsFile = {
 };
 
 const moment = (host: HostInfo | null, text = 'Good morning, everyone.'): TimelineItem => ({
-  id: 'h1', type: 'host', start: 0, dur: 12_000, p: 'live', kind: 'break', audio: { en: '/media/host/h.mp3' }, text: { en: text }, voices: [], prayers: [], notice: null, host,
+  id: 'h1', type: 'host', start: 0, dur: 12_000, p: 'live', kind: 'break', audio: { en: '/media/host/h.mp3' }, text: { en: text }, voices: [], prayers: [], notice: null, cite: null, host,
 });
 const song: TimelineItem = { id: 's1', type: 'song', kind: 'song', start: 12_000, dur: 200_000, p: 'live', yt: 'AAAAAAAAAAA', title: 'One', artist: 'X', thumb: null, request: null, fallback: null };
 const engineWith = (item: TimelineItem, extra: Partial<EngineState> = {}): EngineState => ({

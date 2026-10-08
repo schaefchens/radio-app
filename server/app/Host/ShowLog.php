@@ -225,7 +225,12 @@ final class ShowLog
         $by = $committed ? (string) ($item['payload']['host']['name'] ?? '') : (string) ($this->app->hosts()->get((int) ($context['host_id'] ?? 0))['name'] ?? '');
         if ($by !== '' && $hostName !== '' && mb_strtolower($by) !== mb_strtolower($hostName)) $entry['spoken_by'] = $by;
         if (!$texts) return $entry + ['summary' => $committed ? 'nothing kept' : 'not written yet'];
-        if (!self::quotable($kind, (string) ($b['source'] ?? ''), $context)) return $entry + ['summary' => self::summary($kind, $context)];
+        if (!self::quotable($kind, (string) ($b['source'] ?? ''), $context)) {
+            // Its words are not quoted, so the next moment learns this way which song's fact was told: the song, never a name.
+            $side = (string) ($context['fact_told'] ?? '');
+            $told = $side !== '' && isset($context[$side]['title']) ? ['told_fact_of' => (string) $context[$side]['title']] : [];
+            return $entry + ['summary' => self::summary($kind, $context)] + $told;
+        }
         return $entry + ['said' => $texts];
     }
 

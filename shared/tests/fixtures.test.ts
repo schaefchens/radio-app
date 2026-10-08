@@ -58,6 +58,8 @@ describe('program file fixtures', () => {
         { kind: 'website', url: 'https://gracechapel.example' },
       ],
     });
+    // The page of a fact the host told, linked with the words on the stage.
+    expect(host?.type === 'host' && host.cite).toEqual({ title: 'kirche-im-swr.de', url: 'https://www.kirche-im-swr.de/beitraege?id=18167' });
     // A listener's request read out word for word: one language, the request on the wall it is.
     const reading = slot!.items.find((i) => i.type === 'host' && i.kind === 'reading');
     expect(reading).toMatchObject({ kind: 'reading', audio: { en: '/media/host/20260923/9c20.en.mp3' }, prayers: ['pk3v9q2m7x4tb'] });
@@ -156,6 +158,19 @@ describe('program file fixtures', () => {
       links: [{ kind: 'other', url: https(1) }],
     });
     expect(noticeOf({ name: 'Hope', links: [1, 2, 3, 4, 5].map((n) => ({ kind: 'website', url: https(n) })) })?.links).toHaveLength(4);
+  });
+
+  it('a host item cites a fact\'s page only over https; without one it cites nothing', () => {
+    const raw = load('slot.json') as { items: Record<string, unknown>[] };
+    const { cite: _cite, ...host } = raw.items[1]!;
+    const citeOf = (cite: unknown) => {
+      const item = parseSlotFile({ ...(raw as object), items: [{ ...host, cite }] })?.items[0];
+      if (item?.type !== 'host') throw new Error('not a host item');
+      return item.cite;
+    };
+    expect(citeOf(undefined)).toBeNull();
+    expect(citeOf({ title: 'x', url: 'javascript:alert(1)' })).toBeNull();
+    expect(citeOf({ url: 'https://example.org/p' })).toEqual({ title: '', url: 'https://example.org/p' });
   });
 
   it('a host moment names its host; the schedule its hosts; channels their first; and who may voice a program', () => {

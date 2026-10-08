@@ -79,7 +79,8 @@
           { "kind": "website", "url": "https://gracechapel.example" },
           { "kind": "website", "url": "javascript:alert(1)" }
         ]
-      }
+      },
+      "cite": { "title": "kirche-im-swr.de", "url": "https://www.kirche-im-swr.de/beitraege?id=18167" }
     },
     { "id": "i7kq2p", "type": "jingle", "start": 1790190199400, "dur": 6000, "p": "worship", "audio": "/media/jingles/a41b.mp3" },
     { "id": "i7kq2q", "type": "silence", "start": 1790190205400, "dur": 60000, "p": "worship", "label": { "en": "A moment of silence", "de": "Ein Moment der Stille" } },

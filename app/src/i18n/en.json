@@ -30,6 +30,7 @@
     "evergreen": "Our favourites while the program reconnects",
     "hostSpeaking": "{{name}} is speaking",
     "moreFrom": "More from",
+    "source": "Source: {{site}}",
     "link": {
       "youtube": "YouTube",
       "website": "Website"

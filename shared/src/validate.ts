@@ -11,6 +11,7 @@ import {
 import type {
   ChannelInfo,
   ChannelsFile,
+  Cite,
   DayBlock,
   DayFile,
   DayProgram,
@@ -169,6 +170,12 @@ function parseNotice(v: unknown): GroupNotice | null {
   return { name: v.name, text: i18n(v.text), links: links.slice(0, MAX_NOTICE_LINKS) };
 }
 
+/** A host moment's source: https only, like a notice's links. */
+function parseCite(v: unknown): Cite | null {
+  if (!isObj(v) || !isStr(v.url) || !v.url.startsWith('https://')) return null;
+  return { title: str(v.title), url: v.url };
+}
+
 export function parseItem(v: unknown): TimelineItem | null {
   if (!isObj(v) || !isStr(v.id) || !isNum(v.start) || !isNum(v.dur) || v.dur <= 0) return null;
   const base = { id: v.id, start: v.start, dur: v.dur, p: str(v.p) };
@@ -200,6 +207,7 @@ export function parseItem(v: unknown): TimelineItem | null {
         voices: compact(arr(v.voices), parseVoice),
         prayers: arr(v.prayers).filter(isStr),
         notice: parseNotice(v.notice),
+        cite: parseCite(v.cite),
         host: parseHostInfo(v.host),
       };
     case 'jingle':

@@ -419,3 +419,68 @@ test('knowledge: a request approved after its look-up joins the library with its
     $item = $app->library()->byYouTube('CleanName01');
     eq([$item['title'], $item['artist']], ['Ein Gott, der das Meer teilt', 'Timo Langner'], "the clean names, not YouTube's split");
 });
+
+test('knowledge: on air, the host gets each song\'s message, passage and one fact; a fact told rests from when its words are written, and its page goes with the moment to the stage', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    foreach ($app->store()->all('SELECT yt_id FROM library_items') as $r) $app->knowledge()->ensure((string) $r['yt_id'], 'song');
+    runJobs($app);
+    $app->knowledge()->saveSettings(['air' => true], 'mod:test');
+    $app->text()->respond('host_break', function (string $system, string $user): array {
+        $m = momentOf($user);
+        $side = isset($m['next']['fact']) ? 'next' : (isset($m['previous']['fact']) ? 'previous' : 'none');
+        return ['en' => ['text' => 'A song with a story.'], 'de' => ['text' => 'Ein Lied mit Geschichte.'], 'fact' => $side, 'delivery' => 'Warm.'];
+    });
+    ticks($app, 30);
+    $messages = writerMessages($app, 'host_break');
+    check($messages !== [], 'breaks were written');
+    $m = momentOf($messages[0]);
+    eq([$m['next']['about']['en'] ?? '', $m['next']['bible'] ?? '', $m['next']['fact']['en'] ?? ''],
+        ['The song says that God stays near in every storm.', 'Psalm 23', 'The song was written for a small church choir.'], 'the next song with its message as heard, its passage and a fact');
+    check(!isset($m['fact_refs']) && !str_contains($messages[0], 'example.org'), "which fact was offered, and its page, are not the model's");
+    $told = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && (hostContext($app, $i)['fact_told'] ?? '') !== ''));
+    check($told !== [], 'a committed break told a fact');
+    eq($told[0]['payload']['cite'] ?? null, ['title' => 'example.org', 'url' => 'https://example.org/song'], 'its page goes with the moment');
+    $ctx = hostContext($app, $told[0]);
+    $row = $app->knowledge()->get((string) $ctx['fact_refs'][$ctx['fact_told']]['yt']);
+    check((int) ($row['facts_told']['0'] ?? 0) > 0, 'marked told: it rests');
+    $files = glob($app->config->publicDir . '/program/*/slots/*/*.json') ?: [];
+    check(array_filter($files, fn($f) => str_contains((string) file_get_contents($f), 'https://example.org/song')) !== [], 'the minute file carries the page for the stage');
+});
+
+test('knowledge: the writer is asked whose fact it told only when a song comes with one — delivery stays last; off air it gets title and artist as before', function () {
+    $app = TestKit::app(['AI_MODE' => 'live', 'OPENAI_KEY' => 'sk-test', 'ANTHROPIC_KEY' => '']);
+    $http = new FakeHttp();
+    $app->set('http', $http);
+    $hb = ['id' => 0, 'kind' => 'break', 'channel_id' => (int) TestKit::main($app)['id'], 'program_id' => null, 'context' => []];
+    $ctx = ['kind' => 'break', 'host_name' => 'Hope', 'program' => null, 'time_of_day_de' => 'Mittag', 'now' => '12:00', 'previous' => null,
+        'next' => ['title' => 'Befiehl du deine Wege', 'artist' => 'Paul Gerhardt', 'fact' => ['en' => 'Paul Gerhardt wrote it in 1653.', 'de' => 'Paul Gerhardt schrieb es 1653.']],
+        'next_uid' => '', 'fact_refs' => ['next' => ['yt' => 'Befiehl0001', 'i' => 0]]];
+    $http->answers[] = openaiAnswer(['en' => ['text' => 'Paul Gerhardt wrote the next hymn in 1653.'], 'de' => ['text' => 'Paul Gerhardt schrieb das nächste Lied 1653.'], 'fact' => 'next', 'delivery' => 'Warm.']);
+    $written = $app->hostWriter()->write($hb, $ctx, null, []);
+    $schema = $http->body(0)['response_format']['json_schema']['schema'];
+    eq($schema['properties']['fact']['enum'] ?? null, ['none', 'next'], 'asked whose fact');
+    eq(array_slice($schema['required'], -2), ['fact', 'delivery'], 'delivery stays last');
+    eq($written['fact'], 'next', 'told');
+    check(!str_contains((string) $http->sent[0]['body'], 'Befiehl0001'), 'which fact was offered never goes out');
+    unset($ctx['next']['fact'], $ctx['fact_refs']);
+    $http->answers[] = openaiAnswer(['en' => ['text' => 'Next, a hymn.'], 'de' => ['text' => 'Gleich ein Lied.'], 'delivery' => 'Warm.']);
+    $written = $app->hostWriter()->write($hb, $ctx, null, []);
+    check(!isset($http->body(1)['response_format']['json_schema']['schema']['properties']['fact']), 'no fact offered: not asked');
+    eq($written['fact'], '', 'nothing told');
+    check(str_contains($app->hostWriter()->system(null), 'one thing listeners may like to know'), 'the rule allows what a song comes with, and nothing beyond');
+});
+
+test('knowledge: the show memory notes whose fact a moment told when it only summarizes that moment — the song, never the listener', function () {
+    $app = TestKit::app();
+    $t = TestKit::T0;
+    $announce = ['type' => 'host', 'state' => 'committed', 'seq' => 1.0, 'start_ms' => $t, 'est_start' => $t, 'dur_ms' => 12_000, 'program_id' => 1, 'submission_id' => null,
+        'payload' => ['kind' => 'announce', 'text' => ['en' => 'Jenny from Munich wishes her mum a hymn.'], 'host' => ['name' => 'Hope']],
+        'break' => ['kind' => 'announce', 'state' => 'ready', 'source' => 'openai', 'texts' => [],
+            'context' => ['request' => ['name' => 'Jenny', 'place' => 'Munich', 'message' => 'For my mum'], 'fact_told' => 'next', 'next' => ['title' => 'Befiehl du deine Wege', 'artist' => 'Paul Gerhardt']]]];
+    $memory = $app->showLog()->memory([], [$announce], $t, $t + 60_000, new DateTimeZone('Europe/Berlin'), 'Hope');
+    $entry = $memory['so_far'][0] ?? [];
+    eq([$entry['summary'] ?? '', $entry['told_fact_of'] ?? ''], ["presented a listener's song request", 'Befiehl du deine Wege'], 'summarized, with the song whose fact was told');
+    $json = (string) json_encode($memory);
+    check(!str_contains($json, 'Jenny') && !str_contains($json, 'Munich') && !str_contains($json, 'mum'), 'naming nobody');
+});

@@ -29,7 +29,7 @@ const grace: GroupNotice = {
 function hostWith(notice: GroupNotice | null): TimelineItem {
   return {
     id: 'h1', type: 'host', start: 0, dur: 18_000, p: 'predigt', kind: 'break', audio: { en: '/media/host/b.mp3' },
-    text: { en: 'That was Grace Chapel, a church in Accra.' }, voices: [], prayers: [], notice, host: null,
+    text: { en: 'That was Grace Chapel, a church in Accra.' }, voices: [], prayers: [], notice, cite: null, host: null,
   };
 }
 

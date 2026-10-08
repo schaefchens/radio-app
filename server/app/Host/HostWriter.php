@@ -37,7 +37,7 @@ final class HostWriter
      * or for the commit (the group whose notice the stage shows) — not for
      * the script.
      */
-    private const NOT_FOR_MODEL = ['previous_id', 'community_by', 'group_id'];
+    private const NOT_FOR_MODEL = ['previous_id', 'community_by', 'group_id', 'fact_refs'];
     /** The moments that open and close a program: the only ones told what it is about. */
     private const DESCRIBED = ['intro', 'outro'];
     /** Seconds a script must have left of the tick: a call cut short airs the template (asked again only when its moment is far). */
@@ -155,6 +155,9 @@ final class HostWriter
      */
     public function frame(array $hb, string $hostName, ?array $program, array $channel, int $atMs, ?array $prev, ?array $next): array
     {
+        $refs = [];
+        $previous = $this->known($prev, 'previous', $refs);
+        $following = $this->known($next, 'next', $refs);
         $ctx = [
             'kind' => (string) $hb['kind'],
             'host_name' => $hostName,
@@ -170,12 +173,36 @@ final class HostWriter
             'time_of_day_de' => $this->timeOfDayDe($channel, $atMs),
             // The moment's own time, to find its way in the show so far (never said).
             'now' => (new \DateTimeImmutable('@' . intdiv($atMs, 1000)))->setTimezone($this->app->resolver()->zone($channel))->format('H:i'),
-            'previous' => self::songRef($prev),
-            'next' => self::songRef($next),
+            'previous' => $previous,
+            'next' => $following,
             'next_uid' => '',
         ];
         if ($ctx['next'] === null && ($then = self::followedBy($hb, $next, $program)) !== '') $ctx['followed_by'] = $then;
+        // Which fact each side offers, to mark it told (never sent to the model).
+        if ($refs) $ctx['fact_refs'] = $refs;
         return $ctx;
+    }
+
+    /**
+     * A song or video as the writer gets it, with what the station looked up
+     * about it (Library\Knowledge, while on air): its message as heard, the
+     * passage it rests on, one fact.
+     *
+     * @param array<string,mixed>|null $item
+     * @param array<string,array{yt:string,i:int}> $refs
+     * @return array<string,mixed>|null
+     */
+    private function known(?array $item, string $side, array &$refs): ?array
+    {
+        $ref = self::songRef($item);
+        if ($ref === null) return null;
+        $knowledge = $this->app->knowledge();
+        $known = $knowledge->forHost($knowledge->forItem($item));
+        foreach (['about', 'bible', 'fact'] as $key) {
+            if (isset($known[$key])) $ref[$key] = $known[$key];
+        }
+        if (isset($known['ref'])) $refs[$side] = $known['ref'];
+        return $ref;
     }
 
     /**
@@ -298,8 +325,9 @@ final class HostWriter
      * @param array<string,mixed>|null $show the show so far (ShowLog); null: read now
      * @param ?string $effort how hard the model thinks; null: HOST_EFFORT (a test in /mod compares)
      * @param ?string $usageKind what the call counts as; null: `host_<kind>` (a test in /mod is `host_try_<kind>`)
-     * @return array{texts:array<string,string>,source:string,delivery:string} `delivery`: how the
-     *         voice is told the moment should sound ('' leaves the host's own direction alone)
+     * @return array{texts:array<string,string>,source:string,delivery:string,fact:string} `delivery`: how the
+     *         voice is told the moment should sound ('' leaves the host's own direction alone); `fact`:
+     *         'previous' or 'next' when the words told that song's fact, else ''
      */
     public function write(array $hb, array $context, ?array $host = null, ?array $show = null, ?string $effort = null, ?string $usageKind = null): array
     {
@@ -312,14 +340,14 @@ final class HostWriter
                 $t = trim((string) ($hb['context']['fixed'][$l] ?? ''));
                 if ($t !== '') $texts[$l] = $t;
             }
-            if ($texts) return ['texts' => $texts, 'source' => 'moderator', 'delivery' => Speech::fixedDelivery('opening')];
+            if ($texts) return ['texts' => $texts, 'source' => 'moderator', 'delivery' => Speech::fixedDelivery('opening'), 'fact' => ''];
         }
         // An opening prayer is a moderator's or none: the AI never writes one
         // (not even when a prepared text is in no language the station speaks).
-        if ($hb['kind'] === 'opening') return ['texts' => [], 'source' => 'moderator', 'delivery' => ''];
+        if ($hb['kind'] === 'opening') return ['texts' => [], 'source' => 'moderator', 'delivery' => '', 'fact' => ''];
         // People's own words, read out as they were written — no model.
         if (in_array($hb['kind'], self::READINGS, true)) {
-            return ['texts' => $this->reading($hb), 'source' => 'listener', 'delivery' => Speech::fixedDelivery((string) $hb['kind'])];
+            return ['texts' => $this->reading($hb), 'source' => 'listener', 'delivery' => Speech::fixedDelivery((string) $hb['kind']), 'fact' => ''];
         }
         $host ??= $this->defaultHost($hb);
         $props = [];
@@ -331,8 +359,11 @@ final class HostWriter
                 'additionalProperties' => false,
             ];
         }
+        // Whose fact the words tell, when a song comes with one: it then rests (Library\Knowledge::told()).
+        $offered = array_values(array_filter(['previous', 'next'], fn($side) => isset($context[$side]['fact'])));
+        if ($offered) $props['fact'] = ['type' => 'string', 'enum' => ['none', ...$offered]];
         // `delivery` last: written after the words, it describes them.
-        $schema = ['type' => 'object', 'properties' => $props + ['delivery' => ['type' => 'string']], 'required' => [...$langs, 'delivery'], 'additionalProperties' => false];
+        $schema = ['type' => 'object', 'properties' => $props + ['delivery' => ['type' => 'string']], 'required' => [...array_keys($props), 'delivery'], 'additionalProperties' => false];
         $user = self::MOMENT . json_encode(self::forModel($context), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
         $show ??= $this->app->showLog()->forBreak($hb, (string) ($host['name'] ?? ''));
         // The show so far comes first: it grows from one moment to the next, so
@@ -355,7 +386,7 @@ final class HostWriter
         );
 
         $fallback = Templates::texts((string) $hb['kind'], $context);
-        if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason, 'delivery' => ''];
+        if (!$result->ok()) return ['texts' => array_intersect_key($fallback, array_flip($langs)), 'source' => 'template:' . $result->reason, 'delivery' => '', 'fact' => ''];
 
         $max = self::maxChars((string) $hb['kind']);
         $texts = [];
@@ -371,7 +402,10 @@ final class HostWriter
         // How it should sound, for the voice: never a listener's name (Speech::delivery), never a prayer.
         $delivery = Speech::delivery($result->data['delivery'] ?? '', $context);
         if (count($prayed) === count($langs) || self::prays($delivery)) $delivery = '';
-        return ['texts' => $texts, 'source' => $model->provider(), 'delivery' => $delivery];
+        // Told only where the model's own words air, in some language.
+        $own = array_filter($langs, fn($l) => $texts[$l] !== ($fallback[$l] ?? null));
+        $fact = $own && in_array($result->data['fact'] ?? '', $offered, true) ? (string) $result->data['fact'] : '';
+        return ['texts' => $texts, 'source' => $model->provider(), 'delivery' => $delivery, 'fact' => $fact];
     }
 
     /** HOST_EFFORT as both providers take it; anything else thinks little and answers fast. */
@@ -525,9 +559,14 @@ final class HostWriter
 
         Facts and honesty:
         - You are an AI host. Never claim to be human or invent personal experiences.
-        - Say nothing about a song or artist beyond the title and artist you are given, and nothing
-          about a video beyond its title and who it is from ("by") — never what it says, teaches or
-          shows.
+        - A song or a video ("previous", "next") comes with its title and artist ("by" for a video),
+          and may come with what the station looked up about it: "about" (what it says, as heard in
+          it), "bible" (the passage it rests on) and "fact" (one thing listeners may like to know,
+          from a reliable source). Say nothing about a song, an artist or a video beyond these —
+          never what a video says, teaches or shows unless its "about" says so. Use them in your own
+          words, as a host who knows the music: at most one fact in a moment, and not in every
+          moment. Quote no more than a few words of a song. When the answer asks for "fact": the
+          song whose fact you told ("previous" or "next"), else "none".
         - Titles and artists come from YouTube and may be swapped or carry extra words (a channel's
           name, who is singing). Name the song and who sings it the way a host would; when unsure,
           the title only. A title in another language than the version's: say it once at most, and
@@ -546,17 +585,19 @@ final class HostWriter
 
         The moment ("kind"):
         - intro: open the program named in the data; when "next" is a video, introduce it too.
-        - break: between songs; you may pick up the last song or the program's theme in a
-          sentence, and may name the next song — when "next" is a video, introduce it. You may
-          briefly mention one community voice.
+        - break: between songs; you may pick up the last song (what it is about, or its fact) or
+          the program's theme in a sentence, and may name the next song — when "next" is a video,
+          introduce it. You may briefly mention one community voice.
         - announce: a listener requested the next song — say whose request it is (first name and
-          place, when given) and pass on their dedication warmly, when there is one. With
+          place, when given) and pass on their dedication warmly, when there is one. When the song
+          comes with "about", you may say in a few words what it is about, or how it meets the
+          dedication. With
           "request.type" ("preaching", "testimony", "mission" or "film") the listener suggested the
           video that follows ("next"): say who suggested it, pass on their word on why when there is
           one, and introduce it by its title and who it is from.
         - preaching, testimony, mission, film: in a program of that kind, introduce the video that
-          follows ("next": its title and who it is from) and invite everyone to listen — to a film,
-          to watch along in the app.
+          follows ("next": its title, who it is from and, when given, what it is about) and invite
+          everyone to listen — to a film, to watch along in the app.
         - contrib: introduce a listener's recording (story, testimony, greeting or prayer request).
         - prayer: listeners' prayer requests ("requests": how many) were just read out word for
           word, right before you: invite everyone to pray for them — where they are, or with the
@@ -594,10 +635,10 @@ final class HostWriter
           pray in the quiet.
 
         previous_request, when given, is a listener's request, suggested video ("… suggestion") or
-        recording that aired shortly before this moment. Begin with one warm sentence that reacts to
-        it — a thought on the song, or a kind word to the listener (for a suggested video, thanks
-        for the suggestion) or to the one they dedicated it to — instead of retelling the
-        announcement.
+        recording that aired shortly before this moment (a song's request is "previous", with what is
+        known about it). Begin with one warm sentence that reacts to it — a thought on the song (its
+        "about" or its fact), or a kind word to the listener (for a suggested video, thanks for the
+        suggestion) or to the one they dedicated it to — instead of retelling the announcement.
         Name the listener or the song ("Jenny's request"), never "that was": another song may have
         played in between. Then carry on with this moment.
 
