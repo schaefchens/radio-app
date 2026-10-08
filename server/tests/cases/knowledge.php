@@ -244,9 +244,9 @@ test('knowledge: the host gets the message as heard, the passage and one fact �
     $k->saveSettings(['air' => true], 'mod:test');
     $first = $k->forHost($k->get('HostFacts01'));
     eq([$first['about']['en'] ?? '', $first['bible'] ?? '', $first['fact']['en'] ?? ''], ['The song says that God stays near in every storm.', 'Psalm 23', 'Fact one.'], 'message, passage and the first fact');
-    eq($k->told('HostFacts01', $first['ref']['i'], $app->clock->nowMs()), ['title' => 'example.org', 'url' => 'https://example.org/one'], 'told: its source for the stage');
+    eq($k->told($first['ref'], $app->clock->nowMs()), ['title' => 'example.org', 'url' => 'https://example.org/one'], 'told: its source for the stage');
     eq($k->forHost($k->get('HostFacts01'))['fact']['en'] ?? '', 'Fact two.', 'the next airing: the other fact');
-    $k->told('HostFacts01', 1, $app->clock->nowMs());
+    $k->told(['yt' => 'HostFacts01', 'i' => 1], $app->clock->nowMs());
     check(!isset($k->forHost($k->get('HostFacts01'))['fact']), 'both told: no fact until one has rested');
     TestKit::clock($app)->advance(Knowledge::FACT_REST_HOURS * 3_600_000 + 1);
     eq($k->forHost($k->get('HostFacts01'))['fact']['en'] ?? '', 'Fact one.', 'rested: the one told longest ago');
@@ -433,11 +433,12 @@ test('knowledge: on air, the host gets each song\'s message, passage and one fac
     });
     ticks($app, 30);
     $messages = writerMessages($app, 'host_break');
-    check($messages !== [], 'breaks were written');
-    $m = momentOf($messages[0]);
-    eq([$m['next']['about']['en'] ?? '', $m['next']['bible'] ?? '', $m['next']['fact']['en'] ?? ''],
-        ['The song says that God stays near in every storm.', 'Psalm 23', 'The song was written for a small church choir.'], 'the next song with its message as heard, its passage and a fact');
-    check(!isset($m['fact_refs']) && !str_contains($messages[0], 'example.org'), "which fact was offered, and its page, are not the model's");
+    $breaks = array_values(array_filter($messages, fn($u) => (momentOf($u)['kind'] ?? '') === 'break'));
+    check($breaks !== [], 'breaks were written');
+    $m = momentOf($breaks[0]);
+    eq([$m['next']['about']['en'] ?? '', $m['next']['bible'] ?? ''], ['The song says that God stays near in every storm.', 'Psalm 23'], 'the next song with its message as heard and its passage');
+    eq([$m['previous']['fact']['en'] ?? '', isset($m['next']['fact'])], ['The song was written for a small church choir.', false], 'and one fact: the song just heard');
+    check(!isset($m['fact_refs']) && !str_contains($breaks[0], 'example.org'), "which fact was offered, and its page, are not the model's");
     $told = array_values(array_filter(TestKit::committed($app), fn($i) => $i['type'] === 'host' && (hostContext($app, $i)['fact_told'] ?? '') !== ''));
     check($told !== [], 'a committed break told a fact');
     eq($told[0]['payload']['cite'] ?? null, ['title' => 'example.org', 'url' => 'https://example.org/song'], 'its page goes with the moment');
@@ -446,6 +447,37 @@ test('knowledge: on air, the host gets each song\'s message, passage and one fac
     check((int) ($row['facts_told']['0'] ?? 0) > 0, 'marked told: it rests');
     $files = glob($app->config->publicDir . '/program/*/slots/*/*.json') ?: [];
     check(array_filter($files, fn($f) => str_contains((string) file_get_contents($f), 'https://example.org/song')) !== [], 'the minute file carries the page for the stage');
+});
+
+test('knowledge: a moment offers one fact at most, and a channel tells one about every quarter hour — a break the song just heard first, a video\'s introduction the video; no intro, no prayer hour; a test moment always may', function () {
+    $app = TestKit::app();
+    $k = $app->knowledge();
+    foreach (['FactSongA01' => 'song', 'FactSongB01' => 'song', 'FactFilm001' => 'film'] as $yt => $kind) $k->ensure($yt, $kind);
+    $app->runner()->runUntilBudget();
+    $k->saveSettings(['air' => true], 'mod:test');
+    $item = fn(string $yt, string $kind = 'song') => ['type' => 'song', 'library_id' => null, 'payload' => ['yt' => $yt, 'kind' => $kind, 'title' => "Title $yt", 'artist' => 'Artist']];
+    $main = TestKit::main($app);
+    $t = $app->clock->nowMs();
+    $frame = fn(string $kind, int $at, int $hb = 0, ?array $program = null, ?bool $due = null, string $next = 'FactSongB01') => $app->hostWriter()
+        ->frame(['id' => $hb, 'kind' => $kind, 'program_id' => null], 'Hope', $program, $main, $at, $item('FactSongA01'), $item($next, $next === 'FactFilm001' ? 'film' : 'song'), $due);
+    $offered = fn(array $ctx) => array_keys(array_filter(['previous' => isset($ctx['previous']['fact']), 'next' => isset($ctx['next']['fact'])]));
+
+    $a = $frame('break', $t, 7);
+    eq([$offered($a), array_keys($a['fact_refs'] ?? [])], [['previous'], ['previous']], 'a break: one fact, of the song just heard');
+    check(isset($a['next']['about']), 'the next song keeps its message');
+    $k->told($a['fact_refs']['previous'], $t);
+    eq($offered($frame('break', $t + 8 * 60_000)), [], 'the next break, eight minutes on: none');
+    eq($offered($frame('break', $t - 8 * 60_000)), [], 'nor one written later for eight minutes before');
+    // The song just heard has only the fact it told, which rests now: the next song's comes.
+    eq($offered($frame('break', $t, 7)), ['next'], 'the same moment written again keeps its turn');
+    eq($offered($frame('break', $t + Knowledge::FACT_GAP_MINUTES * 60_000)), ['next'], 'a quarter hour on: one again');
+    eq($offered($frame('break', $t + 8 * 60_000, 0, null, true)), ['next'], 'a test moment always may');
+    $later = $t + 60 * 60_000;
+    eq($offered($frame('film', $later, 0, null, null, 'FactFilm001')), ['next'], "a video program's own moment: the video's fact");
+    eq($offered($frame('break', $later, 0, null, null, 'FactFilm001')), ['next'], 'a break before a video: the video first');
+    eq($offered($frame('intro', $later)), [], 'an intro opens its program: no fact');
+    $prayer = ['title_en' => 'Prayer', 'title_de' => 'Gebet', 'themes' => [], 'settings' => ['format' => 'prayer']];
+    eq($offered($frame('break', $later, 0, $prayer)), [], 'a prayer hour: no fact');
 });
 
 test('knowledge: the writer is asked whose fact it told only when a song comes with one — delivery stays last; off air it gets title and artist as before', function () {
@@ -468,7 +500,8 @@ test('knowledge: the writer is asked whose fact it told only when a song comes w
     $written = $app->hostWriter()->write($hb, $ctx, null, []);
     check(!isset($http->body(1)['response_format']['json_schema']['schema']['properties']['fact']), 'no fact offered: not asked');
     eq($written['fact'], '', 'nothing told');
-    check(str_contains($app->hostWriter()->system(null), 'one thing listeners may like to know'), 'the rule allows what a song comes with, and nothing beyond');
+    $rules = $app->hostWriter()->system(null);
+    check(str_contains($rules, 'Say nothing about a song, an artist or a video') && str_contains($rules, 'A "fact" given is there to be told'), 'the rule allows what a song comes with, and nothing beyond — and a fact given is told');
 });
 
 test('knowledge: the show memory notes whose fact a moment told when it only summarizes that moment — the song, never the listener', function () {

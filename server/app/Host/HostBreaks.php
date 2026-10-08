@@ -373,7 +373,7 @@ final class HostBreaks
             $told = [];
             $ref = $context['fact_refs'][$written['fact']] ?? null;
             if ($written['fact'] !== '' && is_array($ref)) {
-                $cite = $this->app->knowledge()->told((string) $ref['yt'], (int) $ref['i'], $this->app->clock->nowMs());
+                $cite = $this->app->knowledge()->told($ref, $this->app->clock->nowMs());
                 $told = ['fact_told' => $written['fact']] + ($cite !== null ? ['cite' => $cite] : []);
             }
             if (!$this->saveIfPending($hb['id'], [

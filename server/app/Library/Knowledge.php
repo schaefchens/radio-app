@@ -39,6 +39,8 @@ final class Knowledge
     public const VERSION = 1;
     /** A fact rests this long once told: a song plays several times a day. */
     public const FACT_REST_HOURS = 72;
+    /** A channel tells a fact about every quarter hour, about every other break: a fact in every moment is a quiz. */
+    public const FACT_GAP_MINUTES = 15;
     private const MAX_FACTS = 5;
     private const MAX_QUOTES = 5;
     private const QUOTE_WORDS = 12;
@@ -530,19 +532,37 @@ final class Knowledge
     }
 
     /**
+     * Whether a moment at `$atMs` may tell a fact on its channel: none told
+     * there within FACT_GAP_MINUTES of it. Measured by the moments' own times,
+     * either way — they are written minutes ahead, not always in order; the
+     * same moment written again keeps its turn.
+     */
+    public function factDue(int $channelId, int $atMs, int $hbId = 0): bool
+    {
+        $last = $this->app->store()->get('fact_at:' . $channelId);
+        if (!is_array($last)) return true;
+        if ($hbId > 0 && (int) ($last['hb'] ?? 0) === $hbId) return true;
+        return abs($atMs - (int) ($last['at'] ?? 0)) >= self::FACT_GAP_MINUTES * 60_000;
+    }
+
+    /**
      * A fact the host told: it rests from now (marked when the words are
-     * written — a request block is written before any of it airs).
+     * written — a request block is written before any of it airs), and its
+     * channel's next fact waits (factDue).
      *
+     * @param array{yt:string,i:int,channel?:int,at?:int,hb?:int} $ref what HostWriter::frame() offered
      * @return array{title:string,url:string}|null the fact's source, for the stage
      */
-    public function told(string $ytId, int $i, int $atMs): ?array
+    public function told(array $ref, int $nowMs): ?array
     {
-        $row = $this->get($ytId);
+        $row = $this->get((string) $ref['yt']);
+        $i = (int) $ref['i'];
         $fact = $row['research']['facts'][$i] ?? null;
         if ($row === null || !is_array($fact)) return null;
         $told = $row['facts_told'];
-        $told[(string) $i] = $atMs;
+        $told[(string) $i] = $nowMs;
         $this->save((int) $row['id'], ['facts_told' => $told]);
+        if (isset($ref['channel'])) $this->app->store()->set('fact_at:' . (int) $ref['channel'], ['at' => (int) ($ref['at'] ?? $nowMs), 'hb' => (int) ($ref['hb'] ?? 0)]);
         $url = (string) ($fact['source'] ?? '');
         return $url !== '' ? ['title' => self::siteName($url), 'url' => $url] : null;
     }
@@ -727,9 +747,11 @@ final class Knowledge
         - identity.artist_background: one sentence on the artist, band or speaker: a Christian or a secular artist? Which church or ministry?
         - identity.christian_artist: whether the performer is known as a Christian artist or minister.
         - bible: passages the song or video is based on or quotes, only when a source or its words make that clear.
-        - facts: up to five short facts listeners would enjoy: who wrote it and when, the story behind it, what the ministry does.
-          Each is one sentence in English and in natural German, with the URL of the page that says it.
-          Nothing about scandals, controversies, money, sales, charts or anyone's private life.
+        - facts: up to five short facts listeners would enjoy, the most interesting first: who wrote it and when, the story behind
+          it, what the ministry does. Each is one sentence in English and in natural German, stated as the fact itself (never where
+          it is listed or who credits it), with the URL of the page that says it. Nothing about scandals, controversies, money,
+          sales, charts or anyone's private life; no catalogue details (copyright notices, track numbers, running times, formats);
+          nothing that is unknown.
         - content_notes: what the song's words or the talk actually say, as a short summary for the station's content check
           (themes, whom it addresses, anything unchristian or unbiblical). Never write out the lyrics.
         - public_domain: whether the full text is in the public domain (every author and translator died more than 70 years ago),

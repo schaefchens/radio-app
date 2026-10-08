@@ -77,7 +77,7 @@ final class StationSetup
     /** Remembered state about the old channels, programs and hosts; `task:` so every local task runs at the next tick. */
     private const KV = [
         'frontier:%', 'published:%', 'draft_version:%', 'draft_library:%', 'waiting:%', 'evergreen:%',
-        'host_show:%', 'lines_requests:%', 'cdn_listeners:%', 'task:%', 'library_fingerprint', 'channels_hash',
+        'host_show:%', 'fact_at:%', 'lines_requests:%', 'cdn_listeners:%', 'task:%', 'library_fingerprint', 'channels_hash',
     ];
 
     /** Larger than any picture, jingle or piece of prayer music (10 min). */

@@ -165,10 +165,15 @@ must be there by approval), the judge gets identity and what was heard, and
 `Policy` adds `biblical` with the admins' standard (kv; Scripture the measure,
 e.g. no prayer to Mary; for listeners' own prayers and recordings too) —
 nothing heard fails closed; **Use on air** — `HostWriter::frame()` gives
-`previous`/`next` their `about` (the message as heard), `bible` and one `fact`
-(told longest ago, rested 72 h); the answer says whose fact it told, marked
-when written (a request block is written before it airs; `ShowLog` notes it
-on summarized moments), and the committed host item carries `cite` (the
+`previous`/`next` their `about` (the message as heard) and `bible`, and one
+side a `fact` (told longest ago, rested 72 h) — only in a break or a video
+program's own moment, never in a prayer hour, the video first, else the song
+just heard, and on a channel about every quarter hour (`Knowledge::factDue`,
+kv `fact_at:<cid>`, by the moments' own times): told "may" and "not in every
+moment", the writer told none in twelve; given one, it is told. The answer
+says whose fact it told, marked when written (a request block is written
+before it airs; `ShowLog` notes it on summarized moments), and the committed
+host item carries `cite` (the
 fact's page), which the stage links under the words — OpenAI's terms want web
 information shown with a visible link. Clean names go into `library_items`
 only while an item still has YouTube's split (`yt_title`/`yt_artist`); a
@@ -936,7 +941,8 @@ file changing nothing, the library's look-ups travelling and an older file
 still importing), song and video knowledge (`knowledge.php`: the backfill, both
 background calls asked again and deleted, a fact only with a consulted page,
 timeouts and failures, a budget of its own, clean names only while YouTube's
-stand, the host's facts and their rest, a request waiting and judged by what
+stand, the host's facts and their rest, one fact a moment and a quarter hour
+between them on a channel, a request waiting and judged by what
 was heard — a parody turned down, nothing heard fails closed, a Marian song not
 biblical, the switch off as before —, the writer's `fact`, the show memory's
 marker, /mod and its roles), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,

@@ -209,7 +209,7 @@ foreach ($items as $i => $it) {
         $written = $app->hostWriter()->write($hb, $ctx, $host, $memory) + ['seconds' => microtime(true) - $t0];
         // A fact told rests, as on air: the next moments tell another or none.
         $ref = $ctx['fact_refs'][$written['fact']] ?? null;
-        if ($written['fact'] !== '' && is_array($ref)) $app->knowledge()->told((string) $ref['yt'], (int) $ref['i'], $at);
+        if ($written['fact'] !== '' && is_array($ref)) $app->knowledge()->told($ref, $at);
         $new[$it['id']] = $written['texts'];
         $spent++;
     }

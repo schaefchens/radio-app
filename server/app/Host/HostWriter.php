@@ -151,13 +151,23 @@ final class HostWriter
      * @param array<string,mixed> $channel
      * @param array<string,mixed>|null $prev the timeline item before the moment
      * @param array<string,mixed>|null $next the item after it
+     * @param bool|null $factDue whether a fact may be told; null: by the channel's last one (Knowledge::factDue)
      * @return array<string,mixed>
      */
-    public function frame(array $hb, string $hostName, ?array $program, array $channel, int $atMs, ?array $prev, ?array $next): array
+    public function frame(array $hb, string $hostName, ?array $program, array $channel, int $atMs, ?array $prev, ?array $next, ?bool $factDue = null): array
     {
         $refs = [];
-        $previous = $this->known($prev, 'previous', $refs);
-        $following = $this->known($next, 'next', $refs);
+        $sides = ['previous' => $this->known($prev, 'previous', $refs), 'next' => $this->known($next, 'next', $refs)];
+        // One fact at most, and not in every moment — decided here: left to choose
+        // ("not in every moment"), the writer told none in twelve (replay, 2026-10-08).
+        $side = $this->factSide((string) $hb['kind'], $program, $sides);
+        if ($side !== '' && !($factDue ?? $this->app->knowledge()->factDue((int) ($channel['id'] ?? 0), $atMs, (int) ($hb['id'] ?? 0)))) $side = '';
+        foreach (array_keys($sides) as $s) {
+            if ($s !== $side && $sides[$s] !== null) unset($sides[$s]['fact']);
+        }
+        // Which fact is offered, to mark it told — and when and where, for the channel's next one.
+        $refs = $side !== '' ? [$side => $refs[$side] + ['channel' => (int) ($channel['id'] ?? 0), 'at' => $atMs, 'hb' => (int) ($hb['id'] ?? 0)]] : [];
+        [$previous, $following] = [$sides['previous'], $sides['next']];
         $ctx = [
             'kind' => (string) $hb['kind'],
             'host_name' => $hostName,
@@ -178,9 +188,28 @@ final class HostWriter
             'next_uid' => '',
         ];
         if ($ctx['next'] === null && ($then = self::followedBy($hb, $next, $program)) !== '') $ctx['followed_by'] = $then;
-        // Which fact each side offers, to mark it told (never sent to the model).
+        // Never sent to the model.
         if ($refs) $ctx['fact_refs'] = $refs;
         return $ctx;
+    }
+
+    /**
+     * Whose fact a moment may tell: in a break or a video program's own
+     * moment, never in a prayer hour; the video a moment introduces first,
+     * else the song just heard, else the next one. '' for none.
+     *
+     * @param array<string,mixed>|null $program
+     * @param array{previous:array<string,mixed>|null,next:array<string,mixed>|null} $sides
+     */
+    private function factSide(string $kind, ?array $program, array $sides): string
+    {
+        $videos = array_keys(Catalog::VIDEO_FORMATS);
+        if (!in_array($kind, ['break', ...$videos], true) || PrayerHour::applies($program)) return '';
+        $order = in_array($kind, $videos, true) || isset($sides['next']['kind']) ? ['next', 'previous'] : ['previous', 'next'];
+        foreach ($order as $side) {
+            if (isset($sides[$side]['fact'])) return $side;
+        }
+        return '';
     }
 
     /**
@@ -561,12 +590,14 @@ final class HostWriter
         - You are an AI host. Never claim to be human or invent personal experiences.
         - A song or a video ("previous", "next") comes with its title and artist ("by" for a video),
           and may come with what the station looked up about it: "about" (what it says, as heard in
-          it), "bible" (the passage it rests on) and "fact" (one thing listeners may like to know,
-          from a reliable source). Say nothing about a song, an artist or a video beyond these —
-          never what a video says, teaches or shows unless its "about" says so. Use them in your own
-          words, as a host who knows the music: at most one fact in a moment, and not in every
-          moment. Quote no more than a few words of a song. When the answer asks for "fact": the
-          song whose fact you told ("previous" or "next"), else "none".
+          it), "bible" (the passage it rests on) and, in some moments, "fact" (one thing listeners
+          like to know, from a reliable source). Say nothing about a song, an artist or a video
+          beyond these — never what a video says, teaches or shows unless its "about" says so. Use
+          them in your own words, as a host who knows the music. A "fact" given is there to be told:
+          in a sentence of your own, where it fits (no "did you know"), as the fact itself — never
+          where it is listed or who credits it, nor a copyright, a track or a running time; leave it
+          out only when it would not fit at all. Quote no more than a few words of a song. When the
+          answer asks for "fact": the song whose fact you told ("previous" or "next"), else "none".
         - Titles and artists come from YouTube and may be swapped or carry extra words (a channel's
           name, who is singing). Name the song and who sings it the way a host would; when unsure,
           the title only. A title in another language than the version's: say it once at most, and

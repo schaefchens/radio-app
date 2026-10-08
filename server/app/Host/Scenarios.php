@@ -129,7 +129,8 @@ final class Scenarios
 
         [$prev, $next, $group] = $this->around($moment, $program, $in);
         $hb = ['id' => 0, 'kind' => $kind, 'channel_id' => (int) $channel['id'], 'program_id' => (int) $program['id'], 'context' => []];
-        $ctx = $this->app->hostWriter()->frame($hb, $name, $program, $channel, $now, $prev, $next);
+        // A test shows how the host tells a fact whenever the moment may tell one, whatever the air told last.
+        $ctx = $this->app->hostWriter()->frame($hb, $name, $program, $channel, $now, $prev, $next, true);
         $ctx += $this->people($moment, $format, $ctx, $group);
         if ($prayerHour) $ctx += $this->prayerHour($kind, $program);
         if ($kind === 'outro' && ($after = $this->after($program)) !== null) $ctx['after'] = $after;
