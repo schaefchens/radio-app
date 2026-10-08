@@ -53,6 +53,8 @@ voiced (a tick or two; the cron runs every minute).
    answers error 153 without a Referer and every song would fail).
 4. **Moderation fails closed.** No key, no budget, a refusal, repeated errors →
    "not accepted this time". Uncertain → review queue only if enabled, else reject.
+   While the look-ups are used in the checks, a video nobody could hear, or
+   content not biblical by the station's standard, is not accepted either.
 5. **No secrets in the client or in URLs** (one exception: the cron key may be a
    query parameter if the panel cannot send headers; the endpoint can then do
    nothing but a rate-limited tick). Roles only for passphrase identities.
@@ -124,6 +126,50 @@ can overrule while it stands), a moderator cannot add one, the selection, the
 fallback loop and a waiting request skip theirs, and blocking takes what is
 planned or on air like "Pull from air" — without switching the items off, so
 unblocking brings them back.
+
+**Song and video knowledge** (`Library\Knowledge`, table `video_knowledge`,
+/mod › Library; station decision 2026-10-08: the host "does not respond to the
+song, because it does not know anything about it", and a title can sound
+Christian while the song is not — Guano Apes' "Kumba Yo!"). Every song and
+video is looked up once, keyed by its YouTube id (a known song's request costs
+nothing): OpenAI's web search (`Ai\WebResearch`, Responses API) finds who and
+what it is — real names, writers, the original of a translation, the artist's
+background, up to five facts each with the page that says it — and Gemini
+(`Ai\VideoListener`, Interactions API) watches the public video by its link at
+low resolution and a frame every five seconds and reports what is sung or said,
+judged against the station's standard: `message` (for the host), summary,
+themes, moods, energy, quotes (≤ 5, ≤ 12 words: evidence, never the lyrics),
+Bible passages, `christian`, `biblical` with concerns, `explicit`, `age`,
+`fits`. YouTube's captions are off-limits (owner-only API; scraping breaks
+YouTube's terms); lyrics are not kept (LG München I, GEMA v. OpenAI, 2025), a
+whole text only when public domain. Gemini's Google Search grounding is not
+used: its terms forbid building a database from it. Both calls are background
+ones, started together in one tick and collected in a later one (job
+`knowledge`: start → wait), deleted at the provider once read; facts keep only
+a page the search consulted (`pageKey`: tracking stripped, a query that names
+the page kept), lose OpenAI's inline citations, never pray or talk charts.
+Only the video's public data goes out, never a listener's. A budget of its own
+(`KNOWLEDGE_DAILY_BUDGET_USD`, admins in /mod; `Usage::spentTodayMicros`
+leaves `knowledge:*` out), a backfill every 10 minutes (three at a time, most
+played first, $1 kept for requests), a moderator's library add looked up at
+once, `npm run library:research` for the local stack (live while it runs on
+stubs). Two admin switches, both off at first: **Use in checks** — a request
+or video suggestion waits for its look-up (`wait:knowledge`, 3 minutes for a
+song, 10 for a video; an approved request is announced ~8 minutes later, so it
+must be there by approval), the judge gets identity and what was heard, and
+`Policy` adds `biblical` with the admins' standard (kv; Scripture the measure,
+e.g. no prayer to Mary; for listeners' own prayers and recordings too) —
+nothing heard fails closed; **Use on air** — `HostWriter::frame()` gives
+`previous`/`next` their `about` (the message as heard), `bible` and one `fact`
+(told longest ago, rested 72 h); the answer says whose fact it told, marked
+when written (a request block is written before it airs; `ShowLog` notes it
+on summarized moments), and the committed host item carries `cite` (the
+fact's page), which the stage links under the words — OpenAI's terms want web
+information shown with a visible link. Clean names go into `library_items`
+only while an item still has YouTube's split (`yt_title`/`yt_artist`); a
+moderator's stay, `Groups::assign` matches YouTube's artist too, and
+`refresh-library.php` keeps them. The station setup carries the library's
+look-ups; `replay-show.php --knowledge` replays a show with them.
 
 Background music (kind and item `bed`: the prayer hour's prayer music) is an
 uploaded MP3 of 20 s – 10 min (`/mod/beds`). A `bed` item plays a piece of it
@@ -881,7 +927,14 @@ rate limit; a try with a delivery, people's words and a long text, a worker
 try behind a live moment and keeping no words), the station setup
 (`setup.php`: an admin's file without listeners' data or keys, a local stack
 taking it and keeping its admin and computers, its media fetched, a broken
-file changing nothing), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+file changing nothing, the library's look-ups travelling and an older file
+still importing), song and video knowledge (`knowledge.php`: the backfill, both
+background calls asked again and deleted, a fact only with a consulted page,
+timeouts and failures, a budget of its own, clean names only while YouTube's
+stand, the host's facts and their rest, a request waiting and judged by what
+was heard — a parody turned down, nothing heard fails closed, a Marian song not
+biblical, the switch off as before —, the writer's `fact`, the show memory's
+marker, /mod and its roles), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -990,6 +1043,10 @@ probe (background run length → `TICK_BUDGET`, WAL, directives) and the device
 sync spike on a real iPhone/Android, and there the prayer music (it plays after
 the join tap, fades, goes on across pieces, comes back after the background).
 More program formats with a running order beyond the prayer hour.
+Qwen for the station's text (host words, checks) on our own Macs: postponed
+on 2026-10-08 until the song and video knowledge is live — the knowledge then
+sits in the data, not in the model, which is fairer to a small local model
+(plan: ~/.claude/plans/we-introduced-qwen-for-optimized-bear.md).
 
 OpenAI switches off its speech models (`tts-1`, `tts-1-hd`, `gpt-4o-mini-tts`)
 on 2027-01-06 (announced 2026-10-01); its named successor,

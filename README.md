@@ -318,6 +318,25 @@ a deploy.
   testimony program can also take listeners' own recorded testimonies (tick
   "A testimony"). Only a video program takes suggested videos; elsewhere the
   tile says "Not part of this program".
+- **Song and video knowledge** (/mod → Library, admins: "Song and video
+  knowledge"): every song and video is looked up once — OpenAI's web search
+  (who and what it is, facts with their pages) and Gemini listening to the
+  video (what is sung or said, judged against the station's standard). Needs
+  `OPENAI_KEY` and `GEMINI_API_KEY` (a Google AI Studio key with billing:
+  the free tier's data trains Google's models). Each library row shows a pill
+  (Not biblical / Not Christian / Explicit / Concern / Looked up); "Knowledge"
+  opens it — correct the message, passages and facts (each needs its https
+  page), take over the names found, look it up again. The filter finds
+  concerns, new names and failures. Admins: **Use in checks** (requests wait
+  up to 3 minutes for their look-up and need to be biblical; nothing heard is
+  not accepted), **Use on air** (the host says what a song is about and tells
+  a fact, its page linked on the stage; clean names replace YouTube's), the
+  day's budget ($5; the first backfill of a library takes a few days — raise
+  it for a day) and the standard's text. Both switches start off: read the
+  library first. Locally: `npm run library:research` looks the imported
+  library up for real (about 10 cents a song), then
+  `replay-show.php --knowledge=/var/www/site/_arche/var/arche.sqlite` writes a
+  show with what the host now knows.
 - **Groups** (/mod → Groups): a preacher, a church, a ministry or an
   artist — a few words in English and German and up to four https links
   (YouTube channel, website, other). Add their YouTube channels by pasting a

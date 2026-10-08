@@ -267,6 +267,18 @@ const de = (host: string): StationTexts => ({
         'sicheren, moderierten Programm (Art. 6 Abs. 1 lit. f DSGVO). Mehr: https://openai.com/policies/privacy-policy',
     },
     {
+      h: 'Wissen zu Liedern und Videos (OpenAI, Google)',
+      p:
+        'Damit die Prüfung beurteilen kann, was in einem Lied oder Video wirklich gesungen oder gesagt wird, und die ' +
+        'Moderation erzählen kann, wovon es handelt, schlagen wir jedes Lied und Video einmal nach: Die Websuche von ' +
+        'OpenAI (siehe oben) findet heraus, wer und was es ist, und Gemini, ein KI-Modell von Google (Google Cloud EMEA ' +
+        'Limited, Dublin, Irland), sieht und hört sich das öffentliche YouTube-Video an. Dafür übermitteln wir nur den ' +
+        'Link des Videos und seine öffentlichen Angaben bei YouTube (Titel, Kanal, Beschreibung, Stichwörter) – nie ' +
+        'Ihren Namen, Ihren Ort, Ihre Widmung oder sonst etwas von Ihnen. Personenbezogene Daten von Ihnen werden dabei ' +
+        'nicht verarbeitet. Nach Angaben von Google werden Anfragen und Antworten der kostenpflichtigen Schnittstelle ' +
+        'nicht zur Verbesserung seiner Produkte verwendet. Mehr: https://ai.google.dev/gemini-api/terms',
+    },
+    {
       h: 'KI-Stimmen (ElevenLabs)',
       p:
         'Einzelne Moderationen sprechen mit einer Stimme von ElevenLabs; die Einsendeformulare sagen es, wenn das in der ' +
@@ -559,6 +571,17 @@ const en = (host: string): StationTexts => ({
         "Data may be transferred to the USA on the basis of the EU Commission's standard contractual clauses. Legal " +
         'basis: your consent to the submission (Art. 6(1)(a), Art. 9(2)(a) GDPR) and our legitimate interest in a ' +
         'safe, moderated program (Art. 6(1)(f) GDPR). More: https://openai.com/policies/privacy-policy',
+    },
+    {
+      h: 'Knowing our songs and videos (OpenAI, Google)',
+      p:
+        'So that the check can judge what is really sung or said in a song or video, and the hosts can tell what it is ' +
+        "about, we look each song and video up once: OpenAI's web search (see above) finds out who and what it is, and " +
+        'Gemini, an AI model by Google (Google Cloud EMEA Limited, Dublin, Ireland), watches and listens to the public ' +
+        "YouTube video. For this we send only the video's link and its public details on YouTube (title, channel, " +
+        'description, tags) — never your name, your place, your dedication or anything else of yours. No personal data of ' +
+        "yours is processed. According to Google, requests and answers of its paid API are not used to improve its " +
+        'products. More: https://ai.google.dev/gemini-api/terms',
     },
     {
       h: 'AI voices (ElevenLabs)',
