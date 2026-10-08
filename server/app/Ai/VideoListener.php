@@ -54,8 +54,9 @@ class VideoListener
             'model' => $this->model(),
             'system_instruction' => $system,
             'input' => [
-                // Low resolution: what is sung or said matters, not the picture (about 100 tokens a second).
-                ['type' => 'video', 'uri' => 'https://www.youtube.com/watch?v=' . $ytId, 'resolution' => 'low'],
+                // What is sung or said matters, not the picture: low resolution and a frame every five
+                // seconds — about 38 tokens a second, a sermon of half an hour 70,000 (measured 2026-10-08).
+                ['type' => 'video', 'uri' => 'https://www.youtube.com/watch?v=' . $ytId, 'resolution' => 'low', 'processing' => ['type' => 'static', 'fps' => 0.2]],
                 ['type' => 'text', 'text' => $text],
             ],
             'response_format' => ['type' => 'text', 'mime_type' => 'application/json', 'schema' => $schema],
@@ -87,14 +88,11 @@ class VideoListener
         if (in_array($status, ['queued', 'in_progress'], true)) return new Answer('running');
 
         $text = '';
-        foreach ((array) ($d['steps'] ?? $d['outputs'] ?? []) as $step) {
-            if (!is_array($step)) continue;
-            if (($step['type'] ?? '') === 'model_output' || isset($step['content'])) {
-                foreach ((array) ($step['content'] ?? []) as $c) {
-                    if (is_array($c) && ($c['type'] ?? 'text') === 'text') $text .= (string) ($c['text'] ?? '');
-                }
-            } elseif (($step['type'] ?? '') === 'text') {
-                $text .= (string) ($step['text'] ?? '');
+        // The model's own steps only: the question comes back too, as `user_input` with content of its own.
+        foreach ((array) ($d['steps'] ?? []) as $step) {
+            if (!is_array($step) || ($step['type'] ?? '') !== 'model_output') continue;
+            foreach ((array) ($step['content'] ?? []) as $c) {
+                if (is_array($c) && ($c['type'] ?? 'text') === 'text') $text .= (string) ($c['text'] ?? '');
             }
         }
         $model = (string) ($d['model'] ?? $this->model());

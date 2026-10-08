@@ -37,7 +37,8 @@
     "native:android": "npm run native:android --workspace @arche/app",
     "native:aab": "npm run native:aab --workspace @arche/app",
     "native:assets": "npm run native:assets --workspace @arche/app",
-    "native:version": "node scripts/native/version.mjs"
+    "native:version": "node scripts/native/version.mjs",
+    "library:research": "bash scripts/research-library.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -41,7 +41,8 @@ function knResearched(string $id, array $answer, array $sources): HttpResponse
 function knHeard(string $id, array $answer): HttpResponse
 {
     return knJson(['id' => $id, 'status' => 'completed', 'model' => 'gemini-3.8-flash',
-        'steps' => [['type' => 'user_input'], ['type' => 'model_output', 'content' => [['type' => 'text', 'text' => json_encode($answer)]]]],
+        // The question comes back too, with content of its own: only the model's output is the answer.
+        'steps' => [['type' => 'user_input', 'content' => [['type' => 'text', 'text' => 'Judge this video.']]], ['type' => 'model_output', 'content' => [['type' => 'text', 'text' => json_encode($answer)]]]],
         'usage' => ['total_input_tokens' => 9_000, 'total_output_tokens' => 600, 'total_thought_tokens' => 0],
     ]);
 }
@@ -130,6 +131,7 @@ test('knowledge: OpenAI researches and Gemini listens in the background — star
     $listen = $http->body(2);
     eq([$listen['input'][0]['type'], $listen['input'][0]['uri'], $listen['input'][0]['resolution'], $listen['background'], $listen['response_format']['mime_type']],
         ['video', 'https://www.youtube.com/watch?v=LangnerSea1', 'low', true, 'application/json'], 'listening: the public video, low resolution, in the background, JSON');
+    eq($listen['input'][0]['processing'], ['type' => 'static', 'fps' => 0.2], 'a frame every five seconds: what is heard matters');
     check(str_contains($listen['system_instruction'], 'Scripture is the measure'), "the station's standard goes with it");
     check(str_contains($listen['input'][1]['text'], 'Christian_music'), "YouTube's topics go with it");
 
@@ -274,7 +276,12 @@ test('knowledge: what came is checked — long quotes, unknown values, a fact th
         ],
     ]), ['https://gerth.de/person/langner-timo.html/'], 'X');
     eq($r['identity']['title'], 'Song', "names without YouTube's extras");
-    eq(array_column($r['facts'], 'en'), ['Timo Langner wrote both the words and the music.'], 'a praying fact and a charts fact dropped; the page matched without www, a last slash or a query');
+    eq(array_column($r['facts'], 'en'), ['Timo Langner wrote both the words and the music.'], 'a praying fact and a charts fact dropped; the page matched without www, a last slash or tracking');
+    $byId = Knowledge::cleanResearch(knResearch(['facts' => [
+        ['en' => 'From the page searched.', 'de' => 'Von der gesuchten Seite.', 'source' => 'https://kirche.example/beitraege?id=18167&utm_source=openai'],
+        ['en' => 'From another page of the site.', 'de' => 'Von einer anderen Seite.', 'source' => 'https://kirche.example/beitraege?id=99999'],
+    ]]), ['https://kirche.example/beitraege?id=18167'], 'X');
+    eq(array_column($byId['facts'], 'en'), ['From the page searched.'], 'a query that names the page counts: another id is another page');
 });
 
 test('knowledge: admins set the switches, the budget and the standard — the checks need listening; moderators correct facts only with a page, a full text only in the public domain', function () {

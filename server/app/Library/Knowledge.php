@@ -175,9 +175,11 @@ final class Knowledge
      * Look a video up unless it is known or under way: a row and a job.
      * A failed look-up is tried again only when $retry says so.
      *
+     * @param bool $job false: the caller runs the phases itself (bin/research-library.php — a
+     *   stub station's own ticks would answer a queued job with stub data)
      * @return array<string,mixed>|null the row; null when nothing can look it up
      */
-    public function ensure(string $ytId, string $kind, int $priority = 80, bool $retry = false): ?array
+    public function ensure(string $ytId, string $kind, int $priority = 80, bool $retry = false, bool $job = true): ?array
     {
         if ($ytId === '' || !$this->configured()) return null;
         $kind = in_array($kind, self::KINDS, true) ? $kind : 'song';
@@ -190,7 +192,7 @@ final class Knowledge
             $id = (int) $row['id'];
             $this->app->store()->update('video_knowledge', ['state' => 'queued', 'kind' => $kind, 'work' => '{}', 'error' => '', 'updated' => $now], 'id = ?', [$id]);
         }
-        $this->app->jobs()->enqueue('knowledge', $id, $priority, $this->app->clock->nowMs());
+        if ($job) $this->app->jobs()->enqueue('knowledge', $id, $priority, $this->app->clock->nowMs());
         return $this->byId($id);
     }
 
@@ -873,20 +875,25 @@ final class Knowledge
         return self::text($s, 120);
     }
 
-    /** A page by its host and path: links differ in scheme, "www.", query (?utm_source=openai) and a last slash. */
+    /**
+     * A page as one page: links to it differ in scheme, "www.", a last slash
+     * and tracking (?utm_source=openai) — but a query can be the page itself
+     * (beitraege?id=18167), so that stays.
+     */
     private static function pageKey(string $url): string
     {
         $p = parse_url(trim($url));
         if (!is_array($p) || !isset($p['host'])) return $url;
         $host = (string) preg_replace('/^www\./', '', strtolower($p['host']));
         $path = rtrim(rawurldecode((string) ($p['path'] ?? '')), '/');
+        parse_str((string) ($p['query'] ?? ''), $q);
         // A YouTube video is its id, whatever else the link carries.
         if (in_array($host, ['youtube.com', 'm.youtube.com', 'youtu.be'], true)) {
-            parse_str((string) ($p['query'] ?? ''), $q);
-            $id = $host === 'youtu.be' ? ltrim($path, '/') : (string) ($q['v'] ?? '');
-            return 'youtube:' . $id;
+            return 'youtube:' . ($host === 'youtu.be' ? ltrim($path, '/') : (string) ($q['v'] ?? ''));
         }
-        return $host . $path;
+        $q = array_filter($q, fn($k) => !preg_match('/^(utm_|fbclid$|gclid$|ref$|source$)/i', (string) $k), ARRAY_FILTER_USE_KEY);
+        ksort($q);
+        return $host . $path . ($q ? '?' . http_build_query($q) : '');
     }
 
     /** A source's site, as the stage names it ("wikipedia.org"). */
