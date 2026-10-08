@@ -11,6 +11,7 @@ use Arche\Host\Hosts;
 use Arche\Http\Context;
 use Arche\Http\Response;
 use Arche\Identity\Identities;
+use Arche\Plan\StationSetup;
 use Arche\Program\Timing;
 use Arche\Support\BudgetExceeded;
 
@@ -908,6 +909,24 @@ final class ModApi
         $this->c->app->store()->set('chat_blocklist', $list);
         $this->c->app->store()->audit($this->actor(), 'Chat blocklist saved', count($list) . ' entries');
         return ['words' => $list];
+    }
+
+    // --- the station's setup -------------------------------------------------------------
+
+    /**
+     * Channels, programs, plans, the library, groups and hosts as one file,
+     * to try the program on a local stack (Plan\StationSetup: no listener's
+     * data, no keys). Admins: the hosts' private style notes travel along.
+     */
+    public function setupExport(): array
+    {
+        $this->admin();
+        $app = $this->c->app;
+        $out = (new StationSetup($app))->export();
+        $counts = StationSetup::counts($out['tables']);
+        $app->store()->audit($this->actor(), 'Station setup exported', sprintf('%d programs, %d library items, %d hosts, %d lines',
+            $counts['programs'], $counts['library_items'], $counts['hosts'], $counts['host_lines']));
+        return $out;
     }
 
     /** Minute arithmetic helper shared with tests. */
