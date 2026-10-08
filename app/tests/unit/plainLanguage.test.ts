@@ -18,6 +18,7 @@ const AVOIDED: [string, RegExp][] = [
   ['a paired singular ("der Verfasserin bzw. des Verfassers")', /(\p{Lu}\p{L}*)in\s+(und|oder|bzw\.)\s+(des|der|den|dem|ein|einen|einem)\s+\1/gu],
   ['a star, colon, underscore or slash ("Hörer*innen")', /\p{Lu}\p{L}*([*:_]|\/-?)in(nen)?\b/gu],
   ['"sie/er"', /\b(sie\/er|er\/sie)\b/gu],
+  ['a participle for people ("die Zuhörenden")', /\b(Zuhörende|Hörende|Nutzende|Teilnehmende|Mitarbeitende|Studierende|Lesende|Zuschauende)n?\b/gu],
   ['"gender"', /\bgender/giu],
 ];
 

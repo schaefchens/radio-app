@@ -164,7 +164,7 @@ const de = (host: string): StationTexts => ({
       p:
         'Beim ersten Öffnen legt die App im Speicher Ihres Browsers bzw. der App eine zufällige Gerätekennung samt Geheimnis an ' +
         '(kein Cookie). Damit erkennt der Server Ihr Gerät wieder: für den Status Ihrer Einsendungen, Ihre Reaktionen, ' +
-        'den Schutz vor Missbrauch und die Zählung der Zuhörenden. Auf dem Server liegen davon nur Prüfwerte, die mit ' +
+        'den Schutz vor Missbrauch und die Zählung der Hörer. Auf dem Server liegen davon nur Prüfwerte, die mit ' +
         'einem geheimen Schlüssel gebildet sind (HMAC). Lokal speichert die App außerdem Ihre Einstellungen (Sprache, ' +
         'Lautstärke, Kanal, Design, Ihre YouTube-Einwilligung, Ihre Zustimmung zu den Community-Regeln), welche ' +
         'Reaktionen Sie gegeben haben (damit sie gedrückt bleiben), wen Sie blockiert und was Sie gemeldet haben ' +
