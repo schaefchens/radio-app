@@ -44,6 +44,8 @@ final class Moderator
     /** How long a request's check waits for its video's look-up (seconds). */
     private const KNOWLEDGE_WAIT_SONG = 180;
     private const KNOWLEDGE_WAIT_VIDEO = 600;
+    /** A failed look-up is tried again for a request after this long (seconds). */
+    private const KNOWLEDGE_RETRY = 600;
 
     public function __construct(private App $app) {}
 
@@ -145,7 +147,10 @@ final class Moderator
     {
         $knowledge = $this->app->knowledge();
         $kind = Submissions::libraryKind((string) $sub['type']);
-        $row = $knowledge->ensure((string) $sub['yt_id'], $kind, 25);
+        // A look-up that came to nothing a while ago (a provider down, the day's budget) is tried again for a new request.
+        $known = $knowledge->get((string) $sub['yt_id']);
+        $stale = $known !== null && Knowledge::incomplete($known) && $known['updated'] < $this->app->clock->now() - self::KNOWLEDGE_RETRY;
+        $row = $knowledge->ensure((string) $sub['yt_id'], $kind, 25, $stale);
         if (!$knowledge->settings()['checks'] || $row === null || Knowledge::settled($row)) return 'judge';
         $meta = json_decode((string) $sub['meta'], true) ?: [];
         $now = $this->app->clock->now();

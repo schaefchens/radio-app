@@ -521,3 +521,15 @@ test('knowledge: /mod — moderators read an item\'s look-up, correct it, take i
     eq([$st, $d['settings']], [200, ['checks' => true, 'air' => true, 'budget_usd' => 12.0, 'standard' => 'Scripture only.']], 'and set them');
     eq(call($app, 'GET', '/api/mod/library', [], authHeaders())[0], 403, 'listeners see none of it');
 });
+
+test('knowledge: a request tries a video\'s failed look-up again once it is ten minutes old — not one that just failed', function () {
+    $app = knCheckStation();
+    $fails = true;
+    $app->listener()->respond(function () use (&$fails) {
+        return $fails ? null : StubVideoListener::fixed();
+    });
+    eq(knRequest($app, 'FlakyVideo1')['status'], 'rejected', 'nothing heard: not accepted');
+    $fails = false;
+    TestKit::clock($app)->advance(11 * 60_000);
+    eq(knRequest($app, 'FlakyVideo1')['status'], 'approved', 'ten minutes on, a new request looks it up again');
+});

@@ -45,7 +45,7 @@ final class Knowledge
     /** The backfill starts at most this many look-ups at a time, and leaves this much of the day's budget to requests. */
     private const BACKFILL_RUNNING = 3;
     private const RESERVE_MICROS = 1_000_000;
-    /** A failed look-up is tried again by the backfill after this long. */
+    /** A look-up that failed, or was done without being heard, is tried again by the backfill after this long. */
     private const RETRY_SECONDS = 86_400;
     private const FITS = ['worship', 'quiet', 'prayer_hour', 'children', 'evangelism', 'preaching', 'testimony', 'mission', 'film', 'celebration'];
 
@@ -184,7 +184,7 @@ final class Knowledge
         if ($ytId === '' || !$this->configured()) return null;
         $kind = in_array($kind, self::KINDS, true) ? $kind : 'song';
         $row = $this->get($ytId);
-        if ($row !== null && !($row['state'] === 'failed' && $retry)) return $row;
+        if ($row !== null && !($retry && self::incomplete($row))) return $row;
         $now = $this->app->clock->now();
         if ($row === null) {
             $id = $this->app->store()->insert('video_knowledge', ['yt_id' => $ytId, 'kind' => $kind, 'state' => 'queued', 'created' => $now, 'updated' => $now]);
@@ -194,6 +194,12 @@ final class Knowledge
         }
         if ($job) $this->app->jobs()->enqueue('knowledge', $id, $priority, $this->app->clock->nowMs());
         return $this->byId($id);
+    }
+
+    /** Whether a look-up came to nothing the checks can use: failed, or done without being heard. @param array<string,mixed> $row */
+    public static function incomplete(array $row): bool
+    {
+        return $row['state'] === 'failed' || ($row['state'] === 'ready' && empty($row['analysis']['heard']));
     }
 
     /** Whether a look-up has come to an end (known, or given up): a check waits no longer. */
@@ -216,7 +222,7 @@ final class Knowledge
         $rows = $this->app->store()->all(
             "SELECT l.yt_id, l.kind FROM library_items l LEFT JOIN video_knowledge k ON k.yt_id = l.yt_id
              WHERE l.yt_id IS NOT NULL AND l.active = 1 AND l.kind IN ($kinds)
-               AND (k.id IS NULL OR (k.state = 'failed' AND k.updated < ?))
+               AND (k.id IS NULL OR ((k.state = 'failed' OR (k.state = 'ready' AND COALESCE(json_extract(k.analysis, '$.heard'), 0) = 0)) AND k.updated < ?))
              ORDER BY l.plays DESC, l.id LIMIT ?",
             [$this->app->clock->now() - self::RETRY_SECONDS, $room],
         );
