@@ -32,14 +32,14 @@ const de: Block[] = [
   {
     h: 'Null Toleranz',
     p:
-      'Arche Radio duldet keine anstößigen Inhalte und keine missbräuchlichen Nutzerinnen und Nutzer. Nicht erlaubt ' +
-      'sind: Beleidigung, Belästigung, Mobbing und Drohungen; Hass und Hetze gegen Menschen wegen ihrer Herkunft, ' +
-      'Hautfarbe, Religion, ihres Geschlechts, ihrer sexuellen Orientierung, einer Behinderung oder ihres Alters; ' +
-      'sexuelle Inhalte; Gewalt, ihre Verherrlichung und Aufrufe zu Gewalt oder Selbstverletzung; extremistische ' +
-      'und strafbare Inhalte; Spott über den Glauben anderer; Werbung, Spam, fremde Links und Bitten um Geld oder ' +
-      'Spenden; Betrug und das Vortäuschen einer anderen Person (auch unseres Teams oder des Hosts); Namen, Adressen ' +
-      'oder Telefonnummern anderer ohne deren Einverständnis; Inhalte, an denen Sie keine Rechte haben. Auch ' +
-      'Anzeigenamen dürfen nichts davon enthalten.',
+      'Arche Radio duldet keine anstößigen Inhalte und keine missbräuchlichen Nutzer. Nicht erlaubt ' +
+      'sind: Beleidigung, Belästigung, Mobbing und Drohungen; Hass und Hetze gegen Menschen, gleich aus ' +
+      'welchem Grund, etwa wegen ihrer Herkunft, Hautfarbe, Religion, ihres Geschlechts, einer Behinderung oder ' +
+      'ihres Alters; sexuelle Inhalte; Gewalt, ihre Verherrlichung und Aufrufe zu Gewalt oder Selbstverletzung; ' +
+      'extremistische und strafbare Inhalte; Spott über den Glauben anderer; Werbung, Spam, fremde Links und ' +
+      'Bitten um Geld oder Spenden; Betrug und das Vortäuschen einer anderen Person (auch unseres Teams oder des ' +
+      'Hosts); Namen, Adressen oder Telefonnummern anderer ohne deren Einverständnis; Inhalte, an denen Sie keine ' +
+      'Rechte haben. Auch Anzeigenamen dürfen nichts davon enthalten.',
   },
   {
     h: 'Wie wir prüfen',
@@ -59,7 +59,7 @@ const de: Block[] = [
   {
     h: 'Was wir tun',
     p:
-      'Jede Meldung prüfen wir innerhalb von 24 Stunden. Verstöße entfernen wir und schließen ihre Verfasserinnen und ' +
+      'Jede Meldung prüfen wir innerhalb von 24 Stunden. Verstöße entfernen wir und schließen ihre ' +
       'Verfasser von den Räumen und von Einsendungen aus – bei schweren Verstößen ohne Vorwarnung. Ein ' +
       'Gebetsanliegen, das mehrere melden, nehmen wir sofort ab, bis wir es geprüft haben. Strafbare Inhalte können ' +
       'wir den Behörden melden.',
@@ -100,7 +100,7 @@ const en: Block[] = [
     h: 'Zero tolerance',
     p:
       'Arche Radio tolerates no objectionable content and no abusive users. Not allowed: insults, harassment, bullying ' +
-      'and threats; hate against people because of their origin, colour, religion, gender, sexual orientation, ' +
+      'and threats; hate against people for any reason, such as their origin, colour, religion, sex, ' +
       'disability or age; sexual content; violence, glorifying it, and calls for violence or self-harm; extremist and ' +
       'illegal content; mocking the faith of others; advertising, spam, links to other sites, and asking for money or ' +
       'donations; fraud and pretending to be someone else (including our team or the host); names, addresses or phone ' +

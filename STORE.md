@@ -31,7 +31,7 @@ de: `christlich,radio,lobpreis,gebet,worship,gospel,kirche,gemeinde,bibel,musik,
 **Promotional text** — en: One program. Many nations. One family. Worship
 songs, prayers and stories from listeners around the world, live. · de: Ein
 Programm. Viele Nationen. Eine Familie. Lobpreis, Gebete und Geschichten von
-Hörerinnen und Hörern aus aller Welt – live.
+Hörern aus aller Welt – live.
 
 **Description (en)**
 
@@ -58,15 +58,15 @@ Hörerinnen und Hörern aus aller Welt – live.
 **Beschreibung (de)**
 
 > Arche Radio ist ein christliches Community-Radio: ein Programm, das alle im
-> selben Moment hören – Lobpreis, Gebete und Geschichten von Hörerinnen und
-> Hörern aus aller Welt.
+> selben Moment hören – Lobpreis, Gebete und Geschichten von Hörern aus aller
+> Welt.
 >
 > • Gemeinsam live: Alle, die einschalten, hören in derselben Sekunde denselben Song.
 > • Deine Stimme auf Sendung: Wünsch dir einen Song, empfiehl eine Predigt,
 >   nimm eine Geschichte, ein Zeugnis oder einen Gruß auf oder schick ein
 >   Gebetsanliegen – unser Host liest es vor und lädt alle zum Mitbeten ein.
 > • Die Gebetswand: Bete für die Anliegen anderer mit.
-> • Gebetsstunden jeden Morgen und Abend, in denen Hörerinnen und Hörer
+> • Gebetsstunden jeden Morgen und Abend, in denen Hörer
 >   füreinander beten – gesprochen oder geschrieben –, dazu Predigtsendungen.
 > • Community-Räume: Schreib mit anderen, während ihr zuhört.
 > • Sendungs-Erinnerungen: eine Mitteilung, wenn eine Sendung beginnt, die du magst.

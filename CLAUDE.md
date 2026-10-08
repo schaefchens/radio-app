@@ -803,7 +803,7 @@ given back, one taken off the wall never read, listeners' prayers: consent,
 limits, never on the wall; praying along), the host never praying
 (`host.php`: the rule in the prompt, the guard, every template and lead-in,
 lead-ins that change, readings voiced once and outside the daily cap, nobody
-named for a sender who stayed anonymous),
+named for a sender who stayed anonymous, German people by the plain word),
 deleting an account
 (`erasure.php`: aliases and the words, a voiced draft never airs, a committed
 request blocked with minute files byte for byte, an aired recording and the
@@ -976,6 +976,11 @@ TypeScript `strict`, `noUncheckedIndexedAccess`, `erasableSyntaxOnly` (Node runs
 realtime/ by type stripping — no enums, no constructor parameter properties).
 React-hooks lint rules are errors (no setState in effects; adjust during render).
 Every UI string goes through i18next with en + de (`tests/unit/i18nKeys.test.ts`).
+German names people by the plain word — "Hörer", never "Hörerinnen und Hörer",
+"Hörer*innen" or "sie/er" — and the rules name sex, not gender (station decision
+2026-10-08: "a Christian platform, we do not do gender identity"): in the app, the
+legal texts and the store texts (`tests/unit/plainLanguage.test.ts`), and in what the
+host and the check are told — the model paired forms on its own (`host.php`).
 Comments explain the failure a line prevents. Commits: sentence-case imperative.
 
 ## Known gaps / later

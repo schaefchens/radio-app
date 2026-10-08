@@ -44,7 +44,7 @@ const de = (host: string): StationTexts => ({
     {
       h: 'Musik, Moderation, Gemeinschaft',
       p:
-        'Die Musik kommt von YouTube: Lobpreis-Songs, ausgewählt von unserem Team und gewünscht von Hörerinnen und ' +
+        'Die Musik kommt von YouTube: Lobpreis-Songs, ausgewählt von unserem Team und gewünscht von ' +
         `Hörern; in Predigt-, Zeugnis-, Missions- und Filmsendungen laufen dazu Predigten, Glaubenszeugnisse, Videos aus der Mission und christliche Filme. Zwischen den Songs spricht ${host}, unser Host, auf Deutsch ` +
         'und Englisch – über das, was gerade läuft, über eure Wünsche und Gebetsanliegen.',
     },
@@ -62,14 +62,14 @@ const de = (host: string): StationTexts => ({
       p:
         'Wünsch dir einen Song, empfiehl ein Video – eine Predigt, ein Glaubenszeugnis, ein Missionsvideo oder einen Film –, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als ' +
         `Sprachaufnahme, oder schick uns ein Gebetsanliegen – ${host} liest es auf Sendung vor und lädt alle ein, dafür zu beten. In den Community-Räumen kannst du mit anderen ` +
-        'Hörerinnen und Hörern schreiben. Arche Radio braucht keine Anmeldung – keine E-Mail, kein Passwort; wer möchte, ' +
+        'Hörern schreiben. Arche Radio braucht keine Anmeldung – keine E-Mail, kein Passwort; wer möchte, ' +
         'nimmt seine Identität mit einer Passphrase aus 12 Wörtern auf ein anderes Gerät mit. Arche Radio gibt es im ' +
         'Browser und als App für iPhone und Android.',
     },
     {
       h: 'Die Gebetsstunde',
       p:
-        'In der Gebetsstunde beten Hörerinnen und Hörer füreinander: Erst sammeln wir eure Gebetsanliegen, dann liest ' +
+        'In der Gebetsstunde beten Hörer füreinander: Erst sammeln wir eure Gebetsanliegen, dann liest ' +
         `${host} sie Wort für Wort vor – zuerst das tägliche Gebetsanliegen von Open Doors für verfolgte Christen ` +
         '(https://www.opendoors.de) –, und dann schickt ihr eure Gebete, gesprochen oder geschrieben, und wir senden sie. ' +
         `${host} selbst betet nie.`,
@@ -96,7 +96,7 @@ const de = (host: string): StationTexts => ({
       h: 'Haftung für Inhalte und Links',
       p:
         'Die Inhalte dieser App werden mit Sorgfalt erstellt. Für Richtigkeit, Vollständigkeit und Aktualität kann ' +
-        'keine Gewähr übernommen werden. Beiträge von Hörerinnen und Hörern geben deren eigene Sicht wieder. Die ' +
+        'keine Gewähr übernommen werden. Beiträge von Hörern geben deren eigene Sicht wieder. Die ' +
         'Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos und Filme – werden über den YouTube-Player eingebunden; für ihre Inhalte sind die jeweiligen Rechteinhaber ' +
         'verantwortlich. Nach manchen Videos verlinkt die Bühne auf die Kanäle und Websites der Prediger, Gemeinden, ' +
         'Missionswerke und Musiker. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich; zum Zeitpunkt der ' +
@@ -104,7 +104,7 @@ const de = (host: string): StationTexts => ({
     },
     {
       h: 'Urheberrecht',
-      p: 'Texte und Gestaltung von Arche Radio sind urheberrechtlich geschützt. Die Rechte an der Musik liegen bei den jeweiligen Urheberinnen und Urhebern.',
+      p: 'Texte und Gestaltung von Arche Radio sind urheberrechtlich geschützt. Die Rechte an der Musik liegen bei den jeweiligen Urhebern.',
     },
   ],
   privacy: [
@@ -141,7 +141,7 @@ const de = (host: string): StationTexts => ({
         'Datensicherung und der Übertragung auf ein neues Gerät aus; Ihre Identität nehmen Sie mit Ihrer Passphrase mit.\n' +
         'Berechtigungen fragt Ihr Telefon erst, wenn Sie die Funktion nutzen: das Mikrofon nur für eine Aufnahme, ' +
         'die Sie starten (sie bleibt auf dem Gerät, bis Sie sie absenden), die Kamera nur für ein Foto, das ' +
-        'Moderatorinnen und Moderatoren für eine Sendung aufnehmen, Mitteilungen nur für Erinnerungen an Sendungen. ' +
+        'Moderatoren für eine Sendung aufnehmen, Mitteilungen nur für Erinnerungen an Sendungen. ' +
         'Dass der Bildschirm beim Zuhören an bleibt, regelt die App auf dem Gerät; dabei werden keine Daten ' +
         'verarbeitet. Jede Berechtigung können Sie in den Einstellungen Ihres Telefons wieder entziehen.',
     },
@@ -157,7 +157,7 @@ const de = (host: string): StationTexts => ({
         'die Protokolle. Wir zählen daraus nur, wie oft die Programmdatei einer Minute abgerufen wurde: so wissen wir, ' +
         'wie viele zuhören, ohne jemanden zu erkennen. Audiobeiträge und Bilder, die wir löschen, entfernen wir auch ' +
         'aus den Zwischenspeichern des Netzwerks. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: eine schnelle, ' +
-        'zuverlässige Auslieferung an Hörerinnen und Hörer in aller Welt. Mehr: https://bunny.net/privacy/',
+        'zuverlässige Auslieferung an Hörer in aller Welt. Mehr: https://bunny.net/privacy/',
     },
     {
       h: 'Gerätekennung und Speicherung auf Ihrem Gerät',
@@ -221,7 +221,7 @@ const de = (host: string): StationTexts => ({
         'Gebetsanliegen lesen wir Wort für Wort vor, und die App zeigt den Text dabei an. Es erscheint nach der Freigabe ' +
         'zusätzlich an der Gebetswand der App, wenn Sie das eigens ankreuzen (das Kästchen ist nicht vorausgewählt): ' +
         'der Text, der Tag und – wenn Sie nicht anonym bleiben – Ihr Vorname und Ort. Die Wand zeigt die neuesten ' +
-        'Anliegen; Ihres bleibt dort, bis neuere es verdrängen, eine Moderatorin bzw. ein Moderator es abnimmt oder wir ' +
+        'Anliegen; Ihres bleibt dort, bis neuere es verdrängen, ein Moderator es abnimmt oder wir ' +
         'es nach 90 Tagen löschen. Während es auf Sendung vorgelesen wird, zeigt die App es an der Wand als das, was ' +
         'gerade im Radio läuft. Ein abgenommenes Anliegen lesen wir nicht mehr vor.\n' +
         'In einer Gebetsstunde zeigt die Wand die Anliegen dieser Stunde: jedes ab dem Moment, in dem es vorgelesen ' +
@@ -302,11 +302,11 @@ const de = (host: string): StationTexts => ({
         'Ihre Nachrichten und Reaktionen. Anzeigenamen und Nachrichten prüft ein Wortfilter. Nachrichten liegen nur ' +
         'im Arbeitsspeicher des Raumservers (die letzten 100 je Raum) und verschwinden mit ihm. Viel geliebte ' +
         'Nachrichten können nach einer automatischen Prüfung bis zu zwei Stunden als „Stimme der Community“ auf der ' +
-        'Startseite erscheinen, mit einem Kennzeichen, das aus der Kennung der Verfasserin bzw. des Verfassers ' +
+        'Startseite erscheinen, mit einem Kennzeichen, das aus der Kennung des Verfassers ' +
         'gebildet ist (damit, wer sie blockiert, auch ihre Stimmen nicht mehr sieht); wir löschen sie nach sieben Tagen.\n' +
         'Melden Sie eine Nachricht, eine Community-Stimme oder ein Gebetsanliegen, speichern wir den Inhalt, die ' +
-        'Kennung der Verfasserin bzw. des Verfassers (bei Gebetsanliegen das Anliegen) und Ihre Kennung; unsere ' +
-        'Moderatorinnen und Moderatoren prüfen jede Meldung innerhalb eines Tages. Ein Gebetsanliegen, das mehrere ' +
+        'Kennung des Verfassers (bei Gebetsanliegen das Anliegen) und Ihre Kennung; unsere ' +
+        'Moderatoren prüfen jede Meldung innerhalb eines Tages. Ein Gebetsanliegen, das mehrere ' +
         'melden, nehmen wir bis zur Prüfung von der Wand. Meldungen löschen wir nach 30 Tagen. Wen Sie blockieren, ' +
         'speichert nur Ihr Gerät; wir erfahren davon als Meldung. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO ' +
         '(die Räume, die Sie nutzen) und lit. f (Schutz vor Missbrauch).',
