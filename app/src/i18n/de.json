@@ -476,7 +476,12 @@
       "cdnListeners": "Hörer laut CDN-Protokoll ({{channel}})",
       "cdnNoApi": "Kein BUNNY_API_KEY oder BUNNY_PULL_ZONE_ID auf dem Server: Gelöschte Medien bleiben im CDN, das CDN-Protokoll wird nicht gezählt.",
       "workers_one": "Rechner: {{online}} von {{total}} online, {{count}} Auftrag wartet",
-      "workers_other": "Rechner: {{online}} von {{total}} online, {{count}} Aufträge warten"
+      "workers_other": "Rechner: {{online}} von {{total}} online, {{count}} Aufträge warten",
+      "setup": "Sender-Einrichtung",
+      "setupText": "Kanäle, Sendungen, Pläne, die Bibliothek mit ihren Gruppen und die KI-Moderation mit Besetzungen und Sprechtexten als eine Datei: um das Programm auf einem lokalen Stack auszuprobieren (npm run setup:import). Ohne Daten von Hörern, ohne Schlüssel.",
+      "setupDownload": "Herunterladen",
+      "setupBusy": "Wird vorbereitet…",
+      "setupDone": "{{name}} heruntergeladen — Sendungen: {{programs}}, Bibliothek: {{items}}, Moderationen: {{hosts}}."
     },
     "library": {
       "search": "Titel, Interpret oder Video-ID suchen",

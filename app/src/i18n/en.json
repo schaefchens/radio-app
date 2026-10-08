@@ -476,7 +476,12 @@
       "cdnListeners": "Listeners by the CDN log ({{channel}})",
       "cdnNoApi": "No BUNNY_API_KEY or BUNNY_PULL_ZONE_ID on the server: deleted media stays at the edge and the CDN log is not counted.",
       "workers_one": "Computers: {{online}} of {{total}} online, {{count}} job waiting",
-      "workers_other": "Computers: {{online}} of {{total}} online, {{count}} jobs waiting"
+      "workers_other": "Computers: {{online}} of {{total}} online, {{count}} jobs waiting",
+      "setup": "Station setup",
+      "setupText": "Channels, programs, plans, the library with its groups, and the hosts with their lineups and recorded lines, as one file: to try the program on a local stack (npm run setup:import). No listener’s data, no keys.",
+      "setupDownload": "Download",
+      "setupBusy": "Preparing…",
+      "setupDone": "Downloaded {{name}} — programs: {{programs}}, library items: {{items}}, hosts: {{hosts}}."
     },
     "library": {
       "search": "Search title, artist or video id",

@@ -42,6 +42,18 @@ First admin, exactly as in production: open http://localhost:5180/profile,
 create a passphrase, then open /setup and enter `ADMIN_SETUP_KEY` from `.env`.
 Then build programs, plans and the song library in /mod.
 
+Or take production's: on the live site, /mod › Status › Station setup ›
+Download (admins), then `npm run setup:import -- ~/Downloads/arche-setup-YYYYMMDD.json`.
+Channels, programs, plans, the library and its groups, the hosts with their
+lineups and recorded lines, and the media they use replace the local ones;
+the local admin, the computers (workers) and the usage stay. The file holds
+no listener's data and no keys: an OpenAI host speaks with the local
+`OPENAI_KEY`, an ElevenLabs host has none until you give it one (mind the
+free plan's characters). The local program, its host breaks and its test
+submissions go; the database is copied to `/_arche/var/backups/before-import-*`
+first (three kept). The stack may be up or down; the next tick starts the
+program afresh.
+
 ## Test
 
 ```bash

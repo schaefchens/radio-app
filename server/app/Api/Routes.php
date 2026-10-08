@@ -121,6 +121,8 @@ final class Routes
         $r->add('POST', '/mod/highlights/{id}', $m('highlightDecide'));
         $r->add('GET', '/mod/chat-blocklist', $m('blocklist'));
         $r->add('PUT', '/mod/chat-blocklist', $m('blocklistSave'));
+        // The station's setup as a file, for a local stack (Plan\StationSetup); admins.
+        $r->add('GET', '/mod/export', $m('setupExport'));
 
         return self::$router = $r;
     }

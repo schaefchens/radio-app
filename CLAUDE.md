@@ -584,6 +584,30 @@ at the edge (a host clip can name a listener) and counts each minute file's
 requests in the zone's log (IPs dropped) as that minute's listeners. The page
 CSP names the zone via `assemble-site.sh --cdn`.
 
+**Station setup** (`Plan\StationSetup`, /mod › Status, admins;
+`npm run setup:import`). Production's channels, programs, plans, library and
+groups, and hosts with lineups, line options and recorded lines, as one JSON
+file of raw rows, to try the program on a local stack with the real library
+and hosts. A copy of the database would carry listeners' words and names, so
+only what the station made travels: no `contrib` item (titled with a name and
+place), no submission link, no opening prayer (it names who prays), no
+moderator's note or id, no line that is not ready; no host key (sealed with
+production's pepper, unreadable here anyway), rest or last error. The same
+blanking runs again on the way in. The import is CLI-only and refuses unless
+`ARCHE_ENV=local`. Its steps:
+- copy the database to `backups/before-import-*`;
+- write the maintenance flag and take both tick locks;
+- replace the tables in one transaction: foreign keys off around it (the
+  pragma is ignored inside one), with `foreign_key_check` before the commit;
+- drop what pointed at the old ids: the timeline, host breaks, jobs, voice
+  tasks, submissions with their prayers and reports, opening prayers,
+  reactions, playback errors, and per-channel kv;
+- keep identities, workers, usage and the audit;
+- fetch the media by public path from the file's `site`, outside the
+  transaction. A file already here is kept: names carry their content.
+
+The next tick re-anchors every channel, as after an outage.
+
 **Identity** (`Identity\*`). Anonymous-first: a device id + secret (HMAC'd with a
 pepper), rows created lazily. The optional 12-word BIP39 passphrase never
 leaves the device; its seed yields credId + credSecret (Argon2id at claim/login
@@ -842,7 +866,10 @@ requests summarized and nothing else taken from the editor, at most ten
 moments, readings without the model, the prayer hour's order and its
 welcome's collection, effort low or medium, wrong moments and programs, the
 rate limit; a try with a delivery, people's words and a long text, a worker
-try behind a live moment and keeping no words), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
+try behind a live moment and keeping no words), the station setup
+(`setup.php`: an admin's file without listeners' data or keys, a local stack
+taking it and keeping its admin and computers, its media fetched, a broken
+file changing nothing), prayer music, moderation fail-closed, realtime tokens/reports/wake/reaper, the CDN (log count,
 purge queue), and the API. App: `npm test` (Vitest: engine sync/drift/ads/evergreen,
 pauses from outside and nothing playing while the listener is out, prayer music's fades and continuing pieces,
 the tiles following the minute files through a long preaching, timeline, clock, i18n keys (and every key
@@ -873,7 +900,7 @@ delete behind a confirm), testing a moment (programs asked only once opened, eac
 moments, written with the unsaved settings and spoken in the editor's language with its
 delivery, edited words spoken as edited, the test show sent back and started over, a library
 pick, the fallback words said as such, a worker's task polled, nothing spoken by itself for
-ElevenLabs); the store apps: platform
+ElevenLabs), the station setup's download (admins only); the store apps: platform
 detection against @capacitor/core, plugins an older shell lacks, the status
 bar table, the back stack and sheets closing newest first, the background
 signal only in the apps, the entry script for iOS updates, reminder plans

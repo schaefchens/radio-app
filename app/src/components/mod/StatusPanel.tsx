@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { COMMIT_HORIZON_MS, MINUTE_MS, PUBLISH_LEAD_MS, type Lang } from '@arche/shared';
 import { localDate, localTime } from '@/lib/format';
+import { useSession } from '@/store/session';
+import { SetupExport } from './SetupExport';
 import { useApi } from './useApi';
 import { Loading, Notice, Pill, Section } from './ui';
 
@@ -47,6 +49,7 @@ export function StatusPanel() {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
   const { data, error, reload } = useApi<StatusData>('/mod/status');
+  const admin = useSession((s) => s.identity?.role === 'admin');
 
   useEffect(() => {
     const id = setInterval(reload, 15_000);
@@ -247,6 +250,8 @@ export function StatusPanel() {
           )}
         </Section>
       )}
+
+      {admin && <SetupExport />}
 
       <Section title={t('mod.status.audit')} className="lg:col-span-2">
         <ul className="flex max-h-96 flex-col gap-1 overflow-auto text-xs">
