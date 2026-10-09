@@ -6,7 +6,7 @@ import { ago, localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
 import { modError, type ModWorker, type ModWorkerInvite } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
-import { configSnippet, joinCommand } from './workerConfig';
+import { configSnippet, dockerCommands, joinCommand } from './workerConfig';
 
 const NO_WORKERS: ModWorker[] = [];
 const NO_INVITES: ModWorkerInvite[] = [];
@@ -342,11 +342,12 @@ function useCopy(): [boolean, (text: string) => Promise<void>] {
   return [copied, copy];
 }
 
-/** An invite's code, shown this once, with what to run on the computer. */
+/** An invite's code, shown this once, with what to run on the computer: Docker's two lines, or herde's own on a Mac. */
 function InviteBox({ name, code, expires, onClose }: { name: string; code: string; expires: number; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
-  const command = joinCommand(code, window.location.origin);
+  const [join, run] = dockerCommands(code, window.location.origin);
+  const mac = joinCommand(code, window.location.origin);
   const [copied, copy] = useCopy();
   return (
     <div className="card-inset flex flex-col gap-2 border border-accent/40 p-3" role="status">
@@ -355,14 +356,19 @@ function InviteBox({ name, code, expires, onClose }: { name: string; code: strin
       <p className="font-mono text-lg tracking-wider" aria-label={t('mod.workers.inviteCode')}>
         {code}
       </p>
+      <p className="text-sm">{t('mod.workers.inviteDocker')}</p>
+      <pre className="overflow-x-auto rounded-lg bg-soft p-2 text-xs" aria-label={t('mod.workers.inviteDockerLabel')}>
+        <code>{`${join}\n${run}`}</code>
+      </pre>
+      <p className="text-xs text-ink-faint">{t('mod.workers.inviteDockerHint')}</p>
       <p className="text-sm">{t('mod.workers.inviteCommand')}</p>
       <pre className="overflow-x-auto rounded-lg bg-soft p-2 text-xs" aria-label={t('mod.workers.inviteCommandLabel')}>
-        <code>{command}</code>
+        <code>{mac}</code>
       </pre>
-      <p className="text-xs text-ink-faint">{t('mod.workers.inviteDocker')}</p>
+      <p className="text-xs text-ink-faint">{t('mod.workers.inviteMore')}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-primary px-3 py-1.5 text-sm" onClick={() => void copy(command)}>
-          {copied ? t('mod.workers.copied') : t('mod.workers.copy')}
+        <button type="button" className="btn-primary px-3 py-1.5 text-sm" onClick={() => void copy(`${join}\n${run}`)}>
+          {copied ? t('mod.workers.copied') : t('mod.workers.copyDocker')}
         </button>
         <button type="button" className="btn-ghost px-3 py-1.5 text-sm" onClick={onClose}>
           {t('mod.workers.keyDone')}

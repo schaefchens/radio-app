@@ -4,7 +4,7 @@ import '@/i18n';
 import { HostsPanel } from '@/components/mod/HostsPanel';
 import { StatusPanel } from '@/components/mod/StatusPanel';
 import { WorkersSection } from '@/components/mod/WorkersSection';
-import { configSnippet, joinCommand } from '@/components/mod/workerConfig';
+import { configSnippet, dockerCommands, joinCommand } from '@/components/mod/workerConfig';
 import type { ModHost, ModWorker } from '@/components/mod/modApi';
 import { useSettings } from '@/store/settings';
 
@@ -142,6 +142,11 @@ describe('/mod: our computers and lent ones', () => {
     expect(await screen.findByText("Invite for Peter's PC")).toBeTruthy();
     expect(calls.find((c) => c.method === 'POST' && c.path === '/mod/workers/invites')?.body).toEqual({ name: "Peter's PC", trust: 'lender' });
     expect(screen.getByLabelText('Invite code').textContent).toBe('AB12-CD34-EF56-GH78-JK90-MN12-PQ');
+    const [joinLine, runLine] = (screen.getByLabelText('Docker commands to join and run').textContent ?? '').split('\n');
+    expect(joinLine).toBe(`docker run --rm -v herde:/config ghcr.io/schaefchens/herde:cuda join ${window.location.origin}/api/worker/v2 AB12-CD34-EF56-GH78-JK90-MN12-PQ`);
+    expect(runLine).toContain('--gpus all');
+    expect(runLine).toContain('-p 127.0.0.1:8737:8737');
+    expect(runLine?.endsWith('ghcr.io/schaefchens/herde:cuda')).toBe(true);
     expect(screen.getByLabelText('Command to join').textContent).toBe(`herde join ${window.location.origin}/api/worker/v2 AB12-CD34-EF56-GH78-JK90-MN12-PQ`);
     expect(await screen.findByText('Open invites')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Done, I have it' }));
@@ -231,6 +236,11 @@ describe('/mod: our computers and lent ones', () => {
     expect(configSnippet('abc', 'http://localhost:8080')).toBe('[[stations]]\nname = "ARCHE dev"\nurl = "http://localhost:8080"\nkey = "abc"\n');
     expect(configSnippet('abc', 'https://radio.schaefchens.de')).toContain('name = "ARCHE"');
     expect(joinCommand('AB12-CD34', 'https://radio.schaefchens.de')).toBe('herde join https://radio.schaefchens.de/api/worker/v2 AB12-CD34');
+    // One line each, and the key only ever in the volume: never in an environment variable or the command.
+    const [join, run] = dockerCommands('AB12-CD34', 'https://radio.schaefchens.de');
+    expect(join).toBe('docker run --rm -v herde:/config ghcr.io/schaefchens/herde:cuda join https://radio.schaefchens.de/api/worker/v2 AB12-CD34');
+    expect(run).not.toMatch(/\n|-e |--env/);
+    expect(run).toContain('--read-only');
   });
 });
 

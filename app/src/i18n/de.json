@@ -1313,15 +1313,19 @@
       "inviteBoxTitle": "Einladung für {{name}}",
       "inviteOnce": "Dieser Code wird nur jetzt angezeigt. Er gilt einmal, bis {{when}}.",
       "inviteCode": "Einladungscode",
-      "inviteCommand": "Auf dem Rechner, sobald herde eingerichtet ist:",
+      "inviteCommand": "Auf einem Mac, auf dem herde eingerichtet ist:",
       "inviteCommandLabel": "Befehl zum Beitreten",
-      "inviteDocker": "Mit Docker davor „docker compose run --rm“ schreiben (herdes README erklärt es).",
+      "inviteDocker": "Mit Docker (Linux, oder Windows mit Docker Desktop) und einer NVIDIA-Grafikkarte diese beiden Zeilen, nacheinander:",
       "invitesOpen": "Offene Einladungen",
       "inviteExpires": "gültig bis {{when}}",
       "inviteWithdraw": "Zurückziehen",
       "inviteWithdrawn": "Einladung zurückgezogen.",
       "keyedTitle": "Alter Voice-Worker (arche-worker): mit Schlüssel hinzufügen",
-      "keyedName": "Name des Macs"
+      "keyedName": "Name des Macs",
+      "inviteDockerLabel": "Docker-Befehle zum Beitreten und Starten",
+      "inviteDockerHint": "Die erste tritt mit dem Code bei, die zweite startet den Worker, jetzt und nach jedem Neustart. Seine Statusseite mit Pause-Knopf ist http://127.0.0.1:8737 auf diesem Rechner.",
+      "inviteMore": "Alles Weitere (ein Mac, Pausieren, Updates) steht in herdes README: github.com/schaefchens/herde",
+      "copyDocker": "Docker-Zeilen kopieren"
     },
     "lines": {
       "intro": "Einmal aufgenommene Sprechtexte einer Moderation, etwa Begrüßungen, Verabschiedungen und Ermutigungen. Die KI wählt einen passenden aus, statt jedes Mal neue Worte zu schreiben und zu vertonen. Ein Sprechtext kostet nur beim Aufnehmen Zeichen.",

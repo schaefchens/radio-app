@@ -1313,15 +1313,19 @@
       "inviteBoxTitle": "Invite for {{name}}",
       "inviteOnce": "This code is shown only now. It works once, until {{when}}.",
       "inviteCode": "Invite code",
-      "inviteCommand": "On the computer, once herde is set up, run:",
+      "inviteCommand": "On a Mac with herde set up:",
       "inviteCommandLabel": "Command to join",
-      "inviteDocker": "With Docker, put \"docker compose run --rm\" in front of it (herde's README explains it).",
+      "inviteDocker": "With Docker (Linux, or Windows with Docker Desktop) and an NVIDIA GPU, these two lines, one after the other:",
       "invitesOpen": "Open invites",
       "inviteExpires": "valid until {{when}}",
       "inviteWithdraw": "Withdraw",
       "inviteWithdrawn": "Invite withdrawn.",
       "keyedTitle": "Old voice worker (arche-worker): add with a key",
-      "keyedName": "Name of the Mac"
+      "keyedName": "Name of the Mac",
+      "inviteDockerLabel": "Docker commands to join and run",
+      "inviteDockerHint": "The first joins with the code; the second runs the worker, now and after every restart. Its status page, with a Pause button, is http://127.0.0.1:8737 on that computer.",
+      "inviteMore": "Everything else (a Mac, pausing, updates) is in herde's README: github.com/schaefchens/herde",
+      "copyDocker": "Copy the Docker lines"
     },
     "lines": {
       "intro": "Lines a host recorded once, such as welcomes, goodbyes and encouragements. The AI picks a fitting one instead of writing and voicing new words each time. A line costs characters only when it is recorded.",

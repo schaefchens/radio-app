@@ -387,9 +387,12 @@ station, so it needs no public address.
    - **lent** by someone we trust gets only work without listeners' words:
      recorded lines, and, once you tick "May speak on air", moments that
      name nobody. Lines a lent computer records wait for your approval.
-2. The code is shown once and works once, for three days. On the computer,
-   with herde set up (its README), run the command /mod shows:
-   `herde join https://radio.schaefchens.de/api/worker/v2 <code>`.
+2. The code is shown once and works once, for three days. /mod shows what
+   to send the computer's owner:
+   - for Linux or Windows with an NVIDIA GPU, two Docker lines (join, then
+     run) with the image `ghcr.io/schaefchens/herde:cuda`;
+   - for a Mac with herde set up (its README), `herde join
+     https://radio.schaefchens.de/api/worker/v2 <code>`.
 
 /mod then lists the computer: online, paused by its owner, loading, or
 resting after failures. One computer may serve production and the dev
