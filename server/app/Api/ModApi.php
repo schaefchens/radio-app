@@ -110,7 +110,7 @@ final class ModApi
             'ai' => $this->aiSetup(),
             'realtime' => $app->nodes()->status(),
             'cdn' => $app->cdn()->status(),
-            'workers' => $app->workers()->summary(),
+            'workers' => $app->computers()->summary(),
             'audit' => $store->all('SELECT time, actor, event, detail FROM audit ORDER BY id DESC LIMIT 60'),
         ];
     }
@@ -835,8 +835,8 @@ final class ModApi
         $list = fn(array $ids): array => array_map(fn($v) => ['id' => $v, 'name' => $v], $ids);
         if ($provider === 'openai') return ['voices' => $list(Hosts::OPENAI_VOICES), 'models' => $list(Hosts::OPENAI_MODELS), 'account' => null, 'errors' => []];
         if ($provider === 'worker') {
-            // What the voice workers online offer (they report it with every poll).
-            $c = $app->workers()->catalog();
+            // What the computers online offer (they report it with their polls).
+            $c = $app->computers()->catalog();
             return ['voices' => $c['voices'], 'models' => $c['models'], 'account' => null, 'errors' => [], 'workers_online' => $c['online']];
         }
         if ($provider !== 'elevenlabs') throw new ApiError(422, 'host_provider');
@@ -899,10 +899,12 @@ final class ModApi
         // A voice worker's: asked of the workers, the editor polls for the clip (hostTryResult).
         if (Voice::async($draft)) {
             $voice = Hosts::voiceFor($draft, $lang);
-            if (!$app->workers()->online($voice, (string) $draft['model'])) throw new ApiError(409, 'no_worker');
+            // A try's words may be anything typed in /mod: only our own computers speak them.
+            if (!$app->computers()->online($voice, (string) $draft['model'])) throw new ApiError(409, 'no_worker');
             if (!$app->rateLimit()->hit('host-try:' . $this->me['id'], self::TRIES_HOUR, 3600)) throw new ApiError(429, 'rate_limited');
             // Longer words take longer: about two characters a second to make, and a queue before them.
-            $task = $app->workers()->request('try', 0, $draft, $lang, $text, $app->clock->now() + 120 + intdiv(mb_strlen($text), 2), delivery: $delivery);
+            $start = $app->clock->now() + 120 + intdiv(mb_strlen($text), 2);
+            $task = $app->workerTasks()->request('try', 0, $draft, $lang, $text, $start, delivery: $delivery, privacy: 'private', due: $start + 60);
             $app->store()->audit($this->actor(), 'Host voice tried', $host['id'] . ' ' . $host['name'] . ' (' . $lang . ', ' . mb_strlen($text) . ' characters, worker)');
             return new Response(['task' => $task, 'provider' => 'worker', 'voice' => $voice, 'model' => (string) $draft['model']] + $told, 202);
         }
@@ -963,36 +965,53 @@ final class ModApi
     public function hostTryResult(array $a): array
     {
         $this->admin();
-        return $this->c->app->workers()->tryResult($this->id($a));
+        return $this->c->app->workerTasks()->tryResult($this->id($a));
     }
 
-    // --- voice workers (Host\Workers, admins) ----------------------------------------------------
+    // --- computers (Workers\Computers, admins) ----------------------------------------------------
 
+    /** Our computers and lent ones, and the invites nobody has used yet. */
     public function workers(): array
     {
         $this->admin();
-        return ['workers' => $this->c->app->workers()->list()];
+        return ['workers' => $this->c->app->computers()->list(), 'invites' => $this->c->app->computers()->invites()];
     }
 
-    /** A new worker: its key is in this answer only. */
+    /** One of ours, added here: its key is in this answer only. */
     public function workerCreate(): array
     {
         $this->admin();
-        return $this->c->app->workers()->create((string) ($this->c->req->json()['name'] ?? ''), $this->actor());
+        return $this->c->app->computers()->create((string) ($this->c->req->json()['name'] ?? ''), $this->actor());
     }
 
     /** @param array<string,string> $a */
     public function workerUpdate(array $a): array
     {
         $this->admin();
-        return $this->c->app->workers()->update($this->id($a), $this->c->req->json(), $this->actor());
+        return $this->c->app->computers()->update($this->id($a), $this->c->req->json(), $this->actor());
     }
 
     /** @param array<string,string> $a */
     public function workerDelete(array $a): array
     {
         $this->admin();
-        $this->c->app->workers()->delete($this->id($a), $this->actor());
+        $this->c->app->computers()->delete($this->id($a), $this->actor());
+        return ['ok' => true];
+    }
+
+    /** A one-time code for a computer to join with — ours, or a lender's: in this answer only. */
+    public function workerInvite(): array
+    {
+        $this->admin();
+        $in = $this->c->req->json();
+        return $this->c->app->computers()->invite((string) ($in['name'] ?? ''), (string) ($in['trust'] ?? ''), $this->actor());
+    }
+
+    /** @param array<string,string> $a */
+    public function workerInviteDelete(array $a): array
+    {
+        $this->admin();
+        $this->c->app->computers()->revokeInvite($this->id($a), $this->actor());
         return ['ok' => true];
     }
 

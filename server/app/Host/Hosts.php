@@ -3,10 +3,11 @@ declare(strict_types=1);
 
 namespace Arche\Host;
 
+use Arche\Ai\VoiceError;
 use Arche\ApiError;
 use Arche\App;
-use Arche\Ai\VoiceError;
 use Arche\Support\Sealed;
+use Arche\Workers\Computers;
 
 /**
  * The station's on-air hosts — each a persona (name, picture, color, a few
@@ -30,13 +31,13 @@ use Arche\Support\Sealed;
  */
 final class Hosts
 {
-    /** `worker`: a Mac of our own with Qwen3-TTS (Host\Workers) — no key, asynchronous. */
+    /** `worker`: a computer of ours, or a lent one, with Qwen3-TTS (Workers\Computers) — no key, asynchronous. */
     public const PROVIDERS = ['openai', 'elevenlabs', 'worker'];
     /** OpenAI's built-in voices; the tts-1 models lack ballad, marin and cedar. */
     public const OPENAI_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse', 'marin', 'cedar'];
     public const OPENAI_MODELS = ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd'];
     public const ELEVENLABS_MODELS = ['eleven_multilingual_v2', 'eleven_flash_v2_5', 'eleven_v3'];
-    private const DEFAULT_MODEL = ['openai' => 'gpt-4o-mini-tts', 'elevenlabs' => 'eleven_flash_v2_5', 'worker' => Workers::MODEL];
+    private const DEFAULT_MODEL = ['openai' => 'gpt-4o-mini-tts', 'elevenlabs' => 'eleven_flash_v2_5', 'worker' => Computers::MODEL];
     /** @var array<string,array<string,float|bool>> what each provider can be told, with its defaults */
     private const SETTINGS = [
         'openai' => ['speed' => 1.0],
@@ -60,7 +61,7 @@ final class Hosts
     private ?array $cache = null;
     /** @var array<string,list<array{id:int,role:string}>> */
     private array $lineups = [];
-    /** @var array<int,bool> whether a host can speak (no length asked), until something changes */
+    /** @var array<string,bool> whether a host can speak a private or a public moment (no length asked), until something changes */
     private array $speaks = [];
     /** @var array<int,string> opened keys, by host id */
     private array $keys = [];
@@ -207,7 +208,7 @@ final class Hosts
             'used_in' => $this->usedIn($h['id']),
             'lines_active' => $this->app->lines()->activeCount($h['id']),
         ];
-        if ($h['provider'] === 'worker') $view['worker_online'] = $this->app->workers()->online(self::voiceFor($h, $this->app->config->stationLangs()[0]), (string) $h['model']);
+        if ($h['provider'] === 'worker') $view['worker_online'] = $this->app->computers()->online(self::voiceFor($h, $this->app->config->stationLangs()[0]), (string) $h['model']);
         if ($admin) $view['key_hint'] = (string) $h['key_hint'];
         return $view;
     }
@@ -566,20 +567,26 @@ final class Hosts
      * characters today. An ElevenLabs host needs a daily cap: without one it
      * never speaks (the station's account is a small one).
      *
+     * A worker host needs a computer online that offers its voice. For a
+     * private moment (one that names a listener, people's own words) only
+     * one of ours counts; for a public one also a lender an admin let speak
+     * on air.
+     *
      * @param array<string,mixed> $h
      */
-    public function canSpeak(array $h, int $chars = 0): bool
+    public function canSpeak(array $h, int $chars = 0, bool $private = true): bool
     {
-        if ($chars <= 0 && isset($this->speaks[$h['id']])) return $this->speaks[$h['id']];
+        $cached = $h['id'] . ($private ? ':private' : ':public');
+        if ($chars <= 0 && isset($this->speaks[$cached])) return $this->speaks[$cached];
         $voice = self::voiceFor($h, $this->app->config->stationLangs()[0]);
         $ok = $h['active'] === 1
             && $h['resting_until'] <= $this->app->clock->now()
             && $voice !== ''
-            // A worker host needs no key but a worker online that offers its voice (not stubbed: our own hardware).
-            && ($h['provider'] === 'worker' ? $this->app->workers()->online($voice, (string) $h['model']) : ($this->app->config->stubAi() || $this->key($h) !== ''))
+            // No key, but a computer online that offers its voice (not stubbed: our own hardware).
+            && ($h['provider'] === 'worker' ? $this->app->computers()->online($voice, (string) $h['model'], $private) : ($this->app->config->stubAi() || $this->key($h) !== ''))
             && ($h['provider'] !== 'elevenlabs' || $h['max_chars_day'] > 0)
             && ($h['max_chars_day'] <= 0 || $this->usedToday($h['id']) + max(1, $chars) <= $h['max_chars_day']);
-        if ($chars <= 0) $this->speaks[$h['id']] = $ok;
+        if ($chars <= 0) $this->speaks[$cached] = $ok;
         return $ok;
     }
 
@@ -589,11 +596,11 @@ final class Hosts
      * @param array<string,mixed> $h
      * @param array<string,mixed> $texts
      */
-    public function hasRoom(array $h, array $texts): bool
+    public function hasRoom(array $h, array $texts, bool $private = true): bool
     {
         $chars = 0;
         foreach ($texts as $t) $chars += mb_strlen((string) $t);
-        return $this->canSpeak($h, max(1, $chars));
+        return $this->canSpeak($h, max(1, $chars), $private);
     }
 
     /** Some host of the station can speak (whether listeners' prayers are taken at all). */
@@ -680,12 +687,13 @@ final class Hosts
      * same persona with another voice: listeners hear no change of host);
      * else the fallbacks, in order; else the other on-air hosts — each only
      * when it can speak now, never one in $tried. Null: nobody can.
+     * `$private`: whether the moment may name a listener (Hosts::canSpeak).
      *
      * @param array<string,mixed> $hb decoded host break
      * @param list<int> $tried
      * @return array<string,mixed>|null
      */
-    public function forBreak(array $hb, array $tried = []): ?array
+    public function forBreak(array $hb, array $tried = [], bool $private = true): ?array
     {
         $channel = $this->app->catalog()->channel((int) $hb['channel_id']);
         if ($channel === null) return null;
@@ -706,7 +714,7 @@ final class Hosts
         }
         array_push($order, ...$l['fallbacks'], ...$l['mains']);
         foreach ($order as $h) {
-            if (!in_array($h['id'], $tried, true) && $this->canSpeak($h)) return $h;
+            if (!in_array($h['id'], $tried, true) && $this->canSpeak($h, 0, $private)) return $h;
         }
         return null;
     }

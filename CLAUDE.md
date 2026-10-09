@@ -76,7 +76,7 @@ voiced (a tick or two; the cron runs every minute).
 | `realtime/` | Node 24 + `ws` chat/presence/reactions node | Docker: local compose, and Hetzner Cloud nodes |
 | `infra/realtime/` | what a node runs: compose, Caddyfile, systemd unit, cloud-init template | baked into the node snapshot |
 | `scripts/` | deploy (SFTP), assemble, secrets, cron line, host probe, Hetzner setup/snapshot, Bunny zone setup | your Mac |
-| `worker/` | the voice worker: Python 3.13, Qwen3-TTS through mlx-audio, pulls voice tasks from one or more stations | any Apple Silicon Mac of ours |
+| `worker/` | the old voice worker (protocol 1): Python 3.13, Qwen3-TTS through mlx-audio — its successor is herde (github.com/schaefchens/herde), which serves any project | any Apple Silicon Mac of ours, until it runs herde |
 | `docker/`, `compose.yaml` | local stack: Apache + PHP-FPM like the host, a cron loop, the realtime image; web root in `.data/site`, `/_arche/var` on the `var` volume | your Mac |
 
 The deployed tree (built by `scripts/assemble-site.sh` into `build/site/`):
@@ -360,42 +360,97 @@ share one recording; removing a line, its host or its program deletes its
 files. The `part` column and the mode `composed` wait for Stage 2 (breaks from
 recorded pieces plus a short fresh part, joined in PHP).
 
-**Workers** (`Host\Workers`, `Api\WorkerApi`, `worker/`, /mod › KI-Moderation
-› Rechner; station decision 2026-10-06). Macs of ours speak for hosts with
-Qwen3-TTS (CustomVoice 1.7B through mlx-audio, about 0.5× real time on an M1
-Max) — free, and listeners' words stay on our hardware. A Mac has no public
-address, so the station never calls it: a worker polls `POST /api/worker/poll`
-(its key in `X-Arche-Worker-Key` — Authorization never reaches PHP here — shown
-once in /mod and kept as an HMAC with the pepper; only failed keys are
-rate-limited), leases one task, speaks it, uploads the MP3 multipart
-(`/api/worker/tasks/{id}/audio`; JSON bodies are cut at 1 MiB) or reports
-`/fail`; none of these routes runs a tick. Provider `worker` (migration 15
-rebuilt `hosts` for the CHECK, the children and the id sequence parked in TEMP
-tables: dropping `hosts` would cascade, and PRAGMA foreign_keys cannot change
-inside migrate()'s transaction): no key, voices are Qwen's presets (Sohee for
-German, by ear), `instructions` go as Qwen's instruct, `settings.temperature`
-0.7. Such a host can speak only while a worker offering its voice polled in the
-last 90 s — a Mac asleep is a host that cannot speak, and the lineup's
-fallbacks take over. Voicing is asynchronous: the voice phase queues one
-`voice_tasks` row per language (`HostBreaks::askWorkers`, due 30 s before the
-commit comes near, the round's ids in `context.tasks`) and the job waits
-(`Runner`: a phase named `wait…` is leased again after 30 s, attempts reset);
-the upload finishes the moment (`HostBreaks::voiced`, merged with `json_set`
-since two languages may arrive at once). A clip whose length does not fit its
-words (6–30 characters a second) is spoken again with another seed, then given
-up; a task given up or past its deadline, or no worker online while nobody
-holds one, hands the moment to the next host. Worker voices read listeners'
-words too, with that check. Recorded lines go to workers the same way
-(`Lines::askWorkers`/`recorded`, allowance 2,000,000 characters a month), and
-"Try voice" answers 202 with a task the editor polls. Not stubbed in
-`AI_MODE=stub`: our own hardware, so the dev station and the owner's Mac test
-the whole loop. Cancelling or forgetting a moment cancels its tasks and blanks
-their words; tasks lose their words after a day and go after two (privacy
-policy). One worker may serve several stations (production first, then dev).
-Each piece of a text is a take of its own whose delivery starts afresh
-(`[engine] chunk_chars`, 300 as the demo had it); `run-arche-worker.sh lab`
-speaks a replay's cases in several cuts and temperatures, for choosing by ear.
-A worker may also offer **voices of our own** (`worker/arche_worker/voices.py`;
+**Workers** (`Workers\Computers`, `Workers\Tasks`, `Api\WorkerApi`, /mod ›
+KI-Moderation › Rechner; station decisions 2026-10-06 and 2026-10-09).
+Computers speak for hosts with Qwen3-TTS (CustomVoice 1.7B; on the owner's M1
+Max about twice as fast as real time) — free, and listeners' words stay on
+our hardware. The worker program is herde, a repo of its own since
+2026-10-09 (github.com/schaefchens/herde: Docker on Linux and Windows,
+native on Macs, where Docker cannot reach the GPU; text through Ollama
+too); `worker/` here is the old one, protocol 1, kept until every Mac runs
+herde. No computer has a public address, so the station never calls one.
+herde's protocol 2 (its `protocol/PROTOCOL.md`; the fixtures are copied to
+`server/tests/herde-protocol/`, and the station answers each in its shape)
+is `POST /api/worker/v2/{join,poll,tasks/{id}/claim,result,fail}`. The key
+travels in `X-Worker-Key` (Authorization never reaches PHP here; protocol 1's
+`X-Arche-Worker-Key` is still read), is shown once and kept as an HMAC with
+the pepper; only failed keys and codes are rate-limited, and none of these
+routes runs a tick.
+
+**Trust.** An admin adds one of ours, or makes a one-time invite (128 bits,
+an HMAC, 72 h) for ours or for a computer lent by someone we trust
+(`computers.trust`, from the invite, never from the computer). A task's
+`privacy` is the station's call: a moment is public only when
+`HostBreaks::isPublic` (`ShowLog::quotable` and no `opening_by` — the prayer
+hour's welcome names who prays), a line only when the model wrote it; a try
+and a typed line are private. A lender is offered public work only, live
+moments only with an admin's `live` switch, one lease at a time, and a line
+it recorded waits as a draft. `Hosts::canSpeak`, `forBreak` and `hasRoom`
+take `$private` (by default: ours only; public: ours or a live lender); the
+script phase guesses from the kind and the drafted context
+(`mayNameSomeone`), and the voice phase checks the written moment and
+switches host when only a lender could voice a private one. Moments are
+still planned only while someone can read listeners' words
+(`Hosts::speaksFor` stays private: a request nobody can read would be taken
+and given back over and over). So a lineup of computer hosts alone, with
+only lenders online, plans none; with a fallback voice in the lineup (as on
+production), the lenders voice the moments that name nobody.
+
+**Queue** (`worker_tasks`, migration 17: new table names, since a rebuild in
+place turned lenders into ours on a replay; ids and id sequences kept).
+`kind` (tts; text exists, nothing asks for it yet — herde's phase 2),
+`class` (live, interactive, background) and `privacy`; voice, language and
+model are columns matched in SQL, so no number of tasks for a voice a
+computer lacks hides one it has, a computer naming no voices gets nothing,
+and languages are matched. A poll is heartbeat and market at once:
+- **The computer sends** its caps (by hash, in full when they change), its
+  state (ready; paused by its owner or outside its hours; loading) and its
+  running tasks with their lease tokens.
+- **The station answers** with up to 10 offers (metadata only, the most
+  urgent first: break 10, try 30, line 50, then the deadline), `cancel` (held
+  tasks nobody wants any more) and `retry_after`.
+- **An idle poll writes nothing** but `last_seen` every 30 s: polls share the
+  PHP processes with listeners.
+
+A claim is one guarded update with the computer's own lease token (the same
+token again gets the same answer). A lease lasts 45 s from the last poll
+that lists it, so a long take never lapses and a computer gone quiet loses
+its task — a mishap, not a take. A task past `deadline` is not started; one
+past `due` (its commit) is cancelled even while held. A result or fail sent
+again gets the stored `outcome`. Speech comes back as multipart (JSON
+bodies are cut at 1 MiB). A clip whose length does not fit its words (6–30
+characters a second) is spoken again with another seed (2 takes; mishaps
+are counted apart, 3). Marking the task done and handing the clip to its
+moment happen in one transaction, and `HostBreaks::voiced` takes only a
+task of the moment's current round (`context.tasks`, cleared by a host
+switch): one moment once aired in two voices. Three failures in a row rest
+a computer for 10 minutes.
+
+**Hosts on computers.** Provider `worker`: no key, voices are Qwen's presets
+(Sohee for German, by ear), `instructions` go as Qwen's instruct,
+`settings.temperature` 0.7. A host keeps `qwen3-tts-1.7b-customvoice` as its
+model (its lines' voice signature names it); computers report the family,
+`qwen3-tts-1.7b`. Such a host can speak only while a computer offering its
+voice is online and ready (a poll in the last 90 s) — a Mac asleep or
+paused is a host that cannot speak, and the lineup's fallbacks take over.
+Voicing is asynchronous: the voice phase queues one task per language
+(`HostBreaks::askWorkers`) and the job waits (`Runner`: a phase named
+`wait…` is leased again after 30 s, attempts reset); the result finishes
+the moment (merged with `json_set`, since two languages may arrive at
+once). A task given up or too late, or no computer online for its privacy
+while nobody holds one, hands the moment to the next host. Recorded lines
+go to the computers the same way (`Lines::askWorkers`/`recorded`, allowance
+2,000,000 characters a month); changing or removing a line cancels its
+tasks. "Try voice" answers 202 with a task the editor polls. Not stubbed in
+`AI_MODE=stub`: our own hardware, so the dev station and the owner's Mac
+test the whole loop. Cancelling or forgetting a moment cancels its tasks
+and blanks their input; tasks lose their words after a day and go after two
+(privacy policy). One computer may serve several stations, and herde
+chooses among them by urgency. Each piece of a text is a take of its own
+whose delivery starts afresh (chunks of 300 characters, as the demo had
+them); the worker's `lab` speaks a replay's cases in several cuts and
+temperatures, for choosing by ear.
+A computer may also offer **voices of our own** (herde's voices folder;
 station decision 2026-10-08, Faith's "deep radio host voice"): a recording
 and its words per language in the worker's voices folder, cloned by Qwen's
 Base model in every take and offered by name after the presets, so the
@@ -921,16 +976,33 @@ fallback without it, rotation, the time tag, the voice, the program's own
 first, a host who cannot speak still airing them while cap and budget stop
 fresh words, files outliving every break, a deleted host's or program's going
 along, the ElevenLabs allowance, the prayer hour's encouragements, /mod and its
-roles, a program's mode written only when sent, the replay), voice workers
+roles, a program's mode written only when sent, the replay), computers
 (`workers.php`: the key shown once and kept as an HMAC, a wrong key, a
-switched-off worker, a new key; a worker host speaking only while a worker with
-its voice is online; a moment asked for both languages at once, the job
-waiting, the uploads making it ready and airing; the length check and its new
-take, then the next host; a lease that ran out, a Mac gone quiet, a deadline;
-cancelled and forgotten moments' tasks turned away and blanked; a prayer
-request voiced word for word; Sprechtexte recorded by a worker, never stubbed;
-"Try voice" by task; no tick from worker routes; the purge; migration 15
-keeping hosts, lineups, lines, options and the id sequence), the show so far
+switched-off computer, a new key; invites used once, gone after three days,
+wrong codes counted, trust from the invite; herde's example exchanges
+answered in their shape; a lender offered public work only and live moments
+only when switched on, never a request, a reading, a prayer, who prays, a
+typed line or a try; with only a lender online a plain break voiced by it
+and a prayer by the next host; offers matched in SQL — no voices no work,
+languages matched, sixty tasks for other voices hiding nothing; a claim
+won once, answered alike when repeated, too late or one too many gone; a
+400 s take kept alive by polls, silence a mishap with the same seed and a
+late result still taken, a shutdown counting nothing; cancelled work named
+back, a result sent twice answered alike with one file and usage counted
+once, a retake one take; a host switch never leaving two voices in one
+moment; three failures resting a computer; an idle poll writing nothing,
+a pause noted at once; a worker host speaking only while a computer with its
+voice is online and ready; a moment asked for both languages at once, the
+job waiting, the results making it ready and airing; the length check and
+its new take, then the next host; a lease that ran out, a Mac gone quiet, a
+deadline; cancelled and forgotten moments' tasks turned away and blanked; a
+prayer request voiced word for word as private work; Sprechtexte recorded
+by a computer, never stubbed, a lender's waiting for approval; a changed or
+removed line's tasks cancelled; "Try voice" by task and on ours only; no
+tick from worker routes; the purge; protocol 426; migration 17 keeping
+computers as ours and tasks as private with their ids, a replay keeping a
+lender a lender; migration 15 keeping hosts, lineups, lines, options and the
+id sequence), the show so far
 (`show.php`: the songs and words aired, oldest first, in both languages; one
 moment's memory the start of the next one's; dropped and pulled items left
 out; an intro given the end of the program before; only intro and outro told
@@ -996,8 +1068,10 @@ the options for admins only, the write form), a program's "host's words"
 sent only as it came, the host editor's model list (any other id still
 taken, one list after a provider switch), the worker provider in it (no key,
 the temperature, Qwen's presets and the voices the workers offer, asked
-without a click, the try that polls, "no worker") and the Rechner section (the key and its config shown once, a new key and
-delete behind a confirm), testing a moment (programs asked only once opened, each program's
+without a click, the try that polls, "no worker") and the Rechner section (an invite: whose computer, its code and the command
+to join shown once, withdrawn; a lent computer marked, paused, resting, and
+let speak on air; the old worker's key and its config shown once, a new key
+and delete behind a confirm), testing a moment (programs asked only once opened, each program's
 moments, written with the unsaved settings and spoken in the editor's language with its
 delivery, edited words spoken as edited, the test show sent back and started over, a library
 pick, the fallback words said as such, a worker's task polled, nothing spoken by itself for
@@ -1048,8 +1122,10 @@ unblocked in Profile), the rules before the first message, a wall
 request reported (hidden for the reporter, in front of the moderators, down
 and back by their decision), recorded lines (encouragements written by the
 stub writer go on air by themselves, one paused, a program set to recorded
-lines), and a voice worker (a stand-in Mac polls through Apache with its key
-header, uploads MP3s multipart, and its host's moments air with them).
+lines), and computers (a stand-in for the old voice worker polls through Apache
+with its key header and uploads MP3s multipart, and its host's moments air
+with them; then a lent computer joins with an invite, speaks protocol 2,
+and voices the moments that name nobody).
 `npm run test:worker` runs the worker's own tests (pytest, no model) where its
 test venv can be made. `npm run e2e:reset` starts over.
 

@@ -66,10 +66,10 @@ final class StationSetup
      * What a local station drops with its old setup, since it points at its
      * channels, programs, library items or hosts: the program and the work
      * on it, and what was handed in for it. Identities (the local admin),
-     * workers, usage and the audit stay.
+     * computers, usage and the audit stay.
      */
     private const LOCAL = [
-        'timeline_items', 'host_breaks', 'jobs', 'voice_tasks',
+        'timeline_items', 'host_breaks', 'jobs', 'worker_tasks',
         'prayed_along', 'wall_reports', 'submissions', 'opening_prayers',
         'reactions', 'playback_errors',
     ];

@@ -834,6 +834,147 @@ final class Schema
             );
             CREATE INDEX IF NOT EXISTS video_knowledge_state ON video_knowledge(state, updated);
             SQL,
+            // 17 — workers for more than one project (herde, protocol 2):
+            // computers lent by people we trust next to our own (`trust`;
+            // a lender gets public work only), invites they join with, and
+            // tasks of any kind (speech now, text later) whose voice,
+            // language, model and privacy are columns the offers are matched
+            // on in SQL. New names, not a rebuild in place: replayed from 14,
+            // migration 15 makes empty `workers`/`voice_tasks` again and this
+            // one then moves nothing — a rebuilt `workers` would have turned
+            // every lender back into one of ours. Replayed alone, the old
+            // tables are made empty first so the copies compile. Ids are kept
+            // (a moment waiting on its tasks names them in `context.tasks`)
+            // and so are the id sequences (AUTOINCREMENT: a purged task's id
+            // never comes back). Every key there was is one of ours; every
+            // old task counts as private.
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS workers (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              key_mac TEXT NOT NULL UNIQUE,
+              key_hint TEXT NOT NULL DEFAULT '',
+              active INTEGER NOT NULL DEFAULT 1,
+              voices TEXT NOT NULL DEFAULT '[]',
+              engine TEXT NOT NULL DEFAULT '{}',
+              languages TEXT NOT NULL DEFAULT '[]',
+              version TEXT NOT NULL DEFAULT '',
+              last_seen INTEGER NOT NULL DEFAULT 0,
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS voice_tasks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              purpose TEXT NOT NULL,
+              ref_id INTEGER NOT NULL DEFAULT 0,
+              host_id INTEGER NOT NULL,
+              lang TEXT NOT NULL,
+              text TEXT NOT NULL,
+              request TEXT NOT NULL DEFAULT '{}',
+              state TEXT NOT NULL DEFAULT 'queued',
+              worker_id INTEGER,
+              lease_until INTEGER NOT NULL DEFAULT 0,
+              attempts INTEGER NOT NULL DEFAULT 0,
+              priority INTEGER NOT NULL DEFAULT 50,
+              deadline INTEGER NOT NULL DEFAULT 0,
+              audio TEXT NOT NULL DEFAULT '',
+              ms INTEGER NOT NULL DEFAULT 0,
+              error TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS computers (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              key_mac TEXT NOT NULL UNIQUE,
+              key_hint TEXT NOT NULL DEFAULT '',
+              trust TEXT NOT NULL DEFAULT 'lender' CHECK (trust IN ('own', 'lender')),
+              live INTEGER NOT NULL DEFAULT 0,
+              active INTEGER NOT NULL DEFAULT 1,
+              protocol INTEGER NOT NULL DEFAULT 1,
+              state TEXT NOT NULL DEFAULT '',
+              resume_at INTEGER NOT NULL DEFAULT 0,
+              caps TEXT NOT NULL DEFAULT '{}',
+              caps_hash TEXT NOT NULL DEFAULT '',
+              version TEXT NOT NULL DEFAULT '',
+              fails INTEGER NOT NULL DEFAULT 0,
+              resting_until INTEGER NOT NULL DEFAULT 0,
+              last_seen INTEGER NOT NULL DEFAULT 0,
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            INSERT OR IGNORE INTO computers (id, name, key_mac, key_hint, trust, active, protocol, version, caps, last_seen, created, updated)
+            SELECT id, name, key_mac, key_hint, 'own', active, 1, version,
+                   json_object('engines', json_array(json_object('kind', 'tts', 'model', 'qwen3-tts-1.7b', 'location', 'local',
+                     'voices', json(voices), 'langs', json(languages)))),
+                   last_seen, created, updated
+            FROM workers;
+            INSERT INTO sqlite_sequence (name, seq) SELECT 'computers', seq FROM sqlite_sequence WHERE name = 'workers'
+              AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'computers');
+            UPDATE sqlite_sequence SET seq = MAX(seq, COALESCE((SELECT seq FROM sqlite_sequence WHERE name = 'workers'), 0)) WHERE name = 'computers';
+            CREATE TABLE IF NOT EXISTS worker_tasks (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              kind TEXT NOT NULL DEFAULT 'tts',
+              class TEXT NOT NULL DEFAULT 'background',
+              purpose TEXT NOT NULL,
+              ref_id INTEGER NOT NULL DEFAULT 0,
+              host_id INTEGER NOT NULL DEFAULT 0,
+              privacy TEXT NOT NULL DEFAULT 'private' CHECK (privacy IN ('private', 'public')),
+              model TEXT NOT NULL DEFAULT '',
+              voice TEXT NOT NULL DEFAULT '',
+              lang TEXT NOT NULL DEFAULT '',
+              size INTEGER NOT NULL DEFAULT 0,
+              input TEXT NOT NULL DEFAULT '{}',
+              extra TEXT NOT NULL DEFAULT '{}',
+              state TEXT NOT NULL DEFAULT 'queued' CHECK (state IN ('queued', 'leased', 'done', 'failed', 'cancelled')),
+              worker_id INTEGER,
+              lease TEXT NOT NULL DEFAULT '',
+              lease_until INTEGER NOT NULL DEFAULT 0,
+              outcome TEXT NOT NULL DEFAULT '',
+              takes INTEGER NOT NULL DEFAULT 0,
+              failures INTEGER NOT NULL DEFAULT 0,
+              failed_by INTEGER NOT NULL DEFAULT 0,
+              priority INTEGER NOT NULL DEFAULT 50,
+              deadline INTEGER NOT NULL DEFAULT 0,
+              due INTEGER NOT NULL DEFAULT 0,
+              result TEXT NOT NULL DEFAULT '',
+              ms INTEGER NOT NULL DEFAULT 0,
+              error TEXT NOT NULL DEFAULT '',
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL
+            );
+            INSERT OR IGNORE INTO worker_tasks (id, kind, class, purpose, ref_id, host_id, privacy, model, voice, lang, size, input, extra,
+                                                state, worker_id, lease_until, takes, priority, deadline, due, result, ms, error, created, updated)
+            SELECT id, 'tts', CASE purpose WHEN 'break' THEN 'live' WHEN 'try' THEN 'interactive' ELSE 'background' END,
+                   purpose, ref_id, host_id, 'private', 'qwen3-tts-1.7b', COALESCE(json_extract(request, '$.voice'), ''), lang, length(text),
+                   json_object('text', text, 'lang', lang, 'voice', COALESCE(json_extract(request, '$.voice'), ''), 'model', 'qwen3-tts-1.7b',
+                     'instruct', COALESCE(json_extract(request, '$.instruct'), ''), 'temperature', COALESCE(json_extract(request, '$.temperature'), 0.7),
+                     'seed', COALESCE(json_extract(request, '$.seed'), 0)),
+                   json_remove(request, '$.model', '$.voice', '$.instruct', '$.temperature', '$.seed'),
+                   state, worker_id, lease_until, attempts, priority, deadline,
+                   CASE WHEN purpose = 'break' AND deadline > 0 THEN deadline + 30 ELSE deadline END,
+                   audio, ms, error, created, updated
+            FROM voice_tasks;
+            INSERT INTO sqlite_sequence (name, seq) SELECT 'worker_tasks', seq FROM sqlite_sequence WHERE name = 'voice_tasks'
+              AND NOT EXISTS (SELECT 1 FROM sqlite_sequence WHERE name = 'worker_tasks');
+            UPDATE sqlite_sequence SET seq = MAX(seq, COALESCE((SELECT seq FROM sqlite_sequence WHERE name = 'voice_tasks'), 0)) WHERE name = 'worker_tasks';
+            CREATE INDEX IF NOT EXISTS worker_tasks_queue ON worker_tasks(state, kind, priority, deadline, id);
+            CREATE INDEX IF NOT EXISTS worker_tasks_ref ON worker_tasks(purpose, ref_id);
+            CREATE INDEX IF NOT EXISTS worker_tasks_held ON worker_tasks(worker_id, state);
+            CREATE TABLE IF NOT EXISTS worker_invites (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              code_mac TEXT NOT NULL UNIQUE,
+              name TEXT NOT NULL DEFAULT '',
+              trust TEXT NOT NULL CHECK (trust IN ('own', 'lender')),
+              created_by TEXT NOT NULL DEFAULT '',
+              expires INTEGER NOT NULL,
+              used INTEGER NOT NULL DEFAULT 0,
+              computer_id INTEGER,
+              created INTEGER NOT NULL
+            );
+            DROP TABLE IF EXISTS voice_tasks;
+            DROP TABLE IF EXISTS workers;
+            SQL,
         ];
     }
 }

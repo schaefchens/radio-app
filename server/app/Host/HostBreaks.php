@@ -11,6 +11,7 @@ use Arche\Program\PrayerHour;
 use Arche\Program\Timing;
 use Arche\Submission\Submissions;
 use Arche\Support\Ids;
+use Arche\Workers\Tasks;
 
 /**
  * A host break is one job with one network call per phase:
@@ -40,6 +41,8 @@ final class HostBreaks
      */
     private const SCRIPT_RETRIES = 2;
     private const RETRY_LEAD_MS = 120_000;
+    /** Moments that read or pray for what listeners sent: never offered to a lent computer, even before their words exist. */
+    private const PERSONAL_KINDS = ['reading', 'intercession', 'opening', 'prayer', 'present'];
     /** What a script pass wrote into the context, gone before the next pass writes its own. */
     private const WRITTEN = ['community', 'community_by', 'previous_request', 'previous_id', 'prayers', 'previous_group', 'group_id', 'host_name', 'request', 'contribution', 'delivery', 'fact_refs', 'fact_told', 'cite'];
 
@@ -116,8 +119,8 @@ final class HostBreaks
             [$why, $why, $this->app->clock->now(), $id],
         );
         $this->app->jobs()->cancel('host', $id);
-        // What a voice worker was asked for it: not wanted any more.
-        $this->app->workers()->cancelFor('break', $id);
+        // What a computer was asked for it: not wanted any more.
+        $this->app->workerTasks()->cancelFor('break', $id);
     }
 
     /**
@@ -181,7 +184,7 @@ final class HostBreaks
             $hb = $this->get($id);
             if ($hb === null) continue;
             $this->deleteClips($hb['audio']);
-            $this->app->workers()->forget('break', $id);
+            $this->app->workerTasks()->forget('break', $id);
             $ctx = array_diff_key($hb['context'], array_flip(self::PERSONAL));
             foreach (['submission_id', 'again_id'] as $k) {
                 if (isset($ctx[$k]) && in_array((int) $ctx[$k], $erased, true)) unset($ctx[$k]);
@@ -343,10 +346,12 @@ final class HostBreaks
                 $this->fail($hb, 'budget');
                 return null;
             }
-            // Its host: the one a switch chose (and that can still speak), else the show's.
+            // Its host: the one a switch chose (and that can still speak), else the show's. A lent
+            // computer counts only for a moment that will name nobody; written, it is checked again.
             $hosts = $this->app->hosts();
+            $private = self::mayNameSomeone($hb);
             $chosen = isset($hb['context']['host_id']) ? $hosts->get((int) $hb['context']['host_id']) : null;
-            $host = $chosen !== null && !in_array($chosen['id'], $tried, true) && $hosts->canSpeak($chosen) ? $chosen : $hosts->forBreak($hb, $tried);
+            $host = $chosen !== null && !in_array($chosen['id'], $tried, true) && $hosts->canSpeak($chosen, 0, $private) ? $chosen : $hosts->forBreak($hb, $tried, $private);
             if ($host === null) {
                 $this->fail($hb, 'no_voice');
                 return null;
@@ -394,8 +399,10 @@ final class HostBreaks
                 $this->fail($hb, 'no_text');
                 return null;
             }
-            // Its characters for today cannot take every language: another host, before any clip.
-            if (!$hosts->hasRoom($host, $written['texts'])) return $this->switchHost($this->get($hb['id']) ?? $hb, $host, null);
+            // Its characters for today cannot take every language (or, written, it names someone and only a
+            // lent computer could voice it): another host, before any clip.
+            $saved = $this->get($hb['id']) ?? $hb;
+            if (!$hosts->hasRoom($host, $written['texts'], !self::isPublic($saved))) return $this->switchHost($saved, $host, null);
             return 'tts:' . $first;
         }
 
@@ -406,8 +413,8 @@ final class HostBreaks
                 $hosts = $this->app->hosts();
                 $host = $hosts->get((int) ($hb['context']['host_id'] ?? 0));
                 // Deleted, switched off, resting or out of characters since its script: the next who can.
-                if ($host === null || !$hosts->canSpeak($host, mb_strlen($text))) return $this->switchHost($hb, $host, null);
-                // A voice worker's (Host\Workers): asked for every language at once; its uploads finish the moment.
+                if ($host === null || !$hosts->canSpeak($host, mb_strlen($text), !self::isPublic($hb))) return $this->switchHost($hb, $host, null);
+                // A computer's (Workers\Tasks): asked for every language at once; its results finish the moment.
                 if (Voice::async($host)) return $this->askWorkers($hb, $host);
                 try {
                     $spoken = $this->app->voice()->speak($host, Speech::forVoice($text, $lang, self::theirs($hb)), $lang, delivery: self::delivery($hb));
@@ -448,14 +455,14 @@ final class HostBreaks
             // words twice, the commit too near): the next host who can.
             // This round's tasks only: an earlier host's were cancelled when it was left.
             $round = array_map('intval', (array) ($hb['context']['tasks'] ?? []));
-            $tasks = array_filter($this->app->workers()->tasksFor('break', $hb['id']), fn($t) => in_array($t['id'], $round, true));
+            $tasks = array_filter($this->app->workerTasks()->tasksFor('break', $hb['id']), fn($t) => in_array($t['id'], $round, true));
             $open = array_filter($tasks, fn($t) => in_array($t['state'], ['queued', 'leased'], true));
             $gone = array_filter($tasks, fn($t) => in_array($t['state'], ['failed', 'cancelled'], true));
             $host = $this->app->hosts()->get((int) ($hb['context']['host_id'] ?? 0));
             $held = array_filter($open, fn($t) => $t['state'] === 'leased');
-            $nobody = $host === null || !$this->app->hosts()->canSpeak($host);
+            $nobody = $host === null || !$this->app->hosts()->canSpeak($host, 0, !self::isPublic($hb));
             if ($gone || ($open && !$held && $nobody)) {
-                $this->app->workers()->cancelFor('break', $hb['id']);
+                $this->app->workerTasks()->cancelFor('break', $hb['id']);
                 return $this->switchHost($this->get($hb['id']) ?? $hb, $host, null);
             }
             if (!$open) {
@@ -485,22 +492,28 @@ final class HostBreaks
     }
 
     /**
-     * A worker host's moment: every language without a clip asked of the voice
-     * workers at once, due before the commit comes near (Workers::deadlineFor).
+     * A worker host's moment: every language without a clip asked of the
+     * computers at once, to be started before the commit comes near and done
+     * by then (Tasks::deadlineFor, ::dueFor) — public when it names nobody,
+     * so a lent computer may voice it too.
      *
      * @param array<string,mixed> $hb
      * @param array<string,mixed> $host
      */
     private function askWorkers(array $hb, array $host): string
     {
-        $workers = $this->app->workers();
-        $workers->cancelFor('break', $hb['id']);
+        $tasks = $this->app->workerTasks();
+        $tasks->cancelFor('break', $hb['id']);
         $start = (int) ($this->app->store()->value('SELECT est_start FROM timeline_items WHERE host_break_id = ? ORDER BY id DESC LIMIT 1', [$hb['id']]) ?? 0);
-        $deadline = $start > 0 ? Workers::deadlineFor($start) : $this->app->clock->now() + 240;
+        $deadline = $start > 0 ? Tasks::deadlineFor($start) : $this->app->clock->now() + 240;
+        $due = $start > 0 ? Tasks::dueFor($start) : $deadline + 30;
+        $privacy = self::isPublic($hb) ? 'public' : 'private';
         $ids = [];
         foreach ($this->app->config->stationLangs() as $l) {
             $text = trim((string) ($hb['texts'][$l] ?? ''));
-            if ($text !== '' && !isset($hb['audio'][$l])) $ids[] = $workers->request('break', $hb['id'], $host, $l, Speech::forVoice($text, $l, self::theirs($hb)), $deadline, delivery: self::delivery($hb));
+            if ($text !== '' && !isset($hb['audio'][$l])) {
+                $ids[] = $tasks->request('break', $hb['id'], $host, $l, Speech::forVoice($text, $l, self::theirs($hb)), $deadline, delivery: self::delivery($hb), privacy: $privacy, due: $due);
+            }
         }
         $this->app->store()->query(
             "UPDATE host_breaks SET context = json_set(context, '$.tasks', json(?)), updated = ? WHERE id = ? AND state = 'pending'",
@@ -510,16 +523,19 @@ final class HostBreaks
     }
 
     /**
-     * A clip of a language arrived from a voice worker (Host\Workers::complete):
-     * merged in one statement (two languages may arrive at the same moment),
-     * and the moment is ready once every language with words has its clip.
-     * False: the moment is not pending any more (the caller drops the clip).
+     * A clip of a language arrived from a computer (Workers\Tasks): merged in
+     * one statement (two languages may arrive at the same moment), and the
+     * moment is ready once every language with words has its clip. Only a
+     * task of this round counts: a clip of the host before a switch would
+     * leave one moment in two voices. False: the moment is not pending any
+     * more, or asked of another host now (the caller drops the clip).
      */
-    public function voiced(int $id, string $lang, string $url, int $ms): bool
+    public function voiced(int $id, string $lang, string $url, int $ms, int $taskId): bool
     {
         $saved = $this->app->store()->query(
-            "UPDATE host_breaks SET audio = json_set(audio, '$.' || ?, ?), durations = json_set(durations, '$.' || ?, ?), updated = ? WHERE id = ? AND state = 'pending'",
-            [$lang, $url, $lang, $ms, $this->app->clock->now(), $id],
+            "UPDATE host_breaks SET audio = json_set(audio, '$.' || ?, ?), durations = json_set(durations, '$.' || ?, ?), updated = ?
+             WHERE id = ? AND state = 'pending' AND EXISTS (SELECT 1 FROM json_each(host_breaks.context, '$.tasks') j WHERE j.value = ?)",
+            [$lang, $url, $lang, $ms, $this->app->clock->now(), $id, $taskId],
         )->rowCount() === 1;
         if ($saved) $this->readyIfComplete($id);
         return $saved;
@@ -548,7 +564,7 @@ final class HostBreaks
      */
     private function switchHost(array $hb, ?array $from, ?VoiceError $error): ?string
     {
-        $this->app->workers()->cancelFor('break', $hb['id']);
+        $this->app->workerTasks()->cancelFor('break', $hb['id']);
         $tried = self::tried($hb);
         if ($from !== null && !in_array($from['id'], $tried, true)) $tried[] = $from['id'];
         $next = count($tried) < self::MAX_TRIED ? $this->app->hosts()->forBreak($hb, $tried) : null;
@@ -562,7 +578,8 @@ final class HostBreaks
         $writtenFor = (string) ($hb['context']['host_name'] ?? $from['name'] ?? '');
         $rewrite = $modelWords && $writtenFor !== '' && mb_strtolower((string) $next['name']) !== mb_strtolower($writtenFor);
         $this->deleteClips($hb['audio']);
-        $context = ['host_id' => $next['id'], 'tried' => $tried] + $hb['context'];
+        // The round of tasks asked of the host before is over: a clip of it arriving late is turned away (voiced).
+        $context = ['host_id' => $next['id'], 'tried' => $tried, 'tasks' => []] + $hb['context'];
         if (!$this->saveIfPending($hb['id'], [
             'context' => json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'audio' => '{}',
@@ -585,6 +602,29 @@ final class HostBreaks
     private static function theirs(array $hb): bool
     {
         return in_array((string) $hb['source'], ['listener', 'moderator'], true);
+    }
+
+    /**
+     * Whether a moment, as written, may be voiced by a lent computer: the
+     * model's words of a moment whose context named no listener
+     * (ShowLog::quotable) and that does not say who prays (a prayer hour's
+     * welcome names its opening prayer's author).
+     *
+     * @param array<string,mixed> $hb
+     */
+    public static function isPublic(array $hb): bool
+    {
+        return ShowLog::quotable((string) $hb['kind'], (string) ($hb['source'] ?? ''), (array) $hb['context']) && empty($hb['context']['opening_by']);
+    }
+
+    /** Before its words exist: whether a moment will likely name someone (its host is chosen then). @param array<string,mixed> $hb */
+    private static function mayNameSomeone(array $hb): bool
+    {
+        if (in_array($hb['kind'], self::PERSONAL_KINDS, true)) return true;
+        foreach (['submission_id', 'again_id', 'prayer_ids', 'request', 'contribution', 'community'] as $k) {
+            if (!empty($hb['context'][$k])) return true;
+        }
+        return false;
     }
 
     /** How the moment's words should sound ('' leaves the host's own direction alone). @param array<string,mixed> $hb */

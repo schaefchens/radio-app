@@ -41,7 +41,7 @@ final class Voice
     public function speak(array $host, string $text, string $lang, #[\SensitiveParameter] ?string $key = null, ?string $usageKind = null, string $delivery = ''): array
     {
         $provider = (string) $host['provider'];
-        // Asked of a worker as a task (Host\Workers::request): a call here would go to OpenAI by mistake.
+        // Asked of a computer as a task (Workers\Tasks::request): a call here would go to OpenAI by mistake.
         if (self::async($host)) throw new \LogicException('A worker voice is a task, not a call');
         $voice = Hosts::voiceFor($host, $lang);
         $settings = Hosts::settings($provider, (array) $host['settings']);
@@ -68,7 +68,7 @@ final class Voice
         return ['bytes' => $bytes, 'provider' => $provider];
     }
 
-    /** Whether this host's clips come from a worker (Host\Workers): queued, not called. @param array<string,mixed> $host */
+    /** Whether this host's clips come from a computer (Workers\Tasks): queued, not called. @param array<string,mixed> $host */
     public static function async(array $host): bool
     {
         return ($host['provider'] ?? '') === 'worker';

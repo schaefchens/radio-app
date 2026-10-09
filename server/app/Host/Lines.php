@@ -576,15 +576,17 @@ final class Lines
 
     /**
      * A worker host's waiting lines: each language without a clip and not
-     * asked for yet goes to the workers, within this month's allowance. A
-     * language the workers gave up on WORKER_FAILS times marks its line failed
-     * (Qwen could not read it), so it is not asked for again and again.
+     * asked for yet goes to the computers, within this month's allowance. A
+     * language they gave up on WORKER_FAILS times marks its line failed
+     * (Qwen could not read it), so it is not asked for again and again. A
+     * line the model wrote is public — a lent computer may record it; one a
+     * moderator typed may say anything, and stays on our own.
      *
      * @param array<string,mixed> $host
      */
     private function askWorkers(array $host): void
     {
-        $workers = $this->app->workers();
+        $workers = $this->app->workerTasks();
         $voice = $this->signature($host);
         $room = $this->room($host);
         foreach ($this->app->store()->all("SELECT * FROM host_lines WHERE host_id = ? AND state = 'recording' ORDER BY id LIMIT 50", [(int) $host['id']]) as $row) {
@@ -600,20 +602,23 @@ final class Lines
                     continue 2;
                 }
                 if ($room < mb_strlen($text)) return; // this month's allowance: the rest waits for the next
-                $workers->request('line', $line['id'], $host, $l, Speech::forVoice($text, $l), 0, ['signature' => $voice], Speech::moodDelivery((string) ($line['tags']['mood'] ?? '')));
+                $workers->request('line', $line['id'], $host, $l, Speech::forVoice($text, $l), 0, ['signature' => $voice],
+                    Speech::moodDelivery((string) ($line['tags']['mood'] ?? '')), $line['source'] === 'model' ? 'public' : 'private');
                 $room -= mb_strlen($text);
             }
         }
     }
 
     /**
-     * A language of a line arrived from a voice worker (Host\Workers::complete):
-     * merged in one statement (both languages may arrive at once). Recorded
-     * with another voice than its other language (the host changed meanwhile):
-     * the other goes, and is asked for again. False: the line is not
-     * waiting any more (removed, changed) — the caller drops the clip.
+     * A language of a line arrived from a computer (Workers\Tasks): merged in
+     * one statement (both languages may arrive at once). Recorded with another
+     * voice than its other language (the host changed meanwhile): the other
+     * goes, and is asked for again. False: the line is not waiting any more
+     * (removed, changed) — the caller drops the clip. `$lent`: a lent
+     * computer recorded it — the line then waits for a moderator's approval,
+     * since a clip of the right length may still say anything.
      */
-    public function recorded(int $lineId, string $lang, string $url, int $ms, string $voice): bool
+    public function recorded(int $lineId, string $lang, string $url, int $ms, string $voice, bool $lent = false): bool
     {
         $line = $this->get($lineId);
         if ($line === null || $line['state'] !== 'recording') return false;
@@ -626,6 +631,7 @@ final class Lines
             [$lang, $url, $lang, $ms, $voice !== '' ? $voice : $line['voice'], $this->app->clock->now(), $lineId],
         )->rowCount() === 1;
         if (!$saved) return false;
+        if ($lent) $this->app->store()->set('line_lent:' . $lineId, true);
         $line = $this->get($lineId);
         $host = $this->app->hosts()->get($line['host_id'] ?? 0);
         if ($line !== null && $host !== null && $this->complete($line)) $this->finish($host, $line);
@@ -633,10 +639,18 @@ final class Lines
         return true;
     }
 
-    /** Every language recorded: on air, or waiting for a moderator's approval. @param array<string,mixed> $host @param array<string,mixed> $line */
+    /**
+     * Every language recorded: on air, or waiting for a moderator's approval
+     * — always when a lent computer recorded any of it.
+     *
+     * @param array<string,mixed> $host
+     * @param array<string,mixed> $line
+     */
     private function finish(array $host, array $line): void
     {
-        $state = $this->options($host)['live'] ? 'active' : 'draft';
+        $lent = $this->app->store()->get('line_lent:' . $line['id']) !== null;
+        if ($lent) $this->app->store()->query('DELETE FROM kv WHERE key = ?', ['line_lent:' . $line['id']]);
+        $state = $this->options($host)['live'] && !$lent ? 'active' : 'draft';
         $this->app->store()->update('host_lines', ['state' => $state, 'error' => '', 'updated' => $this->app->clock->now()], "id = ? AND state = 'recording'", [$line['id']]);
         $this->has = [];
     }
@@ -902,6 +916,9 @@ final class Lines
         }
         if ($rerecord) {
             $this->deleteFiles($line['audio']);
+            // A computer still speaking the old words: its clip is turned away.
+            $this->app->workerTasks()->cancelFor('line', $id);
+            $this->app->store()->query('DELETE FROM kv WHERE key = ?', ['line_lent:' . $id]);
             $set += ['audio' => '{}', 'durations' => '{}', 'state' => 'recording', 'error' => ''];
         }
         if ($set) {
@@ -930,7 +947,12 @@ final class Lines
                 'remove' => ['audio' => '{}', 'durations' => '{}', 'state' => 'removed'],
             };
             if ($set === null) continue;
-            if (in_array($action, ['rerecord', 'remove'], true)) $this->deleteFiles($line['audio']);
+            if (in_array($action, ['rerecord', 'remove'], true)) {
+                $this->deleteFiles($line['audio']);
+                // A computer still speaking it: its clip is turned away, and a removed line is not spoken at all.
+                $this->app->workerTasks()->cancelFor('line', $id);
+                $this->app->store()->query('DELETE FROM kv WHERE key = ?', ['line_lent:' . $id]);
+            }
             $this->save($id, $set);
             if ($action === 'rerecord') $hosts[$line['host_id']] = true;
             $changed++;
@@ -978,7 +1000,10 @@ final class Lines
     /** A host deleted: its lines' files go (the rows with it, ON DELETE CASCADE). */
     public function forgetHost(int $hostId): void
     {
-        foreach ($this->app->store()->all('SELECT audio FROM host_lines WHERE host_id = ?', [$hostId]) as $r) $this->deleteFiles((array) json_decode((string) $r['audio'], true));
+        foreach ($this->app->store()->all('SELECT id, audio FROM host_lines WHERE host_id = ?', [$hostId]) as $r) {
+            $this->deleteFiles((array) json_decode((string) $r['audio'], true));
+            $this->app->workerTasks()->cancelFor('line', (int) $r['id']);
+        }
         $this->app->store()->query('DELETE FROM host_line_options WHERE host_id = ?', [$hostId]);
         $this->app->store()->query('DELETE FROM kv WHERE key = ?', ['lines_requests:' . $hostId]);
     }
@@ -986,12 +1011,18 @@ final class Lines
     /** A program deleted: its own lines' files go (the rows with it). */
     public function forgetProgram(int $programId): void
     {
-        foreach ($this->app->store()->all('SELECT audio FROM host_lines WHERE program_id = ?', [$programId]) as $r) $this->deleteFiles((array) json_decode((string) $r['audio'], true));
+        foreach ($this->app->store()->all('SELECT id, audio FROM host_lines WHERE program_id = ?', [$programId]) as $r) {
+            $this->deleteFiles((array) json_decode((string) $r['audio'], true));
+            $this->app->workerTasks()->cancelFor('line', (int) $r['id']);
+        }
     }
 
     /** Removed lines' rows after a while (their files went when they were removed). */
     public function purge(int $beforeTs): int
     {
+        // Which computers recorded a line matters only while it is being recorded.
+        $this->app->store()->query("DELETE FROM kv WHERE key LIKE 'line_lent:%' AND NOT EXISTS
+            (SELECT 1 FROM host_lines l WHERE l.id = CAST(substr(kv.key, 11) AS INTEGER) AND l.state = 'recording')");
         return $this->app->store()->query("DELETE FROM host_lines WHERE state = 'removed' AND updated < ?", [$beforeTs])->rowCount();
     }
 

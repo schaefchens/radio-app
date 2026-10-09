@@ -23,7 +23,6 @@ use Arche\Host\Hosts;
 use Arche\Host\Lines;
 use Arche\Host\Scenarios;
 use Arche\Host\ShowLog;
-use Arche\Host\Workers;
 use Arche\Identity\Erasure;
 use Arche\Identity\Identities;
 use Arche\Identity\RateLimit;
@@ -58,6 +57,8 @@ use Arche\Support\Clock;
 use Arche\Support\HttpClient;
 use Arche\Support\Lock;
 use Arche\Tick\Tick;
+use Arche\Workers\Computers;
+use Arche\Workers\Tasks;
 
 /**
  * The service container: one per request or tick. Services are built on first
@@ -264,9 +265,16 @@ final class App
         return $this->service('lines', Lines::class, fn() => new Lines($this));
     }
 
-    public function workers(): Workers
+    /** The computers that work for the station: ours and lent ones (herde). */
+    public function computers(): Computers
     {
-        return $this->service('workers', Workers::class, fn() => new Workers($this));
+        return $this->service('computers', Computers::class, fn() => new Computers($this));
+    }
+
+    /** What the station asks of its computers. */
+    public function workerTasks(): Tasks
+    {
+        return $this->service('workerTasks', Tasks::class, fn() => new Tasks($this));
     }
 
     public function jobs(): Jobs

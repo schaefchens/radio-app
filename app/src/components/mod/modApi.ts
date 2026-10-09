@@ -138,7 +138,12 @@ export interface ModHost {
   worker_online?: boolean;
 }
 
-/** One of the station's own computers that speaks for the hosts with Qwen (/mod › Hosts › Computers). */
+/**
+ * A computer that works for the station (/mod › Hosts › Computers): one of
+ * ours, or one lent by someone we trust (`lender`: public work only, on air
+ * only when `live`). Fields after `trust` are missing from a server older
+ * than herde's protocol 2.
+ */
 export interface ModWorker {
   id: number;
   name: string;
@@ -152,6 +157,28 @@ export interface ModWorker {
   languages: string[];
   key_hint: string;
   tasks: { done_today: number; failed_today: number; queued: number };
+  trust?: 'own' | 'lender';
+  /** A lender allowed to voice moments on air (those that name nobody). */
+  live?: boolean;
+  /** What its last poll said: '' unknown or long ago. */
+  state?: '' | 'ready' | 'paused' | 'loading';
+  /** Paused by its owner until then (unix s), 0 = not said. */
+  resume_at?: number;
+  /** Resting after failures in a row until then (unix s). */
+  resting_until?: number;
+  protocol?: number;
+  platform?: { os?: string; arch?: string; accelerator?: string; memory_gb?: number };
+  engines?: { kind: 'tts' | 'text' | 'stt'; model: string; location: 'local' | 'cloud'; voices: number }[];
+}
+
+/** An invite nobody has used yet: a computer joins with its code once (shown only when it is made). */
+export interface ModWorkerInvite {
+  id: number;
+  name: string;
+  trust: 'own' | 'lender';
+  /** Unix seconds. */
+  expires: number;
+  created_by: string;
 }
 
 /** A try of a voice on our own computers, while it is being made (GET /mod/hosts/try/{task}). */
@@ -549,6 +576,7 @@ const KNOWN: Record<string, string> = {
   invalid_color: 'mod.hosts.errors.invalid_color',
   invalid_image: 'mod.hosts.errors.invalid_image',
   worker_name: 'mod.workers.errors.worker_name',
+  worker_trust: 'mod.workers.errors.worker_trust',
   no_worker: 'mod.workers.errors.no_worker',
   knowledge_not_configured: 'mod.knowledge.errors.not_configured',
   not_ready: 'mod.knowledge.errors.not_ready',

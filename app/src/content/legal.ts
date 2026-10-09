@@ -301,7 +301,9 @@ const de = (host: string): StationTexts => ({
         'unseren eigenen Rechnern erzeugen. Der Text, den die Moderation spricht, geht dafür verschlüsselt von unserem ' +
         'Server zu unserem Rechner und kommt als Aufnahme zurück; an einen fremden Dienst geht er nicht. Dieser Text ' +
         'kann Ihren Vornamen und Ort enthalten, bei Songwünschen und Videovorschlägen die Widmung bzw. Begründung, ' +
-        'Gebetsanliegen und Gebete, die wörtlich vorgelesen werden, und Community-Stimmen. Der Rechner behält weder ' +
+        'Gebetsanliegen und Gebete, die wörtlich vorgelesen werden, und Community-Stimmen. Texte, die niemanden nennen – ' +
+        'etwa die Worte der Moderation zwischen zwei Liedern –, können auch Rechner sprechen, die uns Menschen leihen, ' +
+        'denen wir vertrauen; Texte mit Ihrem Namen, Ort oder Ihren Worten gehen nie dorthin. Der Rechner behält weder ' +
         'Text noch Aufnahme; auf unserem Server werden die Aufträge nach spätestens zwei Tagen gelöscht. ' +
         'Rechtsgrundlage sind Ihre Einwilligung zur Einsendung (Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 lit. a DSGVO) und ' +
         'unser berechtigtes Interesse an einem moderierten Programm (Art. 6 Abs. 1 lit. f DSGVO).',
@@ -604,7 +606,9 @@ const en = (host: string): StationTexts => ({
         'the text the host speaks goes encrypted from our server to our computer and comes back as a recording; it ' +
         'goes to no outside service. This text can contain your first name and place, for song requests and video ' +
         'suggestions the dedication or reason, prayer requests and prayers read out word for word, and community ' +
-        'voices. The computer keeps neither the text nor the recording; on our server the jobs are deleted after two ' +
+        'voices. Texts that name nobody, such as the host\'s words between two songs, may also be spoken by computers ' +
+        'lent to us by people we trust; texts with your name, place or words never go there. The computer keeps ' +
+        'neither the text nor the recording; on our server the jobs are deleted after two ' +
         'days at the latest. Legal basis: your consent to the submission (Art. 6(1)(a), Art. 9(2)(a) GDPR) and our ' +
         'legitimate interest in a moderated program (Art. 6(1)(f) GDPR).',
     },

@@ -167,11 +167,10 @@ test('try: a test moment\'s words are spoken with their delivery, as people\'s w
     workerPoll($worker, $key);
     [$s, $w] = call($worker, 'POST', '/api/mod/hosts/try', ['host_id' => hope($worker)['id'], 'lang' => 'en', 'text' => 'Here is the next song.', 'delivery' => 'Bright.'], adminOf($worker));
     eq([$s, $w['direction']], [202, 'Warm and calm, like a Christian radio host. Bright.'], 'a worker try is told the delivery too');
-    $break = $worker->workers()->request('break', 1, hope($worker), 'en', 'A live moment.', $worker->clock->now() + 600);
+    $break = $worker->workerTasks()->request('break', 1, hope($worker), 'en', 'A live moment.', $worker->clock->now() + 600);
     eq(workerPoll($worker, $key)[1]['task']['id'] ?? null, $break, 'a live moment is spoken before a test');
     $try = workerPoll($worker, $key)[1]['task'];
     eq([$try['id'], $try['instruct']], [$w['task'], 'Warm and calm, like a Christian radio host. Bright.'], 'then the test, with its delivery');
     workerUpload($worker, $key, (int) $try['id']);
-    $row = $worker->store()->one('SELECT text, request FROM voice_tasks WHERE id = ?', [(int) $try['id']]);
-    eq([$row['text'], json_decode((string) $row['request'], true)['instruct'] ?? null], ['', ''], 'once spoken, a try keeps no words');
+    eq($worker->store()->value('SELECT input FROM worker_tasks WHERE id = ?', [(int) $try['id']]), '{}', 'once spoken, a try keeps no words');
 });

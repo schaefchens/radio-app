@@ -95,7 +95,7 @@ test('speech: the voice is given the speakable text, and the stage keeps the wor
     $app->text()->respond('host_break', fn() => ['en' => ['text' => $written['en']], 'de' => ['text' => $written['de']]]);
     $id = breakNow($app);
     runJobs($app, 2);
-    eq(array_column($app->workers()->tasksFor('break', $id), 'text'), ['Next: Oceans, Hillsong United and friends.', 'Gleich: Oceans, Hillsong United und Freunde.'], 'what the voice can say');
+    eq(array_column(array_column($app->workerTasks()->tasksFor('break', $id), 'input'), 'text'), ['Next: Oceans, Hillsong United and friends.', 'Gleich: Oceans, Hillsong United und Freunde.'], 'what the voice can say');
     eq($app->hostBreaks()->get($id)['texts'], $written, 'the words as written, for the stage');
 });
 
@@ -119,12 +119,12 @@ test('speech: each moment tells the voice how it should sound, on top of the hos
     $id = breakNow($app);
     runJobs($app, 2);
     eq($app->hostBreaks()->get($id)['context']['delivery'] ?? null, 'Glad and bright, with a smile; stress the title.', 'kept with the moment, cleaned');
-    eq(array_column(array_column($app->workers()->tasksFor('break', $id), 'request'), 'instruct'),
+    eq(array_column(array_column($app->workerTasks()->tasksFor('break', $id), 'input'), 'instruct'),
         array_fill(0, 2, 'Warm and calm, like a Christian radio host. Glad and bright, with a smile; stress the title.'), 'Qwen is told both, the host\'s own direction first');
     $app->text()->respond('host_outro', fn() => ['en' => ['text' => 'Goodbye.'], 'de' => ['text' => 'Tschüss.']]);
     $out = breakNow($app, 'outro');
     runJobs($app, 2);
-    eq(array_column(array_column($app->workers()->tasksFor('break', $out), 'request'), 'instruct'), array_fill(0, 2, 'Warm and calm, like a Christian radio host.'), 'an answer without one leaves the host\'s direction alone');
+    eq(array_column(array_column($app->workerTasks()->tasksFor('break', $out), 'input'), 'instruct'), array_fill(0, 2, 'Warm and calm, like a Christian radio host.'), 'an answer without one leaves the host\'s direction alone');
     eq(Speech::direction('Warm and calm', ''), 'Warm and calm', 'nothing added without a delivery');
 });
 

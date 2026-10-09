@@ -82,11 +82,19 @@ final class Routes
         $r->add('POST', '/mod/hosts/{id}/avatar', $m('hostAvatar'));
         $r->add('PATCH', '/mod/hosts/{id}/lines', $m('hostLineOptions'));
         $r->add('GET', '/mod/hosts/try/{id}', $m('hostTryResult'));
-        // Voice workers (Host\Workers): admins add them; the workers themselves pull tasks.
+        // Computers (Workers\Computers): admins add ours or invite lent ones; the computers pull their tasks.
         $r->add('GET', '/mod/workers', $m('workers'));
         $r->add('POST', '/mod/workers', $m('workerCreate'));
+        $r->add('POST', '/mod/workers/invites', $m('workerInvite'));
+        $r->add('DELETE', '/mod/workers/invites/{id}', $m('workerInviteDelete'));
         $r->add('PATCH', '/mod/workers/{id}', $m('workerUpdate'));
         $r->add('DELETE', '/mod/workers/{id}', $m('workerDelete'));
+        // Protocol 2 (herde's protocol/PROTOCOL.md) and, until every Mac runs herde, protocol 1.
+        $r->add('POST', '/worker/v2/join', $w('join'));
+        $r->add('POST', '/worker/v2/poll', $w('poll2'));
+        $r->add('POST', '/worker/v2/tasks/{id}/claim', $w('claim'));
+        $r->add('POST', '/worker/v2/tasks/{id}/result', $w('result'));
+        $r->add('POST', '/worker/v2/tasks/{id}/fail', $w('fail2'));
         $r->add('POST', '/worker/poll', $w('poll'));
         $r->add('POST', '/worker/tasks/{id}/audio', $w('audio'));
         $r->add('POST', '/worker/tasks/{id}/fail', $w('fail'));

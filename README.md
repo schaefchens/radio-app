@@ -374,15 +374,32 @@ a deploy.
   logo opens it): what ARCHE is, the imprint and the privacy policy, in
   `app/src/content/legal.ts` (German binding, English for convenience).
 
-## Voice workers (Qwen3-TTS on our own Macs)
+## Computers (Qwen3-TTS on our own Macs and lent ones)
 
-Hosts can speak with a voice made on a Mac of ours (provider "Eigener Rechner").
-The Mac pulls voice jobs from the station, so it needs no public address.
-Add a worker in /mod › KI-Moderation › Rechner (the key is shown once), then
-follow `worker/README.md` on the Mac: `worker/setup-arche-worker.sh`, put the key in
-`~/.config/arche-worker/config.toml`, `worker/run-arche-worker.sh check`, `worker/run-arche-worker.sh`.
-One worker may serve production and the dev station. With no worker online, a
-worker host's moments go to the next host in the lineup.
+Hosts can speak with a voice made on a computer (provider "Eigener Rechner").
+The worker program is **herde** (github.com/schaefchens/herde): Docker on
+Linux and Windows, native on a Mac. A computer pulls its work from the
+station, so it needs no public address.
+
+1. In /mod › KI-Moderation › Rechner, under "Invite a computer", give it a
+   name and choose whose it is:
+   - **ours** may hear what listeners send;
+   - **lent** by someone we trust gets only work without listeners' words:
+     recorded lines, and, once you tick "May speak on air", moments that
+     name nobody. Lines a lent computer records wait for your approval.
+2. The code is shown once and works once, for three days. On the computer,
+   with herde set up (its README), run the command /mod shows:
+   `herde join https://radio.schaefchens.de/api/worker/v2 <code>`.
+
+/mod then lists the computer: online, paused by its owner, loading, or
+resting after failures. One computer may serve production and the dev
+station. With no computer online, a worker host's moments go to the next
+host in the lineup.
+
+The old voice worker (`worker/`, protocol 1) still works until the Mac runs
+herde:
+1. Under "Old voice worker", add it with a key, which is shown once.
+2. Follow `worker/README.md`.
 
 ## Settings
 

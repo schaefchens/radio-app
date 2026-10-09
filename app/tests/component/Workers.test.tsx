@@ -4,7 +4,7 @@ import '@/i18n';
 import { HostsPanel } from '@/components/mod/HostsPanel';
 import { StatusPanel } from '@/components/mod/StatusPanel';
 import { WorkersSection } from '@/components/mod/WorkersSection';
-import { configSnippet } from '@/components/mod/workerConfig';
+import { configSnippet, joinCommand } from '@/components/mod/workerConfig';
 import type { ModHost, ModWorker } from '@/components/mod/modApi';
 import { useSettings } from '@/store/settings';
 
@@ -119,8 +119,67 @@ describe('/mod: a host on our own computers', () => {
   });
 });
 
-describe('/mod: our computers', () => {
-  it('a computer added shows its key once, with the lines for its config', async () => {
+describe('/mod: our computers and lent ones', () => {
+  it('an invite asks whose computer it is, shows its code once with the command to join, and can be withdrawn', async () => {
+    let invited = false;
+    const expires = Math.floor(Date.now() / 1000) + 72 * 3600;
+    const invite = { id: 4, name: "Peter's PC", trust: 'lender', expires, created_by: 'Chris' };
+    const calls = serve({
+      'GET /mod/workers': () => json({ workers: [], invites: invited ? [invite] : [] }),
+      'POST /mod/workers/invites': () => {
+        invited = true;
+        return json({ invite, code: 'AB12-CD34-EF56-GH78-JK90-MN12-PQ' });
+      },
+      'DELETE /mod/workers/invites/4': () => json({ ok: true }),
+    });
+    render(<WorkersSection />);
+    expect(await screen.findByText(/No computer yet/)).toBeTruthy();
+    const create = screen.getByRole('button', { name: 'Create invite' });
+    fireEvent.change(screen.getByLabelText('Name of the computer'), { target: { value: "Peter's PC" } });
+    expect(create).toHaveProperty('disabled', true);
+    fireEvent.click(screen.getByRole('radio', { name: "Lent by someone we trust: only work without listeners' words." }));
+    fireEvent.click(create);
+    expect(await screen.findByText("Invite for Peter's PC")).toBeTruthy();
+    expect(calls.find((c) => c.method === 'POST' && c.path === '/mod/workers/invites')?.body).toEqual({ name: "Peter's PC", trust: 'lender' });
+    expect(screen.getByLabelText('Invite code').textContent).toBe('AB12-CD34-EF56-GH78-JK90-MN12-PQ');
+    expect(screen.getByLabelText('Command to join').textContent).toBe(`herde join ${window.location.origin}/api/worker/v2 AB12-CD34-EF56-GH78-JK90-MN12-PQ`);
+    expect(await screen.findByText('Open invites')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Done, I have it' }));
+    expect(screen.queryByText("Invite for Peter's PC")).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Withdraw' }));
+    expect(await screen.findByText('Invite withdrawn.')).toBeTruthy();
+    expect(calls.some((c) => c.method === 'DELETE' && c.path === '/mod/workers/invites/4')).toBe(true);
+  });
+
+  it('a lent computer is marked as lent, says when it is paused, and speaks on air only when an admin switches it on', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const lent: ModWorker = {
+      ...mac, id: 5, name: "Peter's PC", trust: 'lender', live: false, state: 'paused', resume_at: now + 3600, online: false, protocol: 2,
+      platform: { os: 'linux', arch: 'x86_64', accelerator: 'NVIDIA GeForce RTX 4070' }, version: 'herde/0.2.0',
+      engines: [{ kind: 'tts', model: 'qwen3-tts-1.7b', location: 'local', voices: 2 }, { kind: 'text', model: 'gemma4-31b', location: 'local', voices: 0 }],
+    };
+    const tired: ModWorker = { ...mac, id: 6, name: 'Old Mac', trust: 'own', resting_until: now + 600, protocol: 1 };
+    const calls = serve({
+      'GET /mod/workers': () => json({ workers: [lent, tired], invites: [] }),
+      'PATCH /mod/workers/5': () => json({ worker: { ...lent, live: true } }),
+    });
+    render(<WorkersSection />);
+    const row = (await screen.findByText("Peter's PC")).closest('li') as HTMLElement;
+    expect(within(row).getByText('Lent')).toBeTruthy();
+    expect(within(row).getByText(/^Paused until /)).toBeTruthy();
+    expect(within(row).getByText(/NVIDIA GeForce RTX 4070 · speech: qwen3-tts-1\.7b, text: gemma4-31b/)).toBeTruthy();
+    const live = within(row).getByRole('checkbox', { name: 'May speak on air' });
+    expect(live).toHaveProperty('checked', false);
+    fireEvent.click(live);
+    await waitFor(() => expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ live: true }));
+    const old = screen.getByText('Old Mac').closest('li') as HTMLElement;
+    expect(within(old).getByText('Ours')).toBeTruthy();
+    expect(within(old).getByText(/^Resting until /)).toBeTruthy();
+    expect(within(old).getByText(/old voice worker/)).toBeTruthy();
+    expect(within(old).queryByRole('checkbox', { name: 'May speak on air' })).toBeNull();
+  });
+
+  it('the old voice worker is still added with a key shown once, with the lines for its config', async () => {
     let added = false;
     const calls = serve({
       'GET /mod/workers': () => json({ workers: added ? [{ ...mac, online: false, last_seen: 0, version: '', voices: [], tasks: { done_today: 0, failed_today: 0, queued: 0 } }] : [] }),
@@ -131,7 +190,8 @@ describe('/mod: our computers', () => {
     });
     render(<WorkersSection />);
     expect(await screen.findByText(/No computer yet/)).toBeTruthy();
-    fireEvent.change(screen.getByLabelText('Name of the computer'), { target: { value: 'MacBook Chris' } });
+    fireEvent.click(screen.getByText('Old voice worker (arche-worker): add with a key'));
+    fireEvent.change(screen.getByLabelText('Name of the Mac'), { target: { value: 'MacBook Chris' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add computer' }));
     expect(await screen.findByText('Key for MacBook Chris')).toBeTruthy();
     const snippet = screen.getByLabelText("Lines for the computer's config").textContent ?? '';
@@ -167,9 +227,10 @@ describe('/mod: our computers', () => {
     expect(calls.some((c) => c.method === 'DELETE' && c.path === '/mod/workers/3')).toBe(true);
   });
 
-  it('the config lines name a local station as dev', () => {
+  it('the config lines name a local station as dev; a computer joins at the station\'s protocol 2 address', () => {
     expect(configSnippet('abc', 'http://localhost:8080')).toBe('[[stations]]\nname = "ARCHE dev"\nurl = "http://localhost:8080"\nkey = "abc"\n');
     expect(configSnippet('abc', 'https://radio.schaefchens.de')).toContain('name = "ARCHE"');
+    expect(joinCommand('AB12-CD34', 'https://radio.schaefchens.de')).toBe('herde join https://radio.schaefchens.de/api/worker/v2 AB12-CD34');
   });
 });
 
