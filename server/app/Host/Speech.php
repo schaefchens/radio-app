@@ -110,7 +110,10 @@ final class Speech
         $t = (string) preg_replace('/[#@][\p{L}\p{N}_]+/u', ' ', $t);
         $t = (string) preg_replace(self::OTHER_SCRIPTS, ' ', $t);
         $t = (string) preg_replace('/(?:\.{2,}|…)+/u', ' ', $t);
-        $t = trim((string) preg_replace('/\s+/u', ' ', $t), " \t-–—:|,;/");
+        // mb_trim: trim() takes its list byte by byte, and the "–" in it cut the
+        // „ opening a title in half — invalid UTF-8, the moment's JSON came out
+        // empty, and the model asked on air for its data (2026-10-08).
+        $t = mb_trim((string) preg_replace('/\s+/u', ' ', $t), " \t-–—:|,;/");
         return $t !== '' ? $t : trim($title);
     }
 

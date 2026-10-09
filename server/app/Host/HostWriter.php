@@ -393,12 +393,19 @@ final class HostWriter
         if ($offered) $props['fact'] = ['type' => 'string', 'enum' => ['none', ...$offered]];
         // `delivery` last: written after the words, it describes them.
         $schema = ['type' => 'object', 'properties' => $props + ['delivery' => ['type' => 'string']], 'required' => [...array_keys($props), 'delivery'], 'additionalProperties' => false];
-        $user = self::MOMENT . json_encode(self::forModel($context), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        // Never a moment without its data: a broken title once made the JSON
+        // come out empty, and the model asked on air for it (2026-10-08).
+        $moment = json_encode(self::forModel($context), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE);
+        if ($moment === false) {
+            $this->app->store()->audit('host', 'The moment could not be written down for the model; the template was used', $hb['kind'] . ': ' . json_last_error_msg());
+            return ['texts' => array_intersect_key(Templates::texts((string) $hb['kind'], $context), array_flip($langs)), 'source' => 'template:unencodable', 'delivery' => '', 'fact' => ''];
+        }
+        $user = self::MOMENT . $moment;
         $show ??= $this->app->showLog()->forBreak($hb, (string) ($host['name'] ?? ''));
         // The show so far comes first: it grows from one moment to the next, so
         // the provider's prompt cache serves all of it but the newest entries again.
-        if ($show) $user = "The show so far (oldest first; its times only to find your way, never to be said), as JSON data:\n"
-            . json_encode($show, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n" . $user;
+        $memory = $show ? json_encode($show, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE) : false;
+        if ($memory !== false) $user = "The show so far (oldest first; its times only to find your way, never to be said), as JSON data:\n" . $memory . "\n\n" . $user;
         // Too little of the tick left: cut short, the call would air the template.
         // The runner retries a BudgetExceeded on the next tick without counting it.
         if ($this->app->budget->left() < self::MODEL_RESERVE) throw new BudgetExceeded('Too little of the tick left for a script; the next tick writes it.');
@@ -422,7 +429,7 @@ final class HostWriter
         $prayed = [];
         foreach ($langs as $l) {
             $t = trim((string) ($result->data[$l]['text'] ?? ''));
-            $t = trim((string) preg_replace('/\s+/u', ' ', strip_tags($t)), " \"'“”„");
+            $t = mb_trim((string) preg_replace('/\s+/u', ' ', strip_tags($t)), " \"'“”„");
             // The host never prays: a version that does is the template's.
             if ($t !== '' && self::prays($t)) $prayed[] = $l;
             $texts[$l] = ($t === '' || mb_strlen($t) > $max || in_array($l, $prayed, true)) ? $fallback[$l] : $t;

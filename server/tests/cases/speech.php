@@ -43,6 +43,26 @@ test('speech: the writer is given titles as a host would say them', function () 
     ] as $raw => $said) eq(Speech::title($raw), $said, "title: $raw");
 });
 
+test('speech: a title opening with „ stays whole, and the writer never gets a moment without its data — trimmed byte by byte, half the quote went, the JSON came out empty and the model asked on air for it (2026-10-08)', function () {
+    $title = '„Wenigstens trägt sie kein Kreuz“ Dessa aus den Philippinen glaubt heimlich an Jesus';
+    eq(Speech::title($title), $title, 'the title whole');
+    eq(Speech::title('– Cœur –'), 'Cœur', 'the dashes trimmed, never a byte of a letter');
+
+    $app = TestKit::app();
+    $hb = ['id' => 0, 'kind' => 'testimony', 'channel_id' => (int) TestKit::main($app)['id'], 'program_id' => null, 'context' => []];
+    $app->hostWriter()->write($hb, ['kind' => 'testimony', 'next' => ['title' => "\x9EWenigstens trägt sie kein Kreuz", 'artist' => 'Open Doors']], null, []);
+    $calls = $app->text()->calls;
+    $user = (string) end($calls)['user'];
+    check(str_contains($user, 'Wenigstens trägt sie kein Kreuz') && mb_check_encoding($user, 'UTF-8'), 'a stray byte leaves the moment in: ' . $user);
+    eq($app->hostWriter()->write($hb, ['kind' => 'testimony', 'minutes' => NAN], null, [])['source'], 'template:unencodable', 'one that cannot be written down is the template\'s');
+
+    // The model's own words: an opening "…" kept whole, the quotes around them gone whole.
+    $app->text()->respond('host_testimony', fn() => ['en' => ['text' => '… and now a testimony from Open Doors.'], 'de' => ['text' => '„Jetzt hört ihr ein Zeugnis von Open Doors.“'], 'delivery' => 'Warm.']);
+    $texts = $app->hostWriter()->write($hb, ['kind' => 'testimony', 'next' => ['title' => 'Wenigstens trägt sie kein Kreuz', 'artist' => 'Open Doors']], null, [])['texts'];
+    eq($texts['en'] ?? null, '… and now a testimony from Open Doors.', 'the ellipsis kept');
+    eq($texts['de'] ?? null, 'Jetzt hört ihr ein Zeugnis von Open Doors.', 'the quotes trimmed whole');
+});
+
 test('speech: every template and lead-in keeps its words on the way to the voice', function () {
     $words = fn(string $s): array => array_values(array_filter(preg_split('/[^\p{L}\p{N}’\']+/u', mb_strtolower($s)) ?: [], fn($w) => $w !== ''));
     $program = ['title' => ['en' => 'Morning', 'de' => 'Morgen']];

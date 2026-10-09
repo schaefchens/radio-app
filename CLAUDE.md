@@ -764,6 +764,10 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 - `lib/radio.ts` self-accepts HMR and reloads the page: re-running it would
   start a second engine. (Vite 8's `import.meta.hot.decline()` is a no-op.)
 - PHP 8.5: `curl_close()` is deprecated — don't call it.
+- **`trim()` takes its character list byte by byte.** A "–" in the list cut
+  the „ opening a YouTube title in half: invalid UTF-8, so `json_encode`
+  gave the writer an empty moment, and the host asked on air for its JSON
+  data (2026-10-08). Any list beyond ASCII goes through `mb_trim()`.
 - An `<audio>` routed through Web Audio plays a cross-origin file as silence
   unless it was loaded with CORS: `HostAudio` sets `crossOrigin` for the CDN.
 - A CDN copy carries the `Date` of its first fetch (and cross-origin the
@@ -934,6 +938,7 @@ what a program is about; a moment that named a listener summarized, nobody's
 name, place or dedication in it; a long show cut at a half hour; a later
 script that copied it naming nobody once the account is gone), speech
 (`speech.php`: today's titles, symbols, dashes and capitals made speakable,
+a title opening with „ kept whole and never a moment without its data,
 people's words keeping every word, every template and lead-in intact, the
 voice given the prepared text while the stage keeps the words, how the host
 is heard after the persona, the delivery joined to the host's direction for

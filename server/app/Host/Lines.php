@@ -1134,7 +1134,7 @@ final class Lines
 
     private static function clean(string $t): string
     {
-        return trim((string) preg_replace('/\s+/u', ' ', strip_tags($t)), " \"'“”„");
+        return mb_trim((string) preg_replace('/\s+/u', ' ', strip_tags($t)), " \"'“”„");
     }
 
     /** For spotting a line written twice: letters and digits only. */
