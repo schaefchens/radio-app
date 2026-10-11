@@ -1,12 +1,25 @@
 /**
- * Our own audio (host clips, jingles, listener recordings, prayer music): two
- * <audio> elements used alternately, so the next clip can load while the
- * current one plays. Only one plays at a time.
+ * Our own audio: the host, listeners' recordings and jingles (voice), and the
+ * prayer hour's prayer music (music). Each has two <audio> elements used
+ * alternately, so the next clip can load while the current one plays.
+ *
+ * Voice plays from its element straight to the speaker. Safari passes an
+ * element routed through Web Audio over a ring buffer whose reader, once it
+ * falls behind, skips ahead to the newest sound (WebKit's
+ * WebAudioSourceProviderCocoa) — and on an iPhone SE the host's "Danke"
+ * aired as "..ke", with words lost mid-clip and at its end too (2026-10-11).
+ * Music keeps Web Audio for its fades (iOS ignores `element.volume`): a
+ * moment of music lost under a fade goes unheard.
+ *
+ * Voice is played whole. A clip entered near its start begins at its first
+ * word — what made it late (the tick, loading) is ours, and a word cut to
+ * keep in step cost more than a moment that ends late —, it is never sought,
+ * and when the program moves on its last words finish before the next clip
+ * speaks.
  *
  * iOS lets a media element play without a gesture only after it has played
  * once inside one — hence `unlock()`, called from the "tap to join" handler,
- * which plays a silent clip on both elements. iOS also ignores
- * `element.volume`, so fades go through a Web Audio GainNode where available.
+ * which plays a silent clip on every element.
  *
  * Clips come from the CDN when there is one. Web Audio plays a cross-origin
  * element only if it was loaded with CORS (otherwise it outputs silence),
@@ -14,20 +27,31 @@
  */
 
 import { cdnFailed, cdnUrl } from './cdn';
+import type { OwnKind } from './engine';
 
 // 0.15 s of silence (MP3, 8 kbps mono), generated with ffmpeg.
 const SILENCE = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVV/+MYxDsAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxHYAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxLEAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+MYxMQAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
 
+/** A voice clip entered this close to its start plays from its first word. */
+export const WHOLE_MS = 2000;
+/** A voice clip with this little left when the program moves on speaks it to the end. */
+export const FINISH_MS = 3000;
+
+/** Elements 0 and 1 speak, 2 and 3 play prayer music. */
+const PAIRS: Record<OwnKind, [number, number]> = { voice: [0, 1], music: [2, 3] };
+
 export class HostAudio {
-  private readonly els: [HTMLAudioElement, HTMLAudioElement];
-  private active = 0;
+  private readonly els: HTMLAudioElement[];
+  /** Per kind, the element its latest clip went to. */
+  private active: Record<OwnKind, number> = { voice: 0, music: 2 };
   private ctx: AudioContext | null = null;
-  private gains: (GainNode | null)[] = [null, null];
+  /** Music only: voice never goes through Web Audio. */
+  private gains: (GainNode | null)[] = [null, null, null, null];
   private volume = 1;
   /** Per element, the play() of ours it is on (0: none, or we paused it since). */
-  private started = [0, 0];
-  /** Per element, the play() of ours still on its way: loading, or play() not settled yet. */
-  private pending = [0, 0];
+  private started = [0, 0, 0, 0];
+  /** Per element, the play() of ours still on its way: loading, waiting for the clip before, or play() not settled yet. */
+  private pending = [0, 0, 0, 0];
   private plays = 0;
   unlocked = false;
 
@@ -39,7 +63,7 @@ export class HostAudio {
       a.setAttribute('playsinline', '');
       return a;
     };
-    this.els = [make(), make()];
+    this.els = [make(), make(), make(), make()];
   }
 
   /** Must run inside a user gesture (the join tap). */
@@ -47,14 +71,15 @@ export class HostAudio {
     try {
       const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (Ctor && !this.ctx) {
-        this.ctx = new Ctor();
-        this.els.forEach((el, i) => {
-          const src = this.ctx!.createMediaElementSource(el);
-          const g = this.ctx!.createGain();
+        const ctx = new Ctor();
+        this.ctx = ctx;
+        for (const i of PAIRS.music) {
+          const src = ctx.createMediaElementSource(this.els[i]!);
+          const g = ctx.createGain();
           g.gain.value = this.volume;
-          src.connect(g).connect(this.ctx!.destination);
+          src.connect(g).connect(ctx.destination);
           this.gains[i] = g;
-        });
+        }
       }
       void this.ctx?.resume();
     } catch {
@@ -73,53 +98,63 @@ export class HostAudio {
     if (this.ctx && this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
   }
 
-  private el(): HTMLAudioElement {
-    return this.els[this.active]!;
-  }
-
   /**
-   * Play `url` from `offsetMs` in, rising from silence over `fadeInMs`.
+   * Play `url` from `offsetMs` in. Voice entered within WHOLE_MS of its start
+   * plays from its first word, once the clip before has spoken its last;
+   * music starts where the program is, rising from silence over `fadeInMs`.
    * Resolves false only if the browser refused it while it was still ours to
    * play: stopped or replaced by us as it started (a re-entry, the next clip),
    * our own pause makes the browser abort its play() — and taking that for a
    * refusal put "Tap to resume" on screen while the clip played on.
    */
-  async play(url: string, offsetMs: number, fadeInMs = 0): Promise<boolean> {
+  async play(url: string, offsetMs: number, kind: OwnKind = 'voice', fadeInMs = 0): Promise<boolean> {
     // In the quiet after a clip (a listener's words, then a few seconds to
     // take them in), re-entering its item — a sheet closed, a join, a resume
     // — must not start it over, nor take the next clip's element.
     if (this.isOver(url, offsetMs)) return true;
-    const next = (this.active + 1) % 2;
-    const el = this.els[next]!;
-    this.stop();
-    this.active = next;
+    const i = this.pick(kind, cdnUrl(url));
+    const el = this.els[i]!;
+    this.stopEl(i);
+    // Prayer music faded out before its piece ended; a voice clip that began
+    // late still has its last words to say — under the music, or before the
+    // next clip speaks.
+    for (const j of PAIRS.music) if (j !== i) this.stopEl(j);
+    const before = this.settleVoice(i);
+    const behind = kind === 'voice' ? before : null;
+    const whole = kind === 'voice' && offsetMs <= WHOLE_MS;
+    this.active[kind] = i;
     const token = ++this.plays;
-    this.started[next] = token;
-    this.pending[next] = token;
+    this.started[i] = token;
+    this.pending[i] = token;
     const refused = (): boolean => {
-      if (this.started[next] !== token) return true;
-      this.started[next] = 0;
+      if (this.started[i] !== token) return true;
+      this.started[i] = 0;
       return false;
     };
-    this.setGain(next, this.volume, fadeInMs);
+    this.setGain(i, this.volume, fadeInMs);
     const started = Date.now();
     const start = async (src: string): Promise<boolean> => {
       if (!isSrc(el, src)) el.src = src;
-      // Its length first: before it, a fresh element would play the clip's
-      // start until it knew where to seek — which may be past its end.
-      if (el.readyState < 1) await metadata(el);
-      // Stopped or replaced while it loaded: playing now would put the
-      // host's words twice over each other.
-      if (this.started[next] !== token) return true;
-      const at = Math.max(0, (offsetMs + Date.now() - started) / 1000);
-      if (Number.isFinite(el.duration) && el.duration > 0 && at >= el.duration - 0.05) {
+      if (behind) await behind;
+      // Stopped or replaced meanwhile: playing now would put the host's
+      // words twice over each other.
+      if (this.started[i] !== token) return true;
+      if (!whole) {
+        // Its length first: before it, a fresh element would play the clip's
+        // start until it knew where to seek — which may be past its end.
+        if (el.readyState < 1) await metadata(el);
+        if (this.started[i] !== token) return true;
+      }
+      const at = whole ? 0 : Math.max(0, (offsetMs + Date.now() - started) / 1000);
+      if (!whole && Number.isFinite(el.duration) && el.duration > 0 && at >= el.duration - 0.05) {
         // Past its end (the quiet after it): nothing of ours plays, and a clip
         // never started must not look paused from outside.
-        this.started[next] = 0;
+        this.started[i] = 0;
         return true;
       }
       try {
-        el.currentTime = at;
+        // A fresh element is at its start already: seeking there would only wait for the network.
+        if (el.currentTime !== at) el.currentTime = at;
       } catch {
         /* not seekable yet */
       }
@@ -140,7 +175,7 @@ export class HostAudio {
         return refused();
       }
     } finally {
-      if (this.pending[next] === token) this.pending[next] = 0;
+      if (this.pending[i] === token) this.pending[i] = 0;
     }
   }
 
@@ -152,25 +187,99 @@ export class HostAudio {
     );
   }
 
-  /** Warm the idle element with the next clip. */
-  preload(url: string): void {
-    const idle = this.els[(this.active + 1) % 2]!;
+  /**
+   * The element for a clip: one that has it already (fetched ahead, or a
+   * start of it still waiting), else the idle one — never one that still
+   * speaks its last words.
+   */
+  private pick(kind: OwnKind, src: string): number {
+    const active = this.active[kind];
+    const [x, y] = PAIRS[kind];
+    const idle = active === x ? y : x;
+    for (const j of [active, idle]) if (this.els[j]!.paused && isSrc(this.els[j]!, src)) return j;
+    return this.els[idle]!.paused || !this.els[active]!.paused ? idle : active;
+  }
+
+  /**
+   * Voice gives way: a clip with at most FINISH_MS left speaks to its end —
+   * begun late, it would lose its last words — and any other stops. Resolves
+   * once those words are spoken (null: nothing left to wait for).
+   */
+  private settleVoice(except: number): Promise<void> | null {
+    let behind: Promise<void> | null = null;
+    for (const j of PAIRS.voice) {
+      if (j === except) continue;
+      if (this.finishing(j)) behind = this.spoken(j);
+      else this.stopEl(j);
+    }
+    return behind;
+  }
+
+  private finishing(j: number): boolean {
+    const el = this.els[j]!;
+    return this.started[j] !== 0 && this.pending[j] === 0 && !el.paused && !el.ended && el.duration - el.currentTime <= FINISH_MS / 1000;
+  }
+
+  /**
+   * Resolves when element `j` has spoken to its end. One that stalls is
+   * stopped once its words should have been spoken: it must not hold the next
+   * clip back, nor speak over it later.
+   */
+  private spoken(j: number): Promise<void> {
+    const el = this.els[j]!;
+    const token = this.started[j];
+    return new Promise((resolve) => {
+      const done = (): void => {
+        el.removeEventListener('ended', done);
+        el.removeEventListener('pause', done);
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(
+        () => {
+          if (this.started[j] === token) this.stopEl(j);
+          done();
+        },
+        (el.duration - el.currentTime) * 1000 + 1000,
+      );
+      el.addEventListener('ended', done);
+      el.addEventListener('pause', done);
+    });
+  }
+
+  /** Warm the idle element of its kind with the next clip. */
+  preload(url: string, kind: OwnKind = 'voice'): void {
+    const [x, y] = PAIRS[kind];
+    const idle = this.els[this.active[kind] === x ? y : x]!;
     const src = cdnUrl(url);
     if (idle.paused && !isSrc(idle, src)) idle.src = src;
   }
 
+  /** Everything of ours stops at once: the listener's pause. */
   stop(): void {
-    this.started = [0, 0];
-    for (const el of this.els) {
-      if (!el.paused) el.pause();
-    }
+    this.els.forEach((_, j) => this.stopEl(j));
   }
 
-  /** Where in `url` playback is (ms) when it is the clip playing now, else null. */
+  /**
+   * The program moved on to something not ours (a song, silence): a voice
+   * clip speaks its last words — begun late, it would lose them — and the
+   * rest stops. Prayer music faded out before its piece ended.
+   */
+  finish(): void {
+    for (const j of PAIRS.music) this.stopEl(j);
+    void this.settleVoice(-1);
+  }
+
+  private stopEl(j: number): void {
+    this.started[j] = 0;
+    const el = this.els[j]!;
+    if (!el.paused) el.pause();
+  }
+
+  /** Where in `url` playback is (ms) when one of our elements plays it, else null. */
   playingAt(url: string): number | null {
-    const el = this.el();
-    if (el.paused || el.ended || !(isSrc(el, cdnUrl(url)) || isSrc(el, url))) return null;
-    return el.currentTime * 1000;
+    const el = this.els.find((e) => !e.paused && !e.ended && (isSrc(e, cdnUrl(url)) || isSrc(e, url)));
+    return el ? el.currentTime * 1000 : null;
   }
 
   /** Any of our clips is playing. */
@@ -179,20 +288,19 @@ export class HostAudio {
   }
 
   /**
-   * The clip we started is paused, and not by us: the lock screen, headphones
+   * A clip we started is paused, and not by us: the lock screen, headphones
    * or a call paused the element itself. (One that ended or failed is not,
    * nor one still loading: a clip not fetched ahead — the break after a song
    * longer than the five fixed minutes — is paused while it loads, and the
    * radio left for the listener at the start of the break.)
    */
   pausedFromOutside(): boolean {
-    const el = this.el();
-    return this.started[this.active] !== 0 && this.pending[this.active] === 0 && el.paused && !el.ended && !el.error;
+    return this.els.some((el, j) => this.started[j] !== 0 && this.pending[j] === 0 && el.paused && !el.ended && !el.error);
   }
 
-  /** Correct drift of the playing clip against the shared clock. */
+  /** Keep the prayer music on the shared clock. Voice is never sought: begun late, it ends late — sought, it lost words. */
   resync(expectedMs: number, toleranceMs = 800): void {
-    const el = this.el();
+    const el = this.els[this.active.music]!;
     if (el.paused || el.readyState < 1) return;
     if (Math.abs(el.currentTime * 1000 - expectedMs) > toleranceMs) el.currentTime = expectedMs / 1000;
   }
@@ -200,8 +308,14 @@ export class HostAudio {
   setVolume(v: number): void {
     this.volume = Math.max(0, Math.min(1, v));
     this.els.forEach((el, i) => {
-      this.setGain(i, this.volume);
-      if (!this.gains[i]) el.volume = this.volume; // no Web Audio: best effort (ignored on iOS)
+      if (this.gains[i]) {
+        this.setGain(i, this.volume);
+        return;
+      }
+      // iOS ignores the volume (and shows no slider), not muting: the radio
+      // must not bleed into a listener's recording.
+      el.volume = this.volume;
+      el.muted = this.volume === 0;
     });
   }
 
@@ -216,18 +330,18 @@ export class HostAudio {
     g.gain.setTargetAtTime(v, t, riseMs > 0 ? riseMs / 3000 : 0.05);
   }
 
-  /** Soften the end of the current clip (a fade the element volume can't do on iOS). */
+  /** Soften the end of the prayer music (a fade the element volume can't do on iOS). */
   fadeOut(ms = 400): void {
-    const g = this.gains[this.active];
+    const i = this.active.music;
+    const g = this.gains[i];
     if (g && this.ctx) {
       g.gain.cancelScheduledValues(this.ctx.currentTime);
       g.gain.setTargetAtTime(0, this.ctx.currentTime, ms / 3000);
       return;
     }
-    // Without Web Audio there is no fade: stop this clip only — by then the
+    // Without Web Audio there is no fade: stop this piece only — by then the
     // next one may be playing on the other element.
-    const i = this.active;
-    const el = this.el();
+    const el = this.els[i]!;
     const token = this.started[i];
     window.setTimeout(() => {
       if (this.started[i] !== token) return; // a newer clip is on this element now

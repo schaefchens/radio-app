@@ -25,7 +25,7 @@ function fakePlayer(): PlayerLike & { calls: string[]; t: number; st: number } {
  * Our audio, playing on the test's clock: it knows where its file is.
  * `outside` is what the lock screen, headphones or a call do to the element.
  */
-function fakeAudio(now: () => number): AudioLike & { calls: string[]; outside: 'paused' | 'resumed' | null } {
+function fakeAudio(now: () => number): AudioLike & { calls: string[]; outside: 'paused' | 'resumed' | null; lag: number } {
   let url: string | null = null;
   let base = 0;
   let since = 0;
@@ -33,21 +33,24 @@ function fakeAudio(now: () => number): AudioLike & { calls: string[]; outside: '
     unlocked: false,
     calls: [],
     outside: null,
+    lag: 0,
     unlock() { this.unlocked = true; },
     wake() { this.calls.push('wake'); },
-    async play(u, off, fade = 0) {
-      this.calls.push(`play ${u} ${Math.round(off)}${fade ? ` fade ${fade}` : ''}`);
+    async play(u, off, kind = 'voice', fade = 0) {
+      this.calls.push(`play ${u} ${Math.round(off)}${kind === 'music' ? ' music' : ''}${fade ? ` fade ${fade}` : ''}`);
       url = u;
       base = off;
       since = now();
       this.outside = null;
       return true;
     },
-    preload(u) { this.calls.push(`preload ${u}`); },
+    preload(u, kind = 'voice') { this.calls.push(`preload ${u}${kind === 'music' ? ' music' : ''}`); },
     stop() { this.calls.push('stop'); url = null; this.outside = null; },
+    finish() { this.calls.push('finish'); url = null; this.outside = null; },
     resync(ms) { this.calls.push(`resync ${Math.round(ms)}`); },
     fadeOut(ms) { this.calls.push(`fadeOut ${ms}`); },
-    playingAt(u) { return u === url && this.outside !== 'paused' ? base + now() - since : null; },
+    // `lag`: how far the clip is behind where it began — loading, a slow tick.
+    playingAt(u) { return u === url && this.outside !== 'paused' ? base + now() - since - this.lag : null; },
     playing() { return (url !== null && this.outside !== 'paused') || this.outside === 'resumed'; },
     pausedFromOutside() { return url !== null && this.outside === 'paused'; },
   };
@@ -429,6 +432,81 @@ describe('RadioEngine', () => {
   });
 });
 
+// On an iPhone SE "Danke" aired as "..ke", and words went missing mid-clip
+// and at the end: a clip was sought to the shared clock every few seconds,
+// and the next item cut off a clip that had begun late.
+describe('voice', () => {
+  it('is never sought: a clip behind the shared clock plays on through the ticks and a re-entry', async () => {
+    const s = setup();
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(205_000);
+    s.engine.tick();
+    expect(s.audio.calls).toContain('play /media/host/en.mp3 5000');
+    s.audio.lag = 1500; // it began late
+    for (const t of [206_000, 211_500, 217_000]) {
+      s.setNow(t);
+      s.engine.tick();
+    }
+    s.engine.reenter(); // the stage back after a sheet
+    expect(s.audio.calls.filter((c) => c.startsWith('play'))).toHaveLength(1);
+    expect(s.audio.calls.some((c) => c.startsWith('resync'))).toBe(false);
+    s.engine.stop();
+  });
+
+  it('when the program moves on its last words finish; only the listener’s pause stops it at once', async () => {
+    const s = setup();
+    await s.engine.start('main');
+    s.engine.join();
+    s.setNow(205_000);
+    s.engine.tick();
+    s.setNow(220_100);
+    s.engine.tick();
+    expect(s.engine.snapshot.mode).toBe('song');
+    expect(s.audio.calls.at(-1)).toBe('finish');
+    s.engine.leave();
+    expect(s.audio.calls.at(-1)).toBe('stop');
+    s.engine.stop();
+  });
+
+  it('pulled from air, or on a channel switch, it stops at once: those are not last words to finish', async () => {
+    const pulled: LiveFile = { ...live, blocked: [] };
+    const s = setup({ live: pulled });
+    await s.engine.start('main');
+    s.engine.join();
+    pulled.blocked = ['h1'];
+    s.setNow(205_000);
+    s.engine.tick(); // enters the host, and asks for live.json, which has it pulled
+    await vi.waitFor(() => expect(s.audio.calls.slice(-2)).toEqual(['play /media/host/en.mp3 5000', 'stop']));
+
+    const t = setup();
+    await t.engine.start('main');
+    t.engine.join();
+    t.setNow(205_000);
+    t.engine.tick();
+    const switching = t.engine.start('night');
+    expect(t.audio.calls.at(-1)).toBe('stop');
+    await switching;
+    s.engine.stop();
+    t.engine.stop();
+  });
+
+  it('the item before with the same file, still speaking its last words, is not taken for this one', async () => {
+    const line = '/media/lines/7-ab12.en.mp3';
+    const host = (id: string, start: number): TimelineItem => ({
+      id, type: 'host', start, dur: 15_000, p: 'live', kind: 'encourage', audio: { en: line }, text: { en: 'Pray with us.' }, voices: [], prayers: [], notice: null, cite: null, host: null,
+    });
+    const s = setup({ slot: { ...slotFile, items: [host('h1', 40_000), host('h2', 55_000)] } });
+    await s.engine.start('main');
+    s.engine.join();
+    s.audio.lag = 1000;
+    s.setNow(55_100);
+    s.engine.tick();
+    expect(s.audio.calls.filter((c) => c.startsWith('play'))).toEqual([`play ${line} 10000`, `play ${line} 100`]);
+    s.engine.stop();
+  });
+});
+
 describe('prayer music', () => {
   const PAD = '/media/beds/pad.mp3';
   const bed = (id: string, start: number, dur: number, offset: number, audio = PAD): TimelineItem => ({
@@ -443,11 +521,11 @@ describe('prayer music', () => {
     s.engine.join();
     expect(s.engine.snapshot.mode).toBe('bed');
     expect(s.engine.snapshot.playerVisible).toBe(false);
-    expect(plays(s.audio.calls)).toEqual([`play ${PAD} 40000 fade ${BED_FADE_MS}`]);
+    expect(plays(s.audio.calls)).toEqual([`play ${PAD} 40000 music fade ${BED_FADE_MS}`]);
     s.engine.stop();
   });
 
-  it('fades out at the end of its piece, and a song after it stops our audio', async () => {
+  it('fades out at the end of its piece, and a song after it moves our audio on', async () => {
     const song: TimelineItem = { ...items[2]!, id: 's9', start: 100_000 };
     const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 0), song]) });
     await s.engine.start('main');
@@ -459,7 +537,7 @@ describe('prayer music', () => {
     s.setNow(100_500);
     s.engine.tick();
     expect(s.engine.snapshot.mode).toBe('song');
-    expect(s.audio.calls.at(-1)).toBe('stop');
+    expect(s.audio.calls.at(-1)).toBe('finish');
     s.engine.stop();
   });
 
@@ -486,7 +564,7 @@ describe('prayer music', () => {
     s.setNow(100_200);
     s.engine.tick();
     expect(s.audio.calls.filter((c) => c.startsWith('fadeOut'))).toHaveLength(1);
-    expect(plays(s.audio.calls).at(-1)).toBe(`play ${PAD} 200 fade ${BED_FADE_MS}`);
+    expect(plays(s.audio.calls).at(-1)).toBe(`play ${PAD} 200 music fade ${BED_FADE_MS}`);
     s.engine.stop();
   });
 
@@ -505,7 +583,7 @@ describe('prayer music', () => {
     const s = setup({ slot: slot([bed('b1', 40_000, 60_000, 0), bed('b2', 100_000, 60_000, 0, '/media/beds/other.mp3')]) });
     await s.engine.start('main');
     s.engine.join();
-    expect(s.audio.calls).toContain('preload /media/beds/other.mp3');
+    expect(s.audio.calls).toContain('preload /media/beds/other.mp3 music');
     s.engine.stop();
   });
 });

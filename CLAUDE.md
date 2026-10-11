@@ -200,7 +200,8 @@ one; the next piece goes on where the last one ended, and the engine stays on
 audio already playing at the right place instead of starting it again (a
 continuing piece, or the stage back after a sheet), so the music does not dip.
 It fades in and out through `HostAudio`'s GainNode (iOS ignores
-`element.volume`). Older clients drop the unknown item type and play the
+`element.volume`) — prayer music alone: voice never goes through Web Audio
+(gotchas). Older clients drop the unknown item type and play the
 evergreen loop for that span.
 
 **Host** (`Host\*`, `Ai\*`). Scripts and moderation verdicts come from one
@@ -918,6 +919,25 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   as paused from outside only once its start has settled, and a start we
   overtook ourselves (a re-entry) is no refusal: that one put "Tap to resume"
   over a host who went on speaking.
+- **Safari loses sound routed through Web Audio.** WebKit passes a media
+  element's sound to Web Audio over a ring buffer whose reader, once it
+  falls behind, skips ahead to the newest sound (`WebAudioSourceProviderCocoa`):
+  on an iPhone SE the host's "Danke" aired as "..ke", with words lost
+  mid-clip and at the end too (2026-10-11). Voice — the host, listeners'
+  recordings, jingles — plays from `HostAudio`'s own pair of elements,
+  straight to the speaker (muted, not turned down, while a listener records:
+  iOS ignores the volume); only prayer music, on a pair of its own, goes
+  through the GainNode for its fades. Voice is also played whole, as our own
+  timing cut it too: entered within `WHOLE_MS` of its start it begins at its
+  first word (the tick and loading made it late, not the listener), it is
+  never sought, and when the program moves on a clip with at most
+  `FINISH_MS` left speaks to its end — the next clip waits for it; a clip
+  stuck on the network is stopped once its words should have been spoken.
+  A host moment has 800 ms of air after its words, a recording outside the
+  prayer hour 400 ms, a jingle none. On iOS a video that starts with sound
+  pauses the page's other media (current WebKit), so last words run over a
+  song only until YouTube sounds; the next clip's start clears that pause
+  before anything could take it for the listener's.
 
 ## Testing
 
@@ -1050,7 +1070,7 @@ request shown from its reading on, the pulse's voice reactions; jsdom: the
 stage's prayer view (buttons by the minute file, the count, the page, a
 reading, a listener's prayer as theirs), the Pray sheet (recorder first,
 written instead, both endpoints, the yes never ticked in advance, staying
-anonymous), our audio not starting a clip over in its quiet, nor taken for paused while it loads, nor refused when a re-entry overtakes its start, the prayer
+anonymous), our audio not starting a clip over in its quiet, nor taken for paused while it loads, nor refused when a re-entry overtakes its start, voice played whole (from its first word near its start, never sought, its last words before the next clip and under prayer music, a stalled one stopped) and never through Web Audio, muted for a recording, the prayer
 sheet's wall box (and in a prayer hour, the wall after it), the video
 sheet's picker (open kinds only, the program's own kind first, a kind in use
 kept with its notice) and `allowedForFormat`, a group filling the stage (its

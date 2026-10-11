@@ -27,6 +27,10 @@ import { YTState } from './youtube';
  *     to keyframes, and a seek loop would sound worse than a second of drift).
  *   - While an ad seems to be playing (PLAYING, but time stuck near zero) no
  *     correction happens; afterwards one seek catches up.
+ *   - Voice (the host, a listener's recording, a jingle) is played whole: from
+ *     its first word when entered near its start, never sought, its last
+ *     words finished when the program moves on. A moment may end a little
+ *     late; no word is cut to keep in step.
  *   - Nothing covers the player: when the item is not a song it is stopped
  *     and moved off stage, never hidden under something while playing.
  *   - With no program data for now (generator or network down) the evergreen
@@ -85,15 +89,26 @@ export interface PlayerLike {
   state(): number;
 }
 
+/** What our own audio plays: voice (the host, a listener's recording, a jingle) or music (prayer music). */
+export type OwnKind = 'voice' | 'music';
+
 export interface AudioLike {
   unlocked: boolean;
   unlock(): void;
   /** Wake our audio engine again (inside a tap): a phone may have put it to sleep since. */
   wake(): void;
-  /** `fadeInMs` > 0 rises from silence instead of starting at full volume. */
-  play(url: string, offsetMs: number, fadeInMs?: number): Promise<boolean>;
-  preload(url: string): void;
+  /**
+   * Voice entered near its start plays from its first word, after the last
+   * words of the clip before; music starts where the program is, rising from
+   * silence over `fadeInMs` when > 0.
+   */
+  play(url: string, offsetMs: number, kind?: OwnKind, fadeInMs?: number): Promise<boolean>;
+  preload(url: string, kind?: OwnKind): void;
+  /** Everything stops at once: the listener's pause. */
   stop(): void;
+  /** The program moved on to something not ours: a voice clip speaks its last words, the rest stops. */
+  finish(): void;
+  /** Keep the prayer music on the shared clock (voice is never sought). */
   resync(expectedMs: number, toleranceMs?: number): void;
   fadeOut(ms: number): void;
   /** Where in `url` playback is (ms) when it is the clip playing now, else null. */
@@ -230,6 +245,9 @@ export class RadioEngine {
     this.timeline.clear();
     this.blocked.clear();
     this.key = null;
+    // Another channel: what this one's host was saying stops now, and the
+    // next channel's first words do not wait for it.
+    this.deps.audio.stop();
     this.state = { ...initialState(channel), joined: this.state.joined };
     this.emit();
     await this.fetchNow(true);
@@ -429,11 +447,17 @@ export class RadioEngine {
     const gen = this.generation;
     const live = await this.deps.fetchLive(this.state.channel);
     if (!live || gen !== this.generation) return;
-    const wasBlocked = this.state.item !== null && !this.blocked.has(this.state.item.id) && live.blocked.includes(this.state.item.id);
+    const item = this.state.item;
+    const wasBlocked = item !== null && !this.blocked.has(item.id) && live.blocked.includes(item.id);
     this.blocked = new Set(live.blocked);
     this.liveWall = live.wall.length ? live.wall : NO_WALL;
     this.state = { ...this.state, listeners: live.listeners, voices: live.voices, wall: this.dueWall(this.deps.now()), collected: live.collected ?? null };
-    if (wasBlocked) this.key = null;
+    if (wasBlocked) {
+      // Pulled from air (a moderator, an account deleted): its words stop
+      // now — they are not last words to finish.
+      if (ownAudio(item)) this.deps.audio.stop();
+      this.key = null;
+    }
     this.emit();
   }
 
@@ -486,7 +510,6 @@ export class RadioEngine {
 
   private enter(item: TimelineItem, now: number): void {
     this.key = item.id;
-    const { audio } = this.deps;
     const joined = this.state.joined;
     const offset = now - item.start;
     const base = this.contextFor(item, now);
@@ -495,7 +518,7 @@ export class RadioEngine {
     let needsTap = false;
 
     if (item.type === 'song') {
-      audio.stop();
+      this.moveOn();
       mode = 'song';
       playerVisible = joined;
       if (joined) needsTap = this.startVideo(item.yt, offset / 1000);
@@ -505,9 +528,9 @@ export class RadioEngine {
         mode = item.type;
         const url = this.audioUrl(item);
         if (joined && url) this.playOwn(item, url, now);
-        else audio.stop();
+        else this.moveOn();
       } else {
-        audio.stop();
+        this.moveOn();
         mode = item.type === 'silence' ? 'silence' : 'stage';
       }
     }
@@ -543,7 +566,10 @@ export class RadioEngine {
         this.leave();
         return;
       }
-      if (item.type === 'bed' && item.start + item.dur - now <= BED_FADE_MS) {
+      // Voice is never sought: begun late (loading, the tick), it ends late —
+      // sought to the shared clock, it lost words mid-sentence.
+      if (item.type !== 'bed') return;
+      if (item.start + item.dur - now <= BED_FADE_MS) {
         // The music stops mid-track when its piece ends: fade it out first —
         // unless the next piece goes on with the same file.
         if (this.fadingOut !== item.id && !this.continuesInto(item)) {
@@ -564,21 +590,34 @@ export class RadioEngine {
   private playOwn(item: OwnAudioItem, url: string, now: number): void {
     const { audio } = this.deps;
     const at = audioPosition(item, now);
-    // Already playing where this item needs it — the next piece of the same
-    // prayer music, or the stage back after a sheet (reenter): stay on it.
-    // Starting it again would dip the music and fade it in once more.
+    const music = item.type === 'bed';
+    // Already on air for this item — the stage back after a sheet (reenter),
+    // or the next piece of the same prayer music: stay on it. Voice plays on
+    // wherever it is (begun late, it is behind, and a seek cut words); music
+    // only near where the item needs it, as starting it again would dip it and
+    // fade it in once more. Far ahead, it is the item before with the same file.
     const attempt = ++this.ownTry;
     const playing = audio.playingAt(url);
-    if (playing !== null && Math.abs(playing - at) < CONTINUE_MS) {
-      audio.resync(at);
+    if (playing !== null && (music ? Math.abs(playing - at) : playing - at) < CONTINUE_MS) {
+      if (music) audio.resync(at);
       this.askTap(item, false);
       return;
     }
     // The newest try decides: an older one that a re-entry overtook must not
     // leave "Tap to resume" over a clip that plays, nor clear a real refusal.
-    void audio.play(url, at, item.type === 'bed' ? BED_FADE_MS : 0).then((ok) => {
+    void audio.play(url, at, music ? 'music' : 'voice', music ? BED_FADE_MS : 0).then((ok) => {
       if (attempt === this.ownTry) this.askTap(item, !ok);
     });
+  }
+
+  /**
+   * The program moved on to something not ours to play: a voice clip that
+   * began late speaks its last words (the next song may already load), the
+   * rest stops. Nothing plays while the listener is out.
+   */
+  private moveOn(): void {
+    if (this.state.joined) this.deps.audio.finish();
+    else this.deps.audio.stop();
   }
 
   private askTap(item: TimelineItem, needsTap: boolean): void {
@@ -600,7 +639,7 @@ export class RadioEngine {
       if (this.key !== 'offline') {
         this.key = 'offline';
         this.stopVideo();
-        this.deps.audio.stop();
+        this.moveOn();
         this.state = { ...this.state, item: gap, evergreen: null, mode: 'offline', playerVisible: false, needsTap: false, praying: NO_IDS, hasData: this.timeline.coveredUntil() > 0 };
         this.emit();
       }
@@ -612,7 +651,7 @@ export class RadioEngine {
       return;
     }
     this.key = key;
-    this.deps.audio.stop();
+    this.moveOn();
     const needsTap = this.state.joined ? this.startVideo(pos.track.yt, pos.offset / 1000) : false;
     this.state = {
       ...this.state,
@@ -702,8 +741,10 @@ export class RadioEngine {
     if (next.type === 'host') {
       const url = next.audio[this.lang] ?? next.audio.en ?? next.audio.de;
       if (url) this.deps.audio.preload(url);
-    } else if (next.type === 'jingle' || next.type === 'contrib' || (next.type === 'bed' && !(item.type === 'bed' && item.audio === next.audio))) {
+    } else if (next.type === 'jingle' || next.type === 'contrib') {
       this.deps.audio.preload(next.audio);
+    } else if (next.type === 'bed' && !(item.type === 'bed' && item.audio === next.audio)) {
+      this.deps.audio.preload(next.audio, 'music');
     }
   }
 
