@@ -33,9 +33,11 @@ export function SubmitSheets() {
  * accepts (the fourth, a video — a preaching, a testimony, a mission video or
  * a film —, only a program of such a format; the chat is in the menu).
  * `beforeOpen` lets the phone dock turn a first tap on a folded tile into
- * "unfold" (it returns true when it took the tap).
+ * "unfold" (it returns true when it took the tap). `place="hero"` is the same
+ * four once more in the desktop scenery, where the tiles below the page are
+ * out of sight: small, the hint only on hover (shell.css).
  */
-export function SubmitTiles({ beforeOpen }: { beforeOpen?: () => boolean }) {
+export function SubmitTiles({ beforeOpen, place = 'scene' }: { beforeOpen?: () => boolean; place?: 'scene' | 'hero' }) {
   const { t } = useTranslation();
   const submissions = useRadio((s) => s.engine.submissions);
   const show = useSheets((s) => s.show);
@@ -55,7 +57,7 @@ export function SubmitTiles({ beforeOpen }: { beforeOpen?: () => boolean }) {
   ];
 
   return (
-    <div className="actions" role="group" aria-label={t('submit.label')}>
+    <div className={place === 'hero' ? 'hero-actions' : 'actions'} role="group" aria-label={t('submit.label')}>
       {tiles.map((tile) => {
         const usable = tile.state === 'open' || tile.state === 'closing';
         const hint = tile.state === 'closed' ? t('submit.closed') : tile.state === 'off' ? t('submit.notNow') : t(`submit.${tile.id}.subtitle`);
@@ -66,6 +68,7 @@ export function SubmitTiles({ beforeOpen }: { beforeOpen?: () => boolean }) {
             className={clsx('action', tile.tone)}
             aria-disabled={!usable}
             aria-label={usable ? t(`submit.${tile.id}.title`) : `${t(`submit.${tile.id}.title`)} · ${hint}`}
+            title={place === 'hero' ? hint : undefined}
             onClick={() => {
               if (beforeOpen?.()) return;
               if (usable) tile.open();

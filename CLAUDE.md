@@ -645,8 +645,12 @@ See-through surfaces take their alpha from `--*-a` variables, which
 `prefers-reduced-transparency` sets to 1. `shell.css`/`home.css`/`welcome.css`
 keep the preview's class names (its container queries are media queries
 here: phone ≤ 600, desktop ≥ 900) and load after `index.css`, after
-Tailwind's reset. The stage is `data-theme="dark"` in both themes. The
-scenery is not precached (workbox `globIgnores`, cached on first use). A
+Tailwind's reset. The stage is `data-theme="dark"` in both themes. On Home
+from 1200 px the four submit tiles also hang in the scenery, two by two
+below the verse — Storm Ark in the middle, Kids Ark on the right
+(`SubmitTiles place="hero"`): the tiles below the page are out of sight
+there, and narrower the scenery is too low between the verse and the menu.
+The scenery is not precached (workbox `globIgnores`, cached on first use). A
 first visit gets the welcome dialog (language, theme); reactions stay
 pressed per device (`arche.reactions`). `?install=1` (QR codes, flyers) opens
 an install sheet once the welcome is closed (`lib/pwaInstall.ts`,
@@ -862,7 +866,8 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   minute instead of after the placeholders.
 - **Closed bottom sheets stay mounted** (translated away, `inert`): render each
   sheet once per page and use `useId()` for form ids — Home shows the submit
-  tiles twice (desktop and phone layout).
+  tiles three times (in the desktop scenery, below the page, in the phone
+  dock).
 - **Mobile grids need `grid-cols-1`** (`minmax(0,1fr)`): an implicit `auto`
   column grows to its widest unbreakable child, and a long program subtitle
   once pushed the whole home page — and the YouTube player — past the screen.
@@ -1115,7 +1120,9 @@ faked on both sides: the Data API by `fake-youtube.mjs` (a container;
 setup makes the admin and the library through the real API, like production.
 Covered: live position on join, two listeners in sync, evergreen fallback, no
 Google request before consent, RMF (nothing over the player, ≥ 200×200, paused
-under a sheet), no sideways scroll at 360/390 px on every page, passphrase on a
+under a sheet), no sideways scroll at 360/390 px on every page, the tiles in
+the desktop scenery clear of the verse, the name and the menu (both themes,
+1200 px to wide; none at 1100), passphrase on a
 second device, song/prayer/recording through moderation, /mod gate, library,
 pull from air, a rejection explained and overruled in /mod, the welcome dialog
 (language and theme, once; `fakeYouTube()` pre-dismisses it for every other

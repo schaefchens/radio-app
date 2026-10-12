@@ -265,6 +265,7 @@
   padding: 16px 10px;
   border: 1px solid #ffffff65;
   border-radius: 20px;
+  background: var(--tone);
   color: white;
   box-shadow:
     inset 0 2px 4px #ffffff40,
@@ -313,29 +314,36 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+/* A variable, so the tiles in the scenery can wear the color on the icon alone. */
 .action.purple {
-  background: linear-gradient(145deg, #be64fb, #7d26e4);
+  --tone: linear-gradient(145deg, #be64fb, #7d26e4);
 }
 .action.green {
-  background: linear-gradient(145deg, #64d370, #00a783);
+  --tone: linear-gradient(145deg, #64d370, #00a783);
 }
 .action.blue {
-  background: linear-gradient(145deg, #28bfff, #0075ed);
+  --tone: linear-gradient(145deg, #28bfff, #0075ed);
 }
 .action.gold {
-  background: linear-gradient(145deg, #ffd946, #ef9800);
+  --tone: linear-gradient(145deg, #ffd946, #ef9800);
 }
 :root[data-theme='dark'] .action.purple {
-  background: linear-gradient(145deg, #6125eb, #3012ae);
+  --tone: linear-gradient(145deg, #6125eb, #3012ae);
 }
 :root[data-theme='dark'] .action.green {
-  background: linear-gradient(145deg, #079e98, #006b68);
+  --tone: linear-gradient(145deg, #079e98, #006b68);
 }
 :root[data-theme='dark'] .action.blue {
-  background: linear-gradient(145deg, #066df7, #003fc4);
+  --tone: linear-gradient(145deg, #066df7, #003fc4);
 }
 :root[data-theme='dark'] .action.gold {
-  background: linear-gradient(145deg, #e7a30a, #ad6100);
+  --tone: linear-gradient(145deg, #e7a30a, #ad6100);
+}
+
+/* The same tiles once more in the desktop scenery (Home): see "the tiles in
+   the scenery" below. */
+.hero-actions {
+  display: none;
 }
 
 /* --- desktop --------------------------------------------------------------- */
@@ -546,6 +554,97 @@
   }
   .lower-content .navigation {
     display: none;
+  }
+}
+
+/* --- the tiles in the scenery (desktop, Home) ------------------------------ */
+
+/* The four tiles once more in the sky the scenery leaves free, where they
+   are in sight without scrolling: hung under the verse, two by two — Storm
+   Ark in the middle, Kids Ark on the right, over the sun. Small, the color
+   on the icon, the hint on hover. Below 1200 px the scenery is too low for
+   them between the verse and the menu; the tiles below the page remain. */
+@media (min-width: 1200px) {
+  .hero-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: absolute;
+    z-index: 1;
+    /* Halfway between the verse and the menu, from 1200 px to the widest. */
+    top: calc(60% - 70px);
+    transform: translateX(-50%);
+    gap: clamp(8px, 0.7vw, 10px);
+  }
+  /* Storm Ark: in the middle of the page, below the verse and clear of the
+     name on the right. Kids Ark: centered under the verse, clear of the
+     rainbow name on the left. */
+  :root[data-theme='dark'] .hero-actions {
+    left: 50%;
+    width: clamp(320px, 31vw, 520px);
+  }
+  :root:not([data-theme='dark']) .hero-actions {
+    left: 81%;
+    width: clamp(300px, 26vw, 440px);
+  }
+  .hero-actions .action {
+    --pad: clamp(4px, 0.4vw, 6px);
+    min-height: 0;
+    min-width: 0;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 9px;
+    padding: var(--pad) 12px var(--pad) var(--pad);
+    border-color: rgb(var(--line));
+    border-radius: 15px;
+    background: rgb(var(--menu-desk) / var(--hero-tile-a));
+    backdrop-filter: blur(6px);
+    color: rgb(var(--ink));
+    box-shadow: 0 8px 20px #1b5b9626;
+    font-size: clamp(12px, 0.9vw, 15px);
+    line-height: 1.2;
+    text-align: left;
+    text-shadow: none;
+  }
+  :root[data-theme='dark'] .hero-actions .action {
+    box-shadow: 0 8px 20px rgb(0 10 20 / 0.35);
+  }
+  .hero-actions .action svg {
+    width: clamp(28px, 2.1vw, 32px);
+    height: clamp(28px, 2.1vw, 32px);
+    padding: 6px;
+    border-radius: 50%;
+    background: var(--tone);
+    color: white;
+    box-shadow: inset 0 1px 2px #ffffff50;
+  }
+  .hero-actions .action-copy small {
+    display: none;
+  }
+  /* Brighter does nothing to a white card: the border takes the accent. */
+  .hero-actions .action:hover {
+    filter: none;
+  }
+  .hero-actions .action:not([aria-disabled='true']):hover {
+    border-color: rgb(var(--accent));
+  }
+  .hero-actions .action-badge {
+    top: -7px;
+    right: 8px;
+    background: rgb(var(--live));
+    color: white;
+  }
+  /* Closed: see-through, the sky would wash the card out; it stays solid
+     and quiet instead. */
+  .hero-actions .action[aria-disabled='true'] {
+    opacity: 1;
+    filter: none;
+  }
+  .hero-actions .action[aria-disabled='true'] svg {
+    background: rgb(var(--ink-faint) / 0.45);
+    box-shadow: none;
+  }
+  .hero-actions .action[aria-disabled='true'] .action-copy {
+    opacity: 0.6;
   }
 }
 

@@ -16,8 +16,9 @@ import logo from '@/assets/theme/light-logo.svg';
 
 /**
  * The design's frame (concept-files/theme-preview.html): the scenery with
- * the brand and, on desktop, the menu on top; the page; the scene below
- * with the four tiles; on phones a dock with the tiles and the menu.
+ * the brand and, on desktop, the menu on top (on Home from 1200 px also the
+ * four tiles); the page; the scene below with the four tiles; on phones a
+ * dock with the tiles and the menu.
  *
  * The stage (and with it the one YouTube player) lives here, above every
  * page, so music never stops when the listener opens the schedule or the chat
@@ -53,6 +54,8 @@ export function AppShell() {
         <img className="hero-art" src={art.top} width={2172} height={724} alt="" />
         <Verse />
         <Brand />
+        {/* Desktop: the tiles once more in the sky, in sight without scrolling. */}
+        {onHome && <SubmitTiles place="hero" />}
         <MainNav className="desktop-nav" />
       </header>
 
