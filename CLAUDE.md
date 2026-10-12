@@ -380,7 +380,13 @@ routes runs a tick.
 
 **Trust.** An admin adds one of ours, or makes a one-time invite (128 bits,
 an HMAC, 72 h) for ours or for a computer lent by someone we trust
-(`computers.trust`, from the invite, never from the computer). A task's
+(`computers.trust`, from the invite, never from the computer). The invite
+shows herde's Docker lines for the computer's GPU (`workerConfig.ts`): NVIDIA
+(`:cuda`, Linux or Windows) or AMD (`:rocm`, Linux only — Docker on Windows
+passes NVIDIA alone; the devices and the groups video and render in place of
+`--gpus all`), and how a voice of our own (Faith) gets there: its recordings
+copied into the worker's `/config/voices`; Qwen's presets (Grace) come with
+the model. A task's
 `privacy` is the station's call: a moment is public only when
 `HostBreaks::isPublic` (`ShowLog::quotable` and no `opening_by` — the prayer
 hour's welcome names who prays), a line only when the model wrote it; a try
@@ -1122,7 +1128,7 @@ sent only as it came, the host editor's model list (any other id still
 taken, one list after a provider switch), the worker provider in it (no key,
 the temperature, Qwen's presets and the voices the workers offer, asked
 without a click, the try that polls, "no worker") and the Rechner section (an invite: whose computer, its code and the command
-to join shown once, withdrawn; a lent computer marked, paused, resting, and
+to join shown once, the Docker lines for an NVIDIA or an AMD GPU, withdrawn; a lent computer marked, paused, resting, and
 let speak on air; the old worker's key and its config shown once, a new key
 and delete behind a confirm), testing a moment (programs asked only once opened, each program's
 moments, written with the unsaved settings and spoken in the editor's language with its

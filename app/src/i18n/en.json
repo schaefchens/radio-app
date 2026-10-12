@@ -1351,7 +1351,15 @@
       "inviteCode": "Invite code",
       "inviteCommand": "On a Mac with herde set up:",
       "inviteCommandLabel": "Command to join",
-      "inviteDocker": "With Docker (Linux, or Windows with Docker Desktop) and an NVIDIA GPU, these two lines, one after the other:",
+      "inviteGpu": "The computer's graphics card",
+      "gpu": {
+        "nvidia": "NVIDIA (Linux, Windows)",
+        "amd": "AMD (Linux)"
+      },
+      "inviteDocker": {
+        "nvidia": "With Docker and an NVIDIA GPU (Linux, or Windows with Docker Desktop), these two lines, one after the other:",
+        "amd": "With Docker on Linux and an AMD GPU (Radeon RX 6800 or newer, Ryzen AI 300 or Ryzen AI Max), these two lines, one after the other. Its usual driver is enough:"
+      },
       "invitesOpen": "Open invites",
       "inviteExpires": "valid until {{when}}",
       "inviteWithdraw": "Withdraw",
@@ -1360,6 +1368,8 @@
       "keyedName": "Name of the Mac",
       "inviteDockerLabel": "Docker commands to join and run",
       "inviteDockerHint": "The first joins with the code; the second runs the worker, now and after every restart. Its status page, with a Pause button, is http://127.0.0.1:8737 on that computer.",
+      "inviteAmdHint": "An RX 6600 or 6700: put -e HSA_OVERRIDE_GFX_VERSION=10.3.0 into the second line before the image (a Radeon 780M: 11.0.0). Windows cannot hand an AMD GPU to Docker; that takes Linux.",
+      "inviteVoices": "A voice of our own, like Faith, needs its recordings on that computer: put them into a folder named voices, then docker cp voices herde:/config/ and docker restart herde. Qwen's voices, like Grace's, are there already.",
       "inviteMore": "Everything else (a Mac, pausing, updates) is in herde's README: github.com/schaefchens/herde",
       "copyDocker": "Copy the Docker lines"
     },

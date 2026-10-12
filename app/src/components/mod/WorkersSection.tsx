@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import clsx from 'clsx';
 import type { Lang } from '@arche/shared';
 import { api } from '@/lib/api';
 import { ago, localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
 import { modError, type ModWorker, type ModWorkerInvite } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
-import { configSnippet, dockerCommands, joinCommand } from './workerConfig';
+import { GPUS, configSnippet, dockerCommands, joinCommand, type Gpu } from './workerConfig';
 
 const NO_WORKERS: ModWorker[] = [];
 const NO_INVITES: ModWorkerInvite[] = [];
@@ -342,11 +343,15 @@ function useCopy(): [boolean, (text: string) => Promise<void>] {
   return [copied, copy];
 }
 
-/** An invite's code, shown this once, with what to run on the computer: Docker's two lines, or herde's own on a Mac. */
+/**
+ * An invite's code, shown this once, with what to run on the computer: Docker's two lines for its GPU
+ * (NVIDIA or AMD), or herde's own on a Mac.
+ */
 function InviteBox({ name, code, expires, onClose }: { name: string; code: string; expires: number; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
-  const [join, run] = dockerCommands(code, window.location.origin);
+  const [gpu, setGpu] = useState<Gpu>('nvidia');
+  const [join, run] = dockerCommands(code, window.location.origin, gpu);
   const mac = joinCommand(code, window.location.origin);
   const [copied, copy] = useCopy();
   return (
@@ -356,11 +361,26 @@ function InviteBox({ name, code, expires, onClose }: { name: string; code: strin
       <p className="font-mono text-lg tracking-wider" aria-label={t('mod.workers.inviteCode')}>
         {code}
       </p>
-      <p className="text-sm">{t('mod.workers.inviteDocker')}</p>
+      <div className="flex flex-wrap gap-1" role="group" aria-label={t('mod.workers.inviteGpu')}>
+        {GPUS.map((g) => (
+          <button
+            key={g}
+            type="button"
+            aria-pressed={gpu === g}
+            className={clsx('rounded-xl px-3 py-1.5 text-sm', gpu === g ? 'bg-accent-fill/20 text-ink shadow-glow' : 'text-ink-muted hover:text-ink')}
+            onClick={() => setGpu(g)}
+          >
+            {t(`mod.workers.gpu.${g}`)}
+          </button>
+        ))}
+      </div>
+      <p className="text-sm">{t(`mod.workers.inviteDocker.${gpu}`)}</p>
       <pre className="overflow-x-auto rounded-lg bg-soft p-2 text-xs" aria-label={t('mod.workers.inviteDockerLabel')}>
         <code>{`${join}\n${run}`}</code>
       </pre>
       <p className="text-xs text-ink-faint">{t('mod.workers.inviteDockerHint')}</p>
+      {gpu === 'amd' && <p className="text-xs text-ink-faint">{t('mod.workers.inviteAmdHint')}</p>}
+      <p className="text-xs text-ink-faint">{t('mod.workers.inviteVoices')}</p>
       <p className="text-sm">{t('mod.workers.inviteCommand')}</p>
       <pre className="overflow-x-auto rounded-lg bg-soft p-2 text-xs" aria-label={t('mod.workers.inviteCommandLabel')}>
         <code>{mac}</code>

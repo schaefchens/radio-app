@@ -7,6 +7,7 @@ import en from '@/i18n/en.json';
 import de from '@/i18n/de.json';
 import { QWEN_VOICES, VOICES } from '@/components/mod/voices';
 import { LINE_BULK_ACTIONS, LINE_ERRORS, LINE_KINDS, LINE_MOODS, LINE_SORTS, LINE_STATES, LINE_TIMES } from '@/components/mod/lineKinds';
+import { GPUS } from '@/components/mod/workerConfig';
 
 /** Adapted from bible-assistant: both languages have the same keys, and every
  *  literal t('…') in src/ exists (plural keys count through their _one form). */
@@ -85,6 +86,8 @@ describe('i18n', () => {
       // The voice picker's words per provider, and our own computers' errors.
       ...['otherVoiceOpenAi', 'otherVoiceElevenLabs', 'otherVoiceWorker', 'voiceHintElevenLabs', 'voiceHintWorker'].map((k) => `mod.hosts.${k}`),
       ...['worker_name', 'no_worker'].map((code) => `mod.workers.errors.${code}`),
+      // An invite's Docker lines per graphics card.
+      ...GPUS.flatMap((gpu) => [`mod.workers.gpu.${gpu}`, `mod.workers.inviteDocker.${gpu}`]),
       // /mod › Lines: every list a line is shown or filtered by, and modError's map of the server's line errors.
       ...LINE_KINDS.map((k) => `mod.lines.kinds.${k}`),
       ...LINE_TIMES.map((x) => `mod.lines.times.${x}`),

@@ -147,6 +147,24 @@ describe('/mod: our computers and lent ones', () => {
     expect(runLine).toContain('--gpus all');
     expect(runLine).toContain('-p 127.0.0.1:8737:8737');
     expect(runLine?.endsWith('ghcr.io/schaefchens/herde:cuda')).toBe(true);
+    // An AMD GPU: the rocm image, its two devices and the groups that open them, in place of --gpus all.
+    expect(screen.getByRole('button', { name: 'NVIDIA (Linux, Windows)' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'AMD (Linux)' }));
+    expect(screen.getByText(/With Docker on Linux and an AMD GPU/)).toBeTruthy();
+    expect(screen.getByText(/HSA_OVERRIDE_GFX_VERSION=10\.3\.0/)).toBeTruthy();
+    const [amdJoin, amdRun] = (screen.getByLabelText('Docker commands to join and run').textContent ?? '').split('\n');
+    expect(amdJoin).toBe(`docker run --rm -v herde:/config ghcr.io/schaefchens/herde:rocm join ${window.location.origin}/api/worker/v2 AB12-CD34-EF56-GH78-JK90-MN12-PQ`);
+    expect(amdRun).toContain('--device /dev/kfd --device /dev/dri --group-add $(getent group video | cut -d: -f3) --group-add $(getent group render | cut -d: -f3)');
+    expect(amdRun).not.toContain('--gpus');
+    expect(amdRun?.endsWith('ghcr.io/schaefchens/herde:rocm')).toBe(true);
+    // The copy button copies the lines shown.
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy the Docker lines' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${amdJoin}\n${amdRun}`));
+    Reflect.deleteProperty(navigator, 'clipboard');
+    // A voice of our own needs its recordings there; Qwen's are in the image.
+    expect(screen.getByText(/docker cp voices herde:\/config\//)).toBeTruthy();
     expect(screen.getByLabelText('Command to join').textContent).toBe(`herde join ${window.location.origin}/api/worker/v2 AB12-CD34-EF56-GH78-JK90-MN12-PQ`);
     expect(await screen.findByText('Open invites')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Done, I have it' }));

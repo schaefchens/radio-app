@@ -1351,7 +1351,15 @@
       "inviteCode": "Einladungscode",
       "inviteCommand": "Auf einem Mac, auf dem herde eingerichtet ist:",
       "inviteCommandLabel": "Befehl zum Beitreten",
-      "inviteDocker": "Mit Docker (Linux, oder Windows mit Docker Desktop) und einer NVIDIA-Grafikkarte diese beiden Zeilen, nacheinander:",
+      "inviteGpu": "Die Grafikkarte des Rechners",
+      "gpu": {
+        "nvidia": "NVIDIA (Linux, Windows)",
+        "amd": "AMD (Linux)"
+      },
+      "inviteDocker": {
+        "nvidia": "Mit Docker und einer NVIDIA-Grafikkarte (Linux, oder Windows mit Docker Desktop) diese beiden Zeilen, nacheinander:",
+        "amd": "Mit Docker unter Linux und einer AMD-Grafikkarte (Radeon RX 6800 oder neuer, Ryzen AI 300 oder Ryzen AI Max) diese beiden Zeilen, nacheinander. Der übliche Treiber genügt:"
+      },
       "invitesOpen": "Offene Einladungen",
       "inviteExpires": "gültig bis {{when}}",
       "inviteWithdraw": "Zurückziehen",
@@ -1360,6 +1368,8 @@
       "keyedName": "Name des Macs",
       "inviteDockerLabel": "Docker-Befehle zum Beitreten und Starten",
       "inviteDockerHint": "Die erste tritt mit dem Code bei, die zweite startet den Worker, jetzt und nach jedem Neustart. Seine Statusseite mit Pause-Knopf ist http://127.0.0.1:8737 auf diesem Rechner.",
+      "inviteAmdHint": "Eine RX 6600 oder 6700: -e HSA_OVERRIDE_GFX_VERSION=10.3.0 in die zweite Zeile vor das Image setzen (eine Radeon 780M: 11.0.0). Windows kann eine AMD-Grafikkarte nicht an Docker geben, dafür braucht es Linux.",
+      "inviteVoices": "Eine eigene Stimme wie Faith braucht ihre Aufnahmen auf diesem Rechner: in einen Ordner voices legen, dann docker cp voices herde:/config/ und docker restart herde. Qwens Stimmen, wie die von Grace, sind schon da.",
       "inviteMore": "Alles Weitere (ein Mac, Pausieren, Updates) steht in herdes README: github.com/schaefchens/herde",
       "copyDocker": "Docker-Zeilen kopieren"
     },
