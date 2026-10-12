@@ -269,8 +269,9 @@ test('videos: each kind of link has its own length limits — from the env, neve
     // One limit for the whole sheet — the old preaching route included.
     videoProgram($app, 'mission', 12 * 60, 120, ['preaching', 'testimony_video', 'mission', 'film']);
     $h = authHeaders();
-    eq([suggest($app, 'mission', 'MisLim00001', [], $h)[0], suggest($app, 'film', 'MisLim00002', [], $h)[0]], [200, 200], 'two an hour');
-    eq(call($app, 'POST', '/api/submissions/preaching', ['channel' => 'main', 'url' => 'https://youtu.be/MisLim00003'], $h)[0], 429, 'and no third, by any route');
+    eq([suggest($app, 'mission', 'MisLim00001', [], $h)[0], suggest($app, 'film', 'MisLim00002', [], $h)[0]], [200, 429], 'one suggestion waits at a time, of any kind');
+    eq(call($app, 'POST', '/api/submissions/preaching', ['channel' => 'main', 'url' => 'https://youtu.be/MisLim00003'], $h),
+        [429, ['error' => 'rate_limited', 'limit' => 'waiting', 'kind' => 'video', 'max' => 1]], 'by any route — and the answer says which limit');
 
     // The day's cap on checks counts every kind of video check.
     $capped = TestKit::app(['MODERATION_MAX_PER_DAY' => '1']);

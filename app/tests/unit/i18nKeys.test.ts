@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { CLOSED_REASONS, SUBMISSION_TYPES, VIDEO_FORMATS, VOICE_PROVIDERS, isVideoSubmissionType } from '@arche/shared';
-import { TILES } from '@/lib/intake';
+import { LIMIT_KINDS, TILES } from '@/lib/intake';
 import en from '@/i18n/en.json';
 import de from '@/i18n/de.json';
 import { QWEN_VOICES, VOICES } from '@/components/mod/voices';
@@ -52,8 +52,9 @@ describe('i18n', () => {
         `mod.review.types.${type}`,
       ]),
       ...TILES.flatMap((tile) => [`submit.${tile}.title`, `submit.${tile}.subtitle`, `submit.${tile}.what`]),
-      // Why a locked tile takes nothing now (LockedSheet).
+      // Why a locked tile takes nothing now (LockedSheet), and the limits a refused send met (refusalText).
       ...['off', 'unknown', ...CLOSED_REASONS].map((why) => `submit.locked.${why}`),
+      ...LIMIT_KINDS.map((kind) => `submit.kinds.${kind}`),
       'submit.video.title',
       'songForm.url',
       'songForm.message',

@@ -11,6 +11,17 @@ function listener(Arche\App $app): array
     return $app->identities()->resolve($d, $s, true);
 }
 
+/** The limit a refused send names (429 rate_limited), its error otherwise, or null when it was taken. @return array<string,mixed>|null */
+function limitOf(callable $send): ?array
+{
+    try {
+        $send();
+        return null;
+    } catch (Arche\ApiError $e) {
+        return $e->error === 'rate_limited' ? $e->extra : ['error' => $e->error];
+    }
+}
+
 function runJobs(Arche\App $app, int $rounds = 6): void
 {
     for ($i = 0; $i < $rounds; $i++) $app->runner()->runUntilBudget();
@@ -79,7 +90,38 @@ test('submissions: rejection is generic, uncertain fails closed, errors fail clo
     runJobs($app, 10);
     eq($app->submissions()->byPublicId($c['id'])['status'], 'rejected', 'repeated errors → rejected, never aired unchecked');
 
-    check(refuses(fn() => $app->submissions()->submitSong($me, $ch, ['url' => 'https://youtu.be/Ww6Ww6Ww6Ww']), 'rate_limited'), 'rate limited after three an hour');
+    check(!refuses(fn() => $app->submissions()->submitSong($me, $ch, ['url' => 'https://youtu.be/Ww6Ww6Ww6Ww'])), 'three declined hold no place: a fourth is taken');
+});
+
+test('submissions: three song requests wait at once — freed as one is declined, airs or runs out of program —, twenty a day, and nothing refused counts', function () {
+    $app = TestKit::app();
+    $ch = TestKit::main($app);
+    $subs = $app->submissions();
+    $store = $app->store();
+    $me = listener($app);
+    $song = fn(string $id, array $more = []) => fn() => $subs->submitSong($me, $ch, ['url' => "https://youtu.be/$id"] + $more);
+    $set = fn(string $publicId, array $row) => $store->update('submissions', $row, 'public_id = ?', [$publicId]);
+
+    check(refuses($song('Aa1Aa1Aa1Aa', ['message' => str_repeat('a', 201)]), 'too_long'), 'a dedication too long is refused…');
+    $sent = array_map(fn($id) => $song($id)()['id'], ['Aa1Aa1Aa1Aa', 'Bb2Bb2Bb2Bb', 'Cc3Cc3Cc3Cc']);
+    eq(limitOf($song('Dd4Dd4Dd4Dd')), ['limit' => 'waiting', 'kind' => 'song', 'max' => 3], '…and took no place: three wait at once, a fourth must wait');
+    $set($sent[0], ['status' => 'rejected']);
+    $sent[] = $song('Dd4Dd4Dd4Dd')()['id'];
+    eq(limitOf($song('Ee5Ee5Ee5Ee')), ['limit' => 'waiting', 'kind' => 'song', 'max' => 3], 'one declined freed its place, and the next took it');
+    $set($sent[1], ['status' => 'scheduled', 'aired_at' => $app->clock->nowMs() - 1000]);
+    $sent[] = $song('Ee5Ee5Ee5Ee')()['id'];
+    $set($sent[2], ['window_end' => $app->clock->nowMs() - 1]);
+    $sent[] = $song('Ff6Ff6Ff6Ff')()['id'];
+    eq(limitOf($song('Gg7Gg7Gg7Gg')), ['limit' => 'waiting', 'kind' => 'song', 'max' => 3], 'one aired and one its program can no longer take freed theirs');
+    // Another listener is not held by them.
+    check(!refuses(fn() => $subs->submitSong(listener($app), $ch, ['url' => 'https://youtu.be/Gg7Gg7Gg7Gg'])), 'each listener has their own');
+
+    foreach (array_slice($sent, 3) as $id) $set($id, ['status' => 'rejected']);
+    for ($i = 0; $i < 14; $i++) $app->rateLimit()->hit('sub:song:' . $me['id'], 20, 86400);
+    eq(limitOf($song('Gg7Gg7Gg7Gg')), ['limit' => 'day', 'kind' => 'song', 'max' => 20, 'until' => ($app->clock->now() + 86400) * 1000],
+        'twenty a day — every send, declined ones too — and when the next is possible');
+    TestKit::clock($app)->advance(86_400_000);
+    check(!refuses($song('Gg7Gg7Gg7Gg')), 'a day later it is');
 });
 
 test('submissions: kept 90 days as the privacy policy says, then deleted with their recording unless it stays for replays', function () {
@@ -462,21 +504,19 @@ test('submissions: a listener\'s prayer — written or spoken — needs the cons
     check(refuses(fn() => $subs->submitIntercession($me, $ch, ['text' => str_repeat('a', 401), 'consent_air' => '1']), 'too_long'), '400 characters at most');
     $written = $subs->submitIntercession($me, $ch, ['text' => 'Lord, be with Anna and her family in these days.', 'name' => 'Ben', 'place' => 'Ulm', 'consent_air' => '1']);
     eq([$written['type'], $written['status'], $written['title']], ['intercession', 'pending', 'Lord, be with Anna and her family in these days.'], 'checked first, and the sender sees what they wrote');
-    for ($i = 0; $i < 3; $i++) $subs->submitIntercession($me, $ch, ['text' => "Lord, hear us ($i).", 'consent_air' => '1']);
-    check(refuses(fn() => $subs->submitIntercession($me, $ch, ['text' => 'Lord, once more.', 'consent_air' => '1']), 'rate_limited'), 'four an hour');
 
     $file = function (float $seconds): string {
         $tmp = tempnam(sys_get_temp_dir(), 'rec');
         copy(silentMp3($seconds), $tmp);
         return $tmp;
     };
-    check(refuses(fn() => $subs->submitAudio($me, $ch, ['type' => 'intercession', 'consent_air' => '1'], $file(63)), 'invalid_audio'), 'a spoken prayer is a minute at most');
+    for ($i = 0; $i < 4; $i++) check(refuses(fn() => $subs->submitAudio($me, $ch, ['type' => 'intercession', 'consent_air' => '1'], $file(63)), 'invalid_audio'), 'a spoken prayer is a minute at most');
     $spoken = $subs->submitAudio($me, $ch, ['type' => 'intercession', 'name' => 'Ben', 'consent_air' => '1', 'consent_replay' => '1'], $file(30));
-    eq((int) $subs->byPublicId($spoken['id'])['consent_replay'], 0, 'a prayer is for its hour: never kept for replays');
-    $subs->submitAudio($me, $ch, ['type' => 'prayer', 'consent_air' => '1'], $file(20));
-    // The one refused for its length counted too: the limit comes before the file is opened.
-    $subs->submitAudio($me, $ch, ['type' => 'intercession', 'consent_air' => '1'], $file(20));
-    check(refuses(fn() => $subs->submitAudio($me, $ch, ['type' => 'intercession', 'consent_air' => '1'], $file(20)), 'rate_limited'), 'three spoken prayers an hour, besides a recorded request');
+    eq((int) $subs->byPublicId($spoken['id'])['consent_replay'], 0, 'a prayer is for its hour: never kept for replays, and the four refused for their length took no place');
+    $subs->submitIntercession($me, $ch, ['text' => 'Lord, hear us.', 'consent_air' => '1']);
+    eq(limitOf(fn() => $subs->submitIntercession($me, $ch, ['text' => 'Lord, once more.', 'consent_air' => '1'])), ['limit' => 'waiting', 'kind' => 'intercession', 'max' => 3],
+        'three of one\'s own prayers wait at once, written or spoken');
+    check(!refuses(fn() => $subs->submitAudio($me, $ch, ['type' => 'prayer', 'consent_air' => '1'], $file(20))), 'a recorded request is another kind');
     runJobs($app);
     eq($subs->byPublicId($written['id'])['status'], 'approved', 'approved by the check');
     $kinds = array_column($app->text()->calls, 'kind');

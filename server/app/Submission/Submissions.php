@@ -94,17 +94,67 @@ final class Submissions
         return ['program' => $program, 'block' => $block];
     }
 
-    /** @param array<string,mixed> $identity */
-    private function limit(array $identity, string $bucket, int $perHour, int $perDay): void
+    /**
+     * What a listener may send, per kind (station decision 2026-10-12: hourly
+     * limits held a block from one program into the next, and counted what
+     * the check declined): how many may wait at once — being checked, before
+     * a moderator, accepted, or planned and not yet on air; each frees its
+     * place when it airs, is declined, or its program can no longer take it —
+     * and, against cost and abuse, how many a day (every send, 24 hours back).
+     */
+    public const LIMITS = [
+        'song' => ['waiting' => 3, 'day' => 20],
+        'video' => ['waiting' => 1, 'day' => 10],
+        'recording' => ['waiting' => 3, 'day' => 12],
+        'prayer' => ['waiting' => 4, 'day' => 20],
+        'intercession' => ['waiting' => 3, 'day' => 16],
+    ];
+
+    /** Which submissions are of a kind: a recorded prayer request is a recording, a typed one a prayer. */
+    private const KINDS = [
+        'song' => "s.type = 'song'",
+        'video' => "s.type IN ('preaching', 'testimony_video', 'mission', 'film')",
+        'recording' => "s.mode = 'audio' AND s.type IN ('story', 'testimony', 'greeting', 'prayer')",
+        'prayer' => "s.mode = 'text' AND s.type = 'prayer'",
+        'intercession' => "s.type = 'intercession'",
+    ];
+
+    /**
+     * Refuses a send over the listener's limits (429 `rate_limited`, with
+     * `limit` — waiting or day — `kind`, `max` and, for the day, `until`: an
+     * older app still shows "too many attempts"); else counts it. Called
+     * after the input checks: a file or text refused does not count.
+     *
+     * @param array<string,mixed> $identity
+     */
+    private function limit(array $identity, string $kind): void
     {
+        ['waiting' => $waiting, 'day' => $perDay] = self::LIMITS[$kind];
+        $now = $this->app->clock->nowMs();
+        // The listener on every device they logged in on. Nothing past its
+        // program's end holds a place: what was accepted the sweep moves on,
+        // and a check or a review that ran out of program can no longer air.
+        $held = (int) $this->app->store()->value(
+            'SELECT COUNT(*) FROM submissions s JOIN identities i ON i.id = s.identity_id
+             WHERE (i.id = ? OR i.canonical_id = ?) AND ' . self::KINDS[$kind] . "
+             AND (s.status = 'approved'
+               OR (s.status = 'scheduled' AND s.aired_at > ?)
+               OR ((s.status IN ('received', 'checking', 'review') OR (s.status = 'scheduled' AND s.aired_at IS NULL)) AND s.window_end > ?))",
+            [(int) $identity['id'], (int) $identity['id'], $now, $now],
+        );
+        if ($held >= $waiting) throw new ApiError(429, 'rate_limited', ['limit' => 'waiting', 'kind' => $kind, 'max' => $waiting]);
+
         $rl = $this->app->rateLimit();
-        $who = 'sub:' . $bucket . ':' . $identity['id'];
-        if (!$rl->hit($who . ':h', $perHour, 3600) || !$rl->hit($who . ':d', $perDay, 86400)
-            // Per address too, but generously: a church group on one Wi-Fi
-            // shares it (SUBMISSIONS_PER_IP_HOUR).
-            || !$rl->hit('sub:' . $rl->ipKey(), $this->app->config->int('SUBMISSIONS_PER_IP_HOUR', 60), 3600)) {
-            throw new ApiError(429, 'rate_limited');
+        $day = 'sub:' . $kind . ':' . $identity['id'];
+        // Per address too, but generously: a church group on one Wi-Fi shares it.
+        $ip = 'sub:' . $rl->ipKey();
+        $perIp = $this->app->config->int('SUBMISSIONS_PER_IP_HOUR', 60);
+        if ($rl->used($day, 86400) >= $perDay) {
+            throw new ApiError(429, 'rate_limited', ['limit' => 'day', 'kind' => $kind, 'max' => $perDay, 'until' => $rl->freeAt($day, $perDay, 86400) * 1000]);
         }
+        if ($rl->used($ip, 3600) >= $perIp) throw new ApiError(429, 'rate_limited');
+        $rl->hit($day, $perDay, 86400);
+        $rl->hit($ip, $perIp, 3600);
     }
 
     private static function text(mixed $v, int $max): string
@@ -123,15 +173,15 @@ final class Submissions
      */
     public function submitSong(array $identity, array $channel, array $in): array
     {
-        return $this->submitLink($identity, $channel, $in, 'song', 'song', 3, 8);
+        return $this->submitLink($identity, $channel, $in, 'song', 'song');
     }
 
     /**
      * A video suggested for a video program — `type` one of SUGGESTION_TYPES:
      * a preaching, a testimony (`testimony_video`; `testimony` is a recorded
      * one), a mission video or a film on YouTube, with an optional word on
-     * why (the host may read it, like a dedication). One rate limit for all
-     * of them: a listener could otherwise send four times as many.
+     * why (the host may read it, like a dedication). One limit for all of
+     * them: a listener could otherwise send four times as many.
      *
      * @param array<string,mixed> $identity
      * @param array<string,mixed> $channel
@@ -142,7 +192,7 @@ final class Submissions
     {
         $type = (string) ($in['type'] ?? '');
         if (!in_array($type, self::SUGGESTION_TYPES, true)) throw new ApiError(422, 'bad_type');
-        return $this->submitLink($identity, $channel, $in, $type, 'video', 2, 4);
+        return $this->submitLink($identity, $channel, $in, $type, 'video');
     }
 
     /**
@@ -165,16 +215,16 @@ final class Submissions
      * @param array<string,mixed> $in
      * @return array<string,mixed>
      */
-    private function submitLink(array $identity, array $channel, array $in, string $type, string $bucket, int $perHour, int $perDay): array
+    private function submitLink(array $identity, array $channel, array $in, string $type, string $kind): array
     {
         if ($identity['banned']) throw new ApiError(403, 'banned');
         $ytId = YouTube::parseId((string) ($in['url'] ?? ''));
         if ($ytId === null) throw new ApiError(422, 'invalid_youtube_url');
         ['program' => $program, 'block' => $block] = $this->openProgram($channel, $type);
-        $this->limit($identity, $bucket, $perHour, $perDay);
         $message = self::text($in['message'] ?? '', 200);
         $name = self::text($in['name'] ?? '', 30);
         $place = self::text($in['place'] ?? '', 40);
+        $this->limit($identity, $kind);
 
         $row = $this->insert($identity, $channel, $program, $block, $type, [
             'yt_id' => $ytId, 'message' => $message, 'name' => $name, 'place' => $place,
@@ -198,9 +248,8 @@ final class Submissions
         if (!in_array($type, self::AUDIO_TYPES, true)) throw new ApiError(422, 'bad_type');
         if (empty($in['consent_air'])) throw new ApiError(422, 'consent_required');
         ['program' => $program, 'block' => $block] = $this->openProgram($channel, $type);
-        // A prayer in the prayer time has a bucket of its own: one who recorded
-        // a request may still pray for others.
-        $type === self::INTERCESSION ? $this->limit($identity, 'audio-intercession', 3, 6) : $this->limit($identity, 'audio', 2, 4);
+        $name = self::text($in['name'] ?? '', 30);
+        $place = self::text($in['place'] ?? '', 40);
 
         if (!is_file($tmpFile) || filesize($tmpFile) > 4_000_000) throw new ApiError(422, 'invalid_audio');
         $check = Mp3::inspect($tmpFile);
@@ -210,6 +259,10 @@ final class Submissions
             default => $this->app->config->int('AUDIO_MAX_SECONDS', 90),
         } * 1000;
         if (!$check['ok'] || $check['ms'] < 3000 || $check['ms'] > $max + 1500) throw new ApiError(422, 'invalid_audio');
+        // Only now: a recording refused for its length is one to try again.
+        // A prayer in the prayer time is a kind of its own: one who recorded a
+        // request may still pray for others.
+        $this->limit($identity, $type === self::INTERCESSION ? self::INTERCESSION : 'recording');
 
         $publicId = Ids::short(12);
         $dir = $this->app->config->dataDir . '/uploads';
@@ -221,8 +274,8 @@ final class Submissions
         $row = $this->insert($identity, $channel, $program, $block, $type, [
             'public_id' => $publicId,
             'mode' => 'audio',
-            'name' => self::text($in['name'] ?? '', 30),
-            'place' => self::text($in['place'] ?? '', 40),
+            'name' => $name,
+            'place' => $place,
             'lang' => ($in['lang'] ?? '') === 'de' ? 'de' : 'en',
             'upload' => basename($upload),
             'audio_ms' => $check['ms'],
@@ -245,12 +298,14 @@ final class Submissions
         $text = self::text($in['text'] ?? '', 400);
         if (mb_strlen($text) < 5) throw new ApiError(422, 'too_short');
         ['program' => $program, 'block' => $block] = $this->openProgram($channel, 'prayer');
-        $this->limit($identity, 'prayer', 3, 6);
+        $name = self::text($in['name'] ?? '', 30);
+        $place = self::text($in['place'] ?? '', 40);
+        $this->limit($identity, 'prayer');
         $row = $this->insert($identity, $channel, $program, $block, 'prayer', [
             'mode' => 'text',
             'text' => $text,
-            'name' => self::text($in['name'] ?? '', 30),
-            'place' => self::text($in['place'] ?? '', 40),
+            'name' => $name,
+            'place' => $place,
             'lang' => ($in['lang'] ?? '') === 'de' ? 'de' : 'en',
             // Shown on the prayer wall (text and day only) only with consent.
             'consent_air' => empty($in['consent_air']) ? 0 : 1,
@@ -275,12 +330,14 @@ final class Submissions
         if (mb_strlen($text) < 5) throw new ApiError(422, 'too_short');
         if (empty($in['consent_air'])) throw new ApiError(422, 'consent_required');
         ['program' => $program, 'block' => $block] = $this->openProgram($channel, self::INTERCESSION);
-        $this->limit($identity, self::INTERCESSION, 4, 8);
+        $name = self::text($in['name'] ?? '', 30);
+        $place = self::text($in['place'] ?? '', 40);
+        $this->limit($identity, self::INTERCESSION);
         $row = $this->insert($identity, $channel, $program, $block, self::INTERCESSION, [
             'mode' => 'text',
             'text' => $text,
-            'name' => self::text($in['name'] ?? '', 30),
-            'place' => self::text($in['place'] ?? '', 40),
+            'name' => $name,
+            'place' => $place,
             'lang' => ($in['lang'] ?? '') === 'de' ? 'de' : 'en',
             'consent_air' => 1,
         ]);

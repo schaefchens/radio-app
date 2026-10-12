@@ -7,8 +7,9 @@ import { BottomSheet, BottomSheetBody } from '@/components/common/BottomSheet';
 import { LockIcon, TileIcon } from '@/components/common/icons';
 import { useServerNow } from '@/components/home/useServerNow';
 import { useDays } from '@/components/schedule/useDays';
-import { addDays, localDate, localTime, stationDate } from '@/lib/format';
-import { TILES, TILE_TONE, TILE_TYPES, daysAhead, lockedWhy, nextOpening, tileOpen, type Tile } from '@/lib/intake';
+import { addDays, stationDate } from '@/lib/format';
+import { whenText } from '@/i18n';
+import { TILES, TILE_TONE, TILE_TYPES, lockedWhy, nextOpening, tileOpen, type Tile } from '@/lib/intake';
 import { DAY_OFFSETS } from '@/lib/reminderPlan';
 import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
@@ -59,14 +60,6 @@ function LockedInfo({ tile, onClose }: { tile: Tile; onClose: () => void }) {
   const loading = !next && dates.some((d) => days[d] === undefined);
   const instead = TILES.filter((other) => tileOpen(other, engine.submissions));
 
-  const when = (start: number): string => {
-    const time = localTime(start, lang);
-    const ahead = daysAhead(start, now);
-    if (ahead === 0) return t('submit.locked.today', { time });
-    if (ahead === 1) return t('submit.locked.tomorrow', { time });
-    return t('submit.locked.onDay', { day: localDate(start, lang, { weekday: 'long' }), time });
-  };
-
   return (
     <div className="flex flex-col gap-4">
       {locked && (
@@ -78,7 +71,7 @@ function LockedInfo({ tile, onClose }: { tile: Tile; onClose: () => void }) {
           <p className="text-sm leading-relaxed text-ink">{program ? t(`submit.locked.${why}`, { program, what }) : t('submit.locked.noProgram', { what })}</p>
           <p className="text-sm font-semibold leading-relaxed text-accent">
             {next
-              ? t(why === 'full' ? 'submit.locked.nextFull' : 'submit.locked.next', { when: when(next.start), program: next.program.title[lang] })
+              ? t(why === 'full' ? 'submit.locked.nextFull' : 'submit.locked.next', { when: whenText(next.start, now), program: next.program.title[lang] })
               : loading
                 ? t('common.loading')
                 : t('submit.locked.none', { what })}

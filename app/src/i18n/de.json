@@ -163,6 +163,13 @@
       "schedule": "Zum Programm",
       "ok": "Verstanden"
     },
+    "kinds": {
+      "song": "Liedwünsche",
+      "video": "Videovorschläge",
+      "recording": "Aufnahmen",
+      "prayer": "Gebetsanliegen",
+      "intercession": "Gebete"
+    },
     "sent": "Danke! Wir sagen dir Bescheid, wenn es on air ist.",
     "name": "Dein Vorname",
     "place": "Woher kommst du? (Stadt oder Land)",
@@ -387,6 +394,9 @@
   "errors": {
     "offline": "Du bist offline.",
     "rate_limited": "Zu viele Versuche – bitte warte kurz.",
+    "waiting_one": "Dein Beitrag wartet noch – mehr {{what}} gehen nicht auf einmal. Sobald er gesendet oder abgelehnt ist, kannst du den nächsten schicken.",
+    "waiting_other": "Du hast schon {{count}} Beiträge in der Warteschlange – mehr {{what}} gehen nicht auf einmal. Sobald einer gesendet oder abgelehnt ist, kannst du den nächsten schicken.",
+    "daily": "Du hast in den letzten 24 Stunden schon {{max}} {{what}} geschickt – mehr gehen an einem Tag nicht. Wieder möglich {{when}}.",
     "closed": "Für diese Sendung sind Beiträge geschlossen.",
     "not_accepted_now": "Diese Sendung nimmt das gerade nicht an.",
     "invalid_youtube_url": "Das sieht nicht nach einem YouTube-Link aus.",

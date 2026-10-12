@@ -475,7 +475,18 @@ something — and a tap opens `LockedSheet`: why, when again (the next run of
 a program that takes it, from the week's day files: `lib/intake.ts`), and
 what can be sent instead; on desktop its hint says "Again from 18:00".
 Until the first minute file is in (`engine.hasData`), no tile is locked: a
-tap then opens its form, not a wrong "not now" (the server checks anyway). Every
+tap then opens its form, not a wrong "not now" (the server checks anyway).
+A listener's limits (`Submissions::LIMITS`; station decision 2026-10-12,
+replacing hourly ones that carried a block into the next program and counted
+what the check declined) count what is still waiting — being checked, before
+a moderator, accepted, planned and not yet aired; freed when it airs, is
+declined or its program can no longer take it: song requests 3, video
+suggestions 1, recordings 3, typed prayer requests 4, one's own prayers in a
+prayer hour 3 — and, against cost and abuse, every send in 24 hours (20, 10,
+12, 20, 16); 60 an hour per address. Counted after the input checks: a file
+or text refused takes no place. A refusal is 429 `rate_limited` with `limit`,
+`kind`, `max` and the day's `until`, which the forms put in words
+(`refusalText`). Every
 form asks "Stay anonymous" (`NameOrAnonymous`, unticked at first: named is the
 station's default): unticked, a first name is needed, and it is said on air
 with the place (and shown on a prayer wall); ticked, the form sends neither,
@@ -960,7 +971,9 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
 generator's timing invariants, the PHP→fixture contract (a prayer hour's
 files too), identity, submissions (request blocks, late approvals, the queue
-sweep, intake times and why a type is closed, the prayer wall, typed prayers read out word for word or
+sweep, intake times and why a type is closed, a listener's limits (so
+many waiting, freed by airing, a decline or the program's end; the day's
+brake and its time; nothing refused counted), the prayer wall, typed prayers read out word for word or
 given back, one taken off the wall never read, listeners' prayers: consent,
 limits, never on the wall; praying along), the host never praying
 (`host.php`: the rule in the prompt, the guard, every template and lead-in,
@@ -1085,8 +1098,9 @@ request shown from its reading on, the pulse's voice reactions, when a
 locked tile opens again (the next run that takes it, never the one on air,
 a run across midnight once, a day without its file skipped); jsdom: a locked
 tile (marked, its time on the tile, tapped: why — not taken, too late, full
-— when again and in which program, what instead, none in the week), the
-stage's prayer view (buttons by the minute file, the count, the page, a
+— when again and in which program, what instead, none in the week), a
+refused send's words (which limit, what frees it, the day's time; an older
+server's answer as before), the stage's prayer view (buttons by the minute file, the count, the page, a
 reading, a listener's prayer as theirs), the Pray sheet (recorder first,
 written instead, both endpoints, the yes never ticked in advance, staying
 anonymous), our audio not starting a clip over in its quiet, nor taken for paused while it loads, nor refused when a re-entry overtakes its start, voice played whole (from its first word near its start, never sought, its last words before the next clip and under prayer music, a stalled one stopped) and never through Web Audio, muted for a recording, the prayer

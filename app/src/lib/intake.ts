@@ -34,6 +34,10 @@ export const TILE_TONE: Readonly<Record<Tile, 'purple' | 'green' | 'blue' | 'gol
 
 export const TILES = Object.keys(TILE_TYPES) as Tile[];
 
+/** What the server counts a listener's sends by (Submissions::LIMITS): a recorded prayer request is a recording. */
+export const LIMIT_KINDS = ['song', 'video', 'recording', 'prayer', 'intercession'] as const;
+export type LimitKind = (typeof LIMIT_KINDS)[number];
+
 /** `off`: the program on air does not take it at all. */
 export type TileState = SubmissionState | 'off';
 

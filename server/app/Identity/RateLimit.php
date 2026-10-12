@@ -25,6 +25,21 @@ final class RateLimit
         return true;
     }
 
+    /** How many attempts the window holds now (counting none). */
+    public function used(string $key, int $windowSeconds): int
+    {
+        return (int) $this->app->store()->value('SELECT COUNT(*) FROM attempts WHERE key = ? AND time > ?', [$key, $this->app->clock->now() - $windowSeconds]);
+    }
+
+    /** When the window has room again (unix seconds): the moment the attempt that fills it drops out. */
+    public function freeAt(string $key, int $limit, int $windowSeconds): int
+    {
+        $now = $this->app->clock->now();
+        $over = max(0, $this->used($key, $windowSeconds) - $limit);
+        $time = $this->app->store()->value('SELECT time FROM attempts WHERE key = ? AND time > ? ORDER BY time LIMIT 1 OFFSET ?', [$key, $now - $windowSeconds, $over]);
+        return $time === null ? $now : (int) $time + $windowSeconds;
+    }
+
     public function ipKey(?string $ip = null): string
     {
         $ip ??= (string) ($_SERVER['REMOTE_ADDR'] ?? '');

@@ -163,6 +163,13 @@
       "schedule": "See the schedule",
       "ok": "Got it"
     },
+    "kinds": {
+      "song": "song requests",
+      "video": "video suggestions",
+      "recording": "recordings",
+      "prayer": "prayer requests",
+      "intercession": "prayers"
+    },
     "sent": "Thank you! We'll let you know when it's on air.",
     "name": "Your first name",
     "place": "Where are you from? (city or country)",
@@ -387,6 +394,9 @@
   "errors": {
     "offline": "You're offline.",
     "rate_limited": "Too many attempts — please wait a little.",
+    "waiting_one": "Your contribution is still waiting — no more {{what}} at once. As soon as it has aired or been declined, you can send the next one.",
+    "waiting_other": "You already have {{count}} waiting — no more {{what}} at once. As soon as one has aired or been declined, you can send the next.",
+    "daily": "You’ve sent {{max}} {{what}} in the last 24 hours — that’s the most for one day. Possible again {{when}}.",
     "closed": "Submissions are closed for this program.",
     "not_accepted_now": "This program doesn't accept that right now.",
     "invalid_youtube_url": "That doesn't look like a YouTube link.",
