@@ -12,6 +12,8 @@ final class Response
         public readonly array $headers = [],
         /** A private file sent as the body instead of JSON. */
         public readonly ?string $file = null,
+        /** JSON sent exactly as given (`data` holds what it says): the bytes a hash was taken of, which no encoder may change. */
+        public readonly ?string $json = null,
     ) {}
 
     /** A file from the private data dir, for the requester only (never cached). */
@@ -37,7 +39,7 @@ final class Response
         header('X-Content-Type-Options: nosniff');
         header('Referrer-Policy: strict-origin-when-cross-origin');
         foreach ($this->headers as $k => $v) header($k . ': ' . $v);
-        $body = json_encode($this->data ?: new \stdClass(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        $body = $this->json ?? json_encode($this->data ?: new \stdClass(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         header('Content-Length: ' . strlen((string) $body));
         echo $body;
     }

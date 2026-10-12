@@ -169,6 +169,27 @@ export interface ModWorker {
   protocol?: number;
   platform?: { os?: string; arch?: string; accelerator?: string; memory_gb?: number };
   engines?: { kind: 'tts' | 'text' | 'stt'; model: string; location: 'local' | 'cloud'; voices: number }[];
+  /** Whether it runs the station's setup (Workers\Profile): only one in step speaks; `detail` says why not. */
+  profile?: { state: ProfileStanding; detail: string };
+  /** What it says it runs: its backend, number format, and how its last checks went. */
+  setup?: { backend?: string; dtype?: string; checks?: { voice: string; lang: string; ok: boolean; cps: number; error?: string }[] };
+}
+
+/**
+ * Where a computer stands with the station's setup, as its last poll showed
+ * it: '' (never polled), in step, or why not.
+ */
+export type ProfileStanding = '' | 'ok' | 'syncing' | 'unmet' | 'failing' | 'stale' | 'differs' | 'old';
+
+/** The station's setup for its computers (GET /mod/workers `profile`): our own voices and what every computer must run. */
+export interface ModWorkerProfile {
+  voices: { id: string; langs: { lang: string; seconds: number; bytes: number; text: string; updated: number }[] }[];
+  hash: string;
+  code: number;
+  backends: string[];
+  dtypes: string[];
+  speech: Record<string, number>;
+  checks: { every: number; takes: { voice: string; lang: string; text: string }[] };
 }
 
 /** An invite nobody has used yet: a computer joins with its code once (shown only when it is made). */
@@ -578,6 +599,11 @@ const KNOWN: Record<string, string> = {
   worker_name: 'mod.workers.errors.worker_name',
   worker_trust: 'mod.workers.errors.worker_trust',
   no_worker: 'mod.workers.errors.no_worker',
+  voice_name: 'mod.workers.errors.voice_name',
+  voice_lang: 'mod.workers.errors.voice_lang',
+  voice_text: 'mod.workers.errors.voice_text',
+  voice_file: 'mod.workers.errors.voice_file',
+  voice_length: 'mod.workers.errors.voice_length',
   knowledge_not_configured: 'mod.knowledge.errors.not_configured',
   not_ready: 'mod.knowledge.errors.not_ready',
   fact_needs_source: 'mod.knowledge.errors.fact_needs_source',

@@ -5,6 +5,7 @@ namespace Arche\Api;
 
 use Arche\ApiError;
 use Arche\Http\Context;
+use Arche\Http\Response;
 use Arche\Workers\Computers;
 
 /**
@@ -41,7 +42,9 @@ final class WorkerApi
     /**
      * The heartbeat and the market: what the computer says about itself is
      * noted (written only where it changed), the tasks it holds are kept or
-     * named back to stop, and it is offered what it could and may do now.
+     * named back to stop, and it is offered what it could and may do now —
+     * speech only while it runs the station's profile (Workers\Profile),
+     * whose hash every answer names.
      */
     public function poll2(): array
     {
@@ -64,6 +67,8 @@ final class WorkerApi
             'resume_at' => $state === 'paused' && is_int($resumeIn) && $resumeIn > 0 ? $now + min($resumeIn, 30 * 86400) : 0,
         ];
         if (isset($in['caps'])) $said += ['caps' => Computers::caps($in['caps']), 'caps_hash' => $hash];
+        // Where it stands with the profile, by its report and the caps it sent now or last.
+        [$said['profile_state'], $said['profile_detail']] = $app->workerProfile()->standing(isset($said['caps']) ? ['caps' => $said['caps']] + $c : $c, $in['profile'] ?? null);
         $c = $app->computers()->polled($c, $said);
         $needCaps = !isset($in['caps']) && $hash !== $c['caps_hash'];
         $running = is_array($in['running'] ?? null) ? $in['running'] : [];
@@ -71,8 +76,23 @@ final class WorkerApi
         $free = [];
         foreach ($kinds as $kind) $free[$kind] = max(0, (int) ($in['free'][$kind] ?? 0));
         $offers = $state === 'ready' && !$needCaps && $c['resting_until'] <= $now ? $app->workerTasks()->offers($c, $free) : [];
-        return ['now' => $now, 'offers' => $offers, 'cancel' => $cancel, 'need_caps' => $needCaps,
+        return ['now' => $now, 'offers' => $offers, 'cancel' => $cancel, 'need_caps' => $needCaps, 'profile' => $app->workerProfile()->hash(),
             'retry_after' => $this->retryAfter($c, $state, $offers !== [], count($running) > count($cancel))];
+    }
+
+    /** What the station expects of this computer (PROTOCOL.md, `profile`), as the very bytes its hash was taken of. */
+    public function profile(): Response
+    {
+        $this->computer();
+        [$doc, $json] = $this->c->app->workerProfile()->served();
+        return new Response($doc, 200, [], null, $json);
+    }
+
+    /** A recording the profile names (PROTOCOL.md, `files`) — no other file. @param array<string,string> $a */
+    public function file(array $a): Response
+    {
+        $this->computer();
+        return Response::file($this->c->app->workerProfile()->path((string) ($a['sha'] ?? '')), 'audio/wav');
     }
 
     /** @param array<string,string> $a */
@@ -121,6 +141,9 @@ final class WorkerApi
             'state' => $ready ? 'ready' : 'loading',
             'caps' => $caps,
             'caps_hash' => hash('sha256', (string) json_encode($caps)),
+            // It knows no profile: no speech in step with the station's (Workers\Profile) — an update to herde.
+            'profile_state' => 'old',
+            'profile_detail' => '',
         ]);
         if (!$ready) return ['task' => null, 'retry_after' => 15];
         $task = $c['resting_until'] <= $app->clock->now() ? $app->workerTasks()->leaseV1($c) : null;

@@ -974,7 +974,24 @@ final class ModApi
     public function workers(): array
     {
         $this->admin();
-        return ['workers' => $this->c->app->computers()->list(), 'invites' => $this->c->app->computers()->invites()];
+        return ['workers' => $this->c->app->computers()->list(), 'invites' => $this->c->app->computers()->invites(),
+            'profile' => $this->c->app->workerProfile()->view()];
+    }
+
+    /** A recording of one of our own voices, for every computer (Workers\Profile): multipart, the WAV in `audio`. */
+    public function workerVoiceAdd(): array
+    {
+        $this->admin();
+        $in = $this->c->req->json();
+        return ['profile' => $this->c->app->workerProfile()->addRecording((string) ($in['voice'] ?? ''), (string) ($in['lang'] ?? ''),
+            (string) ($in['text'] ?? ''), $this->c->req->file('audio'), $this->actor())];
+    }
+
+    /** @param array<string,string> $a */
+    public function workerVoiceDelete(array $a): array
+    {
+        $this->admin();
+        return ['profile' => $this->c->app->workerProfile()->removeRecording((string) ($a['voice'] ?? ''), (string) ($a['lang'] ?? ''), $this->actor())];
     }
 
     /** One of ours, added here: its key is in this answer only. */

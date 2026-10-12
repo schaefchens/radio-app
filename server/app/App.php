@@ -58,6 +58,7 @@ use Arche\Support\HttpClient;
 use Arche\Support\Lock;
 use Arche\Tick\Tick;
 use Arche\Workers\Computers;
+use Arche\Workers\Profile;
 use Arche\Workers\Tasks;
 
 /**
@@ -275,6 +276,12 @@ final class App
     public function workerTasks(): Tasks
     {
         return $this->service('workerTasks', Tasks::class, fn() => new Tasks($this));
+    }
+
+    /** The one setup every computer that speaks for a host must run (herde's profiles). */
+    public function workerProfile(): Profile
+    {
+        return $this->service('workerProfile', Profile::class, fn() => new Profile($this));
     }
 
     public function jobs(): Jobs

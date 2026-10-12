@@ -1328,7 +1328,12 @@
       "errors": {
         "worker_name": "A computer needs a name of at most 60 characters.",
         "no_worker": "No computer is online with this voice right now. Start the worker on a Mac, then try again.",
-        "worker_trust": "Choose whose computer it is."
+        "worker_trust": "Choose whose computer it is.",
+        "voice_name": "A voice needs a name of letters, digits, _ or - (at most 40), and not the name of one of Qwen's voices.",
+        "voice_lang": "Choose the recording's language.",
+        "voice_text": "Write exactly what the recording says, at most 1000 characters.",
+        "voice_file": "The recording must be a WAV file (PCM) of at most 8 MB.",
+        "voice_length": "The recording must be 3 to 30 seconds long."
       },
       "trustOwn": "Ours",
       "trustLender": "Lent",
@@ -1369,9 +1374,46 @@
       "inviteDockerLabel": "Docker commands to join and run",
       "inviteDockerHint": "The first joins with the code; the second runs the worker, now and after every restart. Its status page, with a Pause button, is http://127.0.0.1:8737 on that computer.",
       "inviteAmdHint": "An RX 6600 or 6700: put -e HSA_OVERRIDE_GFX_VERSION=10.3.0 into the second line before the image (a Radeon 780M: 11.0.0). Windows cannot hand an AMD GPU to Docker; that takes Linux.",
-      "inviteVoices": "A voice of our own, like Faith, needs its recordings on that computer: put them into a folder named voices, then docker cp voices herde:/config/ and docker restart herde. Qwen's voices, like Grace's, are there already.",
+      "inviteVoices": "A voice of our own, like Faith, comes from the station by itself: the computer fetches its recordings and checks them before it speaks. Qwen's voices, like Grace's, come with the model.",
       "inviteMore": "Everything else (a Mac, pausing, updates) is in herde's README: github.com/schaefchens/herde",
-      "copyDocker": "Copy the Docker lines"
+      "copyDocker": "Copy the Docker lines",
+      "standing": {
+        "ok": "In step",
+        "syncing": "Taking on the setup",
+        "unmet": "Cannot run the setup",
+        "failing": "Failed its checks",
+        "stale": "Not checked lately",
+        "differs": "Set up differently",
+        "old": "herde too old"
+      },
+      "standingWhy": {
+        "syncing": "It is fetching or checking the station's setup and speaks for no host until then.",
+        "unmet": "Its owner must update herde or change its config:",
+        "failing": "Its check takes did not sound right; it tries again in ten minutes:",
+        "stale": "It has not verified its setup for over half an hour and speaks for no host until it does.",
+        "differs": "What it runs is not the station's setup:",
+        "old": "This herde knows no station setup: update herde on that computer."
+      },
+      "checksPassed": "checks {{passed}} of {{total}} passed",
+      "voicesTitle": "Our own voices",
+      "voicesIntro": "Every computer that speaks for a host runs the station's setup: these recordings, the same settings in every take, and check takes every {{hours}} hours. A new recording reaches every computer by itself; until a computer has checked it, it speaks for no host.",
+      "voicesEmpty": "No voice of our own yet. Qwen's voices (Sohee, Ryan, Serena …) need no recording.",
+      "voiceTake": "{{lang}} · {{seconds}} s",
+      "voiceRemove": "Remove {{lang}}",
+      "voiceRemoveConfirm": "Remove the {{lang}} recording of {{voice}}? The computers then no longer speak {{voice}} with it.",
+      "voiceRemoved": "Recording removed. The computers drop it with their next poll.",
+      "voiceAddTitle": "Add a recording",
+      "voiceName": "Voice",
+      "voiceLang": "Language",
+      "voiceLangs": {
+        "de": "German",
+        "en": "English"
+      },
+      "voiceText": "Exactly what the recording says",
+      "voiceTextHint": "The model reads the recording together with its words.",
+      "voiceFile": "Recording (WAV, 3 to 30 seconds)",
+      "voiceAdd": "Upload",
+      "voiceAdded": "Recording saved. Every computer fetches it with its next poll and checks it before it speaks again."
     },
     "lines": {
       "intro": "Lines a host recorded once, such as welcomes, goodbyes and encouragements. The AI picks a fitting one instead of writing and voicing new words each time. A line costs characters only when it is recorded.",

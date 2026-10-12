@@ -5,7 +5,7 @@ import type { Lang } from '@arche/shared';
 import { api } from '@/lib/api';
 import { ago, localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
-import { modError, type ModWorker, type ModWorkerInvite } from './modApi';
+import { modError, type ModWorker, type ModWorkerInvite, type ModWorkerProfile } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
 import { GPUS, configSnippet, dockerCommands, joinCommand, type Gpu } from './workerConfig';
 
@@ -19,12 +19,15 @@ const wallClock = (): number => Date.now();
  * from the station by itself (no public address needed) with a key of its
  * own. A computer joins with a one-time invite (herde trades the code for
  * its key); a lent one gets work without listeners' words only, and moments
- * on air only when an admin lets it. The old voice worker (protocol 1) is
- * still added with a key shown once.
+ * on air only when an admin lets it. Every computer runs the station's
+ * setup (Workers\Profile): our own voices, the same settings in every take,
+ * checks every few hours — one out of step speaks for no host until it is in
+ * step again. The old voice worker (protocol 1) is still added with a key
+ * shown once, and speaks for no host: it knows no setup.
  */
 export function WorkersSection() {
   const { t } = useTranslation();
-  const { data, error, reload } = useApi<{ workers: ModWorker[]; invites?: ModWorkerInvite[] }>('/mod/workers');
+  const { data, error, reload } = useApi<{ workers: ModWorker[]; invites?: ModWorkerInvite[]; profile?: ModWorkerProfile }>('/mod/workers');
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   // A key or an invite's code just made: this is the only time anyone sees it.
   const [shown, setShown] = useState<{ name: string; key: string } | null>(null);
@@ -57,6 +60,7 @@ export function WorkersSection() {
           ))}
         </ul>
       )}
+      {data?.profile && <VoicesPanel profile={data.profile} onChanged={(text) => changed(text)} />}
       {invites.length > 0 && <OpenInvites invites={invites} onChanged={changed} />}
       <InviteForm
         onInvited={(name, code, expires) => {
@@ -137,6 +141,15 @@ function WorkerRow({ worker: w, onChanged }: { worker: ModWorker; onChanged: (te
   const platform = [w.platform?.accelerator || [w.platform?.os, w.platform?.arch].filter(Boolean).join(' '), w.protocol === 1 ? t('mod.workers.oldWorker') : '']
     .filter(Boolean)
     .join(', ');
+  // Whether it runs the station's setup: only one in step speaks for a host.
+  const standing = w.profile?.state ?? '';
+  const checks = w.setup?.checks ?? [];
+  const setup = [
+    w.setup?.backend && [w.setup.backend, w.setup.dtype].filter(Boolean).join(' '),
+    checks.length > 0 && t('mod.workers.checksPassed', { passed: checks.filter((c) => c.ok).length, total: checks.length }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <li className="card-inset flex flex-col gap-2 p-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -147,11 +160,18 @@ function WorkerRow({ worker: w, onChanged }: { worker: ModWorker; onChanged: (te
         )}
         {w.trust && <Pill tone={lender ? 'warn' : 'default'}>{lender ? t('mod.workers.trustLender') : t('mod.workers.trustOwn')}</Pill>}
         {status}
+        {standing && <Pill tone={standing === 'ok' ? 'good' : standing === 'syncing' || standing === 'stale' ? 'warn' : 'bad'}>{t(`mod.workers.standing.${standing}`)}</Pill>}
         <span className="text-xs text-ink-muted">{w.last_seen > 0 ? t('mod.workers.lastSeen', { when: ago(w.last_seen * 1000, now, lang) }) : t('mod.workers.never')}</span>
       </div>
+      {standing && standing !== 'ok' && (
+        <p className="break-words text-xs text-ink-muted">
+          {t(`mod.workers.standingWhy.${standing}`)}
+          {w.profile?.detail && <span className="font-mono"> {w.profile.detail}</span>}
+        </p>
+      )}
       {(w.version || engines || voices || platform) && (
         <p className="break-words text-xs text-ink-muted">
-          {[w.version, platform, engines, voices && t('mod.workers.voices', { list: voices })].filter(Boolean).join(' · ')}
+          {[w.version, platform, engines, voices && t('mod.workers.voices', { list: voices }), setup].filter(Boolean).join(' · ')}
         </p>
       )}
       <p className="text-xs text-ink-muted">
@@ -206,6 +226,127 @@ function WorkerRow({ worker: w, onChanged }: { worker: ModWorker; onChanged: (te
         />
       </div>
     </li>
+  );
+}
+
+/**
+ * Our own voices, for every computer (Workers\Profile): a recording per
+ * language with exactly what it says. Every computer, ours or lent, fetches a
+ * new one by itself and checks it before it speaks again.
+ */
+function VoicesPanel({ profile, onChanged }: { profile: ModWorkerProfile; onChanged: (text: string) => void }) {
+  const { t } = useTranslation();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const act = async (call: () => Promise<unknown>, text: string): Promise<void> => {
+    setBusy(true);
+    setError(null);
+    try {
+      await call();
+      onChanged(text);
+    } catch (e) {
+      setError(modError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="label">{t('mod.workers.voicesTitle')}</p>
+      <p className="text-sm text-ink-muted">{t('mod.workers.voicesIntro', { hours: Math.round(profile.checks.every / 3600) })}</p>
+      {error && <Notice tone="error">{error}</Notice>}
+      {profile.voices.length === 0 ? (
+        <p className="text-sm text-ink-muted">{t('mod.workers.voicesEmpty')}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {profile.voices.map((v) => (
+            <li key={v.id} className="card-inset flex flex-col gap-2 p-3">
+              <p className="font-medium">{v.id}</p>
+              <ul className="flex flex-col gap-1">
+                {v.langs.map((r) => (
+                  <li key={r.lang} className="flex flex-wrap items-center gap-2 text-sm">
+                    <span>{t('mod.workers.voiceTake', { lang: r.lang.toUpperCase(), seconds: r.seconds })}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-ink-muted">{r.text}</span>
+                    <ConfirmButton
+                      className="btn-ghost px-3 py-1 text-sm"
+                      label={t('mod.workers.voiceRemove', { lang: r.lang.toUpperCase() })}
+                      question={t('mod.workers.voiceRemoveConfirm', { voice: v.id, lang: r.lang.toUpperCase() })}
+                      disabled={busy}
+                      onConfirm={() => void act(() => api(`/mod/workers/voices/${encodeURIComponent(v.id)}/${r.lang}`, { method: 'DELETE' }), t('mod.workers.voiceRemoved'))}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+      <RecordingForm known={profile.voices.map((v) => v.id)} onSaved={onChanged} onError={setError} />
+    </div>
+  );
+}
+
+/** A recording of one of our voices — a new one, another language, or a new take — with exactly what it says. */
+function RecordingForm({ known, onSaved, onError }: { known: string[]; onSaved: (text: string) => void; onError: (text: string) => void }) {
+  const { t } = useTranslation();
+  const [voice, setVoice] = useState('');
+  const [lang, setLang] = useState<Lang>('de');
+  const [text, setText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  // A new key empties the file input after an upload: its value cannot be set from here.
+  const [round, setRound] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const upload = async (): Promise<void> => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.set('voice', voice.trim());
+      form.set('lang', lang);
+      form.set('text', text);
+      form.set('audio', file);
+      await api('/mod/workers/voices', { form });
+      setText('');
+      setFile(null);
+      setRound((r) => r + 1);
+      onSaved(t('mod.workers.voiceAdded'));
+    } catch (e) {
+      onError(modError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="label">{t('mod.workers.voiceAddTitle')}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Field label={t('mod.workers.voiceName')}>
+          <input className="field" list="own-voices" maxLength={40} value={voice} placeholder="Faith" onChange={(e) => setVoice(e.target.value)} />
+          <datalist id="own-voices">
+            {known.map((v) => (
+              <option key={v} value={v} />
+            ))}
+          </datalist>
+        </Field>
+        <Field label={t('mod.workers.voiceLang')}>
+          <select className="field" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+            <option value="de">{t('mod.workers.voiceLangs.de')}</option>
+            <option value="en">{t('mod.workers.voiceLangs.en')}</option>
+          </select>
+        </Field>
+      </div>
+      <Field label={t('mod.workers.voiceText')} hint={t('mod.workers.voiceTextHint')}>
+        <textarea className="field" rows={2} maxLength={1000} value={text} onChange={(e) => setText(e.target.value)} />
+      </Field>
+      <Field label={t('mod.workers.voiceFile')}>
+        <input key={round} type="file" accept="audio/wav,.wav" className="text-sm" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      </Field>
+      <div>
+        <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={busy || !file || voice.trim() === '' || text.trim() === ''} onClick={() => void upload()}>
+          {t('mod.workers.voiceAdd')}
+        </button>
+      </div>
+    </div>
   );
 }
 

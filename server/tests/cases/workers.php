@@ -6,6 +6,7 @@ use Arche\Http\Kernel;
 use Arche\Http\Request;
 use Arche\Schema;
 use Arche\Workers\Computers;
+use Arche\Workers\Profile;
 use Arche\Workers\Tasks;
 
 /**
@@ -33,20 +34,43 @@ function newWorker(Arche\App $app, string $name = 'Studio Mac'): string
     return $app->computers()->create($name, 'test')['key'];
 }
 
-/** @return array{0:int,1:array<string,mixed>} */
-function workerPoll(Arche\App $app, string $key, array $more = []): array
+/** A protocol 1 poll, as ARCHE's first worker made it: it knows no profile, so it is given no speech. @return array{0:int,1:array<string,mixed>} */
+function workerPollV1(Arche\App $app, string $key, array $more = []): array
 {
     return call($app, 'POST', '/api/worker/poll', qwenReport($more), ['x-arche-worker-key' => $key]);
 }
 
-/** A protocol 1 upload, multipart like the real one. @return array{0:int,1:array<string,mixed>} */
+/**
+ * A computer that polls, takes the most urgent speech it may, and says what
+ * it is — once protocol 1's way, now herde's, in step with the station's
+ * profile: these voices in English and German, or not ready.
+ *
+ * @return array{0:int,1:array<string,mixed>}
+ */
+function workerPoll(Arche\App $app, string $key, array $more = []): array
+{
+    $report = qwenReport($more);
+    $voices = array_map(fn($v) => is_array($v) ? $v : ['id' => (string) $v, 'label' => (string) $v], $report['voices']);
+    [$s, $d] = poll2($app, $key, ['state' => $report['ready'] ? 'ready' : 'loading', 'free' => ['tts' => 1]], herdeCaps($voices, $report['languages']));
+    if ($s !== 200) return [$s, $d];
+    foreach ($d['offers'] as $offer) {
+        $lease = 'lease-' . bin2hex(random_bytes(8));
+        if (claim2($app, $key, (int) $offer['task'], $lease)[0] !== 200) continue;
+        $GLOBALS['workerLeases'][(int) $offer['task']] = $lease;
+        $t = $app->workerTasks()->task((int) $offer['task']) ?? throw new LogicException('task vanished');
+        // As protocol 1 handed a task over (Tasks::leaseV1).
+        return [200, ['task' => ['id' => $t['id'], 'purpose' => $t['purpose'], 'text' => (string) ($t['input']['text'] ?? ''), 'lang' => $t['lang'], 'voice' => $t['voice'],
+            'model' => (string) ($app->hosts()->get($t['host_id'])['model'] ?? '') ?: Computers::MODEL, 'instruct' => (string) ($t['input']['instruct'] ?? ''),
+            'temperature' => (float) ($t['input']['temperature'] ?? 0.7), 'seed' => (int) ($t['input']['seed'] ?? 0), 'lease_until' => $t['lease_until']],
+            'retry_after' => $d['retry_after']]];
+    }
+    return [200, ['task' => null, 'retry_after' => $d['retry_after']]];
+}
+
+/** The speech for a task workerPoll took, handed back as herde does (multipart). @return array{0:int,1:array<string,mixed>} */
 function workerUpload(Arche\App $app, string $key, int $taskId, ?string $mp3 = null): array
 {
-    $tmp = tempnam(sys_get_temp_dir(), 'wk');
-    file_put_contents($tmp, $mp3 ?? mp3());
-    $req = new Request('POST', "/api/worker/tasks/$taskId/audio", [], ['x-arche-worker-key' => $key], '', ['ms' => '3000'], ['audio' => ['tmp_name' => $tmp, 'error' => UPLOAD_ERR_OK]], '10.0.0.9');
-    $res = (new Kernel($app))->handle($req);
-    return [$res->status, $res->data];
+    return result2($app, $key, $taskId, $GLOBALS['workerLeases'][$taskId] ?? 'never-claimed-lease', $mp3);
 }
 
 /** The seeded host, speaking with a computer's voice from now on (Ryan in English, Sohee in German). @return array<string,mixed> */
@@ -70,23 +94,37 @@ function speakAll(Arche\App $app, string $key, int $n = 10, ?string $mp3 = null)
 
 // --- protocol 2 (herde) ---------------------------------------------------------------------------
 
-/** A herde worker's capabilities: Qwen's speech, these voices in English and German. @return array<string,mixed> */
-function herdeCaps(?array $voices = null, array $langs = ['en', 'de'], array $engines = []): array
+/** A herde worker's capabilities: Qwen's speech, these voices in English and German, set up as the station's profile asks. @return array<string,mixed> */
+function herdeCaps(?array $voices = null, array $langs = ['en', 'de'], array $engines = [], ?array $setup = null): array
 {
     $voices ??= QWEN_VOICES;
     return ['name' => 'Studio Mac', 'platform' => ['os' => 'darwin', 'arch' => 'arm64', 'accelerator' => 'Apple M1 Max'], 'engines' => [
         ['kind' => 'tts', 'model' => Computers::TTS, 'location' => 'local', 'max_chars' => 2000,
-            'voices' => array_map(fn($v) => $v + ['langs' => $langs, 'instruct' => true], $voices)],
+            'voices' => array_map(fn($v) => $v + ['langs' => $langs, 'instruct' => true], $voices), 'setup' => $setup ?? herdeSetup()],
         ...$engines,
     ]];
 }
 
-/** A protocol 2 poll; the caps go along unless `caps` is false. @return array{0:int,1:array<string,mixed>} */
+/** What herde's stub (the tests' computer) runs when it runs the station's profile: its caps' setup. @param array<string,array<string,string>> $voices own voices' recordings @return array<string,mixed> */
+function herdeSetup(array $voices = [], array $more = []): array
+{
+    return $more + ['code' => Profile::CODE, 'backend' => 'stub', 'model' => '', 'clone_model' => '', 'dtype' => '', 'speech' => Profile::SPEECH,
+        'voices' => $voices, 'checks' => [['voice' => 'Sohee', 'lang' => 'de', 'ok' => true, 'cps' => 13.0]]];
+}
+
+/** How a computer stands with the station's profile, as its poll reports it: in step, unless told otherwise. @return array<string,mixed> */
+function profileReport(Arche\App $app, string $key, array $more = []): array
+{
+    return $more + ['hash' => $app->workerProfile()->hash(), 'state' => 'ok', 'verified_ago' => 60];
+}
+
+/** A protocol 2 poll; the caps go along unless `caps` is false; in step with the profile unless `profile` says otherwise (null: no report). @return array{0:int,1:array<string,mixed>} */
 function poll2(Arche\App $app, string $key, array $more = [], ?array $caps = null, bool $sendCaps = true): array
 {
     $caps ??= herdeCaps();
-    $body = $more + ['protocol' => 2, 'version' => 'herde/0.2.0', 'kinds' => ['tts' => [1], 'text' => [1]], 'state' => 'ready',
-        'caps_hash' => hash('sha256', (string) json_encode($caps)), 'running' => [], 'free' => ['tts' => 1, 'text' => 1]];
+    $body = $more + ['protocol' => 2, 'version' => 'herde/0.5.0', 'kinds' => ['tts' => [1], 'text' => [1]], 'state' => 'ready',
+        'caps_hash' => hash('sha256', (string) json_encode($caps)), 'running' => [], 'free' => ['tts' => 1, 'text' => 1], 'profile' => profileReport($app, $key)];
+    if ($body['profile'] === null) unset($body['profile']);
     if ($sendCaps && !isset($more['caps'])) $body['caps'] = $caps;
     return call($app, 'POST', '/api/worker/v2/poll', $body, ['x-worker-key' => $key]);
 }
@@ -200,16 +238,16 @@ test('workers: a computer\'s key is shown once and kept as an HMAC; a wrong key,
     eq(call($app, 'GET', '/api/mod/workers', [], $admin)[1]['workers'][0]['key_hint'] ?? null, substr($key, -4), 'the list never shows more');
     check(!str_contains((string) json_encode(call($app, 'GET', '/api/mod/workers', [], $admin)[1]), $key), 'nor the key');
 
-    eq(workerPoll($app, str_repeat('0', 64)), [401, ['error' => 'bad_worker_key']], 'a wrong key is refused');
-    eq(workerPoll($app, $key)[0], 200, 'its own is not');
+    eq(workerPollV1($app, str_repeat('0', 64)), [401, ['error' => 'bad_worker_key']], 'a wrong key is refused');
+    eq(workerPollV1($app, $key)[0], 200, 'its own is not');
     eq(poll2($app, $key)[0], 200, 'the same key speaks protocol 2, in its own header');
     $id = (int) $d['worker']['id'];
     call($app, 'PATCH', "/api/mod/workers/$id", ['active' => false], $admin);
-    eq(workerPoll($app, $key), [403, ['error' => 'worker_inactive']], 'switched off');
+    eq(workerPollV1($app, $key), [403, ['error' => 'worker_inactive']], 'switched off');
     eq(poll2($app, $key), [403, ['error' => 'worker_inactive']], 'in either protocol');
     [, $rotated] = call($app, 'PATCH', "/api/mod/workers/$id", ['active' => true, 'rotate' => true], $admin);
-    eq(workerPoll($app, $key)[0], 401, 'a new key: the old one stops working');
-    eq(workerPoll($app, (string) $rotated['key'])[0], 200, 'the new one works');
+    eq(workerPollV1($app, $key)[0], 401, 'a new key: the old one stops working');
+    eq(workerPollV1($app, (string) $rotated['key'])[0], 200, 'the new one works');
     eq(call($app, 'GET', '/api/mod/workers', [], moderatorHeaders($app))[0], 403, 'computers are for admins');
     eq(call($app, 'DELETE', "/api/mod/workers/$id", [], $admin)[0], 200, 'removed');
     check(!str_contains((string) json_encode($app->store()->all('SELECT detail FROM audit')), $key), 'the audit never names a key');
@@ -231,7 +269,7 @@ test('workers: an invite is a one-time code — used once, gone after three days
     eq(call($app, 'POST', '/api/worker/v2/join', ['code' => $inv['code'], 'name' => 'again', 'version' => 'x', 'platform' => $platform]), [401, ['error' => 'bad_code']], 'used once');
     eq(call($app, 'GET', '/api/mod/workers', [], $admin)[1]['invites'], [], 'and no longer listed');
     eq(poll2($app, (string) $j['key'])[0], 200, 'its key works');
-    eq(workerPoll($app, (string) $j['key']), [403, ['error' => 'worker_inactive']], 'but not in protocol 1, which knows no trust');
+    eq(workerPollV1($app, (string) $j['key']), [403, ['error' => 'worker_inactive']], 'but not in protocol 1, which knows no trust');
 
     [, $old] = call($app, 'POST', '/api/mod/workers/invites', ['name' => 'Late', 'trust' => 'own'], $admin);
     TestKit::clock($app)->advance(73 * 3_600_000);
@@ -254,7 +292,10 @@ test('workers: the protocol\'s example exchanges (herde) — the station answers
     $answer = function (string $name, array $actual) {
         $f = herdeFixture($name);
         eq($actual[0], (int) $f['response']['status'], "$name: status");
-        eq(herdeDiff(json_decode((string) json_encode($actual[1]), true), $f['response']['body'], $name), [], "$name: the answer's shape");
+        $body = json_decode((string) json_encode($actual[1]), true);
+        // A station with a profile names it in every poll answer; most fixtures show a project without one.
+        if (is_array($body) && !array_key_exists('profile', $f['response']['body'])) unset($body['profile']);
+        eq(herdeDiff($body, $f['response']['body'], $name), [], "$name: the answer's shape");
     };
     $platform = ['os' => 'linux', 'arch' => 'x86_64'];
     [, $inv] = call($app, 'POST', '/api/mod/workers/invites', ['name' => "Peter's PC", 'trust' => 'own'], $admin);
@@ -280,6 +321,21 @@ test('workers: the protocol\'s example exchanges (herde) — the station answers
     $answer('poll.busy', poll2($app, $key, ['running' => [['task' => $live, 'lease' => '4d8f0b2e-7c1a-4b5e-9f3d-2a6c8e1b0d47', 'progress' => 0.5], ['task' => 9999, 'lease' => 'a9c05e1f-3b7d-4c2a']], 'free' => ['tts' => 0, 'text' => 0]], $caps, false));
     $answer('poll.paused', poll2($app, $key, ['state' => 'paused', 'resume_in' => 3600, 'free' => ['tts' => 0, 'text' => 0]], $caps, false));
     $answer('poll.upgrade', poll2($app, $key, ['kinds' => ['tts' => [7]]], $caps, false));
+    // The profile (Workers\Profile), with Faith in both languages as in the example.
+    voiceUpload($app, 'Faith', 'de');
+    voiceUpload($app, 'Faith', 'en', wav(5.0), 'That was My God Is Greater. Great to have you with us.');
+    $profile = workerGet($app, $key, 'profile');
+    $shown = json_decode((string) $profile->json, true);
+    // The stub that the tests' computers run is admitted on a local stack only.
+    unset($shown['tts']['backends']['stub']);
+    $answer('profile', [$profile->status, $shown]);
+    $unknown = workerGet($app, $key, 'files/' . str_repeat('c', 64));
+    $answer('files.unknown', [$unknown->status, $unknown->data]);
+    $inStep = capsWithOwn($app);
+    $inStep['engines'][] = $text;
+    $answer('poll.profile', poll2($app, $key, [], $inStep));
+    $answer('poll.profile-syncing', poll2($app, $key, ['profile' => ['hash' => '', 'state' => 'syncing', 'verified_ago' => 0, 'detail' => 'fetching the Base model for its own voices']], $inStep, false));
+    poll2($app, $key, [], $inStep, false); // in step again, for the takes below
     $answer('result.tts-retake', result2($app, $key, $live, '4d8f0b2e-7c1a-4b5e-9f3d-2a6c8e1b0d47', (string) file_get_contents(silentMp3(60))));
     claim2($app, $key, $live, 'second-take-lease-0001');
     $answer('result.tts', result2($app, $key, $live, 'second-take-lease-0001'));
@@ -602,7 +658,7 @@ test('workers: a moment in a worker host\'s voice is asked for every language at
     check($job['phase'] === 'wait' && (int) $job['lease_until'] > $app->clock->now(), 'the job waits, it does not spin');
 
     [$s, $first] = workerPoll($app, $key);
-    eq([$s, $first['task']['lang'], $first['task']['text'] !== '', $first['task']['voice'], $first['task']['model']], [200, 'en', true, 'Ryan', Computers::MODEL], 'a protocol 1 worker is given the first');
+    eq([$s, $first['task']['lang'], $first['task']['text'] !== '', $first['task']['voice'], $first['task']['model']], [200, 'en', true, 'Ryan', Computers::MODEL], 'a computer in step with the profile is given the first');
     eq(workerUpload($app, $key, (int) $first['task']['id']), [200, ['ok' => true]], 'and uploads it');
     eq($app->hostBreaks()->get($id)['state'], 'pending', 'one language is not the moment');
     $second = workerPoll($app, $key)[1]['task'];
@@ -824,6 +880,150 @@ test('workers: a protocol the station does not speak is told what it does', func
     eq(poll2($app, $key, ['protocol' => 3]), [426, ['error' => 'upgrade_required', 'supported' => ['protocol' => [2], 'kinds' => ['tts' => [1], 'text' => [1]]]]], 'another protocol');
     eq(poll2($app, $key, ['kinds' => ['stt' => [1]]])[0], 426, 'no kind it gives out');
     eq(poll2($app, $key, ['caps_hash' => 'nope'], null, false)[0], 400, 'a hash must look like one');
+});
+
+// --- the station's profile (Workers\Profile; herde's PROTOCOL.md, Profiles) -------------------------------
+
+const FAITH_DE = 'Das war Mein Gott ist größer. Schön, dass ihr dabei seid.';
+
+/** A mono 16-bit PCM WAV of $seconds: a soft tone, a recording to clone from. */
+function wav(float $seconds = 4.0, int $rate = 16000): string
+{
+    $data = '';
+    for ($i = 0, $n = (int) ($seconds * $rate); $i < $n; $i++) $data .= pack('v', (int) (3000 * sin($i / 8)) & 0xFFFF);
+    return 'RIFF' . pack('V', 36 + strlen($data)) . 'WAVE' . 'fmt ' . pack('VvvVVvv', 16, 1, 1, $rate, $rate * 2, 2, 16) . 'data' . pack('V', strlen($data)) . $data;
+}
+
+/** A recording of one of our own voices, as an admin uploads it (multipart). @return array{0:int,1:array<string,mixed>} */
+function voiceUpload(Arche\App $app, string $voice, string $lang, ?string $bytes = null, string $text = FAITH_DE, ?array $headers = null): array
+{
+    $tmp = tempnam(sys_get_temp_dir(), 'wv');
+    file_put_contents($tmp, $bytes ?? wav());
+    $req = new Request('POST', '/api/mod/workers/voices', [], $headers ?? adminOf($app), '', ['voice' => $voice, 'lang' => $lang, 'text' => $text],
+        ['audio' => ['tmp_name' => $tmp, 'error' => UPLOAD_ERR_OK]], '10.0.0.9');
+    $res = (new Kernel($app))->handle($req);
+    return [$res->status, $res->data];
+}
+
+/** A GET a computer makes (its profile, a file): the response itself, for its bytes. */
+function workerGet(Arche\App $app, string $key, string $path): Arche\Http\Response
+{
+    return (new Kernel($app))->handle(new Request('GET', "/api/worker/v2/$path", [], ['x-worker-key' => $key], ''));
+}
+
+/** The caps of a herde worker that runs the profile with our own voices' recordings. @return array<string,mixed> */
+function capsWithOwn(Arche\App $app): array
+{
+    $voices = [];
+    foreach ($app->workerProfile()->document()['tts']['voices'] as $v) foreach ($v['langs'] as $lang => $rec) $voices[$v['id']][$lang] = $rec['file'];
+    return herdeCaps(array_merge(QWEN_VOICES, array_map(fn($id) => ['id' => $id, 'label' => "$id (own voice)"], array_keys($voices))), ['en', 'de'], [], herdeSetup($voices));
+}
+
+test('workers: every computer gets the station\'s profile — herde\'s code, the checkpoints, every take\'s settings, our own voices — named by its hash, which herde computes alike', function () {
+    $app = TestKit::app();
+    workerHope($app);
+    eq(voiceUpload($app, 'Faith', 'de')[0], 200, 'an admin records Faith in German');
+    $key = newWorker($app);
+    $res = workerGet($app, $key, 'profile');
+    $doc = $res->data;
+    eq([$res->status, $doc['profile']], [200, hash('sha256', Profile::canonical(['tts' => $doc['tts']]))], 'the hash is of the rest, as canonical JSON');
+    eq([$res->json, Profile::canonical(json_decode((string) $res->json, true))], [Profile::canonical($doc), $res->json], 'sent as the bytes the hash was taken of, canonical');
+    check(str_contains((string) $res->json, '"top_p":1.0'), 'a number as herde reads it back: 1.0 stays 1.0');
+    $tts = $doc['tts'];
+    eq([$tts['model'], $tts['code'], $tts['dtypes'], $tts['speech']], [Computers::TTS, Profile::CODE, ['bf16'], Profile::SPEECH], 'herde\'s speech code, bf16, the settings');
+    eq($tts['backends']['mlx'], Profile::BACKENDS['mlx'], 'the checkpoints, pinned');
+    $faith = $tts['voices'][0];
+    eq([$faith['id'], array_keys($faith['langs']), $faith['langs']['de']['bytes'], $faith['langs']['de']['text']], ['Faith', ['de'], strlen(wav()), FAITH_DE], 'our own voice, by its recording');
+    eq($faith['langs']['de']['file'], hash('sha256', wav()), 'named by its SHA-256');
+    eq(array_map(fn($t) => $t['voice'] . '/' . $t['lang'], $tts['checks']['takes']), ['Faith/de', 'Ryan/en', 'Sohee/de'], 'checks of our voice and of the presets our hosts speak with');
+    $file = workerGet($app, $key, 'files/' . $faith['langs']['de']['file']);
+    eq([$file->status, (string) file_get_contents((string) $file->file)], [200, wav()], 'the recording, as uploaded');
+    eq(workerGet($app, $key, 'files/' . str_repeat('a', 64))->status, 404, 'no other file');
+    eq(poll2($app, $key)[1]['profile'], $doc['profile'], 'every poll answer names it');
+
+    // herde's own example, hashed in Python: the station hashes it alike.
+    $f = herdeFixture('profile')['response']['body'];
+    eq(hash('sha256', Profile::canonical(['tts' => $f['tts']])), $f['profile'], 'one hash on both sides, byte for byte');
+
+    // A lent computer is in the herd as ours is: the same profile, Faith too (what it may hear is another rule).
+    [$lender] = joined($app, 'lender', true);
+    $lent = workerGet($app, $lender, 'profile');
+    eq([$lent->data['profile'], $lent->json], [$doc['profile'], $res->json], 'a lent computer gets the very same profile');
+    eq(workerGet($app, $lender, 'files/' . $faith['langs']['de']['file'])->status, 200, 'and Faith\'s recording');
+});
+
+test('workers: speech only from a computer in step — the current profile, verified lately, its checks passed, and a setup the station finds to be the profile\'s', function () {
+    $app = TestKit::app();
+    workerHope($app);
+    voiceUpload($app, 'Faith', 'de');
+    $key = newWorker($app);
+    $id = (int) $app->store()->value('SELECT id FROM computers');
+    $speech = queued($app, 'line', 'private');
+    $app->store()->insert('worker_tasks', ['kind' => 'text', 'class' => 'background', 'purpose' => 'check', 'model' => 'gemma4-31b', 'size' => 100,
+        'input' => json_encode(['model' => 'gemma4-31b', 'messages' => [['role' => 'user', 'content' => '…']], 'max_tokens' => 64]), 'created' => 1, 'updated' => 1]);
+    $text = ['kind' => 'text', 'model' => 'gemma4-31b', 'location' => 'local', 'json_schema' => true, 'context' => 8192, 'max_tokens' => 4096, 'loaded' => true];
+    $caps = capsWithOwn($app);
+    $caps['engines'][] = $text;
+    $standing = function (array $more, ?array $caps2 = null) use ($app, $key, $id, $caps): array {
+        $answer = poll2($app, $key, $more, $caps2 ?? $caps)[1];
+        $c = $app->computers()->get($id);
+        return [$c['profile_state'], $c['profile_detail'], array_map(fn($o) => $o['kind'], $answer['offers'])];
+    };
+    eq($standing(['profile' => null]), ['old', '', ['text']], 'a herde that knows no profile: no speech (text is no voice)');
+    eq($standing(['profile' => profileReport($app, $key, ['state' => 'syncing', 'detail' => 'fetching the Base model'])]), ['syncing', 'fetching the Base model', ['text']], 'still fetching');
+    eq($standing(['profile' => profileReport($app, $key, ['hash' => str_repeat('0', 64)])])[0], 'syncing', 'ok with an old profile is behind');
+    eq($standing(['profile' => profileReport($app, $key, ['state' => 'unmet', 'detail' => 'this worker runs in fp16'])])[0], 'unmet', 'it cannot run it');
+    eq($standing(['profile' => profileReport($app, $key, ['state' => 'failing', 'detail' => '1 of 3 checks failed'])])[1], '1 of 3 checks failed', 'its checks failed, and why');
+    eq($standing(['profile' => profileReport($app, $key, ['verified_ago' => Profile::VERIFIED_WITHIN + 1])])[0], 'stale', 'not verified for too long');
+    $slow = $caps;
+    $slow['engines'][0]['setup']['speech']['chunk_chars'] = 400;
+    eq(array_slice($standing([], $slow), 0, 2), ['differs', 'chunk_chars'], 'its word is not taken for it: the station compares the setup');
+    $other = $caps;
+    $other['engines'][0]['setup']['voices']['Faith']['de'] = str_repeat('b', 64);
+    eq(array_slice($standing([], $other), 0, 2), ['differs', 'recordings'], 'another recording of Faith is another Faith');
+    eq(array_slice($standing([], herdeCaps(null, ['en', 'de'], [], herdeSetup([], ['backend' => 'mlx', 'model' => Profile::BACKENDS['mlx']['model'], 'clone_model' => '', 'dtype' => 'fp16']))), 0, 2),
+        ['differs', 'Base checkpoint none, number format fp16, recordings'], 'its Base model missing, fp16');
+    check(!$app->computers()->online('Sohee', Computers::TTS, false, 'de'), 'out of step, no host can speak with it');
+    eq($standing([]), ['ok', '', ['tts', 'text']], 'in step: speech too');
+    check($app->computers()->online('Faith', Computers::TTS, false, 'de'), 'and a host can speak with Faith');
+    $w = call($app, 'GET', '/api/mod/workers', [], adminOf($app))[1];
+    eq([$w['workers'][0]['profile']['state'], $w['workers'][0]['setup']->backend ?? null], ['ok', 'stub'], 'admins see where it stands, and what it runs');
+
+    // A new take of Faith: nobody is in step with the old one any more, not even until its next poll.
+    voiceUpload($app, 'Faith', 'de', wav(5.0));
+    eq($app->computers()->get($id)['profile_state'], 'syncing', 'every computer fetches it first');
+    eq(claim2($app, $key, $speech, 'lease-before-it-polled')[0], 409, 'and takes no speech by its id meanwhile');
+    eq($standing(['profile' => profileReport($app, $key)], capsWithOwn($app))[0], 'ok', 'until it runs the new one');
+    $standing(['profile' => profileReport($app, $key, ['state' => 'failing', 'detail' => 'Faith (de): silent'])], capsWithOwn($app));
+    eq(array_column($app->store()->all("SELECT detail FROM audit WHERE event = 'Worker out of step'"), 'detail'), ["$id Studio Mac: failing (Faith (de): silent)"],
+        'a computer falling out of step is in the audit, with why');
+});
+
+test('workers: our own voices — a recording is checked as herde checks it, kept by its hash, one voice one spelling; admins only', function () {
+    $app = TestKit::app();
+    eq(voiceUpload($app, 'Faith', 'de', 'not a wav')[1], ['error' => 'voice_file'], 'no WAV');
+    eq(voiceUpload($app, 'Faith', 'de', wav(2.0))[1], ['error' => 'voice_length'], 'too short to carry a voice');
+    eq(voiceUpload($app, 'Faith', 'de', wav(31.0))[1], ['error' => 'voice_length'], 'too long: every take reads all of it');
+    eq(voiceUpload($app, 'Sohee', 'de')[1], ['error' => 'voice_name'], 'a preset\'s name would be two voices behind one id');
+    eq(voiceUpload($app, 'Faith Hope', 'de')[1], ['error' => 'voice_name'], 'an id as the protocol allows it');
+    eq(voiceUpload($app, 'Faith', 'tlh')[1], ['error' => 'voice_lang'], 'a language Qwen speaks');
+    eq(voiceUpload($app, 'Faith', 'de', null, " \n ")[1], ['error' => 'voice_text'], 'exactly what it says');
+    eq(voiceUpload($app, 'Faith', 'de', null, FAITH_DE, moderatorHeaders($app))[0], 403, 'admins only');
+    [$s, $d] = voiceUpload($app, 'Faith', 'de', null, "Das war Mein Gott ist größer.\n  Schön, dass ihr dabei seid.");
+    eq([$s, $d['profile']['voices'][0]['langs'][0]['text'], $d['profile']['voices'][0]['langs'][0]['seconds']], [200, FAITH_DE, 4.0], 'its words on one line, its length');
+    $first = hash('sha256', wav());
+    $dir = $app->config->dataDir . '/voices';
+    check(is_file("$dir/$first.wav"), 'kept by its SHA-256, in the data folder');
+    eq(array_column(voiceUpload($app, 'faith', 'en', wav(6.0))[1]['profile']['voices'], 'id'), ['Faith'], 'another language of "faith" is Faith\'s');
+    voiceUpload($app, 'Faith', 'de', wav(5.0));
+    check(!is_file("$dir/$first.wav") && is_file("$dir/" . hash('sha256', wav(5.0)) . '.wav'), 'a new take replaces the old file');
+    $d = call($app, 'DELETE', '/api/mod/workers/voices/Faith/de', [], adminOf($app))[1];
+    eq(array_column($d['profile']['voices'][0]['langs'], 'lang'), ['en'], 'one language removed');
+    call($app, 'DELETE', '/api/mod/workers/voices/Faith/en', [], adminOf($app));
+    eq([call($app, 'GET', '/api/mod/workers', [], adminOf($app))[1]['profile']['voices'], glob("$dir/*.wav")], [[], []], 'the last one takes the voice and its files along');
+    eq(call($app, 'DELETE', '/api/mod/workers/voices/Faith/en', [], adminOf($app))[0], 404, 'nothing left to remove');
+    eq(array_column($app->store()->all("SELECT event FROM audit WHERE event LIKE 'Worker voice%' ORDER BY id"), 'event'),
+        ['Worker voice recorded', 'Worker voice recorded', 'Worker voice recorded', 'Worker voice removed', 'Worker voice removed'], 'every change in the audit');
 });
 
 // --- migrations ---------------------------------------------------------------------------------------

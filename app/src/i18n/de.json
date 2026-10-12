@@ -1328,7 +1328,12 @@
       "errors": {
         "worker_name": "Ein Rechner braucht einen Namen mit höchstens 60 Zeichen.",
         "no_worker": "Gerade ist kein Rechner mit dieser Stimme online. Starte den Worker auf einem Mac und versuch es dann noch einmal.",
-        "worker_trust": "Wähle, wessen Rechner es ist."
+        "worker_trust": "Wähle, wessen Rechner es ist.",
+        "voice_name": "Eine Stimme braucht einen Namen aus Buchstaben, Ziffern, _ oder - (höchstens 40), und nicht den Namen einer von Qwens Stimmen.",
+        "voice_lang": "Wähle die Sprache der Aufnahme.",
+        "voice_text": "Schreib genau, was in der Aufnahme gesagt wird, höchstens 1000 Zeichen.",
+        "voice_file": "Die Aufnahme muss eine WAV-Datei (PCM) mit höchstens 8 MB sein.",
+        "voice_length": "Die Aufnahme muss 3 bis 30 Sekunden lang sein."
       },
       "trustOwn": "Unser",
       "trustLender": "Geliehen",
@@ -1369,9 +1374,46 @@
       "inviteDockerLabel": "Docker-Befehle zum Beitreten und Starten",
       "inviteDockerHint": "Die erste tritt mit dem Code bei, die zweite startet den Worker, jetzt und nach jedem Neustart. Seine Statusseite mit Pause-Knopf ist http://127.0.0.1:8737 auf diesem Rechner.",
       "inviteAmdHint": "Eine RX 6600 oder 6700: -e HSA_OVERRIDE_GFX_VERSION=10.3.0 in die zweite Zeile vor das Image setzen (eine Radeon 780M: 11.0.0). Windows kann eine AMD-Grafikkarte nicht an Docker geben, dafür braucht es Linux.",
-      "inviteVoices": "Eine eigene Stimme wie Faith braucht ihre Aufnahmen auf diesem Rechner: in einen Ordner voices legen, dann docker cp voices herde:/config/ und docker restart herde. Qwens Stimmen, wie die von Grace, sind schon da.",
+      "inviteVoices": "Eine eigene Stimme wie Faith kommt von selbst vom Sender: Der Rechner holt ihre Aufnahmen und prüft sie, bevor er spricht. Qwens Stimmen, wie die von Grace, kommen mit dem Modell.",
       "inviteMore": "Alles Weitere (ein Mac, Pausieren, Updates) steht in herdes README: github.com/schaefchens/herde",
-      "copyDocker": "Docker-Zeilen kopieren"
+      "copyDocker": "Docker-Zeilen kopieren",
+      "standing": {
+        "ok": "Abgestimmt",
+        "syncing": "Übernimmt die Einrichtung",
+        "unmet": "Kann die Einrichtung nicht",
+        "failing": "Prüfung nicht bestanden",
+        "stale": "Lange nicht geprüft",
+        "differs": "Anders eingerichtet",
+        "old": "herde zu alt"
+      },
+      "standingWhy": {
+        "syncing": "Er holt oder prüft die Einrichtung des Senders und spricht bis dahin für keine Moderation.",
+        "unmet": "Sein Besitzer muss herde aktualisieren oder seine Konfiguration ändern:",
+        "failing": "Seine Prüf-Aufnahmen klangen nicht richtig; in zehn Minuten versucht er es wieder:",
+        "stale": "Er hat seine Einrichtung seit über einer halben Stunde nicht geprüft und spricht bis dahin für keine Moderation.",
+        "differs": "Was er verwendet, ist nicht die Einrichtung des Senders:",
+        "old": "Dieses herde kennt keine Einrichtung des Senders: herde auf diesem Rechner aktualisieren."
+      },
+      "checksPassed": "Prüfungen {{passed}} von {{total}} bestanden",
+      "voicesTitle": "Unsere eigenen Stimmen",
+      "voicesIntro": "Jeder Rechner, der für eine Moderation spricht, verwendet die Einrichtung des Senders: diese Aufnahmen, dieselben Einstellungen in jeder Aufnahme und Prüf-Aufnahmen alle {{hours}} Stunden. Eine neue Aufnahme kommt von selbst auf jeden Rechner; bis ein Rechner sie geprüft hat, spricht er für keine Moderation.",
+      "voicesEmpty": "Noch keine eigene Stimme. Qwens Stimmen (Sohee, Ryan, Serena …) brauchen keine Aufnahme.",
+      "voiceTake": "{{lang}} · {{seconds}} s",
+      "voiceRemove": "{{lang}} entfernen",
+      "voiceRemoveConfirm": "Die {{lang}}-Aufnahme von {{voice}} entfernen? Die Rechner sprechen {{voice}} dann nicht mehr damit.",
+      "voiceRemoved": "Aufnahme entfernt. Die Rechner verwerfen sie bei ihrer nächsten Abfrage.",
+      "voiceAddTitle": "Aufnahme hinzufügen",
+      "voiceName": "Stimme",
+      "voiceLang": "Sprache",
+      "voiceLangs": {
+        "de": "Deutsch",
+        "en": "Englisch"
+      },
+      "voiceText": "Genau das, was in der Aufnahme gesagt wird",
+      "voiceTextHint": "Das Modell liest die Aufnahme zusammen mit ihren Worten.",
+      "voiceFile": "Aufnahme (WAV, 3 bis 30 Sekunden)",
+      "voiceAdd": "Hochladen",
+      "voiceAdded": "Aufnahme gespeichert. Jeder Rechner holt sie bei seiner nächsten Abfrage und prüft sie, bevor er wieder spricht."
     },
     "lines": {
       "intro": "Einmal aufgenommene Sprechtexte einer Moderation, etwa Begrüßungen, Verabschiedungen und Ermutigungen. Die KI wählt einen passenden aus, statt jedes Mal neue Worte zu schreiben und zu vertonen. Ein Sprechtext kostet nur beim Aufnehmen Zeichen.",

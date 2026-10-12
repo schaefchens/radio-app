@@ -160,6 +160,9 @@ final class Computers
             'voices' => $voices,
             'languages' => array_values(array_unique($langs)),
             'key_hint' => (string) $c['key_hint'],
+            // Whether it runs the station's profile (Workers\Profile::standing), and what it says it runs.
+            'profile' => ['state' => $c['profile_state'], 'detail' => $c['profile_detail']],
+            'setup' => (object) array_intersect_key($tts[0]['setup'] ?? [], array_flip(['backend', 'dtype', 'checks'])),
             // `queued`: what this computer holds right now (a queued task belongs to nobody yet).
             'tasks' => ['done_today' => $count('done'), 'failed_today' => $count('failed'),
                 'queued' => (int) $this->app->store()->value("SELECT COUNT(*) FROM worker_tasks WHERE worker_id = ? AND state = 'leased'", [$c['id']])],
@@ -279,15 +282,18 @@ final class Computers
      * and `last_seen` at most every SEEN_EVERY seconds.
      *
      * @param array<string,mixed> $c decoded
-     * @param array<string,mixed> $said protocol, version, state, resume_at, and caps with caps_hash when they came
+     * @param array<string,mixed> $said protocol, version, state, resume_at, profile_state, profile_detail, and caps with caps_hash when they came
      * @return array<string,mixed> the computer as it is now
      */
     public function polled(array $c, array $said): array
     {
         $now = $this->app->clock->now();
         $set = [];
-        foreach (['protocol', 'version', 'state', 'resume_at'] as $k) {
+        foreach (['protocol', 'version', 'state', 'resume_at', 'profile_state', 'profile_detail'] as $k) {
             if (array_key_exists($k, $said) && $said[$k] !== $c[$k]) $set[$k] = $said[$k];
+        }
+        if (isset($set['profile_state']) && $set['profile_state'] !== 'ok' && $c['profile_state'] === 'ok') {
+            $this->app->store()->audit('worker', 'Worker out of step', $c['id'] . ' ' . $c['name'] . ': ' . $set['profile_state'] . (($said['profile_detail'] ?? '') !== '' ? ' (' . $said['profile_detail'] . ')' : ''));
         }
         if (isset($said['caps']) && is_array($said['caps'])) {
             $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
@@ -304,7 +310,7 @@ final class Computers
         $c = array_replace($c, $set);
         if (isset($set['caps'])) $c['caps'] = $said['caps'];
         // A worker host may speak again, or no longer: what Hosts knew of it is stale.
-        if ($wasOnline !== $this->isOnline($c) || isset($set['caps'])) $this->app->hosts()->refresh();
+        if ($wasOnline !== $this->isOnline($c) || isset($set['caps']) || isset($set['profile_state'])) $this->app->hosts()->refresh();
         return $c;
     }
 
@@ -349,6 +355,7 @@ final class Computers
                     ];
                 }
                 $engine['max_chars'] = max(1, (int) ($e['max_chars'] ?? 2000));
+                if (is_array($e['setup'] ?? null)) $engine['setup'] = self::setup($e['setup']);
             } elseif ($kind === 'text') {
                 $engine += ['json_schema' => ($e['json_schema'] ?? false) === true, 'context' => max(1, (int) ($e['context'] ?? 4096)),
                     'max_tokens' => max(1, (int) ($e['max_tokens'] ?? 4096)), 'loaded' => ($e['loaded'] ?? false) === true];
@@ -358,6 +365,42 @@ final class Computers
             $out['engines'][] = $engine;
         }
         return $out;
+    }
+
+    /**
+     * What really shapes a computer's speech (PROTOCOL.md, Capabilities:
+     * `setup`), as the station keeps it to compare with its profile
+     * (Workers\Profile::differences): bounded, and only what fits.
+     *
+     * @param array<mixed> $s
+     * @return array<string,mixed>
+     */
+    private static function setup(array $s): array
+    {
+        $text = fn(mixed $v, int $n): string => is_string($v) ? mb_substr($v, 0, $n) : '';
+        $speech = [];
+        $given = is_array($s['speech'] ?? null) ? $s['speech'] : [];
+        foreach (array_keys(Profile::SPEECH) as $k) {
+            if (is_int($given[$k] ?? null) || is_float($given[$k] ?? null)) $speech[$k] = $given[$k];
+        }
+        $voices = [];
+        foreach (array_slice(is_array($s['voices'] ?? null) ? $s['voices'] : [], 0, 20, true) as $id => $langs) {
+            if (!is_string($id) || !preg_match(self::VOICE, $id) || !is_array($langs)) continue;
+            foreach (array_slice($langs, 0, 10, true) as $lang => $sha) {
+                if (is_string($lang) && preg_match(self::LANG, $lang) && is_string($sha) && preg_match('/^[0-9a-f]{64}$/', $sha)) $voices[$id][$lang] = $sha;
+            }
+        }
+        $checks = [];
+        foreach (array_slice(is_array($s['checks'] ?? null) ? $s['checks'] : [], 0, 40) as $c) {
+            if (!is_array($c)) continue;
+            $checks[] = ['voice' => $text($c['voice'] ?? null, 40), 'lang' => $text($c['lang'] ?? null, 2), 'ok' => ($c['ok'] ?? false) === true,
+                'cps' => is_numeric($c['cps'] ?? null) ? round((float) $c['cps'], 1) : 0.0, 'error' => $text($c['error'] ?? null, 200)];
+        }
+        return [
+            'code' => is_int($s['code'] ?? null) ? $s['code'] : 0, 'backend' => $text($s['backend'] ?? null, 20),
+            'model' => $text($s['model'] ?? null, 200), 'clone_model' => $text($s['clone_model'] ?? null, 200), 'dtype' => $text($s['dtype'] ?? null, 8),
+            'speech' => $speech, 'voices' => $voices, 'checks' => $checks,
+        ];
     }
 
     /**
@@ -462,12 +505,12 @@ final class Computers
         return $out;
     }
 
-    /** @return list<array<string,mixed>> */
+    /** Those that may speak now: online, ready, and in step with the station's profile (Workers\Profile). @return list<array<string,mixed>> */
     private function onlineComputers(): array
     {
         $now = $this->app->clock->now();
         $rows = $this->app->store()->all(
-            "SELECT * FROM computers WHERE active = 1 AND state = 'ready' AND last_seen >= ? AND resting_until <= ?",
+            "SELECT * FROM computers WHERE active = 1 AND state = 'ready' AND profile_state = 'ok' AND last_seen >= ? AND resting_until <= ?",
             [$now - self::ONLINE_SECONDS, $now],
         );
         return array_map([self::class, 'decode'], $rows);
@@ -573,6 +616,8 @@ final class Computers
         $row['caps'] = is_array($caps) ? $caps : [];
         foreach (['id', 'live', 'active', 'protocol', 'resume_at', 'fails', 'resting_until', 'last_seen', 'created', 'updated'] as $k) $row[$k] = (int) $row[$k];
         foreach (['name', 'trust', 'state', 'caps_hash', 'version'] as $k) $row[$k] = (string) $row[$k];
+        // Absent before migration 18 (a test replays older ones).
+        foreach (['profile_state', 'profile_detail'] as $k) $row[$k] = (string) ($row[$k] ?? '');
         return $row;
     }
 }

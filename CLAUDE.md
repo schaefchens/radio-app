@@ -368,11 +368,13 @@ Max about twice as fast as real time) — free, and listeners' words stay on
 our hardware. The worker program is herde, a repo of its own since
 2026-10-09 (github.com/schaefchens/herde: Docker on Linux and Windows,
 native on Macs, where Docker cannot reach the GPU; text through Ollama
-too); `worker/` here is the old one, protocol 1, kept until every Mac runs
-herde. No computer has a public address, so the station never calls one.
+too); `worker/` here is the old one, protocol 1: it knows no profile, so
+since 2026-10-12 it speaks for no host. No computer has a public address, so
+the station never calls one.
 herde's protocol 2 (its `protocol/PROTOCOL.md`; the fixtures are copied to
 `server/tests/herde-protocol/`, and the station answers each in its shape)
-is `POST /api/worker/v2/{join,poll,tasks/{id}/claim,result,fail}`. The key
+is `POST /api/worker/v2/{join,poll,tasks/{id}/claim,result,fail}` and
+`GET /api/worker/v2/{profile,files/{sha}}`. The key
 travels in `X-Worker-Key` (Authorization never reaches PHP here; protocol 1's
 `X-Arche-Worker-Key` is still read), is shown once and kept as an HMAC with
 the pepper; only failed keys and codes are rate-limited, and none of these
@@ -384,9 +386,8 @@ an HMAC, 72 h) for ours or for a computer lent by someone we trust
 shows herde's Docker lines for the computer's GPU (`workerConfig.ts`): NVIDIA
 (`:cuda`, Linux or Windows) or AMD (`:rocm`, Linux only — Docker on Windows
 passes NVIDIA alone; the devices and the groups video and render in place of
-`--gpus all`), and how a voice of our own (Faith) gets there: its recordings
-copied into the worker's `/config/voices`; Qwen's presets (Grace) come with
-the model. A task's
+`--gpus all`); a voice of our own (Faith) comes with the profile, and Qwen's
+presets (Grace) with the model. A task's
 `privacy` is the station's call: a moment is public only when
 `HostBreaks::isPublic` (`ShowLog::quotable` and no `opening_by` — the prayer
 hour's welcome names who prays), a line only when the model wrote it; a try
@@ -402,6 +403,34 @@ still planned only while someone can read listeners' words
 and given back over and over). So a lineup of computer hosts alone, with
 only lenders online, plans none; with a fallback voice in the lineup (as on
 production), the lenders voice the moments that name nobody.
+
+**Profile** (`Workers\Profile`, migration 18; station decision 2026-10-12: "if
+there are 100 computers with diverging setups we have 100 different moderators
+speaking"). One setup for every computer that speaks for a host, which herde
+fetches when the hash in a poll answer changes (its PROTOCOL.md, Profiles):
+herde's speech code, the checkpoints per backend (mlx, torch; the stub on a
+local stack and in tests) as `repo@revision`, bf16, every take's settings
+(pieces of 300, as the demo had them), our own voices with their recordings,
+and check takes (each own voice, each preset an active worker host speaks
+with) every six hours. The constants mirror herde 0.5.0's pins: raise `CODE`
+and `BACKENDS` with herde, by hand, once our computers run it. Admins upload
+a recording per voice and language with exactly what it says (/mod ›
+Rechner; PCM WAV, 3–30 s, checked as herde checks it, kept by its SHA-256 in
+`var/voices/`). Every computer gets the same profile, ours and lent alike
+(station decision 2026-10-12: a computer that cannot speak our voices is no
+use in the herd); what a lender may hear stays its own rule (public work only).
+Every poll carries the computer's report (`hash`, `state`, `verified_ago`);
+`Profile::standing` makes it `computers.profile_state`: `ok` only for the
+current hash, verified within 30 minutes, checks passed, and a `setup` (from
+the caps) the station itself finds to be the profile's — else `old`,
+`syncing`, `unmet`, `failing`, `stale` or `differs`, with a detail for admins.
+`Tasks::matching` offers speech, and lets a claim take it, only while `ok`;
+`Computers::online` (who can speak for a host) counts only those. A change
+to the profile sets every computer in step to `syncing` at once. Falling out
+of step is audited. The profile goes out as the very bytes its hash was taken
+of (`Profile::canonical`: keys sorted, PHP's JSON with zero fractions kept,
+as Python writes it back; `Response::$json`), and herde's own example
+(`herde-protocol/profile.json`) hashes alike here.
 
 **Queue** (`worker_tasks`, migration 17: new table names, since a rebuild in
 place turned lenders into ours on a replay; ids and id sequences kept).
@@ -1056,7 +1085,11 @@ removed line's tasks cancelled; "Try voice" by task and on ours only; no
 tick from worker routes; the purge; protocol 426; migration 17 keeping
 computers as ours and tasks as private with their ids, a replay keeping a
 lender a lender; migration 15 keeping hosts, lineups, lines, options and the
-id sequence), the show so far
+id sequence; the profile: what each computer gets, its hash alike to herde's
+byte for byte, the same for a lent computer, speech only in
+step — old, syncing, unmet, failing, stale, a setup that differs — a new
+take putting every computer out of step at once, recordings checked and kept
+by their hash), the show so far
 (`show.php`: the songs and words aired, oldest first, in both languages; one
 moment's memory the start of the next one's; dropped and pulled items left
 out; an intro given the end of the program before; only intro and outro told

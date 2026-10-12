@@ -89,12 +89,17 @@ final class Routes
         $r->add('DELETE', '/mod/workers/invites/{id}', $m('workerInviteDelete'));
         $r->add('PATCH', '/mod/workers/{id}', $m('workerUpdate'));
         $r->add('DELETE', '/mod/workers/{id}', $m('workerDelete'));
+        // Our own voices for every computer (Workers\Profile): a recording per language.
+        $r->add('POST', '/mod/workers/voices', $m('workerVoiceAdd'));
+        $r->add('DELETE', '/mod/workers/voices/{voice}/{lang}', $m('workerVoiceDelete'));
         // Protocol 2 (herde's protocol/PROTOCOL.md) and, until every Mac runs herde, protocol 1.
         $r->add('POST', '/worker/v2/join', $w('join'));
         $r->add('POST', '/worker/v2/poll', $w('poll2'));
         $r->add('POST', '/worker/v2/tasks/{id}/claim', $w('claim'));
         $r->add('POST', '/worker/v2/tasks/{id}/result', $w('result'));
         $r->add('POST', '/worker/v2/tasks/{id}/fail', $w('fail2'));
+        $r->add('GET', '/worker/v2/profile', $w('profile'));
+        $r->add('GET', '/worker/v2/files/{sha}', $w('file'));
         $r->add('POST', '/worker/poll', $w('poll'));
         $r->add('POST', '/worker/tasks/{id}/audio', $w('audio'));
         $r->add('POST', '/worker/tasks/{id}/fail', $w('fail'));

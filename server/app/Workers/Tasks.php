@@ -589,6 +589,9 @@ final class Tasks
         foreach (Computers::engines($c) as $e) {
             if ((int) ($free[$e['kind']] ?? 0) <= 0) continue;
             if ($e['kind'] === 'tts') {
+                // Speech only from a computer in step with the station's profile (Workers\Profile): one host, one voice,
+                // on every computer. An offer and a claim alike, so no computer takes a task by its id meanwhile.
+                if (($c['profile_state'] ?? '') !== 'ok') continue;
                 // Voices that speak the same languages, together.
                 $groups = [];
                 foreach ($e['voices'] as $v) {

@@ -25,14 +25,15 @@ final class Schema
             foreach ($versions as $i => $sql) {
                 $version = $i + 1;
                 if ($version <= $current) continue;
-                $store->db->exec($sql);
+                if ($sql instanceof \Closure) $sql($store);
+                else $store->db->exec($sql);
                 $store->set('schema', $version);
             }
             Seeder::ensureDefaults($store, $nowMs);
         });
     }
 
-    /** @return list<string> */
+    /** @return list<string|\Closure(Store):void> SQL, or a step that must look first (a replay finds a column there already) */
     private static function versions(): array
     {
         return [
@@ -975,6 +976,33 @@ final class Schema
             DROP TABLE IF EXISTS voice_tasks;
             DROP TABLE IF EXISTS workers;
             SQL,
+
+            // 18 — the station's profile for its computers (Workers\Profile; station decision
+            // 2026-10-12: a hundred computers must be one host, not a hundred). Our own voices'
+            // recordings, one per voice and language (the files in the data folder's voices/,
+            // by SHA-256), for every computer alike. A computer's standing with the profile,
+            // as its last poll showed it: only one in step ('ok') speaks.
+            static function (Store $store): void {
+                $store->db->exec(<<<'SQL'
+                CREATE TABLE IF NOT EXISTS worker_voices (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  voice TEXT NOT NULL,
+                  lang TEXT NOT NULL,
+                  sha256 TEXT NOT NULL,
+                  bytes INTEGER NOT NULL,
+                  seconds REAL NOT NULL,
+                  text TEXT NOT NULL,
+                  created INTEGER NOT NULL,
+                  updated INTEGER NOT NULL,
+                  UNIQUE (voice, lang)
+                );
+                SQL);
+                // SQLite adds no column "if it is missing", and a replay (a rebuild, a test) finds them there.
+                $have = array_column($store->all('PRAGMA table_info(computers)'), 'name');
+                foreach (['profile_state', 'profile_detail'] as $column) {
+                    if (!in_array($column, $have, true)) $store->db->exec("ALTER TABLE computers ADD COLUMN $column TEXT NOT NULL DEFAULT ''");
+                }
+            },
         ];
     }
 }

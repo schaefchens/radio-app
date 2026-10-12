@@ -5,7 +5,7 @@ import { HostsPanel } from '@/components/mod/HostsPanel';
 import { StatusPanel } from '@/components/mod/StatusPanel';
 import { WorkersSection } from '@/components/mod/WorkersSection';
 import { configSnippet, dockerCommands, joinCommand } from '@/components/mod/workerConfig';
-import type { ModHost, ModWorker } from '@/components/mod/modApi';
+import type { ModHost, ModWorker, ModWorkerProfile } from '@/components/mod/modApi';
 import { useSettings } from '@/store/settings';
 
 /**
@@ -24,7 +24,9 @@ function serve(routes: Record<string, Handler>) {
   const fetch = vi.fn(async (url: string, init?: RequestInit) => {
     const path = url.replace(/^\/api/, '');
     const method = init?.method ?? 'GET';
-    calls.push({ method, path, body: init?.body ? JSON.parse(String(init.body)) : null });
+    // An upload's form as its fields; anything else is JSON.
+    const body = init?.body instanceof FormData ? Object.fromEntries(init.body.entries()) : init?.body ? JSON.parse(String(init.body)) : null;
+    calls.push({ method, path, body });
     const handler = routes[`${method} ${path}`];
     return handler ? handler(init) : json({ error: 'not_found' }, 404);
   });
@@ -163,8 +165,8 @@ describe('/mod: our computers and lent ones', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy the Docker lines' }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${amdJoin}\n${amdRun}`));
     Reflect.deleteProperty(navigator, 'clipboard');
-    // A voice of our own needs its recordings there; Qwen's are in the image.
-    expect(screen.getByText(/docker cp voices herde:\/config\//)).toBeTruthy();
+    // A voice of our own comes from the station by itself; Qwen's are in the model.
+    expect(screen.getByText(/comes from the station by itself/)).toBeTruthy();
     expect(screen.getByLabelText('Command to join').textContent).toBe(`herde join ${window.location.origin}/api/worker/v2 AB12-CD34-EF56-GH78-JK90-MN12-PQ`);
     expect(await screen.findByText('Open invites')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Done, I have it' }));
@@ -248,6 +250,55 @@ describe('/mod: our computers and lent ones', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
     expect(await screen.findByText('Computer removed.')).toBeTruthy();
     expect(calls.some((c) => c.method === 'DELETE' && c.path === '/mod/workers/3')).toBe(true);
+  });
+
+  it('a computer says whether it runs the station\'s setup, and if not why: only one in step speaks', async () => {
+    const inStep: ModWorker = { ...mac, version: 'herde/0.5.0', profile: { state: 'ok', detail: '' },
+      setup: { backend: 'mlx', dtype: 'bf16', checks: [{ voice: 'Faith', lang: 'de', ok: true, cps: 12.4 }, { voice: 'Sohee', lang: 'de', ok: true, cps: 13.1 }] } };
+    const apart: ModWorker = { ...mac, id: 4, name: "Peter's PC", trust: 'lender', profile: { state: 'differs', detail: 'number format fp16' } };
+    const old: ModWorker = { ...mac, id: 5, name: 'Old Mac', profile: { state: 'old', detail: '' } };
+    serve({ 'GET /mod/workers': () => json({ workers: [inStep, apart, old] }) });
+    render(<WorkersSection />);
+    const row = async (name: string) => within((await screen.findByText(name)).closest('li') as HTMLElement);
+    expect((await row('MacBook Chris')).getByText('In step')).toBeTruthy();
+    expect((await row('MacBook Chris')).getByText(/mlx bf16 · checks 2 of 2 passed/)).toBeTruthy();
+    expect((await row("Peter's PC")).getByText('Set up differently')).toBeTruthy();
+    expect((await row("Peter's PC")).getByText(/What it runs is not the station's setup:/).textContent).toContain('number format fp16');
+    expect((await row('Old Mac')).getByText(/update herde on that computer/)).toBeTruthy();
+  });
+
+  it('our own voices: a recording goes up with exactly what it says, for every computer; removing asks first', async () => {
+    const profile: ModWorkerProfile = {
+      voices: [{ id: 'Faith', langs: [{ lang: 'de', seconds: 21.1, bytes: 675884, text: 'Das war Mein Gott ist größer.', updated: 1 }] }],
+      hash: 'a'.repeat(64), code: 1, backends: ['mlx', 'torch'], dtypes: ['bf16'],
+      speech: { chunk_chars: 300, pause_ms: 150, top_k: 50, top_p: 1, repetition_penalty: 1.05, mp3_kbps: 96 },
+      checks: { every: 21600, takes: [{ voice: 'Faith', lang: 'de', text: 'Guten Abend, hier ist ARCHE.' }] },
+    };
+    const calls = serve({
+      'GET /mod/workers': () => json({ workers: [], profile }),
+      'POST /mod/workers/voices': () => json({ profile }),
+      'DELETE /mod/workers/voices/Faith/de': () => json({ profile }),
+    });
+    render(<WorkersSection />);
+    expect(await screen.findByText('Our own voices')).toBeTruthy();
+    expect(screen.getByText(/check takes every 6 hours/)).toBeTruthy();
+    expect(screen.getByText('DE · 21.1 s')).toBeTruthy();
+    const upload = screen.getByRole('button', { name: 'Upload' }) as HTMLButtonElement;
+    expect(upload.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText('Voice'), { target: { value: 'Faith' } });
+    fireEvent.change(screen.getByLabelText('Language'), { target: { value: 'en' } });
+    fireEvent.change(screen.getByLabelText(/Exactly what the recording says/), { target: { value: 'That was My God Is Greater.' } });
+    const wav = new File(['RIFF'], 'Faith.en.wav', { type: 'audio/wav' });
+    fireEvent.change(screen.getByLabelText('Recording (WAV, 3 to 30 seconds)'), { target: { files: [wav] } });
+    fireEvent.click(upload);
+    expect(await screen.findByText(/Recording saved. Every computer fetches it/)).toBeTruthy();
+    const sent = calls.find((c) => c.method === 'POST')?.body as Record<string, unknown>;
+    expect([sent.voice, sent.lang, sent.text, (sent.audio as File).name]).toEqual(['Faith', 'en', 'That was My God Is Greater.', 'Faith.en.wav']);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove DE' }));
+    expect(screen.getByText('Remove the DE recording of Faith? The computers then no longer speak Faith with it.')).toBeTruthy();
+    expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.path === '/mod/workers/voices/Faith/de')).toBe(true));
   });
 
   it('the config lines name a local station as dev; a computer joins at the station\'s protocol 2 address', () => {
