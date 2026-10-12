@@ -226,11 +226,13 @@ test('on a music program the video tile says it is not part of the program — a
   const tile = page.getByRole('button', { name: 'Suggest a video · Not part of this program' }).first();
   await expect(tile).toBeVisible();
   await tile.click();
-  const sheet = page.getByRole('dialog', { name: 'Suggest a video' });
-  await expect(sheet.getByText('Not possible right now')).toBeVisible();
+  // Its own name: "Suggest a video" is the form's.
+  const sheet = page.getByRole('dialog', { name: 'Not possible right now' });
+  await expect(sheet).toBeInViewport();
+  await expect(sheet.getByText('Suggest a video')).toBeVisible();
   await expect(sheet.getByText(/^“.+” doesn’t take video suggestions\.$/)).toBeVisible();
   await expect(sheet.getByText(/^(Possible again .+, in “.+”\.|No program in the coming days takes video suggestions\.)$/)).toBeVisible();
   await sheet.getByRole('button', { name: 'Got it' }).click();
-  await expect(sheet.getByText('Not possible right now')).not.toBeInViewport();
+  await expect(sheet).not.toBeInViewport();
   await page.context().close();
 });

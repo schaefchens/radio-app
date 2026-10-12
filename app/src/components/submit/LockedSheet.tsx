@@ -8,7 +8,7 @@ import { LockIcon, TileIcon } from '@/components/common/icons';
 import { useServerNow } from '@/components/home/useServerNow';
 import { useDays } from '@/components/schedule/useDays';
 import { addDays, localDate, localTime, stationDate } from '@/lib/format';
-import { TILES, TILE_TONE, TILE_TYPES, daysAhead, lockedWhy, nextOpening, tileState, type Tile } from '@/lib/intake';
+import { TILES, TILE_TONE, TILE_TYPES, daysAhead, lockedWhy, nextOpening, tileOpen, type Tile } from '@/lib/intake';
 import { DAY_OFFSETS } from '@/lib/reminderPlan';
 import { useRadio } from '@/store/radio';
 import { useSession } from '@/store/session';
@@ -23,12 +23,15 @@ import { useSheets } from '@/store/sheets';
 export function LockedSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const tile = useSheets((s) => s.locked);
+  // A name of its own, never the tile's: that is its form's, and two dialogs
+  // of one name are one too many for whoever looks for the form.
+  const opened = useRadio((s) => tileOpen(tile, s.engine.submissions));
   // From the first tap on, and kept: closing slides the words away with the
   // sheet, and the day files are fetched once.
   const [asked, setAsked] = useState(open);
   if (open && !asked) setAsked(true);
   return (
-    <BottomSheet open={open} onClose={onClose} title={t(`submit.${tile}.title`)}>
+    <BottomSheet open={open} onClose={onClose} title={opened ? t('submit.locked.openNow') : t('submit.locked.now')}>
       <BottomSheetBody>{asked && <LockedInfo tile={tile} onClose={onClose} />}</BottomSheetBody>
     </BottomSheet>
   );
@@ -48,13 +51,13 @@ function LockedInfo({ tile, onClose }: { tile: Tile; onClose: () => void }) {
   const days = useDays(engine.channel, dates);
 
   const types = TILE_TYPES[tile];
-  const locked = !['open', 'closing'].includes(tileState(types, engine.submissions));
+  const locked = !tileOpen(tile, engine.submissions);
   const why = lockedWhy(types, engine.submissions, engine.why);
   const what = t(`submit.${tile}.what`);
   const program = engine.program?.title[lang];
   const next = nextOpening(types, dates, days, now);
   const loading = !next && dates.some((d) => days[d] === undefined);
-  const instead = TILES.filter((other) => ['open', 'closing'].includes(tileState(TILE_TYPES[other], engine.submissions)));
+  const instead = TILES.filter((other) => tileOpen(other, engine.submissions));
 
   const when = (start: number): string => {
     const time = localTime(start, lang);
@@ -70,7 +73,7 @@ function LockedInfo({ tile, onClose }: { tile: Tile; onClose: () => void }) {
         <div className="flex flex-col gap-2">
           <p className="flex items-center gap-2 font-semibold text-ink">
             <LockIcon size={18} />
-            {t('submit.locked.now')}
+            {t(`submit.${tile}.title`)}
           </p>
           <p className="text-sm leading-relaxed text-ink">{program ? t(`submit.locked.${why}`, { program, what }) : t('submit.locked.noProgram', { what })}</p>
           <p className="text-sm font-semibold leading-relaxed text-accent">

@@ -45,6 +45,12 @@ export function tileState(types: readonly SubmissionType[], submissions: Partial
   return states.length ? 'closed' : 'off';
 }
 
+/** The tile takes something now (its last chance included). */
+export function tileOpen(tile: Tile, submissions: Partial<Record<SubmissionType, SubmissionState>>): boolean {
+  const state = tileState(TILE_TYPES[tile], submissions);
+  return state === 'open' || state === 'closing';
+}
+
 /** Why a locked tile is locked; `unknown` when the minute file does not say (an older generator). */
 export type LockedWhy = 'off' | ClosedReason | 'unknown';
 

@@ -70,7 +70,7 @@ function Home() {
 }
 
 const tile = (name: RegExp) => screen.getAllByRole('button', { name })[0] as HTMLButtonElement;
-const info = () => screen.getByRole('dialog', { name: /Request a song/ });
+const info = () => screen.getByRole('dialog', { name: 'Not possible right now' });
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -103,7 +103,8 @@ describe('a locked tile', () => {
     onAir(PROGRAMS.sermon, { preaching: 'open' });
     render(<Home />);
     fireEvent.click(tile(/^Request a song/));
-    expect(within(info()).getByText('Not possible right now')).toBeTruthy();
+    // Its own name, not the form's: the tile it explains comes first in it.
+    expect(within(info()).getByText('Request a song')).toBeTruthy();
     expect(within(info()).getByText('“Sunday Sermon” doesn’t take song requests.')).toBeTruthy();
     await waitFor(() => expect(within(info()).getByText(`Possible again today from ${localTime(berlin(TODAY, '11:00'), 'en')}, in “Morning Music”.`)).toBeTruthy());
     fireEvent.click(within(info()).getByRole('button', { name: 'Suggest a video' }));
@@ -142,7 +143,7 @@ describe('a locked tile', () => {
     onAir(PROGRAMS.music, { song: 'open', prayer: 'open' });
     render(<Home />);
     fireEvent.click(tile(/^Suggest a video/));
-    const sheet = screen.getByRole('dialog', { name: /Suggest a video/ });
+    const sheet = info();
     await waitFor(() => expect(within(sheet).getByText('No program in the coming days takes video suggestions.')).toBeTruthy());
   });
 });

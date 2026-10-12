@@ -145,6 +145,7 @@
     "againAt": "Again from {{time}}",
     "locked": {
       "now": "Not possible right now",
+      "openNow": "Possible again now",
       "off": "“{{program}}” doesn’t take {{what}}.",
       "late": "“{{program}}” ends soon: anything sent now could no longer be aired.",
       "full": "So much is already waiting for “{{program}}” that nothing more fits before it ends. As soon as there is room again, you can send yours.",
