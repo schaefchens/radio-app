@@ -7,7 +7,7 @@ const song = (id: string, start: number, dur: number): TimelineItem => ({
   id, type: 'song', kind: 'song', start, dur, p: 'live', yt: 'dQw4w9WgXcQ', title: id, artist: 'a', thumb: null, request: null, fallback: null,
 });
 const slot = (t: number, items: TimelineItem[]): SlotFile => ({
-  v: 1, channel: 'main', t, gen: 0, current: 'live', next: null, submissions: { song: 'open' }, programs: {}, items,
+  v: 1, channel: 'main', t, gen: 0, current: 'live', next: null, submissions: { song: 'open' }, why: {}, programs: {}, items,
 });
 
 describe('Timeline', () => {

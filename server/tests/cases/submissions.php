@@ -279,6 +279,8 @@ test('submissions: waiting typed prayers count towards a full queue', function (
     eq($state(), 'closing', 'nine long ones waiting fill most of five minutes');
     for ($i = 0; $i < 2; $i++) $long();
     eq($state(), 'closed', 'eleven fill them');
+    $why = (array) SubmissionWindow::window($app, $ch, $program, $block, TestKit::T0)['why'];
+    eq($why['prayer'] ?? null, 'full', 'and the minute file says why: what waits fills the program');
 });
 
 test('submissions: the prayers the old code left "scheduled" are repaired once', function () {

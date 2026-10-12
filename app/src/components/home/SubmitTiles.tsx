@@ -1,15 +1,17 @@
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
-import { VIDEO_SUBMISSION_TYPES, type SubmissionState, type SubmissionType } from '@arche/shared';
+import type { Lang } from '@arche/shared';
 import { useRadio } from '@/store/radio';
 import { useSheets } from '@/store/sheets';
 import { VideoRequestSheet } from '@/components/submit/VideoRequestSheet';
 import { PrayerSheet } from '@/components/submit/PrayerSheet';
 import { RecordSheet } from '@/components/submit/RecordSheet';
 import { PraySheet } from '@/components/submit/PraySheet';
-import { BookIcon, MicIcon, MusicIcon, PrayIcon } from '@/components/common/icons';
-
-type Tile = 'song' | 'story' | 'prayer' | 'video';
+import { LockedSheet } from '@/components/submit/LockedSheet';
+import { LockIcon, TileIcon } from '@/components/common/icons';
+import { localTime } from '@/lib/format';
+import { TILES, TILE_TONE, TILE_TYPES, daysAhead, lockedWhy, nextOpening, tileState } from '@/lib/intake';
+import { useServerNow } from './useServerNow';
 
 /** The submission sheets, mounted once, on Home (AppShell); a prayer hour's Pray sheet opens from the stage. */
 export function SubmitSheets() {
@@ -24,6 +26,7 @@ export function SubmitSheets() {
       <PrayerSheet open={open === 'prayer'} onClose={close} onRecord={() => show('record', 'prayer')} />
       <RecordSheet open={open === 'record'} onClose={close} initialKind={recordKind} />
       <PraySheet open={open === 'pray'} onClose={close} />
+      <LockedSheet open={open === 'locked'} onClose={close} />
     </>
   );
 }
@@ -31,55 +34,66 @@ export function SubmitSheets() {
 /**
  * The four tiles of the design; each follows what the program on air
  * accepts (the fourth, a video — a preaching, a testimony, a mission video or
- * a film —, only a program of such a format; the chat is in the menu).
+ * a film —, only a program of such a format; the chat is in the menu). A
+ * locked one carries a lock and, tapped, says why and when again (LockedSheet):
+ * listeners took a tile that did nothing for a broken one. Its hint says when
+ * it opens again where today's plan knows it.
  * `beforeOpen` lets the phone dock turn a first tap on a folded tile into
  * "unfold" (it returns true when it took the tap). `place="hero"` is the same
  * four once more in the desktop scenery, where the tiles below the page are
  * out of sight: small, the hint only on hover (shell.css).
  */
 export function SubmitTiles({ beforeOpen, place = 'scene' }: { beforeOpen?: () => boolean; place?: 'scene' | 'hero' }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.language === 'de' ? 'de' : 'en') as Lang;
   const submissions = useRadio((s) => s.engine.submissions);
-  const show = useSheets((s) => s.show);
-
-  const stateOf = (types: readonly SubmissionType[]): SubmissionState | 'off' => {
-    const states = types.map((ty) => submissions[ty]).filter((s): s is SubmissionState => !!s);
-    if (states.includes('open')) return 'open';
-    if (states.includes('closing')) return 'closing';
-    return states.length ? 'closed' : 'off';
-  };
-  const tiles: { id: Tile; state: SubmissionState | 'off'; icon: React.ReactNode; tone: string; open: () => void }[] = [
-    { id: 'song', state: stateOf(['song']), icon: <MusicIcon />, tone: 'purple', open: () => show('song') },
-    { id: 'story', state: stateOf(['story', 'testimony', 'greeting']), icon: <MicIcon />, tone: 'green', open: () => show('record', 'story') },
-    { id: 'prayer', state: stateOf(['prayer']), icon: <PrayIcon />, tone: 'blue', open: () => show('prayer') },
-    // Open when any kind of video is: the sheet's picker offers the ones that are.
-    { id: 'video', state: stateOf(VIDEO_SUBMISSION_TYPES), icon: <BookIcon />, tone: 'gold', open: () => show('video') },
-  ];
+  const why = useRadio((s) => s.engine.why);
+  const today = useRadio((s) => s.today);
+  const openTile = useSheets((s) => s.openTile);
+  const explain = useSheets((s) => s.explain);
+  const now = useServerNow(60_000);
 
   return (
     <div className={place === 'hero' ? 'hero-actions' : 'actions'} role="group" aria-label={t('submit.label')}>
-      {tiles.map((tile) => {
-        const usable = tile.state === 'open' || tile.state === 'closing';
-        const hint = tile.state === 'closed' ? t('submit.closed') : tile.state === 'off' ? t('submit.notNow') : t(`submit.${tile.id}.subtitle`);
+      {TILES.map((tile) => {
+        const types = TILE_TYPES[tile];
+        const state = tileState(types, submissions);
+        const usable = state === 'open' || state === 'closing';
+        const reason = lockedWhy(types, submissions, why);
+        // Why, said short: also the locked tile's name for screen readers.
+        const short = state === 'off' ? t('submit.notNow') : reason === 'full' ? t('submit.full') : t('submit.closed');
+        // A full one may open before the next program does: no time for it.
+        const opening = !usable && reason !== 'full' && today ? nextOpening(types, [today.date], { [today.date]: today }, now) : null;
+        const hint = usable
+          ? t(`submit.${tile}.subtitle`)
+          : opening && daysAhead(opening.start, now) === 0
+            ? t('submit.againAt', { time: localTime(opening.start, lang) })
+            : short;
         return (
           <button
-            key={tile.id}
+            key={tile}
             type="button"
-            className={clsx('action', tile.tone)}
-            aria-disabled={!usable}
-            aria-label={usable ? t(`submit.${tile.id}.title`) : `${t(`submit.${tile.id}.title`)} · ${hint}`}
+            className={clsx('action', TILE_TONE[tile])}
+            data-locked={usable ? undefined : ''}
+            aria-label={usable ? t(`submit.${tile}.title`) : `${t(`submit.${tile}.title`)} · ${short}`}
             title={place === 'hero' ? hint : undefined}
             onClick={() => {
               if (beforeOpen?.()) return;
-              if (usable) tile.open();
+              if (usable) openTile(tile);
+              else explain(tile);
             }}
           >
-            {tile.icon}
+            <TileIcon tile={tile} />
             <span className="action-copy">
-              <strong>{t(`submit.${tile.id}.title`)}</strong>
+              <strong>{t(`submit.${tile}.title`)}</strong>
               <small>{hint}</small>
             </span>
-            {tile.state === 'closing' && <span className="action-badge">{t('submit.closing')}</span>}
+            {state === 'closing' && <span className="action-badge">{t('submit.closing')}</span>}
+            {!usable && (
+              <span className="action-lock" aria-hidden="true">
+                <LockIcon />
+              </span>
+            )}
           </button>
         );
       })}

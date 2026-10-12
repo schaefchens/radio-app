@@ -86,6 +86,7 @@ final class Publisher
             if ($p !== null) $programs[(string) $p['slug']] = $this->programRef($channel, $p);
         }
 
+        $window = $current !== null ? SubmissionWindow::window($this->app, $channel, $current, $block, $minute) : null;
         return [
             'v' => 1,
             'channel' => (string) $channel['slug'],
@@ -93,7 +94,8 @@ final class Publisher
             'gen' => $this->app->clock->nowMs(),
             'current' => $current !== null ? (string) $current['slug'] : null,
             'next' => $next,
-            'submissions' => $current !== null ? SubmissionWindow::states($this->app, $channel, $current, $block, $minute) : new \stdClass(),
+            'submissions' => $window['states'] ?? new \stdClass(),
+            'why' => $window['why'] ?? new \stdClass(),
             'programs' => $programs ?: new \stdClass(),
             'items' => $items,
         ];

@@ -33,7 +33,8 @@ describe('program file fixtures', () => {
     );
     const bed = slot!.items.find((i) => i.type === 'bed');
     expect(bed).toMatchObject({ audio: '/media/beds/5e0d7a.mp3', offset: 60000, label: { en: 'What can we pray for?', de: 'Wofür dürfen wir beten?' } });
-    expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing', intercession: 'open' });
+    expect(slot!.submissions).toEqual({ song: 'open', prayer: 'closing', intercession: 'closed' });
+    expect(slot!.why).toEqual({ intercession: 'later' });
     expect(slot!.programs.worship?.stage.mode).toBe('flyins');
     expect(slot!.programs.worship?.format).toBe('music');
     expect(slot!.programs.sermon?.format).toBe('preaching');
@@ -267,6 +268,18 @@ describe('program file fixtures', () => {
     });
     expect(slot?.submissions).toEqual({ mission: 'open', testimony_video: 'closing', film: 'closed' });
     expect(slot?.programs.outreach?.allowed).toEqual(['mission', 'testimony_video', 'film']);
+  });
+
+  it('says why a type is closed — only for one that is, with a reason it knows; older files say nothing', () => {
+    const raw = load('slot.json') as Record<string, unknown>;
+    const slot = parseSlotFile({
+      ...raw,
+      submissions: { song: 'closed', prayer: 'closing', story: 'closed', greeting: 'closed' },
+      why: { song: 'late', prayer: 'full', story: 'bored', greeting: 'full', video: 'late' },
+    });
+    expect(slot?.why).toEqual({ song: 'late', greeting: 'full' });
+    const { why: _, ...older } = raw;
+    expect(parseSlotFile(older)?.why).toEqual({});
   });
 
   it('rejects unknown versions and drops unknown item types', () => {

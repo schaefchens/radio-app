@@ -1,9 +1,11 @@
 import {
+  CLOSED_REASONS,
   LANGS,
   SUBMISSION_STATES,
   SUBMISSION_TYPES,
   VOICE_PROVIDERS,
   isVideoFormat,
+  type ClosedReason,
   type SubmissionState,
   type SubmissionType,
   type VoiceProvider,
@@ -101,6 +103,7 @@ function stage(v: unknown): StageConfig {
 
 const isSubmissionType = (v: unknown): v is SubmissionType => SUBMISSION_TYPES.includes(v as SubmissionType);
 const isSubmissionState = (v: unknown): v is SubmissionState => SUBMISSION_STATES.includes(v as SubmissionState);
+const isClosedReason = (v: unknown): v is ClosedReason => CLOSED_REASONS.includes(v as ClosedReason);
 const isVoiceProvider = (v: unknown): v is VoiceProvider => VOICE_PROVIDERS.includes(v as VoiceProvider);
 
 export function parseProgramRef(v: unknown): ProgramRef | null {
@@ -257,6 +260,12 @@ export function parseSlotFile(v: unknown): SlotFile | null {
       if (isSubmissionType(k) && isSubmissionState(s)) submissions[k] = s;
     }
   }
+  const why: SlotFile['why'] = {};
+  if (isObj(v.why)) {
+    for (const [k, r] of Object.entries(v.why)) {
+      if (isSubmissionType(k) && submissions[k] === 'closed' && isClosedReason(r)) why[k] = r;
+    }
+  }
   const next = isObj(v.next) && isStr(v.next.p) && isNum(v.next.start) ? { p: v.next.p, start: v.next.start } : null;
   const items = compact(arr(v.items), parseItem).sort((a, b) => a.start - b.start);
   return {
@@ -267,6 +276,7 @@ export function parseSlotFile(v: unknown): SlotFile | null {
     current: strOrNull(v.current),
     next,
     submissions,
+    why,
     programs: programMap(v.programs, parseProgramRef),
     items,
   };

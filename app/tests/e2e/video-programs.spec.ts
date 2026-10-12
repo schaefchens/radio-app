@@ -221,8 +221,16 @@ test('a mission program that also takes testimonies: its own video named "Missio
   await page.context().close();
 });
 
-test('on a music program the video tile says it is not part of the program', async ({ browser }) => {
+test('on a music program the video tile says it is not part of the program — and, tapped, why and when again', async ({ browser }) => {
   const page = await listener(browser, 'main');
-  await expect(page.getByRole('button', { name: 'Suggest a video · Not part of this program' }).first()).toBeVisible();
+  const tile = page.getByRole('button', { name: 'Suggest a video · Not part of this program' }).first();
+  await expect(tile).toBeVisible();
+  await tile.click();
+  const sheet = page.getByRole('dialog', { name: 'Suggest a video' });
+  await expect(sheet.getByText('Not possible right now')).toBeVisible();
+  await expect(sheet.getByText(/^“.+” doesn’t take video suggestions\.$/)).toBeVisible();
+  await expect(sheet.getByText(/^(Possible again .+, in “.+”\.|No program in the coming days takes video suggestions\.)$/)).toBeVisible();
+  await sheet.getByRole('button', { name: 'Got it' }).click();
+  await expect(sheet.getByText('Not possible right now')).not.toBeInViewport();
   await page.context().close();
 });

@@ -26,8 +26,25 @@ final class SubmissionWindow
      */
     public static function states(App $app, array $channel, array $program, array $block, int $t, ?int $assumePrayerFrom = null): array|\stdClass
     {
+        return self::window($app, $channel, $program, $block, $t, $assumePrayerFrom)['states'];
+    }
+
+    /**
+     * The states, and why each closed type is closed — the minute file's
+     * `why`, so a listener who taps a closed tile learns the reason: `late`,
+     * too close to the end for anything sent now to air; `full`, what waits
+     * already fills the time left (it opens again as that airs); `later`, a
+     * prayer hour's prayers before its prayer time.
+     *
+     * @param array<string,mixed> $channel
+     * @param array<string,mixed> $program
+     * @param array{start:int,end:int,program_id:int} $block
+     * @return array{states: array<string,string>|\stdClass, why: array<string,string>|\stdClass}
+     */
+    public static function window(App $app, array $channel, array $program, array $block, int $t, ?int $assumePrayerFrom = null): array
+    {
         $allowed = array_values(array_filter($program['allowed'], fn($type) => self::featureOn($app, $type)));
-        if (!$allowed) return new \stdClass();
+        if (!$allowed) return ['states' => new \stdClass(), 'why' => new \stdClass()];
 
         $s = $program['settings'];
         // A prayer hour takes requests until its outro; the songs after it take none.
@@ -36,8 +53,9 @@ final class SubmissionWindow
         $remainingMin = intdiv(max(0, $end - $t), 60_000);
         $queueMin = intdiv($app->submissions()->queuedAirtime((int) $channel['id'], (int) $program['id']), 60_000);
         $maxQueue = max(1, (int) $s['max_queue_min']);
+        $late = $remainingMin < (int) $s['closed_min'];
 
-        if ($remainingMin < (int) $s['closed_min'] || $queueMin >= $maxQueue) {
+        if ($late || $queueMin >= $maxQueue) {
             $state = 'closed';
         } elseif ($remainingMin < (int) $s['closing_min'] || $queueMin * 10 >= $maxQueue * 7) {
             $state = 'closing';
@@ -45,6 +63,8 @@ final class SubmissionWindow
             $state = 'open';
         }
         $states = array_fill_keys($allowed, $state);
+        // Late before full: then nothing opens again in this program at all.
+        $why = $state === 'closed' ? array_fill_keys($allowed, $late ? 'late' : 'full') : [];
         if ($prayerHour && isset($states['intercession'])) {
             // Prayers from the announcement of the prayer time on — once it
             // is committed (PrayerHour::prayerTimeFrom), so the minute files
@@ -52,13 +72,17 @@ final class SubmissionWindow
             // time to read them before the outro.
             $from = $assumePrayerFrom ?? $app->prayerHour()->prayerTimeFrom($channel, $program, $t);
             $left = $end - $t;
-            $states['intercession'] = match (true) {
-                $from === null || $from > $t, $left < Timing::PRAYER_CLOSED, $queueMin >= $maxQueue => 'closed',
-                $left < Timing::PRAYER_CLOSING, $queueMin * 10 >= $maxQueue * 7 => 'closing',
-                default => 'open',
+            [$states['intercession'], $reason] = match (true) {
+                $left < Timing::PRAYER_CLOSED => ['closed', 'late'],
+                $from === null || $from > $t => ['closed', 'later'],
+                $queueMin >= $maxQueue => ['closed', 'full'],
+                $left < Timing::PRAYER_CLOSING, $queueMin * 10 >= $maxQueue * 7 => ['closing', null],
+                default => ['open', null],
             };
+            unset($why['intercession']);
+            if ($reason !== null) $why['intercession'] = $reason;
         }
-        return $states;
+        return ['states' => $states, 'why' => $why ?: new \stdClass()];
     }
 
     /**

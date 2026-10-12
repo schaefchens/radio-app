@@ -132,11 +132,11 @@ describe('the fourth tile', () => {
   it('is not part of a program without videos, and closed when its videos are', () => {
     onAir('music', { song: 'open' });
     const { unmount } = render(<SubmitTiles />);
-    expect(tile('Suggest a video · Not part of this program').getAttribute('aria-disabled')).toBe('true');
+    expect(tile('Suggest a video · Not part of this program').hasAttribute('data-locked')).toBe(true);
     unmount();
     onAir('preaching', { preaching: 'closed' });
     render(<SubmitTiles />);
-    expect(tile('Suggest a video · Closed for this program').getAttribute('aria-disabled')).toBe('true');
+    expect(tile('Suggest a video · Closed for this program').hasAttribute('data-locked')).toBe(true);
   });
 
   it('opens the sheet while any kind of video is taken, and says when time runs out', () => {
@@ -144,7 +144,7 @@ describe('the fourth tile', () => {
     onAir('mission', { mission: 'closing', film: 'closed' });
     render(<SubmitTiles />);
     const button = tile('Suggest a video');
-    expect(button.getAttribute('aria-disabled')).toBe('false');
+    expect(button.hasAttribute('data-locked')).toBe(false);
     expect(within(button).getByText('Last chance')).toBeTruthy();
     expect(within(button).getByText('Preaching, testimony, mission or film')).toBeTruthy();
     fireEvent.click(button);

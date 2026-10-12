@@ -1,4 +1,4 @@
-import type { Lang, SubmissionState, SubmissionType, VideoFormat, VoiceProvider } from './constants.ts';
+import type { ClosedReason, Lang, SubmissionState, SubmissionType, VideoFormat, VoiceProvider } from './constants.ts';
 
 /**
  * The static program files: written by server/app/Program/*, read by the PWA.
@@ -238,6 +238,8 @@ export interface SlotFile {
   next: { p: string; start: number } | null;
   /** Only the types the current program allows appear here. */
   submissions: Partial<Record<SubmissionType, SubmissionState>>;
+  /** Why each closed type is closed; {} in files of older generators. */
+  why: Partial<Record<SubmissionType, ClosedReason>>;
   programs: Record<string, ProgramRef>;
   /** Every item overlapping [t, t + SLOT_WINDOW_MS), sorted by start. */
   items: TimelineItem[];

@@ -1,4 +1,5 @@
 import type {
+  ClosedReason,
   EvergreenFile,
   HostInfo,
   Lang,
@@ -58,6 +59,8 @@ export interface EngineState {
   next: { program: ProgramRef; start: number } | null;
   upNext: TimelineItem | null;
   submissions: Partial<Record<SubmissionType, SubmissionState>>;
+  /** Why each closed type is closed (the minute file's `why`). */
+  why: Partial<Record<SubmissionType, ClosedReason>>;
   /** Playback is blocked by the browser: the listener has to tap once. */
   needsTap: boolean;
   playerVisible: boolean;
@@ -172,6 +175,7 @@ export function initialState(channel = ''): EngineState {
     next: null,
     upNext: null,
     submissions: {},
+    why: {},
     needsTap: false,
     playerVisible: false,
     hostText: null,
@@ -711,7 +715,7 @@ export class RadioEngine {
     player.seek(expected + 0.3);
   }
 
-  private contextFor(item: TimelineItem, now: number): Pick<EngineState, 'program' | 'next' | 'submissions' | 'upNext' | 'hasData'> {
+  private contextFor(item: TimelineItem, now: number): Pick<EngineState, 'program' | 'next' | 'submissions' | 'why' | 'upNext' | 'hasData'> {
     const slot = this.timeline.slotAt(now);
     this.contextT = slot?.t ?? -1;
     const program = this.timeline.program(item.p) ?? this.timeline.program(slot?.current);
@@ -720,6 +724,7 @@ export class RadioEngine {
       program,
       next: slot?.next && nextProgram ? { program: nextProgram, start: slot.next.start } : null,
       submissions: slot?.submissions ?? {},
+      why: slot?.why ?? {},
       upNext: this.timeline.next(now),
       hasData: true,
     };

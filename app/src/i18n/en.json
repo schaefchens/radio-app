@@ -108,15 +108,18 @@
   "submit": {
     "song": {
       "title": "Request a song",
-      "subtitle": "What should we play?"
+      "subtitle": "What should we play?",
+      "what": "song requests"
     },
     "story": {
       "title": "Tell your story",
-      "subtitle": "Share your testimony with us."
+      "subtitle": "Share your testimony with us.",
+      "what": "stories, testimonies or greetings"
     },
     "prayer": {
       "title": "Share a prayer request",
-      "subtitle": "Our listeners pray with you."
+      "subtitle": "Our listeners pray with you.",
+      "what": "prayer requests"
     },
     "preaching": {
       "title": "Suggest a preaching"
@@ -132,11 +135,33 @@
     },
     "video": {
       "title": "Suggest a video",
-      "subtitle": "Preaching, testimony, mission or film"
+      "subtitle": "Preaching, testimony, mission or film",
+      "what": "video suggestions"
     },
     "closing": "Last chance",
     "closed": "Closed for this program",
     "notNow": "Not part of this program",
+    "full": "Full right now",
+    "againAt": "Again from {{time}}",
+    "locked": {
+      "now": "Not possible right now",
+      "off": "“{{program}}” doesn’t take {{what}}.",
+      "late": "“{{program}}” ends soon: anything sent now could no longer be aired.",
+      "full": "So much is already waiting for “{{program}}” that nothing more fits before it ends. As soon as there is room again, you can send yours.",
+      "later": "“{{program}}” takes {{what}} later on.",
+      "unknown": "“{{program}}” isn’t taking {{what}} right now.",
+      "noProgram": "No program that takes {{what}} is on air right now.",
+      "next": "Possible again {{when}}, in “{{program}}”.",
+      "nextFull": "Otherwise again {{when}}, in “{{program}}”.",
+      "today": "today from {{time}}",
+      "tomorrow": "tomorrow from {{time}}",
+      "onDay": "on {{day}} from {{time}}",
+      "none": "No program in the coming days takes {{what}}.",
+      "how": "Each program takes only certain contributions, and only while it is on air, until shortly before it ends.",
+      "instead": "Possible right now",
+      "schedule": "See the schedule",
+      "ok": "Got it"
+    },
     "sent": "Thank you! We'll let you know when it's on air.",
     "name": "Your first name",
     "place": "Where are you from? (city or country)",

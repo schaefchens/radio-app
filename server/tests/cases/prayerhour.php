@@ -276,6 +276,8 @@ test('prayer hour: prayers are taken only in the prayer time, until 12 minutes b
     $close = $app->prayerHour()->closingAt($ch, $program, TestKit::T0 + 20 * 60_000);
     ticks($app, 18);
     eq(intakeAt($app, $p, $app->clock->nowMs()), ['open', 'closed'], 'in the collection: requests, but no prayers yet');
+    $why = fn(int $t) => (array) SubmissionWindow::window($app, $ch, $program, $app->resolver()->blockAt($ch, $t), $t)['why'];
+    eq($why($app->clock->nowMs()), ['intercession' => 'later'], 'prayers come later, in the prayer time');
     check(refuses(fn() => prayAs($app, 'Early'), 'closed'), 'a prayer sent now is refused, as the minute file says');
     ticks($app, 12);
     $from = $app->prayerHour()->prayerTimeFrom($ch, $program, $app->clock->nowMs());
@@ -284,8 +286,10 @@ test('prayer hour: prayers are taken only in the prayer time, until 12 minutes b
     eq([intakeAt($app, $p, $close - 18 * 60_000)[1], intakeAt($app, $p, $close - 16 * 60_000)[1], intakeAt($app, $p, $close - 11 * 60_000)[1]], ['open', 'closing', 'closed'],
         'last chance from 17 minutes before the outro, closed 12 minutes before it');
     eq(intakeAt($app, $p, $close - 14 * 60_000)[0], 'closed', 'requests close by the program\'s own settings (15 minutes before the outro)');
+    eq($why($close - 11 * 60_000), ['prayer' => 'late', 'intercession' => 'late'], 'and near the outro both are too late');
     $slot = json_decode((string) file_get_contents($app->publicPath(Timing::slotPath('main', $app->clock->nowMs()))), true);
     eq($slot['submissions']['intercession'] ?? null, 'open', 'the minute file offers the Pray button');
+    eq($slot['why'], [], 'with nothing closed, nothing to say why');
     check(prayAs($app, 'OnTime') !== '', 'a prayer sent now is accepted');
 
     // Sent as late as allowed, approved after the outro was planned: it missed it — and a recording goes.

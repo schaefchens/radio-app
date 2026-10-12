@@ -162,6 +162,8 @@ test('requests: intake closes 15 minutes before a program ends, last chance from
         return is_array($s) ? $s['song'] : 'none';
     };
     eq([$state(26), $state(24), $state(16), $state(14)], ['open', 'closing', 'closing', 'closed'], 'open, last chance from 25, closed from 15');
+    $why = fn(int $minutesLeft) => (array) SubmissionWindow::window($app, $ch, $program, $block, $block['end'] - $minutesLeft * 60_000)['why'];
+    eq([$why(16), $why(14)['song'] ?? null], [[], 'late'], 'the minute file says why: too late for this program');
 
     $saved = $app->catalog()->saveProgram($pid, (int) $ch['id'], ['settings' => ['closed_min' => 5]], 'test');
     eq($saved['settings']['closed_min'], intdiv(Timing::DRAFT + Timing::MIN_SONG, 60_000) + 1, 'never below what a request sent at the last moment needs');

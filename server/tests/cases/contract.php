@@ -81,7 +81,7 @@ test('contract: generated program files match shared/fixtures', function () {
         TestKit::clock($app)->advance(60_000);
     }
     $now = $app->clock->nowMs();
-    $maps = ['programs', 'submissions', 'audio', 'text', 'caption'];
+    $maps = ['programs', 'submissions', 'why', 'audio', 'text', 'caption'];
     $types = [];
     foreach (glob($app->publicPath('program/main/slots/*/*.json')) as $file) {
         $slot = json_decode((string) file_get_contents($file));
@@ -136,7 +136,7 @@ test('contract: a prayer hour\'s files match shared/fixtures — its readings, i
     $kinds = [];
     foreach (glob($app->publicPath('program/main/slots/*/*.json')) as $file) {
         $slot = json_decode((string) file_get_contents($file));
-        shape($slot, fixture('slot.json'), 'slot', ['programs', 'submissions', 'audio', 'text', 'caption']);
+        shape($slot, fixture('slot.json'), 'slot', ['programs', 'submissions', 'why', 'audio', 'text', 'caption']);
         foreach ($slot->items as $it) if ($it->type === 'host') $kinds[$it->kind] = true;
     }
     foreach (['intro', 'present', 'reading', 'prayertime', 'intercession'] as $k) check(isset($kinds[$k]), "a published $k");

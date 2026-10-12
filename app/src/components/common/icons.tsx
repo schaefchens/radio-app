@@ -1,4 +1,5 @@
 import type { SVGProps } from 'react';
+import type { Tile } from '@/lib/intake';
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
@@ -174,6 +175,20 @@ export const SendIcon = (p: IconProps) => (
   </Icon>
 );
 /** "Remind me": filled while a reminder is set. */
+/** The four tiles' own icons. */
+export function TileIcon({ tile, ...p }: IconProps & { tile: Tile }) {
+  if (tile === 'song') return <MusicIcon {...p} />;
+  if (tile === 'story') return <MicIcon {...p} />;
+  if (tile === 'prayer') return <PrayIcon {...p} />;
+  return <BookIcon {...p} />;
+}
+/** A locked tile: it takes nothing now (a tap says why). */
+export const LockIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </Icon>
+);
 export const BellIcon = ({ filled, ...p }: IconProps & { filled?: boolean }) => (
   <Icon {...p} fill={filled ? 'currentColor' : 'none'}>
     <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9Z" />

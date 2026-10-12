@@ -85,6 +85,13 @@ export type VoiceProvider = (typeof VOICE_PROVIDERS)[number];
 export const SUBMISSION_STATES = ['open', 'closing', 'closed'] as const;
 export type SubmissionState = (typeof SUBMISSION_STATES)[number];
 
+/** Why a type is closed (server/app/Program/SubmissionWindow.php): `late`,
+ *  too close to the program's end for anything sent now to air; `full`, what
+ *  waits already fills the time left (it opens again as that airs); `later`,
+ *  a prayer hour's prayers before its prayer time. */
+export const CLOSED_REASONS = ['late', 'full', 'later'] as const;
+export type ClosedReason = (typeof CLOSED_REASONS)[number];
+
 /** heart and pray are the two big buttons; the rest sit behind the emoji
  *  picker — 🙌 raise, 😊 smile, 😍 love, 🥹 moved, 🕊️ peace, ✨ hope,
  *  🎉 celebrate, 🔥 fire. The server counts only kinds it has a weight for

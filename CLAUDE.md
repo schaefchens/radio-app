@@ -465,7 +465,15 @@ languages; the clone of a take scored 0.6–0.7 against it. So VoiceDesign
 designs the voice and the clone speaks it.
 
 **Submissions** (`Submission\*`, `Moderation\*`). Only to the program on air and
-while the minute file says `open`/`closing` (checked again server-side). Every
+while the minute file says `open`/`closing` (checked again server-side). A
+closed type carries its reason in the minute file's `why`
+(`SubmissionWindow::window`: `late`, too near the end; `full`, the queue
+fills the time left; a prayer hour's `later`). A locked tile is no dead
+button (listeners tapped them and thought them broken, 2026-10-12): it
+carries a lock — `data-locked`, not `aria-disabled`, since it still does
+something — and a tap opens `LockedSheet`: why, when again (the next run of
+a program that takes it, from the week's day files: `lib/intake.ts`), and
+what can be sent instead; on desktop its hint says "Again from 18:00". Every
 form asks "Stay anonymous" (`NameOrAnonymous`, unticked at first: named is the
 station's default): unticked, a first name is needed, and it is said on air
 with the place (and shown on a prayer wall); ticked, the form sends neither,
@@ -950,7 +958,7 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 `server/tests/cases/*`, stub AI, fixed clock) covers plan resolution, the
 generator's timing invariants, the PHP→fixture contract (a prayer hour's
 files too), identity, submissions (request blocks, late approvals, the queue
-sweep, intake times, the prayer wall, typed prayers read out word for word or
+sweep, intake times and why a type is closed, the prayer wall, typed prayers read out word for word or
 given back, one taken off the wall never read, listeners' prayers: consent,
 limits, never on the wall; praying along), the host never praying
 (`host.php`: the rule in the prompt, the guard, every template and lead-in,
@@ -1071,7 +1079,11 @@ the tiles following the minute files through a long preaching, timeline, clock, 
 built from the shared lists), passphrase,
 realtime client, CDN fallback, theme, the phone carousel's fit, the prayer wall's
 day, "On air now", the page of requests and the station's translated one, a
-request shown from its reading on, the pulse's voice reactions; jsdom: the
+request shown from its reading on, the pulse's voice reactions, when a
+locked tile opens again (the next run that takes it, never the one on air,
+a run across midnight once, a day without its file skipped); jsdom: a locked
+tile (marked, its time on the tile, tapped: why — not taken, too late, full
+— when again and in which program, what instead, none in the week), the
 stage's prayer view (buttons by the minute file, the count, the page, a
 reading, a listener's prayer as theirs), the Pray sheet (recorder first,
 written instead, both endpoints, the yes never ticked in advance, staying
@@ -1141,7 +1153,7 @@ the prayer time, no sideways scroll), video programs on channels of their own (t
 library's preaching on air as its video, named a preaching, and a preaching
 suggested through the sheet; a mission program's own video named "Mission",
 the sheet opening on Mission and a testimony suggested through the picker;
-the tile closed on a music program), a stand-in
+the tile closed on a music program, and tapped, why and when again), a stand-in
 store-app shell (no install offer, the background stops the radio, failing
 plugins break nothing), deleting an account from Profile and with the 12
 words on `/konto-loeschen`, blocking between two listeners (reported to /mod,

@@ -5,7 +5,8 @@
   "gen": 1790189640000,
   "current": "worship",
   "next": { "p": "prayer", "start": 1790193600000 },
-  "submissions": { "song": "open", "prayer": "closing", "intercession": "open" },
+  "submissions": { "song": "open", "prayer": "closing", "intercession": "closed" },
+  "why": { "intercession": "later" },
   "programs": {
     "worship": {
       "id": "worship",

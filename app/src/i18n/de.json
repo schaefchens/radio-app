@@ -108,15 +108,18 @@
   "submit": {
     "song": {
       "title": "Lied wünschen",
-      "subtitle": "Welchen Song sollen wir spielen?"
+      "subtitle": "Welchen Song sollen wir spielen?",
+      "what": "Liedwünsche"
     },
     "story": {
       "title": "Erzähle deine Geschichte",
-      "subtitle": "Teile dein Zeugnis mit uns."
+      "subtitle": "Teile dein Zeugnis mit uns.",
+      "what": "Geschichten, Zeugnisse und Grüße"
     },
     "prayer": {
       "title": "Gebetsanliegen teilen",
-      "subtitle": "Unsere Gemeinde betet mit dir."
+      "subtitle": "Unsere Gemeinde betet mit dir.",
+      "what": "Gebetsanliegen"
     },
     "preaching": {
       "title": "Predigt vorschlagen"
@@ -132,11 +135,33 @@
     },
     "video": {
       "title": "Video vorschlagen",
-      "subtitle": "Predigt, Zeugnis, Mission oder Film"
+      "subtitle": "Predigt, Zeugnis, Mission oder Film",
+      "what": "Videovorschläge"
     },
     "closing": "Letzte Chance",
     "closed": "Für diese Sendung geschlossen",
     "notNow": "Gehört nicht zu dieser Sendung",
+    "full": "Gerade voll",
+    "againAt": "Wieder ab {{time}}",
+    "locked": {
+      "now": "Gerade nicht möglich",
+      "off": "„{{program}}“ nimmt keine {{what}} an.",
+      "late": "„{{program}}“ endet bald: Was jetzt käme, könnte nicht mehr gesendet werden.",
+      "full": "Für „{{program}}“ wartet schon so viel, wie bis zum Ende gesendet werden kann. Sobald wieder Platz ist, kannst du deins schicken.",
+      "later": "„{{program}}“ nimmt {{what}} erst später an.",
+      "unknown": "„{{program}}“ nimmt gerade keine {{what}} an.",
+      "noProgram": "Gerade läuft keine Sendung, die {{what}} annimmt.",
+      "next": "Wieder möglich {{when}} in „{{program}}“.",
+      "nextFull": "Sonst wieder {{when}} in „{{program}}“.",
+      "today": "heute ab {{time}}",
+      "tomorrow": "morgen ab {{time}}",
+      "onDay": "am {{day}} ab {{time}}",
+      "none": "In den nächsten Tagen ist keine Sendung im Plan, die {{what}} annimmt.",
+      "how": "Jede Sendung nimmt nur bestimmte Beiträge an, und nur solange sie läuft, bis kurz vor ihrem Ende.",
+      "instead": "Jetzt möglich",
+      "schedule": "Zum Programm",
+      "ok": "Verstanden"
+    },
     "sent": "Danke! Wir sagen dir Bescheid, wenn es on air ist.",
     "name": "Dein Vorname",
     "place": "Woher kommst du? (Stadt oder Land)",

@@ -282,12 +282,13 @@
   outline: 3px solid rgb(var(--accent));
   outline-offset: 3px;
 }
-.action[aria-disabled='true'] {
-  opacity: 0.5;
-  cursor: not-allowed;
-  filter: saturate(0.6);
+/* Locked: it takes nothing now — but a tap says why and when again, so no
+   not-allowed cursor and no aria-disabled (it is not dead). Grey and solid:
+   see-through, the phone dock showed the page's words through it. */
+.action[data-locked] {
+  filter: grayscale(0.85) brightness(0.9);
 }
-.action svg {
+.action > svg {
   width: 28px;
   height: 28px;
   flex: 0 0 auto;
@@ -315,29 +316,68 @@
   text-transform: uppercase;
 }
 /* A variable, so the tiles in the scenery can wear the color on the icon alone. */
-.action.purple {
+:is(.action, .action-chip).purple {
   --tone: linear-gradient(145deg, #be64fb, #7d26e4);
 }
-.action.green {
+:is(.action, .action-chip).green {
   --tone: linear-gradient(145deg, #64d370, #00a783);
 }
-.action.blue {
+:is(.action, .action-chip).blue {
   --tone: linear-gradient(145deg, #28bfff, #0075ed);
 }
-.action.gold {
+:is(.action, .action-chip).gold {
   --tone: linear-gradient(145deg, #ffd946, #ef9800);
 }
-:root[data-theme='dark'] .action.purple {
+:root[data-theme='dark'] :is(.action, .action-chip).purple {
   --tone: linear-gradient(145deg, #6125eb, #3012ae);
 }
-:root[data-theme='dark'] .action.green {
+:root[data-theme='dark'] :is(.action, .action-chip).green {
   --tone: linear-gradient(145deg, #079e98, #006b68);
 }
-:root[data-theme='dark'] .action.blue {
+:root[data-theme='dark'] :is(.action, .action-chip).blue {
   --tone: linear-gradient(145deg, #066df7, #003fc4);
 }
-:root[data-theme='dark'] .action.gold {
+:root[data-theme='dark'] :is(.action, .action-chip).gold {
   --tone: linear-gradient(145deg, #e7a30a, #ad6100);
+}
+
+/* The lock on a locked tile. */
+.action-lock {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0006;
+  color: white;
+}
+.action-lock svg {
+  width: 12px;
+  height: 12px;
+}
+/* What can be sent instead, in the locked sheet: the tiles made small. */
+.action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 9px;
+  border: 1px solid #ffffff65;
+  border-radius: 999px;
+  background: var(--tone);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  text-shadow: 0 1px 3px #0002;
+}
+.action-chip:hover {
+  filter: brightness(1.08);
+}
+.action-chip svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* The same tiles once more in the desktop scenery (Home): see "the tiles in
@@ -542,7 +582,7 @@
     border-radius: 18px;
     font-size: clamp(13px, 1.2vw, 18px);
   }
-  .action svg {
+  .action > svg {
     width: 34px;
     height: 34px;
   }
@@ -608,7 +648,7 @@
   :root[data-theme='dark'] .hero-actions .action {
     box-shadow: 0 8px 20px rgb(0 10 20 / 0.35);
   }
-  .hero-actions .action svg {
+  .hero-actions .action > svg {
     width: clamp(28px, 2.1vw, 32px);
     height: clamp(28px, 2.1vw, 32px);
     padding: 6px;
@@ -624,7 +664,7 @@
   .hero-actions .action:hover {
     filter: none;
   }
-  .hero-actions .action:not([aria-disabled='true']):hover {
+  .hero-actions .action:not([data-locked]):hover {
     border-color: rgb(var(--accent));
   }
   .hero-actions .action-badge {
@@ -633,18 +673,31 @@
     background: rgb(var(--live));
     color: white;
   }
-  /* Closed: see-through, the sky would wash the card out; it stays solid
-     and quiet instead. */
-  .hero-actions .action[aria-disabled='true'] {
+  /* Locked: the card stays as it is, over the sky; its icon turns grey and
+     its words quiet. */
+  .hero-actions .action[data-locked] {
     opacity: 1;
     filter: none;
   }
-  .hero-actions .action[aria-disabled='true'] svg {
+  .hero-actions .action[data-locked] > svg {
     background: rgb(var(--ink-faint) / 0.45);
     box-shadow: none;
   }
-  .hero-actions .action[aria-disabled='true'] .action-copy {
+  .hero-actions .action[data-locked] .action-copy {
     opacity: 0.6;
+  }
+  /* On the corner: inside, it would sit on a two-line label. */
+  .hero-actions .action-lock {
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    background: rgb(var(--ink-muted));
+    color: rgb(var(--base));
+  }
+  .hero-actions .action-lock svg {
+    width: 11px;
+    height: 11px;
   }
 }
 
@@ -775,7 +828,7 @@
     font-size: 9px;
     line-height: 1.1;
   }
-  .mobile-dock .action svg {
+  .mobile-dock .action > svg {
     width: 23px;
     height: 23px;
   }
@@ -794,13 +847,23 @@
     padding: 3px;
     text-align: center;
   }
-  .mobile-dock[data-expanded='true'] .action svg {
+  .mobile-dock[data-expanded='true'] .action > svg {
     width: 20px;
     height: 20px;
   }
   .mobile-dock[data-expanded='true'] .action-copy {
     min-width: 0;
     width: 100%;
+  }
+  .mobile-dock .action-lock {
+    top: 3px;
+    right: 3px;
+    width: 16px;
+    height: 16px;
+  }
+  .mobile-dock .action-lock svg {
+    width: 10px;
+    height: 10px;
   }
   .mobile-dock .action-badge {
     top: 2px;
@@ -835,7 +898,7 @@
     min-height: 105px;
     font-size: 10px;
   }
-  .action svg {
+  .action > svg {
     width: 25px;
     height: 25px;
   }
