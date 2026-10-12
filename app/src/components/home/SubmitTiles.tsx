@@ -49,6 +49,9 @@ export function SubmitTiles({ beforeOpen, place = 'scene' }: { beforeOpen?: () =
   const submissions = useRadio((s) => s.engine.submissions);
   const why = useRadio((s) => s.engine.why);
   const today = useRadio((s) => s.today);
+  // Before the first minute file every tile would look closed: a tap then
+  // opens its form (the server checks every send anyway), not a wrong "not now".
+  const loaded = useRadio((s) => s.engine.hasData);
   const openTile = useSheets((s) => s.openTile);
   const explain = useSheets((s) => s.explain);
   const now = useServerNow(60_000);
@@ -58,7 +61,7 @@ export function SubmitTiles({ beforeOpen, place = 'scene' }: { beforeOpen?: () =
       {TILES.map((tile) => {
         const types = TILE_TYPES[tile];
         const state = tileState(types, submissions);
-        const usable = state === 'open' || state === 'closing';
+        const usable = !loaded || state === 'open' || state === 'closing';
         const reason = lockedWhy(types, submissions, why);
         // Why, said short: also the locked tile's name for screen readers.
         const short = state === 'off' ? t('submit.notNow') : reason === 'full' ? t('submit.full') : t('submit.closed');
@@ -88,7 +91,7 @@ export function SubmitTiles({ beforeOpen, place = 'scene' }: { beforeOpen?: () =
               <strong>{t(`submit.${tile}.title`)}</strong>
               <small>{hint}</small>
             </span>
-            {state === 'closing' && <span className="action-badge">{t('submit.closing')}</span>}
+            {loaded && state === 'closing' && <span className="action-badge">{t('submit.closing')}</span>}
             {!usable && (
               <span className="action-lock" aria-hidden="true">
                 <LockIcon />

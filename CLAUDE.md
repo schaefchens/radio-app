@@ -473,7 +473,9 @@ button (listeners tapped them and thought them broken, 2026-10-12): it
 carries a lock — `data-locked`, not `aria-disabled`, since it still does
 something — and a tap opens `LockedSheet`: why, when again (the next run of
 a program that takes it, from the week's day files: `lib/intake.ts`), and
-what can be sent instead; on desktop its hint says "Again from 18:00". Every
+what can be sent instead; on desktop its hint says "Again from 18:00".
+Until the first minute file is in (`engine.hasData`), no tile is locked: a
+tap then opens its form, not a wrong "not now" (the server checks anyway). Every
 form asks "Stay anonymous" (`NameOrAnonymous`, unticked at first: named is the
 station's default): unticked, a first name is needed, and it is said on air
 with the place (and shown on a prayer wall); ticked, the form sends neither,

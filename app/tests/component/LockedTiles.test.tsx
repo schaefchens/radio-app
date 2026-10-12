@@ -56,7 +56,7 @@ function onAir(
   why: Partial<Record<SubmissionType, ClosedReason>> = {},
 ): void {
   const program: ProgramRef = { ...p };
-  act(() => useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main', program, submissions, why }, today: days.files[TODAY] as DayFile })));
+  act(() => useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main', program, submissions, why, hasData: true }, today: days.files[TODAY] as DayFile })));
 }
 
 function Home() {
@@ -82,7 +82,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
-  useRadio.setState((s) => ({ engine: { ...s.engine, program: null, submissions: {}, why: {} }, today: null }));
+  useRadio.setState((s) => ({ engine: { ...s.engine, program: null, submissions: {}, why: {}, hasData: false }, today: null }));
 });
 
 describe('a locked tile', () => {
@@ -135,6 +135,17 @@ describe('a locked tile', () => {
     fireEvent.click(song);
     expect(within(info()).getByText(/So much is already waiting for “Morning Music”/)).toBeTruthy();
     await waitFor(() => expect(within(info()).getByText(`Otherwise again today from ${localTime(berlin(TODAY, '11:00'), 'en')}, in “Morning Music”.`)).toBeTruthy());
+  });
+
+  it('before the first minute file, opens its form: every tile would look closed, and the server checks anyway', () => {
+    vi.setSystemTime(berlin(TODAY, '12:00'));
+    act(() => useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main', program: null, submissions: {}, why: {}, hasData: false } })));
+    render(<Home />);
+    const song = tile(/^Request a song/);
+    expect(song.hasAttribute('data-locked')).toBe(false);
+    expect(song.getAttribute('aria-label')).toBe('Request a song');
+    fireEvent.click(song);
+    expect(useSheets.getState().open).toBe('song');
   });
 
   it('with no program in the week that takes it, says so', async () => {

@@ -31,7 +31,7 @@ const program = (format: ProgramRef['format']): ProgramRef => ({
 
 /** What the minute file says: the program on air and what it takes now. */
 function onAir(format: ProgramRef['format'], submissions: Partial<Record<SubmissionType, SubmissionState>>): void {
-  act(() => useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main', program: program(format), submissions } })));
+  act(() => useRadio.setState((s) => ({ engine: { ...s.engine, channel: 'main', program: program(format), submissions, hasData: true } })));
 }
 
 const MISSION_HINT = /a report from the mission field, street preaching or a mission documentary/;
