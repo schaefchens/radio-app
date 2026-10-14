@@ -266,6 +266,33 @@ test('prayer hour: every request appears on the hour\'s wall when it is read out
     eq($app->submissions()->collected('main'), null, 'and no number of the hour');
 });
 
+test('prayer hour: a request sent in the hour is checked as a request, not as a prayer — the check\'s rules tell the two apart', function () {
+    // The rules described only a listener's own prayer ("intercession"): the
+    // check took type "prayer" for one and turned requests down as "a
+    // request, not a prayer" — read nowhere, on no wall (2026-10-07 to 10-13).
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    prayerHour($app, 735);
+    ticks($app, 16);
+    $seen = ['', ''];
+    $app->text()->respond('moderate_prayer', function (string $system, string $user) use (&$seen) {
+        $seen = [$system, $user];
+        return ['safe' => true, 'christian' => true, 'program_fit' => true, 'message_ok' => true, 'verdict' => 'approve',
+            'themes' => ['healing'], 'moods' => ['hopeful'], 'languages' => ['en'], 'note' => 'A sincere prayer request.'];
+    });
+    $public = prayFor($app, 'Anna');
+    for ($i = 0; $i < 6; $i++) $app->runner()->runUntilBudget();
+    eq($app->submissions()->byPublicId($public)['status'], 'approved', 'approved');
+    $data = json_decode(substr($seen[1], (int) strpos($seen[1], '{')), true) ?: [];
+    eq([$data['type'] ?? null, $data['program']['format'] ?? null, $data['program']['allowed_types'] ?? null, isset($data['prayer_request'])],
+        ['prayer', 'prayer', ['prayer', 'intercession'], true], 'the check is given a prayer request in a prayer hour that takes prayers too');
+    $rules = (string) preg_replace('/\s+/', ' ', $seen[0]);
+    foreach (['A prayer request (type "prayer") asks the listeners to pray', 'never reject one for asking instead of praying',
+        'a prayer hour (format "prayer") collects the requests', 'A prayer (type "intercession") is something else'] as $rule) {
+        check(str_contains($rules, $rule), "the rules say: $rule");
+    }
+});
+
 test('prayer hour: prayers are taken only in the prayer time, until 12 minutes before the outro; one approved too late has missed it', function () {
     $app = TestKit::app();
     TestKit::songs($app, 12);

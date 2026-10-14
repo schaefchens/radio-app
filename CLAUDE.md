@@ -915,6 +915,14 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
 - **`AI_MODE=stub` stubs AI only.** The YouTube Data API is used whenever
   `YOUTUBE_API_KEY` is set (the e2e stack points `YOUTUBE_API_BASE` at a fake);
   a stubbed check once waved a 15-minute song request through.
+- **The check judges a type by what its rules say it is.** `Moderation\Policy`
+  described a listener's own prayer (`intercession`, its words under
+  `prayer`) but never the prayer request (type `prayer`): the model took
+  requests for prayers and turned them down as "a request, not a prayer",
+  in the prayer hour and the music program alike (five on production,
+  2026-10-07 to 10-13: read nowhere, on no wall). Every type the check
+  judges needs its own paragraph there; the stub approves everything, so
+  only the real model shows it.
 - **A new station**: drafted with an empty library, the plan is placeholders
   (`stage` items with `payload.waiting`). The first songs discard those drafts
   and block the committed ones in live.json, and the fallback loop is rebuilt
@@ -1027,7 +1035,8 @@ moderators' decisions, voice reports, purges), the prayer hour walked hour
 by hour (`prayerhour.php`: the running order, songs then prayer music, the
 presentation word for word and its cutoff, listeners' prayers read and played
 with their gaps, the encouragement, the outro without a blessing, intake for
-prayers only from the committed announcement, the wall as it is read, a late
+prayers only from the committed announcement, the wall as it is read, a
+request checked as a request and not as a prayer, a late
 reading's short wait and its two tries, the empty hour, midnight, outages,
 last-minute and repeated plan changes, nobody listening, bursts, a short
 hour, the fallback rule, opening prayers, the settings migration), Open Doors

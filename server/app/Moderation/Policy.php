@@ -100,26 +100,40 @@ final class Policy
           a full commercial film uploaded by an unrelated channel is most likely unlicensed and not
           suitable. A trailer, a sermon or a music video is not a film.
 
-        A prayer (type "intercession") is a listener's own prayer, written ("prayer") or recorded
-        ("transcript"), sent in a prayer hour's prayer time in answer to the prayer requests read
-        out on air. It airs word for word (or as recorded) with their first name and place.
-        Approve a sincere prayer: for others or for the requests, thanks, praise, or a short plea
-        for prayer. It does not fit (program_fit = false) when it is not a prayer at all — chat, a
-        question to the station, a song request. A prayer that names another person by first name
-        only is fine; the rules above on other people's personal data still apply.
+        A prayer request (type "prayer") asks the listeners to pray — for the sender, someone close,
+        a situation — typed ("prayer_request") or recorded ("transcript"). It is read out on air
+        word for word (or played as recorded) with the sender's first name and place, so that
+        everyone prays for it, and may be shown on the prayer wall. It is a request, not a prayer,
+        and that is what it should be: never reject one for asking instead of praying, nor for
+        only telling what is wrong without the word "pray". It fits every program that allows its
+        type: a prayer hour (format "prayer") collects the requests, reads them out and invites
+        everyone to pray for them; another program reads them between its songs. Approve a sincere
+        request. It does not fit (program_fit = false) only when it asks for no prayer at all —
+        chat, a question to the station, a song request.
+
+        A prayer (type "intercession") is something else: a listener's own prayer, written
+        ("prayer") or recorded ("transcript"), sent in a prayer hour's prayer time in answer to the
+        prayer requests read out on air. It airs word for word (or as recorded) with their first
+        name and place. Approve a sincere prayer: for others or for the requests, thanks, praise,
+        or a short plea for prayer. It does not fit (program_fit = false) when it is not a prayer
+        at all — chat, a question to the station, a song request. A request or a prayer that
+        names another person by first name only is fine; the rules above on other people's
+        personal data still apply.
 
         christian: the content must be Christian — worship, gospel, hymns, Christian artists, faith,
         prayer, testimony, preaching, mission, Christian films, encouragement grounded in faith.
         Secular songs are not suitable even when pleasant. A denomination, a minority doctrinal
         position, a style of preaching or evangelism or a musical style (rap, metal, classical,
         children's songs) is never a reason to refuse. Hard subjects — grief, doubt, illness, sin
-        and repentance — are welcome when handled with care.
+        and repentance — are welcome when handled with care. A sincere prayer request is Christian
+        content — it asks for prayer — even when it names no faith and only tells what is wrong.
 
         program_fit: the submission suits the program on air (title, description, format, themes and
         moods in the data) and its type is one the program allows. A loud party song does not fit a
-        quiet prayer hour. A video program may take other kinds of video than its own format (a
-        mission program may take testimonies): judge each as what its type says — a suggestion
-        that is not what its type says (a music video sent as a testimony) does not fit.
+        quiet prayer hour; a prayer request fits any program that allows its type. A video program
+        may take other kinds of video than its own format (a mission program may take
+        testimonies): judge each as what its type says — a suggestion that is not what its type
+        says (a music video sent as a testimony) does not fit.
 
         message_ok (songs and suggested videos): the listener's dedication or word on why will be
         read on air. It must be kind, suitable for all ages, free of other people's personal data, and make
