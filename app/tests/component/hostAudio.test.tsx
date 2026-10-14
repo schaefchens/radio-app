@@ -331,34 +331,95 @@ describe('the last words of a clip', () => {
 
 // Safari passes an element routed through Web Audio over a ring buffer whose
 // reader skips ahead when it falls behind: on an iPhone SE words went missing.
-describe('voice and Web Audio', () => {
-  it('voice never goes through it; prayer music does, for its fades', () => {
-    const routed: HTMLMediaElement[] = [];
-    const gain = { value: 1, cancelScheduledValues() {}, setValueAtTime() {}, setTargetAtTime() {} };
-    class FakeContext {
-      state = 'running';
-      currentTime = 0;
-      destination = {};
-      createMediaElementSource(el: HTMLMediaElement) {
-        routed.push(el);
-        return { connect: (node: unknown) => node };
-      }
-      createGain() {
-        return { gain, connect: (node: unknown) => node };
-      }
-      resume() {
-        return Promise.resolve();
-      }
+// And through Web Audio, alone there once voice had left it, the prayer music
+// stayed silent in the Android app while the host was heard.
+describe('voice, music and Web Audio', () => {
+  const routed: HTMLMediaElement[] = [];
+  let contexts = 0;
+  const gain = { value: 1, cancelScheduledValues() {}, setValueAtTime() {}, setTargetAtTime() {} };
+  class FakeContext {
+    state = 'running';
+    currentTime = 0;
+    destination = {};
+    constructor() {
+      contexts++;
     }
+    createMediaElementSource(el: HTMLMediaElement) {
+      routed.push(el);
+      return { connect: (node: unknown) => node };
+    }
+    createGain() {
+      return { gain, connect: (node: unknown) => node };
+    }
+    resume() {
+      return Promise.resolve();
+    }
+  }
+  const unlocked = (): HTMLAudioElement[] => {
+    routed.length = 0;
+    contexts = 0;
+    const audio = new HostAudio();
+    const els = (audio as unknown as { els: HTMLAudioElement[] }).els;
+    els.forEach((el) => fake(el, 3));
+    audio.unlock();
+    return els;
+  };
+
+  it('on iOS, which ignores an element\'s volume, prayer music goes through it for its fades — voice never does', () => {
     vi.stubGlobal('AudioContext', FakeContext);
+    const ignored = vi.spyOn(HTMLMediaElement.prototype, 'volume', 'get').mockReturnValue(1);
     try {
-      const audio = new HostAudio();
-      const els = (audio as unknown as { els: HTMLAudioElement[] }).els;
-      els.forEach((el) => fake(el, 3));
-      audio.unlock();
+      const els = unlocked();
       expect(routed).toEqual([els[2], els[3]]);
     } finally {
+      ignored.mockRestore();
       vi.unstubAllGlobals();
+    }
+  });
+
+  it('everywhere else nothing goes through it: prayer music plays from its element, as voice does', () => {
+    vi.stubGlobal('AudioContext', FakeContext);
+    try {
+      unlocked();
+      expect([routed.length, contexts]).toEqual([0, 0]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('there prayer music fades in and out with its element\'s own volume, and a listener who records mutes it at once', async () => {
+    vi.useFakeTimers();
+    try {
+      const { audio, m } = speakers(600);
+      const els = (audio as unknown as { els: HTMLAudioElement[] }).els;
+      audio.setVolume(0.8);
+      await audio.play('/media/beds/pad.mp3', 0, 'music', 1500);
+      const pad = els[m.playing() ? 2 : 3]!;
+      expect(pad.volume).toBe(0);
+      await vi.advanceTimersByTimeAsync(750);
+      expect(pad.volume).toBeCloseTo(0.4, 1);
+      await vi.advanceTimersByTimeAsync(800);
+      expect(pad.volume).toBeCloseTo(0.8);
+
+      audio.fadeOut(400);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(pad.volume).toBeCloseTo(0.4, 1);
+      expect(pad.paused).toBe(false);
+      await vi.advanceTimersByTimeAsync(250);
+      expect([pad.volume, pad.paused, audio.pausedFromOutside()]).toEqual([0, true, false]);
+
+      // The next piece rises from silence again; a recording mutes it as it rises.
+      await audio.play('/media/beds/other.mp3', 0, 'music', 1500);
+      const next = els.find((el, i) => i >= 2 && !el.paused)!;
+      await vi.advanceTimersByTimeAsync(500);
+      audio.setVolume(0);
+      expect(next.muted).toBe(true);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(next.volume).toBe(0);
+      audio.setVolume(0.8);
+      expect([next.muted, next.volume]).toEqual([false, 0.8]);
+    } finally {
+      vi.useRealTimers();
     }
   });
 

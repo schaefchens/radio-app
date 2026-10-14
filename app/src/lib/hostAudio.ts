@@ -8,8 +8,12 @@
  * falls behind, skips ahead to the newest sound (WebKit's
  * WebAudioSourceProviderCocoa) — and on an iPhone SE the host's "Danke"
  * aired as "..ke", with words lost mid-clip and at its end too (2026-10-11).
- * Music keeps Web Audio for its fades (iOS ignores `element.volume`): a
- * moment of music lost under a fade goes unheard.
+ * Music goes through Web Audio only where its fades need it, on iOS, which
+ * ignores `element.volume` (a moment of music lost under a fade goes
+ * unheard). Everywhere else it plays as voice does and fades with its
+ * element's own volume: through Web Audio, alone there once voice had left
+ * it, the Android app played the prayer music as silence while the host was
+ * heard (2026-10-14).
  *
  * Voice is played whole. A clip entered near its start begins at its first
  * word — what made it late (the tick, loading) is ours, and a word cut to
@@ -39,14 +43,18 @@ export const FINISH_MS = 3000;
 
 /** Elements 0 and 1 speak, 2 and 3 play prayer music. */
 const PAIRS: Record<OwnKind, [number, number]> = { voice: [0, 1], music: [2, 3] };
+/** How often an element's own volume moves during a fade. */
+const FADE_STEP_MS = 50;
 
 export class HostAudio {
   private readonly els: HTMLAudioElement[];
   /** Per kind, the element its latest clip went to. */
   private active: Record<OwnKind, number> = { voice: 0, music: 2 };
   private ctx: AudioContext | null = null;
-  /** Music only: voice never goes through Web Audio. */
+  /** Music on iOS only: voice never goes through Web Audio. */
   private gains: (GainNode | null)[] = [null, null, null, null];
+  /** Per element, the fade of its own volume under way (no GainNode). */
+  private fades: (number | null)[] = [null, null, null, null];
   private volume = 1;
   /** Per element, the play() of ours it is on (0: none, or we paused it since). */
   private started = [0, 0, 0, 0];
@@ -70,7 +78,7 @@ export class HostAudio {
   unlock(): void {
     try {
       const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (Ctor && !this.ctx) {
+      if (Ctor && !this.ctx && volumeIgnored()) {
         const ctx = new Ctor();
         this.ctx = ctx;
         for (const i of PAIRS.music) {
@@ -93,7 +101,7 @@ export class HostAudio {
     this.unlocked = true;
   }
 
-  /** Inside a later tap: wake our audio engine if the system put it to sleep (a call, the lock screen). */
+  /** Wake our audio engine (iOS's, for the music) if the system put it to sleep — a call, the lock screen: inside a later tap, and as music starts. */
   wake(): void {
     if (this.ctx && this.ctx.state !== 'running') void this.ctx.resume().catch(() => undefined);
   }
@@ -131,7 +139,10 @@ export class HostAudio {
       this.started[i] = 0;
       return false;
     };
-    this.setGain(i, this.volume, fadeInMs);
+    // On iOS: a context the system put to sleep since (a call, the lock
+    // screen) would play the music as silence, with nothing refused.
+    if (kind === 'music') this.wake();
+    this.rise(i, fadeInMs);
     const started = Date.now();
     const start = async (src: string): Promise<boolean> => {
       if (!isSrc(el, src)) el.src = src;
@@ -272,6 +283,7 @@ export class HostAudio {
 
   private stopEl(j: number): void {
     this.started[j] = 0;
+    this.stopFade(j);
     const el = this.els[j]!;
     if (!el.paused) el.pause();
   }
@@ -314,9 +326,20 @@ export class HostAudio {
       }
       // iOS ignores the volume (and shows no slider), not muting: the radio
       // must not bleed into a listener's recording.
-      el.volume = this.volume;
       el.muted = this.volume === 0;
+      // A fade under way ends where it should: the new volume, or silence.
+      if (this.fades[i] == null) el.volume = this.volume;
     });
+  }
+
+  /** Element `i` at the listener's volume, music rising from silence over `riseMs`. */
+  private rise(i: number, riseMs: number): void {
+    if (this.gains[i] && this.ctx) {
+      this.setGain(i, this.volume, riseMs);
+      return;
+    }
+    // A piece faded out before stays silent unless it is raised again.
+    this.fade(i, riseMs > 0 ? 0 : this.volume, null, riseMs);
   }
 
   private setGain(i: number, v: number, riseMs = 0): void {
@@ -330,7 +353,40 @@ export class HostAudio {
     g.gain.setTargetAtTime(v, t, riseMs > 0 ? riseMs / 3000 : 0.05);
   }
 
-  /** Soften the end of the prayer music (a fade the element volume can't do on iOS). */
+  /**
+   * Moves element `i`'s own volume from `from` to `to` (null: the listener's
+   * volume as it is then) over `ms`, then calls `then` — the fade where no
+   * GainNode does it.
+   */
+  private fade(i: number, from: number, to: number | null, ms: number, then?: () => void): void {
+    const el = this.els[i]!;
+    this.stopFade(i);
+    el.muted = this.volume === 0;
+    const t0 = Date.now();
+    const step = (): boolean => {
+      const k = ms > 0 ? Math.min(1, (Date.now() - t0) / ms) : 1;
+      el.volume = from + ((to ?? this.volume) - from) * k;
+      return k >= 1;
+    };
+    if (step()) {
+      then?.();
+      return;
+    }
+    this.fades[i] = window.setInterval(() => {
+      if (!step()) return;
+      this.stopFade(i);
+      then?.();
+    }, FADE_STEP_MS);
+  }
+
+  private stopFade(i: number): void {
+    const f = this.fades[i];
+    if (f == null) return;
+    window.clearInterval(f);
+    this.fades[i] = null;
+  }
+
+  /** Soften the end of the prayer music. */
   fadeOut(ms = 400): void {
     const i = this.active.music;
     const g = this.gains[i];
@@ -339,16 +395,30 @@ export class HostAudio {
       g.gain.setTargetAtTime(0, this.ctx.currentTime, ms / 3000);
       return;
     }
-    // Without Web Audio there is no fade: stop this piece only — by then the
-    // next one may be playing on the other element.
+    // Down to silence, then this piece stops — by then the next one may be
+    // playing on the other element.
     const el = this.els[i]!;
     const token = this.started[i];
-    window.setTimeout(() => {
+    this.fade(i, el.volume, 0, ms, () => {
       if (this.started[i] !== token) return; // a newer clip is on this element now
       this.started[i] = 0;
       el.pause();
-    }, ms);
+    });
   }
+}
+
+/**
+ * iOS ignores a media element's volume — it reads 1 whatever was set — so
+ * only there do the fades need Web Audio.
+ */
+function volumeIgnored(): boolean {
+  const probe = document.createElement('audio');
+  try {
+    probe.volume = 0.5;
+  } catch {
+    return true;
+  }
+  return probe.volume !== 0.5;
 }
 
 /** Resolves once `el` knows its length — or failed, or 3 s went by (play() then says what is wrong). */

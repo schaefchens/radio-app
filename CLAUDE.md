@@ -199,10 +199,10 @@ from `offset`, never longer than the rest of the file, so the app never loops
 one; the next piece goes on where the last one ended, and the engine stays on
 audio already playing at the right place instead of starting it again (a
 continuing piece, or the stage back after a sheet), so the music does not dip.
-It fades in and out through `HostAudio`'s GainNode (iOS ignores
-`element.volume`) — prayer music alone: voice never goes through Web Audio
-(gotchas). Older clients drop the unknown item type and play the
-evergreen loop for that span.
+It fades in and out with its element's own volume, and on iOS, which
+ignores `element.volume`, through `HostAudio`'s GainNode — the only thing
+that goes through Web Audio, and only there (gotchas). Older clients drop
+the unknown item type and play the evergreen loop for that span.
 
 **Host** (`Host\*`, `Ai\*`). Scripts and moderation verdicts come from one
 `Ai\TextModel` (`App::text()`): Claude via the Anthropic PHP SDK when
@@ -996,7 +996,10 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   recordings, jingles — plays from `HostAudio`'s own pair of elements,
   straight to the speaker (muted, not turned down, while a listener records:
   iOS ignores the volume); only prayer music, on a pair of its own, goes
-  through the GainNode for its fades. Voice is also played whole, as our own
+  through the GainNode for its fades — and only on iOS (`volumeIgnored`):
+  alone in Web Audio once voice had left it, the prayer music stayed silent
+  in the Android app while the host was heard (2026-10-14), so everywhere
+  else it fades with the element's volume. Voice is also played whole, as our own
   timing cut it too: entered within `WHOLE_MS` of its start it begins at its
   first word (the tick and loading made it late, not the listener), it is
   never sought, and when the program moves on a clip with at most
@@ -1151,7 +1154,7 @@ refused send's words (which limit, what frees it, the day's time; an older
 server's answer as before), the stage's prayer view (buttons by the minute file, the count, the page, a
 reading, a listener's prayer as theirs), the Pray sheet (recorder first,
 written instead, both endpoints, the yes never ticked in advance, staying
-anonymous), our audio not starting a clip over in its quiet, nor taken for paused while it loads, nor refused when a re-entry overtakes its start, voice played whole (from its first word near its start, never sought, its last words before the next clip and under prayer music, a stalled one stopped) and never through Web Audio, muted for a recording, the prayer
+anonymous), our audio not starting a clip over in its quiet, nor taken for paused while it loads, nor refused when a re-entry overtakes its start, voice played whole (from its first word near its start, never sought, its last words before the next clip and under prayer music, a stalled one stopped) and never through Web Audio, prayer music through it on iOS only and faded by its element's volume elsewhere, muted for a recording, the prayer
 sheet's wall box (and in a prayer hour, the wall after it), the video
 sheet's picker (open kinds only, the program's own kind first, a kind in use
 kept with its notice) and `allowedForFormat`, a group filling the stage (its
