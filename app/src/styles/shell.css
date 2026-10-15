@@ -761,8 +761,10 @@
     width: 96%;
     margin: calc(-1 * var(--dock-overlap)) auto 0;
   }
-  /* Room for the dock: all of the menu, and half of the unfolded tiles on
-     Home, where they may cover the end of the page (the design). */
+  /* Room for the dock: the menu, on Home also the tiles unfolded above it,
+     as they are at the end of the page. With room for half of them (the
+     design), the end of the panel on a short phone (an iPhone SE) could
+     never be scrolled out from behind the tiles. */
   .page {
     padding-bottom: calc(var(--dock-nav, 64px) + 16px);
   }
@@ -775,7 +777,7 @@
   }
   .page[data-dock='player'] {
     --tray-open: 54px;
-    padding-bottom: calc((var(--dock-nav, 64px) + var(--tray-open)) / 2);
+    padding-bottom: calc(var(--dock-nav, 64px) + var(--tray-open) + 10px);
   }
   .lower-scene {
     display: none;

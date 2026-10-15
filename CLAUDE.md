@@ -972,6 +972,10 @@ per-slot Volume (Let's Encrypt allows 5 duplicate certs a week).
   container queries only because it sits in a demo frame).
 - **The phone scenery at the bottom is Home's only**: behind the other pages'
   text, which has no cards, it took the words away.
+- **Home leaves room below for the whole unfolded dock.** It left room for
+  half of it (the design: the tiles may cover the end of the page), and on
+  an iPhone SE the end of the panel under the player could never be
+  scrolled out from behind the tiles.
 - **A pause the engine did not make is the listener's Pause.** A click on the
   video (desktop YouTube pauses on a click even without controls), the lock
   screen, headphones or a call pause the players behind the engine; left
@@ -1199,7 +1203,8 @@ faked on both sides: the Data API by `fake-youtube.mjs` (a container;
 setup makes the admin and the library through the real API, like production.
 Covered: live position on join, two listeners in sync, evergreen fallback, no
 Google request before consent, RMF (nothing over the player, ≥ 200×200, paused
-under a sheet), no sideways scroll at 360/390 px on every page, the tiles in
+under a sheet), no sideways scroll at 360/390 px on every page, the end of
+Home's panel above the unfolded tiles on an iPhone SE (both themes), the tiles in
 the desktop scenery clear of the verse, the name and the menu (both themes,
 1200 px to wide; none at 1100), passphrase on a
 second device, song/prayer/recording through moderation, /mod gate, library,

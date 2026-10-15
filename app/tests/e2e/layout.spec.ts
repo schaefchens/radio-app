@@ -35,6 +35,44 @@ for (const [width, theme] of [
 }
 
 /**
+ * An iPhone SE (375 × 667): scrolled to the end of Home, the panel under the
+ * player ends above the unfolded tiles, on each of its pages — with a long
+ * request in it, as Open Doors' daily ones are. With room for half of the
+ * tiles below the page, its end could never be scrolled out from behind them.
+ */
+const LONG =
+  'Bitte betet für die Christen in Katar: Die meisten von ihnen sind Arbeitsmigranten. Muslimen das Evangelium weiterzugeben, ist ihnen streng verboten und kann zu ihrer Abschiebung führen. Bittet um Mut, um Weisheit und um sichere Wege für alle, die die Frohe Botschaft weitergeben, und für ihre Familien zu Hause.';
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`at the end of Home on an iPhone SE the panel ends above the tiles (${theme})`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.route(/\/program\/[^/]+\/live\.json/, async (route) => {
+      const response = await route.fetch();
+      const live = (await response.json()) as Record<string, unknown>;
+      live.wall = [{ id: 'pe2e-long', text: LONG, at: Date.now() - 60_000 }];
+      await route.fulfill({ response, json: live });
+    });
+    await fakeYouTube(page, { theme });
+    await page.goto('/');
+    await expect(page.locator('.mobile-carousel .prayer-entry')).toHaveCount(1);
+    const end = () =>
+      page.evaluate(() => {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+        const panel = document.querySelector('.mobile-carousel')!;
+        const tiles = document.querySelector('.mobile-dock .actions-window')!.getBoundingClientRect();
+        return { panel: panel.getAttribute('data-active-panel'), above: panel.getBoundingClientRect().bottom <= tiles.top + 0.5 };
+      });
+    await end();
+    // At the end the tiles unfold above the menu.
+    await expect(page.locator('.mobile-dock')).toHaveAttribute('data-expanded', 'true');
+    for (const [i, panel] of ['voices', 'moderator', 'prayers'].entries()) {
+      await page.locator('.mobile-carousel .carousel-pagination button').nth(i).click();
+      await expect.poll(end).toEqual({ panel, above: true });
+    }
+  });
+}
+
+/**
  * The tiles in the desktop scenery (Home, from 1200 px) are placed by
  * percentages between things placed the same way: they must stay in the
  * sky — clear of the verse, the name and the menu, inside the scenery — at
