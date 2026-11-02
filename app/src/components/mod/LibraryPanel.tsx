@@ -400,7 +400,21 @@ function LibraryRow({
             {item.artist}
             {item.artist ? ' · ' : ''}
             {clockDuration(item.duration_ms)}
-            {item.yt_id ? ` · ${item.yt_id}` : ''}
+            {/* The video itself, to check what it is before deciding about it. */}
+            {item.yt_id && (
+              <>
+                {' · '}
+                <a
+                  href={`https://www.youtube.com/watch?v=${encodeURIComponent(item.yt_id)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline decoration-dotted underline-offset-2 hover:text-ink"
+                  title={t('mod.library.openOnYouTube')}
+                >
+                  youtube.com/watch?v={item.yt_id}
+                </a>
+              </>
+            )}
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
             <Pill tone={active ? 'good' : 'default'}>{active ? t('mod.common.active') : t('mod.common.inactive')}</Pill>

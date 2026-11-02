@@ -147,6 +147,10 @@ describe('/mod › Library: the wrong kind', () => {
     });
     render(<LibraryPanel />);
     const row = (await screen.findByText('Vergeben - Forgiven mit KEVIN SORBO')).closest('li')!;
+    // The video itself, for checking it on YouTube; prayer music has none.
+    const link = within(row).getByRole('link', { name: 'youtube.com/watch?v=DzangoFilm1' });
+    expect([link.getAttribute('href'), link.getAttribute('target'), link.getAttribute('rel')]).toEqual(['https://www.youtube.com/watch?v=DzangoFilm1', '_blank', 'noopener noreferrer']);
+    expect(within(screen.getByText('Stille').closest('li')!).queryByRole('link')).toBeNull();
     fireEvent.click(within(row).getByRole('button', { name: 'Edit' }));
     const kind = within(row).getByLabelText(/^Kind/) as HTMLSelectElement;
     expect(kind.value).toBe('film');

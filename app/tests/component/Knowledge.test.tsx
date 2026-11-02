@@ -106,6 +106,10 @@ describe('/mod › Library: what was looked up', () => {
       'PUT /mod/knowledge': () => json({ settings: { checks: true, air: false, budget_usd: 8, standard: 'Scripture is the measure.' } }),
     });
     render(<KnowledgeSettingsSection />);
+    // Closed at first, so the library's items come first: nothing asked until it is opened.
+    expect(screen.queryByLabelText('Use in checks')).toBeNull();
+    expect(asked).toEqual([]);
+    fireEvent.click(screen.getByText('Song and video knowledge'));
     expect(await screen.findByText(/40 looked up, 0 under way, 2 failed/)).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Use in checks'));
     fireEvent.change(screen.getByLabelText('Daily budget for look-ups (USD)'), { target: { value: '8' } });
@@ -130,6 +134,7 @@ describe('/mod › Library: what was looked up', () => {
       }),
     );
     const { container } = render(<KnowledgeSettingsSection />);
+    fireEvent.click(screen.getByText('Song and video knowledge'));
     expect(await screen.findByText(/At \$0 nothing is looked up/)).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Replace what is here'));
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;

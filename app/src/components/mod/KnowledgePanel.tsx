@@ -4,7 +4,7 @@ import { api } from '@/lib/api';
 import { useSession } from '@/store/session';
 import { useApi } from './useApi';
 import { modError, type KnowledgeFact, type KnowledgeRecord, type KnowledgeSettings, type KnowledgeSummary, type LibraryItem } from './modApi';
-import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
+import { Check, ConfirmButton, Field, Loading, Notice, Pill } from './ui';
 
 /**
  * What the station knows about its songs and videos (server: Library\Knowledge):
@@ -37,14 +37,21 @@ export function KnowledgePill({ k }: { k: KnowledgeSummary }) {
 export function KnowledgeSettingsSection() {
   const { t } = useTranslation();
   const admin = useSession((s) => s.identity?.role === 'admin');
-  const { data, error, reload } = useApi<SettingsAnswer>(admin ? '/mod/knowledge' : null);
+  // Closed at first, and loaded only when opened: moderators come to the library for its items below.
+  const [open, setOpen] = useState(false);
+  const { data, error, reload } = useApi<SettingsAnswer>(admin && open ? '/mod/knowledge' : null);
   if (!admin) return null;
   return (
-    <Section title={t('mod.knowledge.title')}>
-      <p className="text-sm text-ink-muted">{t('mod.knowledge.intro')}</p>
-      {error && <Notice tone="error">{error}</Notice>}
-      {!data ? <Loading /> : <SettingsForm key={JSON.stringify(data.settings)} data={data} onSaved={reload} />}
-    </Section>
+    <details className="card p-4" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary className="cursor-pointer text-lg font-semibold">{t('mod.knowledge.title')}</summary>
+      {open && (
+        <div className="mt-3 flex flex-col gap-3">
+          <p className="text-sm text-ink-muted">{t('mod.knowledge.intro')}</p>
+          {error && <Notice tone="error">{error}</Notice>}
+          {!data ? <Loading /> : <SettingsForm key={JSON.stringify(data.settings)} data={data} onSaved={reload} />}
+        </div>
+      )}
+    </details>
   );
 }
 
