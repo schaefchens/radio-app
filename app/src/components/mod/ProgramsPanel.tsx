@@ -10,10 +10,10 @@ import { ChannelSelect } from './ChannelSelect';
 import { OpeningPrayers } from './OpeningPrayers';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section, TagsInput } from './ui';
 import { submissionLabel } from '@/i18n';
-import { allowedForFormat } from './programFormat';
+import { allowedForFormat, musicTakes } from './programFormat';
 import { HostLineup } from './HostLineup';
 
-/** Suggested videos only in a video program: the server drops their types anywhere else. */
+/** Suggested videos only in a video program (and impulses in a music program): the server drops their types anywhere else. */
 const TYPES: readonly SubmissionType[] = ['song', 'story', 'testimony', 'greeting', 'prayer', ...VIDEO_SUBMISSION_TYPES];
 
 const DEFAULT_SETTINGS: ProgramSettings = {
@@ -27,6 +27,7 @@ const DEFAULT_SETTINGS: ProgramSettings = {
   format: 'music',
   prayer: { collect: { songs: 0, minutes: 10, bed_id: 0 }, quiet_min: 4, after_songs: 0, opendoors: true },
   preaching: { songs_between: 2 },
+  impulse: { every: 0 },
 };
 
 type Draft = Omit<ModProgram, 'id' | 'channel_id' | 'active'> & { active: boolean };
@@ -248,6 +249,8 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           <option value="testimony">{t('mod.programs.formatTestimony')}</option>
           <option value="mission">{t('mod.programs.formatMission')}</option>
           <option value="film">{t('mod.programs.formatFilm')}</option>
+          <option value="documentary">{t('mod.programs.formatDocumentary')}</option>
+          <option value="impulse">{t('mod.programs.formatImpulse')}</option>
           <option value="prayer">{t('mod.programs.formatPrayer')}</option>
         </select>
       </Field>
@@ -258,7 +261,7 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
           <p className="text-sm text-ink-muted">{t('mod.programs.prayer.onlyPrayer')}</p>
         ) : (
           <div className="flex flex-wrap gap-4">
-            {TYPES.filter((type) => !isVideoSubmissionType(type) || video).map((type) => (
+            {TYPES.filter((type) => !isVideoSubmissionType(type) || video || (d.settings.format === 'music' && musicTakes(type))).map((type) => (
               <Check
                 key={type}
                 label={submissionLabel(type)}
@@ -303,6 +306,12 @@ function ProgramEditor({ channelId, program, onSaved, onCancel }: { channelId: n
               <Field label={t('mod.programs.silenceDur')}>
                 <input type="number" min={10} max={300} className="field" value={d.settings.silence.dur_s} onChange={(e) => setS({ silence: { ...d.settings.silence, dur_s: num(e.target.value) } })} />
               </Field>
+              {/* Impulses need no program of their own: a music program plays the library's between its songs. */}
+              {d.settings.format === 'music' && (
+                <Field label={t('mod.programs.impulseEvery')} hint={t('mod.programs.impulseHint')}>
+                  <input type="number" min={0} max={20} className="field" value={d.settings.impulse.every} onChange={(e) => setS({ impulse: { every: num(e.target.value) } })} />
+                </Field>
+              )}
             </>
           )}
           <Field label={t('mod.programs.closingMin')}>

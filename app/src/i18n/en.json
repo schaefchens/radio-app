@@ -59,6 +59,8 @@
     "testimony": "Testimony",
     "mission": "Mission",
     "film": "Film",
+    "documentary": "Documentary",
+    "impulse": "Impulse",
     "requestedBy": "Requested by {{name}}",
     "requestedByFrom": "Requested by {{name}} from {{place}}",
     "suggestedBy": "Suggested by {{name}}",
@@ -133,9 +135,15 @@
     "film": {
       "title": "Suggest a film"
     },
+    "documentary": {
+      "title": "Suggest a documentary"
+    },
+    "impulse": {
+      "title": "Suggest an impulse"
+    },
     "video": {
       "title": "Suggest a video",
-      "subtitle": "Preaching, testimony, mission or film",
+      "subtitle": "Preaching, film, documentary, impulse and more",
       "what": "video suggestions"
     },
     "closing": "Last chance",
@@ -199,13 +207,17 @@
       "preaching": "Preaching",
       "testimony": "Testimony",
       "mission": "Mission",
-      "film": "Film"
+      "film": "Film",
+      "documentary": "Documentary",
+      "impulse": "Impulse"
     },
     "hints": {
       "preaching": "Paste a link to a Christian preaching or devotion on YouTube (5 to 90 minutes).",
       "testimony": "Paste a link to a testimony on YouTube: someone tells what God has done in their life (2 to 60 minutes).",
       "mission": "Paste a link to a mission video on YouTube: a report from the mission field, street preaching or a mission documentary (3 to 90 minutes).",
-      "film": "Paste a link to a Christian film on YouTube, from its studio or an official channel (5 minutes to 3 hours)."
+      "film": "Paste a link to a Christian film on YouTube, from its studio or an official channel (5 minutes to 3 hours).",
+      "documentary": "Paste a link to a documentary or info video on YouTube, from its makers or an official channel (3 minutes to 3 hours).",
+      "impulse": "Paste a link to a short spiritual impulse on YouTube: a thought for the day, a word on a Bible verse or an impression in pictures (30 seconds to 30 minutes)."
     },
     "url": "YouTube link",
     "message": "Why do you recommend it? (optional)",
@@ -529,6 +541,8 @@
         "testimony": "Testimonies",
         "mission": "Mission videos",
         "film": "Films",
+        "documentary": "Documentaries",
+        "impulse": "Impulses",
         "jingle": "Jingles",
         "contrib": "Recordings",
         "bed": "Background music"
@@ -540,10 +554,13 @@
       "addKindTestimony": "Testimony",
       "addKindMission": "Mission video",
       "addKindFilm": "Film",
+      "addKindDocumentary": "Documentary",
+      "addKindImpulse": "Impulse",
+      "kindHint": "Moving it keeps its plays, its group and its look-up; what is planned already airs as planned.",
       "url": "YouTube link",
       "lookup": "Look up",
       "existing": "Already in the library",
-      "badDuration": "This video is too short or too long for its kind: songs 30 seconds to 30 minutes, preachings, testimonies and mission videos 1 minute to 3 hours, films 1 minute to 4 hours.",
+      "badDuration": "This video is too short or too long for its kind: songs 30 seconds to 30 minutes, preachings, testimonies and mission videos 1 minute to 3 hours, films and documentaries 1 minute to 4 hours, impulses 15 seconds to 1 hour.",
       "notEmbeddable": "Not embeddable — cannot be played in the app.",
       "notPlayable": "Blocked in one of the main regions.",
       "duration": "Duration",
@@ -558,6 +575,8 @@
       "testimonyHint": "From the library, testimonies play only in testimony programs (Programs → Format), with songs between them.",
       "missionHint": "From the library, mission videos play only in mission programs (Programs → Format), with songs between them.",
       "filmHint": "From the library, films play only in film programs (Programs → Format) whose block is longer than the film. Add films from their studio or an official channel only.",
+      "documentaryHint": "From the library, documentaries play only in documentary programs (Programs → Format), with songs between them. Add them from their makers or an official channel only.",
+      "impulseHint": "From the library, impulses play between the songs of music programs set to “An impulse from the library every … songs” (Programs), and in impulse programs.",
       "group": "Group",
       "groupHint": "A preacher, church, ministry or artist (Groups): after their items the stage can point to more from them. Videos from a group’s YouTube channel join it by themselves.",
       "noGroup": "No group",
@@ -783,6 +802,8 @@
       "intro": "Opens the program",
       "outro": "Closes the program",
       "jingleEvery": "A jingle every … songs (0 = none)",
+      "impulseEvery": "An impulse from the library every … songs (0 = none)",
+      "impulseHint": "Short impulse videos between the songs. To take listeners’ impulses too, tick “Suggest an impulse” above.",
       "silenceEvery": "A moment of silence every … minutes (0 = none)",
       "silenceDur": "Silence length (seconds)",
       "closingMin": "“Last chance” … minutes before the end",
@@ -798,6 +819,8 @@
       "formatTestimony": "Testimonies, with songs between them",
       "formatMission": "Mission, with songs between the videos",
       "formatFilm": "Film, with songs between the films",
+      "formatDocumentary": "Documentary, with songs between the documentaries",
+      "formatImpulse": "Impulses, with songs between them",
       "formatPrayer": "Prayer hour",
       "prayer": {
         "heading": "Prayer hour",
@@ -935,6 +958,8 @@
         "testimony_video": "Testimony video suggestion",
         "mission": "Mission video suggestion",
         "film": "Film suggestion",
+        "documentary": "Documentary suggestion",
+        "impulse": "Impulse suggestion",
         "intercession": "Prayer (prayer time)"
       },
       "statuses": {

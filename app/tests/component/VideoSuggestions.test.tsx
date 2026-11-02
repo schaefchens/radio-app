@@ -12,7 +12,8 @@ import { RULES_VERSION } from '@/content/rules';
 
 /**
  * The fourth tile's sheet: one form for every kind of video a program takes —
- * a preaching, a testimony, a mission video, a film — with a picker that
+ * a preaching, a testimony, a mission video, a film, a documentary, an
+ * impulse (a music program's too) — with a picker that
  * offers only what the minute file lists as open, and never switches a kind
  * the listener is already using (a sermon link must not go through the
  * mission check by surprise).
@@ -47,7 +48,8 @@ function sheet(open = true) {
 
 const dialog = () => screen.getByRole('dialog', { hidden: true });
 const kindButton = (name: string) => within(dialog()).getByRole('button', { name }) as HTMLButtonElement;
-const pressed = () => ['Preaching', 'Testimony', 'Mission', 'Film'].filter((k) => kindButton(k).getAttribute('aria-pressed') === 'true');
+const KINDS = ['Preaching', 'Testimony', 'Mission', 'Film', 'Documentary', 'Impulse'];
+const pressed = () => KINDS.filter((k) => kindButton(k).getAttribute('aria-pressed') === 'true');
 
 beforeEach(() => {
   useSettings.setState({ lang: 'en', rules: RULES_VERSION });
@@ -63,7 +65,7 @@ describe('suggesting a video', () => {
     onAir('mission', { mission: 'open', testimony_video: 'closing' });
     render(sheet());
     expect(screen.getByRole('dialog', { hidden: true, name: 'Suggest a video' })).toBeTruthy();
-    expect(['Preaching', 'Testimony', 'Mission', 'Film'].map((k) => kindButton(k).disabled)).toEqual([true, false, false, true]);
+    expect(KINDS.map((k) => kindButton(k).disabled)).toEqual([true, false, false, true, true, true]);
     // Not the first open kind in the list (Testimony): the program's own.
     expect(pressed()).toEqual(['Mission']);
     expect(within(dialog()).getByText(MISSION_HINT)).toBeTruthy();
@@ -126,6 +128,39 @@ describe('suggesting a video', () => {
   });
 });
 
+describe('impulses in a music program', () => {
+  it('a music program that takes impulses opens the sheet on Impulse, the only kind it takes, and sends one', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ submission: { id: 'imp' } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
+    onAir('music', { song: 'open', impulse: 'open' });
+    render(sheet());
+    expect(KINDS.map((k) => kindButton(k).disabled)).toEqual([true, true, true, true, true, false]);
+    expect(pressed()).toEqual(['Impulse']);
+    expect(within(dialog()).getByText(/a thought for the day, a word on a Bible verse or an impression in pictures/)).toBeTruthy();
+    fireEvent.change(within(dialog()).getByLabelText('YouTube link'), { target: { value: 'https://youtu.be/AbCdEfGhIjK' } });
+    fireEvent.change(within(dialog()).getByLabelText('Your first name'), { target: { value: 'Lea' } });
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Send' }));
+    await within(dialog()).findByText(/Thank you!/);
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/submissions/video');
+    expect(JSON.parse(String(init.body))).toMatchObject({ type: 'impulse', name: 'Lea' });
+  });
+
+  it('a documentary program offers documentaries first', () => {
+    onAir('documentary', { documentary: 'open', impulse: 'open' });
+    render(sheet());
+    expect(pressed()).toEqual(['Documentary']);
+    expect(within(dialog()).getByText(/a documentary or info video on YouTube/)).toBeTruthy();
+  });
+
+  it('the tile of a music program that takes impulses opens', () => {
+    act(() => useSheets.getState().close());
+    onAir('music', { song: 'open', impulse: 'open' });
+    render(<SubmitTiles />);
+    expect(screen.getAllByRole('button', { name: 'Suggest a video' })[0]!.hasAttribute('data-locked')).toBe(false);
+  });
+});
+
 describe('the fourth tile', () => {
   const tile = (name: string) => screen.getAllByRole('button', { name })[0] as HTMLButtonElement;
 
@@ -146,7 +181,7 @@ describe('the fourth tile', () => {
     const button = tile('Suggest a video');
     expect(button.hasAttribute('data-locked')).toBe(false);
     expect(within(button).getByText('Last chance')).toBeTruthy();
-    expect(within(button).getByText('Preaching, testimony, mission or film')).toBeTruthy();
+    expect(within(button).getByText('Preaching, film, documentary, impulse and more')).toBeTruthy();
     fireEvent.click(button);
     expect(useSheets.getState().open).toBe('video');
   });

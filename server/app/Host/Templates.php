@@ -59,6 +59,8 @@ final class Templates
         'mission' => ['en' => ['a report from mission work', 'this report from mission work'],
             'de' => ['einen Bericht aus der Mission', 'diesen Bericht aus der Mission', 'Diesen Bericht aus der Mission'], 'watch' => false],
         'film' => ['en' => ['a film', 'this film'], 'de' => ['einen Film', 'diesen Film', 'Diesen Film'], 'watch' => true],
+        'documentary' => ['en' => ['a documentary', 'this documentary'], 'de' => ['eine Dokumentation', 'diese Dokumentation', 'Diese Dokumentation'], 'watch' => true],
+        'impulse' => ['en' => ['a short impulse', 'this impulse'], 'de' => ['einen Impuls', 'diesen Impuls', 'Diesen Impuls'], 'watch' => false],
     ];
 
     /** The $n-th lead-in of its kind: neighbours ($n, $n + 1) never share one. */

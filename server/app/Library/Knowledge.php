@@ -28,7 +28,7 @@ use Arche\Host\HostWriter;
 final class Knowledge
 {
     /** Library kinds that are YouTube videos worth knowing. */
-    public const KINDS = ['song', 'preaching', 'testimony', 'mission', 'film'];
+    public const KINDS = ['song', 'preaching', 'testimony', 'mission', 'film', 'documentary', 'impulse'];
     /** The admins' default for what "biblical" means here; they edit it in /mod. */
     public const STANDARD = "Scripture is the measure. Content from every church (Catholic, Orthodox, Protestant, free church) is welcome when it stays biblical.\n"
         . "Not biblical, for example: prayer to or through Mary or the saints; salvation earned by works or rites; blessing or healing promised for money; "
@@ -52,7 +52,7 @@ final class Knowledge
     private const RESERVE_MICROS = 1_000_000;
     /** A look-up that failed, or was done without being heard, is tried again by the backfill after this long. */
     private const RETRY_SECONDS = 86_400;
-    private const FITS = ['worship', 'quiet', 'prayer_hour', 'children', 'evangelism', 'preaching', 'testimony', 'mission', 'film', 'celebration'];
+    private const FITS = ['worship', 'quiet', 'prayer_hour', 'children', 'evangelism', 'preaching', 'testimony', 'mission', 'film', 'documentary', 'impulse', 'celebration'];
 
     public function __construct(private App $app) {}
 
@@ -815,7 +815,7 @@ final class Knowledge
           (German: natural German, people by the plain word, "Christen", never "Christinnen und Christen"); not how it is
           performed.
         - summary_en, summary_de: two or three sentences for the station's moderators: what is sung or said, and what is shown.
-        - christian: is this Christian content (worship, gospel, a hymn, preaching, a testimony, a Christian film)? A
+        - christian: is this Christian content (worship, gospel, a hymn, preaching, a testimony, a Christian film or documentary, a spiritual impulse)? A
           Christian-sounding title or a few religious words in a secular, comic or ironic song are not enough.
         - biblical: "yes" when it agrees with the standard; "concern" when something is doubtful; "no" when it clearly goes
           against it. Every concern names what, why, and a short quote.
@@ -845,7 +845,7 @@ final class Knowledge
         $enum = static fn(string ...$v): array => ['type' => 'string', 'enum' => $v];
         return $obj([
             'heard' => ['type' => 'boolean'],
-            'kind_heard' => $enum('song', 'sermon', 'talk', 'testimony', 'film', 'other'),
+            'kind_heard' => $enum('song', 'sermon', 'talk', 'testimony', 'film', 'documentary', 'other'),
             'languages' => $arr($s),
             'message_en' => $s, 'message_de' => $s,
             'summary_en' => $s, 'summary_de' => $s,
@@ -954,7 +954,7 @@ final class Knowledge
         $heard = (bool) ($d['heard'] ?? false);
         return [
             'heard' => $heard,
-            'kind_heard' => $pick($d['kind_heard'] ?? '', ['song', 'sermon', 'talk', 'testimony', 'film', 'other'], 'other'),
+            'kind_heard' => $pick($d['kind_heard'] ?? '', ['song', 'sermon', 'talk', 'testimony', 'film', 'documentary', 'other'], 'other'),
             'languages' => $words((array) ($d['languages'] ?? []), 5, 10),
             'message_en' => self::text((string) ($d['message_en'] ?? ''), 300),
             'message_de' => self::text((string) ($d['message_de'] ?? ''), 300),

@@ -68,7 +68,7 @@ test('speech: every template and lead-in keeps its words on the way to the voice
     $program = ['title' => ['en' => 'Morning', 'de' => 'Morgen']];
     $next = ['title' => 'Oceans', 'artist' => 'Hillsong UNITED'];
     $texts = [];
-    foreach (['intro', 'break', 'announce', 'contrib', 'outro', 'preaching', 'testimony', 'mission', 'film', 'prayer', 'present', 'prayertime', 'encourage'] as $kind) {
+    foreach (['intro', 'break', 'announce', 'contrib', 'outro', ...array_keys(Arche\Plan\Catalog::VIDEO_FORMATS), 'prayer', 'present', 'prayertime', 'encourage'] as $kind) {
         $texts[] = Templates::texts($kind, ['program' => $program, 'next' => $next, 'requests' => 2]);
         $texts[] = Templates::texts($kind, ['program' => $program, 'format' => 'prayer hour', 'after' => ['en' => 'Night', 'de' => 'Nacht']]);
     }

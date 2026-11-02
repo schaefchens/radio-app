@@ -77,7 +77,7 @@ final class Policy
         or promises of blessing or healing in return for money. A church's own donation or
         livestream links in the description are uploader's text like a music video's.
 
-        Three more kinds of video come the same way, for programs of their kind, with the same
+        Five more kinds of video come the same way, for programs of their kind, with the same
         video data and the listener's word on why; judge each as what its type says:
         - A testimony (type "testimony_video") is a video in which someone tells their own story of
           faith: how they came to faith, or how God carried them through illness, addiction, loss
@@ -99,6 +99,19 @@ final class Policy
           only. Approve a film only from its studio, its distributor or a ministry that offers it:
           a full commercial film uploaded by an unrelated channel is most likely unlicensed and not
           suitable. A trailer, a sermon or a music video is not a film.
+        - A documentary (type "documentary") is an informative video, short or hours long: a
+          documentary or an explainer about the Bible and its world, church history, creation and
+          science, persecuted Christians, the history of revival or mission, or questions of faith
+          and life today, seen from a Christian, biblical point of view. Approve only what informs
+          factually and fairly — not conspiracy theories, fearmongering, party politics or
+          campaigning, not a sermon, a music video or a feature film. Approve one only from its
+          maker, its channel or a ministry that offers it: a television documentary uploaded by an
+          unrelated channel is most likely unlicensed and not suitable.
+        - An impulse (type "impulse") is a short spiritual impulse, a few minutes, now and then
+          longer: a thought on a Bible verse, a devotional word for the day, or an impression video
+          (pictures of creation, a place, a moment of worship) that carries a clearly Christian
+          message. Not a music video (that is a song request), a full sermon, an advert or a
+          channel trailer. It fits a music program as well as a video program that takes it.
 
         A prayer request (type "prayer") asks the listeners to pray — for the sender, someone close,
         a situation — typed ("prayer_request") or recorded ("transcript"). It is read out on air
@@ -121,7 +134,8 @@ final class Policy
         personal data still apply.
 
         christian: the content must be Christian — worship, gospel, hymns, Christian artists, faith,
-        prayer, testimony, preaching, mission, Christian films, encouragement grounded in faith.
+        prayer, testimony, preaching, mission, Christian films and documentaries, spiritual
+        impulses, encouragement grounded in faith.
         Secular songs are not suitable even when pleasant. A denomination, a minority doctrinal
         position, a style of preaching or evangelism or a musical style (rap, metal, classical,
         children's songs) is never a reason to refuse. Hard subjects — grief, doubt, illness, sin
@@ -132,8 +146,8 @@ final class Policy
         moods in the data) and its type is one the program allows. A loud party song does not fit a
         quiet prayer hour; a prayer request fits any program that allows its type. A video program
         may take other kinds of video than its own format (a mission program may take
-        testimonies): judge each as what its type says — a suggestion that is not what its type
-        says (a music video sent as a testimony) does not fit.
+        testimonies), and a music program may take impulses: judge each as what its type says — a
+        suggestion that is not what its type says (a music video sent as a testimony) does not fit.
 
         message_ok (songs and suggested videos): the listener's dedication or word on why will be
         read on air. It must be kind, suitable for all ages, free of other people's personal data, and make

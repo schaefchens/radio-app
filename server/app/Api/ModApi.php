@@ -69,7 +69,8 @@ final class ModApi
             'library' => [
                 'songs' => $app->library()->count('song'), 'preachings' => $app->library()->count('preaching'),
                 'testimonies' => $app->library()->count('testimony'), 'missions' => $app->library()->count('mission'),
-                'films' => $app->library()->count('film'), 'jingles' => $app->library()->count('jingle'),
+                'films' => $app->library()->count('film'), 'documentaries' => $app->library()->count('documentary'),
+                'impulses' => $app->library()->count('impulse'), 'jingles' => $app->library()->count('jingle'),
             ],
             'review' => (int) $app->store()->value("SELECT COUNT(*) FROM submissions WHERE status = 'review'"),
             'reports' => (int) $app->store()->value("SELECT COUNT(*) FROM chat_reports WHERE status = 'open'"),

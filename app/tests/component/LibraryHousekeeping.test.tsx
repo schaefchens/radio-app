@@ -133,3 +133,37 @@ describe('/mod › Library: duplicates and deleting', () => {
     await vi.waitFor(() => expect(sent.some((s) => s.path.startsWith('/mod/library?') && s.path.endsWith('&dupes=1'))).toBe(true));
   });
 });
+
+describe('/mod › Library: the wrong kind', () => {
+  it('moves a film that is a documentary in place — sent only when changed — and offers no kind for prayer music', async () => {
+    const items = [
+      item({ active: 1 }),
+      item({ id: 9, kind: 'bed', yt_id: null, audio: '/media/beds/stille.mp3', title: 'Stille', artist: '', active: 1 }),
+    ];
+    const sent = serve((method, path) => {
+      if (method === 'PATCH' && path === '/mod/library/62') return json({ item: item({ kind: 'documentary', active: 1 }) });
+      if (path.startsWith('/mod/library?')) return json({ items });
+      return undefined;
+    });
+    render(<LibraryPanel />);
+    const row = (await screen.findByText('Vergeben - Forgiven mit KEVIN SORBO')).closest('li')!;
+    fireEvent.click(within(row).getByRole('button', { name: 'Edit' }));
+    const kind = within(row).getByLabelText(/^Kind/) as HTMLSelectElement;
+    expect(kind.value).toBe('film');
+    expect(Array.from(kind.options).map((o) => o.value)).toEqual(['song', 'preaching', 'testimony', 'mission', 'film', 'documentary', 'impulse']);
+    fireEvent.click(within(row).getByRole('button', { name: 'Save' }));
+    await vi.waitFor(() => expect(sent.filter((s) => s.method === 'PATCH')).toHaveLength(1));
+    expect(sent.find((s) => s.method === 'PATCH')?.body).not.toHaveProperty('kind');
+    await vi.waitFor(() => expect(within(row).queryByLabelText(/^Kind/)).toBeNull());
+
+    fireEvent.click(within(row).getByRole('button', { name: 'Edit' }));
+    fireEvent.change(within(row).getByLabelText(/^Kind/), { target: { value: 'documentary' } });
+    fireEvent.click(within(row).getByRole('button', { name: 'Save' }));
+    await vi.waitFor(() => expect(sent.filter((s) => s.method === 'PATCH')).toHaveLength(2));
+    expect(sent.filter((s) => s.method === 'PATCH')[1]!.body).toMatchObject({ kind: 'documentary' });
+
+    const bed = screen.getByText('Stille').closest('li')!;
+    fireEvent.click(within(bed).getByRole('button', { name: 'Edit' }));
+    expect(within(bed).queryByLabelText(/^Kind/)).toBeNull();
+  });
+});

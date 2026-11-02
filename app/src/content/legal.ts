@@ -45,7 +45,7 @@ const de = (host: string): StationTexts => ({
       h: 'Musik, Moderation, Gemeinschaft',
       p:
         'Die Musik kommt von YouTube: Lobpreis-Songs, ausgewählt von unserem Team und gewünscht von ' +
-        `Hörern; in Predigt-, Zeugnis-, Missions- und Filmsendungen laufen dazu Predigten, Glaubenszeugnisse, Videos aus der Mission und christliche Filme. Zwischen den Songs spricht ${host}, unser Host, auf Deutsch ` +
+        `Hörern, dazwischen kurze geistliche Impulse; in Predigt-, Zeugnis-, Missions-, Film- und Dokusendungen laufen dazu Predigten, Glaubenszeugnisse, Videos aus der Mission, christliche Filme und Dokus. Zwischen den Songs spricht ${host}, unser Host, auf Deutsch ` +
         'und Englisch – über das, was gerade läuft, über eure Wünsche und Gebetsanliegen.',
     },
     {
@@ -60,7 +60,7 @@ const de = (host: string): StationTexts => ({
     {
       h: 'Mitmachen',
       p:
-        'Wünsch dir einen Song, empfiehl ein Video – eine Predigt, ein Glaubenszeugnis, ein Missionsvideo oder einen Film –, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als ' +
+        'Wünsch dir einen Song, empfiehl ein Video – eine Predigt, ein Glaubenszeugnis, ein Missionsvideo, einen Film, eine Doku oder einen Impuls –, erzähl deine Geschichte, ein Zeugnis oder einen Gruß als ' +
         `Sprachaufnahme, oder schick uns ein Gebetsanliegen – ${host} liest es auf Sendung vor und lädt alle ein, dafür zu beten. In den Community-Räumen kannst du mit anderen ` +
         'Hörern schreiben. Arche Radio braucht keine Anmeldung – keine E-Mail, kein Passwort; wer möchte, ' +
         'nimmt seine Identität mit einer Passphrase aus 12 Wörtern auf ein anderes Gerät mit. Arche Radio gibt es im ' +
@@ -97,7 +97,7 @@ const de = (host: string): StationTexts => ({
       p:
         'Die Inhalte dieser App werden mit Sorgfalt erstellt. Für Richtigkeit, Vollständigkeit und Aktualität kann ' +
         'keine Gewähr übernommen werden. Beiträge von Hörern geben deren eigene Sicht wieder. Die ' +
-        'Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos und Filme – werden über den YouTube-Player eingebunden; für ihre Inhalte sind die jeweiligen Rechteinhaber ' +
+        'Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos, Filme, Dokus und Impulse – werden über den YouTube-Player eingebunden; für ihre Inhalte sind die jeweiligen Rechteinhaber ' +
         'verantwortlich. Nach manchen Videos verlinkt die Bühne auf die Kanäle und Websites der Prediger, Gemeinden, ' +
         'Missionswerke und Musiker. Für Inhalte verlinkter externer Seiten sind deren Betreiber verantwortlich; zum Zeitpunkt der ' +
         'Verlinkung waren keine Rechtsverstöße erkennbar.',
@@ -192,7 +192,7 @@ const de = (host: string): StationTexts => ({
     {
       h: 'YouTube',
       p:
-        'Die Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos und Filme – sind im erweiterten Datenschutzmodus (youtube-nocookie.com) eingebunden, einem Dienst der ' +
+        'Die Videos – Musik, Predigten, Glaubenszeugnisse, Missionsvideos, Filme, Dokus und Impulse – sind im erweiterten Datenschutzmodus (youtube-nocookie.com) eingebunden, einem Dienst der ' +
         'Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Der Player wird erst geladen, wenn Sie ' +
         '„Tap to join live“ antippen – vorher baut die App keine Verbindung zu Google auf. Mit dem Antippen willigen ' +
         'Sie ein, dass Google Ihre IP-Adresse, Angaben zu Ihrem Gerät und die abgespielten Videos verarbeitet und ' +
@@ -208,7 +208,7 @@ const de = (host: string): StationTexts => ({
     {
       h: 'Einsendungen: Songwünsche, Videovorschläge, Aufnahmen, Gebetsanliegen, Gebete',
       p:
-        'Wenn Sie einen Song wünschen, ein Video vorschlagen (eine Predigt, ein Glaubenszeugnis, ein Missionsvideo oder einen Film), eine Sprachaufnahme einsenden, ein Gebetsanliegen ' +
+        'Wenn Sie einen Song wünschen, ein Video vorschlagen (eine Predigt, ein Glaubenszeugnis, ein Missionsvideo, einen Film, eine Doku oder einen Impuls), eine Sprachaufnahme einsenden, ein Gebetsanliegen ' +
         'schicken oder in der Gebetszeit einer Gebetsstunde ein Gebet sprechen oder schreiben, verarbeiten wir Ihre ' +
         'Angaben (Vorname, Ort, Ihren Text bzw. Ihre Aufnahme, bei Songwünschen und ' +
         'Videovorschlägen den Link und eine Widmung bzw. Ihre Begründung) ' +
@@ -379,9 +379,9 @@ const en = (host: string): StationTexts => ({
     {
       h: 'Music, a host, a community',
       p:
-        'The music comes from YouTube: worship songs chosen by our team and requested by listeners; preaching, ' +
-        'testimony, mission and film programs add preachings, testimonies, videos from the mission field and Christian ' +
-        `films. Between the songs ${host}, our host, speaks in English and German — about what is ` +
+        'The music comes from YouTube: worship songs chosen by our team and requested by listeners, with short spiritual ' +
+        'impulses between them; preaching, testimony, mission, film and documentary programs add preachings, testimonies, ' +
+        `videos from the mission field, Christian films and documentaries. Between the songs ${host}, our host, speaks in English and German — about what is ` +
         'playing, your requests and your prayer requests.',
     },
     {
@@ -395,7 +395,7 @@ const en = (host: string): StationTexts => ({
     {
       h: 'Take part',
       p:
-        'Request a song, suggest a video — a preaching, a testimony, a mission video or a film —, share your story, a testimony or a greeting as a voice recording, or send a prayer request — ' +
+        'Request a song, suggest a video — a preaching, a testimony, a mission video, a film, a documentary or an impulse —, share your story, a testimony or a greeting as a voice recording, or send a prayer request — ' +
         `${host} reads it out on air and invites everyone to pray for it. In the community rooms you can write with other listeners. Arche Radio needs no ` +
         'sign-up — no email, no password; if you like, a passphrase of 12 words takes your identity to another device. ' +
         'Arche Radio runs in the browser and as an app for iPhone and Android.',
@@ -427,7 +427,7 @@ const en = (host: string): StationTexts => ({
       h: 'Liability for content and links',
       p:
         'The content of this app is compiled with care. No guarantee can be given for accuracy, completeness or ' +
-        "timeliness. Listeners' contributions express their own views. The videos (music, preachings, testimonies, mission videos and films) are embedded through the " +
+        "timeliness. Listeners' contributions express their own views. The videos (music, preachings, testimonies, mission videos, films, documentaries and impulses) are embedded through the " +
         'YouTube player; their rights holders are responsible for their content. After some videos the stage links to ' +
         'the channels and websites of the preachers, churches, ministries and artists. The operators of linked external ' +
         'sites are responsible for their content; no legal violations were apparent at the time of linking.',
@@ -510,7 +510,7 @@ const en = (host: string): StationTexts => ({
     {
       h: 'YouTube',
       p:
-        'The videos (music, preachings, testimonies, mission videos and films) are embedded in privacy-enhanced mode (youtube-nocookie.com), a service of Google Ireland ' +
+        'The videos (music, preachings, testimonies, mission videos, films, documentaries and impulses) are embedded in privacy-enhanced mode (youtube-nocookie.com), a service of Google Ireland ' +
         'Limited, Gordon House, Barrow Street, Dublin 4, Ireland. The player loads only when you tap “Tap to join ' +
         'live” — before that, the app makes no connection to Google. By tapping you consent that Google processes ' +
         'your IP address, information about your device and the videos played, and may store information on your ' +
@@ -525,7 +525,7 @@ const en = (host: string): StationTexts => ({
     {
       h: 'Submissions: song requests, video suggestions, recordings, prayer requests, prayers',
       p:
-        'When you request a song, suggest a video (a preaching, a testimony, a mission video or a film), send a voice recording or a prayer request, or speak or write a ' +
+        'When you request a song, suggest a video (a preaching, a testimony, a mission video, a film, a documentary or an impulse), send a voice recording or a prayer request, or speak or write a ' +
         'prayer in a prayer hour\'s prayer time, we process what you ' +
         'give us (first name, place, your text or recording, for a song request or a video suggestion the link and ' +
         'a dedication or your reason) together with your device ' +

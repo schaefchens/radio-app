@@ -98,9 +98,13 @@ final class Scenarios
         if (Catalog::isVideoFormat($format)) {
             return ['intro', 'video', 'break', 'break_group', ...(in_array(Catalog::VIDEO_FORMATS[$format], $allowed, true) ? ['suggestion'] : []), 'outro'];
         }
+        // A music program's impulses (Catalog::MUSIC_SUGGESTIONS): from the library, suggested.
+        $impulses = (int) ($program['settings']['impulse']['every'] ?? 0) > 0;
         return [
             'intro', 'break', 'break_group',
+            ...($impulses ? ['video'] : []),
             ...(in_array('song', $allowed, true) ? ['announce', 'reaction'] : []),
+            ...(in_array('impulse', $allowed, true) ? ['suggestion'] : []),
             ...(array_intersect(['story', 'testimony', 'greeting'], $allowed) ? ['contrib'] : []),
             ...(in_array('prayer', $allowed, true) ? ['reading', 'invite'] : []),
             'outro',
@@ -121,7 +125,7 @@ final class Scenarios
         $moment = (string) ($in['moment'] ?? '');
         if (!in_array($moment, self::moments($program), true)) throw new ApiError(422, 'scenario_moment');
         $channel = $catalog->channel((int) $program['channel_id']) ?? $catalog->mainChannel();
-        $format = self::format($program);
+        $format = self::videoKind($program);
         $kind = self::kind($moment, $format);
         $name = (string) $host['name'];
         $now = $this->app->clock->nowMs();
@@ -172,6 +176,13 @@ final class Scenarios
         return (string) ($program['settings']['format'] ?? 'music');
     }
 
+    /** The kind of video a program's `video` and `suggestion` moments are about: its format's, a music program's impulse. @param array<string,mixed> $program */
+    private static function videoKind(array $program): string
+    {
+        $format = self::format($program);
+        return Catalog::isVideoFormat($format) ? $format : 'impulse';
+    }
+
     private static function kind(string $moment, string $format): string
     {
         return $moment === 'video' ? $format : self::KINDS[$moment];
@@ -204,7 +215,7 @@ final class Scenarios
             };
         }
         $before = $video && in_array($moment, ['break', 'break_group', 'outro'], true) ? $format : 'song';
-        $after = $video && in_array($moment, ['intro', 'video', 'suggestion'], true) ? $format : 'song';
+        $after = in_array($moment, ['video', 'suggestion'], true) || ($video && $moment === 'intro') ? self::videoKind($program) : 'song';
         $group = null;
         $prev = null;
         if ($moment === 'break_group') {

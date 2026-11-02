@@ -59,6 +59,8 @@
     "testimony": "Glaubenszeugnis",
     "mission": "Mission",
     "film": "Film",
+    "documentary": "Doku",
+    "impulse": "Impuls",
     "requestedBy": "Gewünscht von {{name}}",
     "requestedByFrom": "Gewünscht von {{name}} aus {{place}}",
     "suggestedBy": "Empfohlen von {{name}}",
@@ -133,9 +135,15 @@
     "film": {
       "title": "Film vorschlagen"
     },
+    "documentary": {
+      "title": "Doku vorschlagen"
+    },
+    "impulse": {
+      "title": "Impuls vorschlagen"
+    },
     "video": {
       "title": "Video vorschlagen",
-      "subtitle": "Predigt, Zeugnis, Mission oder Film",
+      "subtitle": "Predigt, Film, Doku, Impuls und mehr",
       "what": "Videovorschläge"
     },
     "closing": "Letzte Chance",
@@ -199,13 +207,17 @@
       "preaching": "Predigt",
       "testimony": "Zeugnis",
       "mission": "Mission",
-      "film": "Film"
+      "film": "Film",
+      "documentary": "Doku",
+      "impulse": "Impuls"
     },
     "hints": {
       "preaching": "Füge einen Link zu einer christlichen Predigt oder Andacht auf YouTube ein (5 bis 90 Minuten).",
       "testimony": "Füge einen Link zu einem Glaubenszeugnis auf YouTube ein: Menschen erzählen, was Gott in ihrem Leben getan hat (2 bis 60 Minuten).",
       "mission": "Füge einen Link zu einem Missionsvideo auf YouTube ein: ein Bericht vom Missionsfeld, eine Straßenpredigt oder eine Missionsdoku (3 bis 90 Minuten).",
-      "film": "Füge einen Link zu einem christlichen Film auf YouTube ein, vom Filmstudio oder einem offiziellen Kanal (5 Minuten bis 3 Stunden)."
+      "film": "Füge einen Link zu einem christlichen Film auf YouTube ein, vom Filmstudio oder einem offiziellen Kanal (5 Minuten bis 3 Stunden).",
+      "documentary": "Füge einen Link zu einer Doku oder einem Infovideo auf YouTube ein, von den Machern oder einem offiziellen Kanal (3 Minuten bis 3 Stunden).",
+      "impulse": "Füge einen Link zu einem geistlichen Impuls auf YouTube ein: ein Gedanke für den Tag, ein Wort zu einem Bibelvers oder Eindrücke in Bildern (30 Sekunden bis 30 Minuten)."
     },
     "url": "YouTube-Link",
     "message": "Warum empfiehlst du dieses Video? (optional)",
@@ -529,6 +541,8 @@
         "testimony": "Glaubenszeugnisse",
         "mission": "Missionsvideos",
         "film": "Filme",
+        "documentary": "Dokus",
+        "impulse": "Impulse",
         "jingle": "Jingles",
         "contrib": "Aufnahmen",
         "bed": "Hintergrundmusik"
@@ -540,10 +554,13 @@
       "addKindTestimony": "Glaubenszeugnis",
       "addKindMission": "Missionsvideo",
       "addKindFilm": "Film",
+      "addKindDocumentary": "Doku",
+      "addKindImpulse": "Impuls",
+      "kindHint": "Beim Verschieben bleiben Wiedergaben, Gruppe und Recherche erhalten; was schon geplant ist, läuft wie geplant.",
       "url": "YouTube-Link",
       "lookup": "Nachschlagen",
       "existing": "Schon in der Bibliothek",
-      "badDuration": "Das Video ist für diese Art zu kurz oder zu lang: Lieder 30 Sekunden bis 30 Minuten, Predigten, Glaubenszeugnisse und Missionsvideos 1 Minute bis 3 Stunden, Filme 1 Minute bis 4 Stunden.",
+      "badDuration": "Das Video ist für diese Art zu kurz oder zu lang: Lieder 30 Sekunden bis 30 Minuten, Predigten, Glaubenszeugnisse und Missionsvideos 1 Minute bis 3 Stunden, Filme und Dokus 1 Minute bis 4 Stunden, Impulse 15 Sekunden bis 1 Stunde.",
       "notEmbeddable": "Nicht einbettbar – kann in der App nicht laufen.",
       "notPlayable": "In einer der Hauptregionen gesperrt.",
       "duration": "Dauer",
@@ -558,6 +575,8 @@
       "testimonyHint": "Aus der Bibliothek laufen Glaubenszeugnisse nur in Zeugnissendungen (Sendungen → Format), mit Liedern dazwischen.",
       "missionHint": "Aus der Bibliothek laufen Missionsvideos nur in Missionssendungen (Sendungen → Format), mit Liedern dazwischen.",
       "filmHint": "Aus der Bibliothek laufen Filme nur in Filmsendungen (Sendungen → Format), deren Block länger ist als der Film. Füge Filme nur vom Filmstudio oder einem offiziellen Kanal hinzu.",
+      "documentaryHint": "Aus der Bibliothek laufen Dokus nur in Doku-Sendungen (Sendungen → Format), mit Liedern dazwischen. Füge sie nur von den Machern oder einem offiziellen Kanal hinzu.",
+      "impulseHint": "Aus der Bibliothek laufen Impulse zwischen den Liedern der Musiksendungen, die „Ein Impuls aus der Bibliothek alle … Lieder“ eingestellt haben (Sendungen), und in Impuls-Sendungen.",
       "group": "Gruppe",
       "groupHint": "Ein Prediger, eine Gemeinde, ein Missionswerk oder Musiker (Gruppen): Nach ihren Videos kann die Bühne auf mehr von ihnen hinweisen. Videos vom YouTube-Kanal einer Gruppe kommen von selbst dazu.",
       "noGroup": "Keine Gruppe",
@@ -783,6 +802,8 @@
       "intro": "Eröffnet die Sendung",
       "outro": "Schließt die Sendung",
       "jingleEvery": "Ein Jingle alle … Lieder (0 = keiner)",
+      "impulseEvery": "Ein Impuls aus der Bibliothek alle … Lieder (0 = keiner)",
+      "impulseHint": "Kurze Impulsvideos zwischen den Liedern. Um auch Impulse von Hörern anzunehmen, kreuze oben „Impuls vorschlagen“ an.",
       "silenceEvery": "Ein Moment der Stille alle … Minuten (0 = keiner)",
       "silenceDur": "Länge der Stille (Sekunden)",
       "closingMin": "„Letzte Chance“ … Minuten vor Ende",
@@ -798,6 +819,8 @@
       "formatTestimony": "Glaubenszeugnisse, mit Liedern dazwischen",
       "formatMission": "Mission, mit Liedern zwischen den Videos",
       "formatFilm": "Film, mit Liedern zwischen den Filmen",
+      "formatDocumentary": "Doku, mit Liedern zwischen den Dokus",
+      "formatImpulse": "Impulse, mit Liedern dazwischen",
       "formatPrayer": "Gebetsstunde",
       "prayer": {
         "heading": "Gebetsstunde",
@@ -935,6 +958,8 @@
         "testimony_video": "Glaubenszeugnis-Vorschlag",
         "mission": "Missionsvideo-Vorschlag",
         "film": "Filmvorschlag",
+        "documentary": "Doku-Vorschlag",
+        "impulse": "Impuls-Vorschlag",
         "intercession": "Gebet (Gebetszeit)"
       },
       "statuses": {

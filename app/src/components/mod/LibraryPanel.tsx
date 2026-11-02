@@ -28,10 +28,29 @@ function byLabel(t: TFunction, kind: string): string {
     case 'mission':
       return t('mod.library.ministry');
     case 'film':
+    case 'documentary':
       return t('mod.library.studio');
+    case 'impulse':
+      return t('mod.library.witness');
     default:
       return t('mod.library.artist');
   }
+}
+
+/** The kinds a moderator adds by link — and moves a song or a video between. */
+function AddKindOptions() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <option value="song">{t('mod.library.addKindSong')}</option>
+      <option value="preaching">{t('mod.library.addKindPreaching')}</option>
+      <option value="testimony">{t('mod.library.addKindTestimony')}</option>
+      <option value="mission">{t('mod.library.addKindMission')}</option>
+      <option value="film">{t('mod.library.addKindFilm')}</option>
+      <option value="documentary">{t('mod.library.addKindDocumentary')}</option>
+      <option value="impulse">{t('mod.library.addKindImpulse')}</option>
+    </>
+  );
 }
 
 /** The "by" a lookup suggests: the title's artist for songs and preachings; for the rest the channel — such titles ("My Testimony | … | Name") split badly. */
@@ -80,6 +99,8 @@ export function LibraryPanel() {
               <option value="testimony">{t('mod.library.kind.testimony')}</option>
               <option value="mission">{t('mod.library.kind.mission')}</option>
               <option value="film">{t('mod.library.kind.film')}</option>
+              <option value="documentary">{t('mod.library.kind.documentary')}</option>
+              <option value="impulse">{t('mod.library.kind.impulse')}</option>
               <option value="jingle">{t('mod.library.kind.jingle')}</option>
               <option value="contrib">{t('mod.library.kind.contrib')}</option>
               <option value="bed">{t('mod.library.kind.bed')}</option>
@@ -203,11 +224,7 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
           }}
           aria-label={t('mod.library.addKind')}
         >
-          <option value="song">{t('mod.library.addKindSong')}</option>
-          <option value="preaching">{t('mod.library.addKindPreaching')}</option>
-          <option value="testimony">{t('mod.library.addKindTestimony')}</option>
-          <option value="mission">{t('mod.library.addKindMission')}</option>
-          <option value="film">{t('mod.library.addKindFilm')}</option>
+          <AddKindOptions />
         </select>
         <input className="field min-w-0 flex-1" inputMode="url" placeholder="https://youtu.be/…" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t('mod.library.url')} />
         <button type="submit" className="btn-ghost" disabled={busy || url.trim() === ''}>
@@ -238,6 +255,8 @@ function AddVideo({ onAdded }: { onAdded: () => void }) {
           {kind === 'testimony' && <p className="text-xs text-ink-faint">{t('mod.library.testimonyHint')}</p>}
           {kind === 'mission' && <p className="text-xs text-ink-faint">{t('mod.library.missionHint')}</p>}
           {kind === 'film' && <p className="text-xs text-ink-faint">{t('mod.library.filmHint')}</p>}
+          {kind === 'documentary' && <p className="text-xs text-ink-faint">{t('mod.library.documentaryHint')}</p>}
+          {kind === 'impulse' && <p className="text-xs text-ink-faint">{t('mod.library.impulseHint')}</p>}
           <AttrsEditor value={attrs} onChange={setAttrs} />
           {dups.length > 0 && (
             <div role="status" className="rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
@@ -324,6 +343,9 @@ function LibraryRow({
   const [title, setTitle] = useState(item.title);
   const [artist, setArtist] = useState(item.artist);
   const [groupId, setGroupId] = useState<number | null>(item.group_id ?? null);
+  // A song or a video filed as the wrong kind moves in place (the server checks the new kind's length).
+  const movable = item.yt_id !== null && (item.kind === 'song' || isVideoFormat(item.kind));
+  const [kindTo, setKindTo] = useState<string>(item.kind);
   const group = groups.find((g) => g.id === item.group_id) ?? null;
   const [attrs, setAttrs] = useState<Attrs>({ themes: item.themes, moods: item.moods, languages: item.languages, program_ids: item.program_ids });
   const [busy, setBusy] = useState(false);
@@ -438,6 +460,13 @@ function LibraryRow({
             </Field>
           </div>
           <AttrsEditor value={attrs} onChange={setAttrs} />
+          {movable && (
+            <Field label={t('mod.library.addKind')} hint={t('mod.library.kindHint')}>
+              <select className="field" value={kindTo} onChange={(e) => setKindTo(e.target.value)}>
+                <AddKindOptions />
+              </select>
+            </Field>
+          )}
           {item.yt_id !== null && (
             <Field label={t('mod.library.group')} hint={t('mod.library.groupHint')}>
               <select className="field" value={groupId ?? ''} onChange={(e) => setGroupId(e.target.value === '' ? null : Number(e.target.value))}>
@@ -455,7 +484,12 @@ function LibraryRow({
               type="button"
               className="btn-primary"
               disabled={busy}
-              onClick={() => void patch({ title, artist, ...attrs, ...(groupId !== (item.group_id ?? null) ? { group_id: groupId } : {}) }, t('mod.common.saved'))}
+              onClick={() =>
+                void patch(
+                  { title, artist, ...attrs, ...(groupId !== (item.group_id ?? null) ? { group_id: groupId } : {}), ...(movable && kindTo !== item.kind ? { kind: kindTo } : {}) },
+                  t('mod.common.saved'),
+                )
+              }
             >
               {t('mod.common.save')}
             </button>

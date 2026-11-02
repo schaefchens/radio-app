@@ -359,5 +359,184 @@ test('videos: every video format is in every list — a type, a library kind, le
             [['too_short'], ['too_long']], "$type: limits both ways");
         check(str_contains(Policy::system(), "type \"$type\""), "$type: the moderation rules describe it");
         eq($app->text()->json("moderate_$type", 'moderation', '', '', [], 100, 'low')->data['verdict'] ?? null, 'approve', "$type: the stub approves it");
+        // Lists that fall back quietly when a kind is missing: the song's limits, a preaching's words, a song's stub, no look-up.
+        check(isset((new ReflectionClassConstant(Moderator::class, 'VIDEO_LIMITS'))->getValue()[$type]), "$type: its own length limits, not a song's");
+        check(isset((new ReflectionClassConstant(Templates::class, 'VIDEOS'))->getValue()[$format]), "$format: the host's own words for it without the model");
+        check(Moderator::stubVideo('Stub0000001', $type)['tags'] !== ['worship'], "$type: a stub video of its kind");
+        check(in_array($format, Arche\Library\Knowledge::KINDS, true), "$format: looked up like every song and video");
     }
+});
+
+test('videos: a documentary or an info video runs 3 minutes to 3 hours, an impulse 30 seconds to 30 minutes', function () {
+    $app = TestKit::app();
+    $fine = ['ok' => true, 'error' => '', 'embeddable' => true, 'public' => true, 'live' => false, 'age_restricted' => false, 'blocked' => [], 'allowed' => null];
+    $at = fn(int $seconds, string $type): array => Moderator::videoProblems(['duration_ms' => $seconds * 1000] + $fine, $app->config, $type);
+    eq([$at(240, 'documentary'), $at(170, 'documentary'), $at(3 * 3600, 'documentary'), $at(3 * 3600 + 60, 'documentary')], [[], ['too_short'], [], ['too_long']],
+        'a documentary: an info video of four minutes, one of three hours');
+    eq([$at(45, 'impulse'), $at(20, 'impulse'), $at(30 * 60, 'impulse'), $at(31 * 60, 'impulse')], [[], ['too_short'], [], ['too_long']],
+        'an impulse: a Short of 45 seconds, half an hour at most');
+});
+
+test('videos: a documentary program plays its own documentaries, and a listener suggests one — announced and aired as a documentary', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $own = libraryVideos($app, 'documentary', [8, 25], 'DocLib');
+    $films = libraryVideos($app, 'film', [20], 'FilmLb');
+    $p = videoProgram($app, 'documentary', 12 * 60 + 5, 150);
+    eq($p['allowed'], ['documentary'], 'it takes documentaries');
+    ticks($app, 8);
+    [$st, $d] = suggest($app, 'documentary', 'DocSug00001', ['name' => 'Tom', 'place' => 'Kiel']);
+    eq([$st, $d['submission']['type'] ?? ''], [200, 'documentary'], 'a documentary suggested');
+    runJobs($app);
+    $row = $app->submissions()->byPublicId((string) $d['submission']['id']) ?? [];
+    eq([$row['status'], $app->library()->get((int) $row['library_id'])['kind'] ?? ''], ['approved', 'documentary'], 'checked, and in the library as a documentary');
+    ticks($app, 120);
+
+    $labels = videoLabels($app, (int) $p['id']);
+    eq(array_slice($labels, 0, 3), ['intro', 'documentary', 'break'], 'the intro introduces the program\'s own documentary');
+    check(in_array('suggested', $labels, true), 'the suggestion aired: ' . implode(', ', $labels));
+    eq(count(airingsOf($app, $films[0])), 0, 'never a film');
+    eq(array_sum(array_map(fn(int $id) => count(airingsOf($app, $id)), $own)), 2, 'both of its own, short and long');
+    $items = TestKit::committed($app);
+    $at = array_key_first(array_filter($items, fn($i) => $i['submission_id'] === (int) $row['id']));
+    $ctx = hostContext($app, $items[$at - 1]);
+    eq([$ctx['request']['type'] ?? '', $ctx['request']['name'] ?? '', $items[$at]['payload']['kind']], ['documentary', 'Tom', 'documentary'],
+        'announced as Tom\'s documentary, on air as one');
+    assertContiguous($items, 'the timeline is contiguous');
+});
+
+test('videos: a music program takes impulses alone of the suggestions — announced in its request block like a song request, on air as an impulse', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $ch = TestKit::main($app);
+    $p = videoProgram($app, 'music', 12 * 60, 120, ['song', 'impulse', 'film', 'intercession']);
+    eq($p['allowed'], ['song', 'impulse'], 'impulses stay, a film and a prayer go');
+    $h = authHeaders();
+    eq(suggest($app, 'film', 'FilmSug0001', [], $h)[1]['error'] ?? null, 'not_accepted_now', 'a film it does not take');
+    [$st, $d] = suggest($app, 'impulse', 'ImpSug00001', ['name' => 'Lea', 'place' => 'Graz', 'message' => 'For a quiet minute.'], $h);
+    eq([$st, $d['submission']['type'] ?? ''], [200, 'impulse'], 'an impulse suggested');
+    runJobs($app);
+    $row = $app->submissions()->byPublicId((string) $d['submission']['id']) ?? [];
+    $lib = $app->library()->get((int) $row['library_id']) ?? [];
+    eq([$row['status'], $lib['kind'] ?? '', $lib['duration_ms'] ?? 0], ['approved', 'impulse', 180_000], 'checked, and in the library as an impulse');
+    ticks($app, 30);
+
+    $items = TestKit::committed($app);
+    $at = array_key_first(array_filter($items, fn($i) => $i['submission_id'] === (int) $row['id']));
+    check($at !== null, 'it aired in the music program');
+    [$announce, $video, $after] = [$items[$at - 1], $items[$at], $items[$at + 1]];
+    $ctx = hostContext($app, $announce);
+    eq([$announce['payload']['kind'], $ctx['request']['type'] ?? '', $ctx['request']['name'] ?? '', $ctx['request']['message'] ?? ''],
+        ['announce', 'impulse', 'Lea', 'For a quiet minute.'], 'announced as Lea\'s impulse, with her word on why');
+    eq([$video['program_id'], $video['payload']['kind'], $video['payload']['request']['name'] ?? ''], [(int) $p['id'], 'impulse', 'Lea'], 'on air as the impulse she suggested');
+    eq([$after['type'], $after['payload']['kind'] ?? ''], ['host', 'break'], 'the host speaks after it, as after a block');
+    eq($app->submissions()->publicView($app->submissions()->get((int) $row['id']) ?? [])['status'], 'aired', 'marked aired');
+    $states = (array) SubmissionWindow::states($app, $ch, $app->catalog()->program((int) $p['id']) ?? [], $app->resolver()->blockAt($ch, $app->clock->nowMs()), $app->clock->nowMs());
+    eq(array_keys($states), ['song', 'impulse'], 'the minute files offer songs and impulses');
+});
+
+test('videos: an impulse waiting for a music program keeps waiting; a program that can no longer take it sends it to the library', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 12);
+    $ch = TestKit::main($app);
+    $cat = $app->catalog();
+    $p = videoProgram($app, 'music', 12 * 60, 120, ['song', 'impulse'], ['max_queue_min' => 5]);
+    [, $d] = suggest($app, 'impulse', 'ImpSug00002');
+    runJobs($app);
+    $id = (int) ($app->submissions()->byPublicId((string) $d['submission']['id'])['id'] ?? 0);
+    eq([$app->submissions()->expireUnreachable(), $app->submissions()->get($id)['status'] ?? ''], [0, 'approved'], 'it waits for the next block');
+    eq($cat->saveProgram((int) $p['id'], (int) $ch['id'], ['settings' => ['format' => 'mission']], 'test')['allowed'], ['song', 'impulse'],
+        'to a video program: it stays — a video program takes every kind');
+    eq([$app->submissions()->expireUnreachable(), $app->submissions()->get($id)['status'] ?? ''], [0, 'approved'], 'and keeps waiting');
+    $cat->saveProgram((int) $p['id'], (int) $ch['id'], ['settings' => ['format' => 'prayer']], 'test');
+    eq([$app->submissions()->expireUnreachable(), $app->submissions()->get($id)['status'] ?? ''], [1, 'library'], 'a prayer hour takes none: it goes to the library');
+});
+
+test('videos: a music program plays an impulse from the library every few songs — never first thing, always introduced — and none when set to 0', function () {
+    $app = TestKit::app();
+    TestKit::songs($app, 20);
+    $impulses = libraryVideos($app, 'impulse', [2, 3, 2, 4, 3], 'ImpLib');
+    libraryVideos($app, 'preaching', [3], 'PreLib');
+    $p = videoProgram($app, 'music', 12 * 60 + 5, 150, ['song'], ['impulse' => ['every' => 3]]);
+    eq($p['settings']['impulse']['every'], 3, 'an impulse every three songs');
+    ticks($app, 110);
+
+    $labels = videoLabels($app, (int) $p['id']);
+    $songs = 0;
+    $seen = 0;
+    foreach ($labels as $i => $l) {
+        if ($l === 'impulse') {
+            $around = implode(', ', array_slice($labels, max(0, $i - 6), 7));
+            check($songs >= 3, "three songs at least before each one, from the program's start: $around");
+            check(in_array($labels[$i - 1], ['introduce', 'break'], true), "introduced by its own moment or the break before it: $around");
+            $songs = 0;
+            $seen++;
+        } elseif ($l === 'song') {
+            $songs++;
+        }
+    }
+    check($seen >= 3, "impulses on air: $seen — " . implode(', ', $labels));
+    check(!in_array('preaching', $labels, true), 'never another kind of video');
+    $run = array_values(array_filter(TestKit::committed($app), fn($i) => $i['program_id'] === (int) $p['id']));
+    foreach ($run as $i => $it) {
+        if ($it['type'] === 'host' && in_array($it['payload']['kind'], ['impulse', 'break'], true) && Drafter::isVideo($run[$i + 1] ?? null, 'impulse')) {
+            eq([hostContext($app, $it)['next']['kind'] ?? '', hostContext($app, $it)['next_uid'] ?? ''], ['impulse', $run[$i + 1]['uid']], 'the host names it and is pinned to it');
+        }
+    }
+    eq(array_sum(array_map(fn(int $id) => count(airingsOf($app, $id)), $impulses)), $seen, 'each from the library');
+    assertContiguous(TestKit::committed($app), 'the timeline is contiguous');
+
+    $none = TestKit::app();
+    TestKit::songs($none, 20);
+    libraryVideos($none, 'impulse', [2, 3], 'ImpLib');
+    $q = videoProgram($none, 'music', 12 * 60 + 5, 150, ['song']);
+    ticks($none, 60);
+    check(!in_array('impulse', videoLabels($none, (int) $q['id']), true), 'with 0, none');
+});
+
+test('videos: a moderator moves a video to another kind in place — plays, group and look-up kept, its length checked; never a jingle', function () {
+    $app = TestKit::app();
+    $store = $app->store();
+    [$film, $epic] = libraryVideos($app, 'film', [50, 120], 'DocKnd');
+    $store->query('UPDATE library_items SET plays = 4 WHERE id = ?', [$film]);
+    $store->insert('video_knowledge', ['yt_id' => 'DocKnd00001', 'kind' => 'film', 'created' => 1, 'updated' => 1]);
+    $jingle = $store->insert('library_items', ['kind' => 'jingle', 'audio' => 'media/jingles/j.mp3', 'title' => 'Jingle', 'duration_ms' => 8000, 'created' => 1, 'updated' => 1]);
+    $h = modHeaders($app);
+
+    [$st, $d] = call($app, 'PATCH', "/api/mod/library/$film", ['kind' => 'documentary'], $h);
+    eq([$st, $d['item']['kind'] ?? '', (int) ($d['item']['plays'] ?? 0)], [200, 'documentary', 4], 'a film that is a documentary, its plays kept');
+    eq($store->value('SELECT kind FROM video_knowledge WHERE yt_id = ?', ['DocKnd00001']), 'documentary', 'its look-up knows it as one');
+    check(str_contains((string) $store->value("SELECT detail FROM audit WHERE event = 'Library edit' ORDER BY id DESC LIMIT 1"), 'kind film → documentary'), 'audited');
+    eq(call($app, 'PATCH', "/api/mod/library/$epic", ['kind' => 'impulse'], $h), [422, ['error' => 'video_duration']], 'two hours are too long for an impulse');
+    eq(call($app, 'PATCH', "/api/mod/library/$jingle", ['kind' => 'song'], $h), [422, ['error' => 'bad_kind']], 'a jingle is no video');
+    eq(call($app, 'PATCH', "/api/mod/library/$film", ['kind' => 'bed'], $h), [422, ['error' => 'bad_kind']], 'and no video becomes prayer music');
+    eq(call($app, 'PATCH', "/api/mod/library/$film", ['kind' => 'documentary', 'title' => 'Renamed'], $h)[1]['item']['title'] ?? '', 'Renamed', 'the same kind again changes nothing else');
+});
+
+test('videos: a database from before documentaries and impulses keeps its library, groups and channels, and takes them after migration 19 — without a new plan', function () {
+    $app = TestKit::app();
+    $store = $app->store();
+    [$film] = libraryVideos($app, 'film', [100], 'FilmV18');
+    $g = $app->groups()->save(null, ['name' => 'Studio'], 'test');
+    $store->query('UPDATE library_items SET plays = 2, group_id = ?, yt_channel = ? WHERE id = ?', [$g['id'], 'UCstudio', $film]);
+    // The library as version 18 left it.
+    $sql = (string) $store->value("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'library_items'");
+    $store->db->exec('CREATE TABLE library_old AS SELECT * FROM library_items');
+    $store->db->exec('DROP TABLE library_items');
+    $store->db->exec(str_replace(", 'documentary', 'impulse'", '', $sql));
+    $store->db->exec('INSERT INTO library_items SELECT * FROM library_old');
+    $store->db->exec('DROP TABLE library_old');
+    check(refuses(fn() => libraryVideos($app, 'documentary', [30], 'DocV18')), 'version 18 knows no documentaries');
+    $plan = $app->catalog()->version();
+    $store->set('schema', 18);
+    Arche\Schema::migrate($store, $app->clock->nowMs());
+
+    $row = $app->library()->get($film) ?? [];
+    eq([$row['kind'], (int) $row['plays'], (int) $row['group_id'], $row['yt_channel']], ['film', 2, (int) $g['id'], 'UCstudio'], 'its film kept with its plays, group and channel');
+    foreach (['documentary' => 'DocV19', 'impulse' => 'ImpV19'] as $kind => $prefix) {
+        eq($app->library()->get(libraryVideos($app, $kind, [10], $prefix)[0])['kind'] ?? '', $kind, "it takes a $kind");
+    }
+    eq(array_column($store->all("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'library_items' AND sql IS NOT NULL ORDER BY name"), 'name'),
+        ['library_group', 'library_kind_active', 'library_yt', 'library_yt_channel'], 'with its indexes');
+    eq($app->catalog()->version(), $plan, 'and nothing planned is thrown away');
 });

@@ -65,6 +65,8 @@ export interface ProgramSettings {
   };
   /** Songs between two videos — for every video format, not only preaching (the group keeps its first name). */
   preaching: { songs_between: number };
+  /** A music program's impulse from the library every N songs (0: none). */
+  impulse: { every: number };
 }
 
 export interface ModChannel {
@@ -339,7 +341,7 @@ export interface VoiceCatalog {
 export interface Overview {
   me: { id: string; role: string };
   channels: (ModChannel & { programs: ModProgram[] })[];
-  library: { songs: number; preachings: number; testimonies: number; missions: number; films: number; jingles: number };
+  library: { songs: number; preachings: number; testimonies: number; missions: number; films: number; documentaries: number; impulses: number; jingles: number };
   review: number;
   reports: number;
   /** Prayer wall requests listeners reported, waiting for a decision. */

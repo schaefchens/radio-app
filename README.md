@@ -297,9 +297,12 @@ a deploy.
   translation made once a day by the text model; on the wall it says "Open
   Doors". A feed that is down keeps yesterday's request; one older than two
   days is not read.
-- **Video programs** — preaching, testimonies, mission, films: add their
-  videos in /mod → Library → "Add a song or a video" (kind Preaching,
-  Testimony, Mission video or Film; 1 minute – 3 hours, a film up to 4 hours),
+- **Video programs** — preaching, testimonies, mission, films,
+  documentaries, impulses: add their videos in /mod → Library → "Add a song
+  or a video" (kind Preaching, Testimony, Mission video, Film, Documentary or
+  Impulse; 1 minute – 3 hours, a film or a documentary up to 4 hours, an
+  impulse 15 seconds – 1 hour; a video filed as the wrong kind moves with
+  "Kind" in its editor),
   create a program with that format (/mod → Programs) and put it into a plan.
   It runs intro → a video of its kind → N songs (default 2) → the next video
   if one still fits → … → outro; none twice within six hours. While it is on
@@ -308,7 +311,8 @@ a deploy.
   the format; tick others too (a mission program may take testimonies). The
   lengths a listener may send: `PREACHING_MIN/MAX_SECONDS` (5–90 min),
   `TESTIMONY_VIDEO_MIN/MAX_SECONDS` (2–60), `MISSION_MIN/MAX_SECONDS` (3–90),
-  `FILM_MIN/MAX_SECONDS` (5 min – 3 h). Approved, a suggestion airs at the next
+  `FILM_MIN/MAX_SECONDS` (5 min – 3 h), `DOCUMENTARY_MIN/MAX_SECONDS`
+  (3 min – 3 h), `IMPULSE_MIN/MAX_SECONDS` (30 s – 30 min). Approved, a suggestion airs at the next
   video, announced by name, and joins the library. A waiting suggestion fills
   the queue with its whole length, so for a long program raise "Close when the
   queue holds … minutes"; one that can no longer fit goes to the library at
@@ -316,8 +320,11 @@ a deploy.
   than its films (a 2-hour film needs about 2 h 05), and add films only from
   their studio or an official channel (the check refuses re-uploads). A
   testimony program can also take listeners' own recorded testimonies (tick
-  "A testimony"). Only a video program takes suggested videos; elsewhere the
-  tile says "Not part of this program".
+  "A testimony"). Only a video program takes suggested videos — a music
+  program impulses: tick "Suggest an impulse", and they air in its request
+  blocks, announced like a song request; "An impulse from the library every …
+  songs" plays the library's impulses between its songs. Elsewhere the tile
+  says "Not part of this program".
 - **Song and video knowledge** (/mod → Library, admins: "Song and video
   knowledge"): every song and video is looked up once — OpenAI's web search
   (who and what it is, facts with their pages) and Gemini listening to the

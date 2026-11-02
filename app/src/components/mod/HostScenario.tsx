@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Lang, VoiceProvider } from '@arche/shared';
+import { VIDEO_FORMATS, type Lang, type VoiceProvider } from '@arche/shared';
 import { api } from '@/lib/api';
 import { useApi } from './useApi';
 import { modError, type LibraryItem, type ModHost, type ScenarioCatalog, type ScenarioResult, type ScenarioSong, type TestMoment } from './modApi';
@@ -9,7 +9,7 @@ import { playClip, speakTry, tryError, type TryClip } from './voiceTry';
 
 const LANGS: readonly Lang[] = ['en', 'de'];
 /** What a library search may offer as the song either side (no jingles, recordings or prayer music). */
-const SPOKEN_KINDS: readonly string[] = ['song', 'preaching', 'testimony', 'mission', 'film'];
+const SPOKEN_KINDS: readonly string[] = ['song', ...VIDEO_FORMATS];
 
 interface Voiced {
   busy: boolean;

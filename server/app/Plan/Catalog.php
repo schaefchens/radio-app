@@ -16,16 +16,23 @@ use Arche\App;
  */
 final class Catalog
 {
-    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching', 'testimony_video', 'mission', 'film', 'intercession'];
+    public const SUBMISSION_TYPES = ['song', 'story', 'testimony', 'greeting', 'prayer', 'preaching', 'testimony_video', 'mission', 'film', 'documentary', 'impulse', 'intercession'];
     public const STAGE_MODES = ['image', 'ambient', 'flyins'];
-    public const FORMATS = ['music', 'prayer', 'preaching', 'testimony', 'mission', 'film'];
+    public const FORMATS = ['music', 'prayer', 'preaching', 'testimony', 'mission', 'film', 'documentary', 'impulse'];
     /**
      * The video programs: each plays videos of the library kind of its name
      * (on air a song item of that kind, introduced by the host moment of that
      * name), and listeners suggest them with the submission type here. Not
      * `testimony` for a testimony: that type is a listener's own recording.
      */
-    public const VIDEO_FORMATS = ['preaching' => 'preaching', 'testimony' => 'testimony_video', 'mission' => 'mission', 'film' => 'film'];
+    public const VIDEO_FORMATS = ['preaching' => 'preaching', 'testimony' => 'testimony_video', 'mission' => 'mission', 'film' => 'film',
+        'documentary' => 'documentary', 'impulse' => 'impulse'];
+    /**
+     * Suggestions a music program takes too (station decision 2026-11-02:
+     * impulses need no program of their own): they air in its request block,
+     * announced like a song request.
+     */
+    public const MUSIC_SUGGESTIONS = ['impulse'];
 
     /** @var array<string,mixed> */
     public const PROGRAM_DEFAULTS = [
@@ -62,6 +69,9 @@ final class Catalog
             // Regular songs after a video before the next one may start.
             'songs_between' => 2,
         ],
+        // A music program's impulse from the library every N songs (0: none,
+        // only listeners' suggested ones).
+        'impulse' => ['every' => 0],
     ];
 
     /** @var array<int,array<string,mixed>> */
@@ -241,11 +251,12 @@ final class Catalog
                 throw new ApiError(422, 'prayer_fallback');
             }
         } else {
-            // Only a video program plays suggested videos (any of the four
-            // kinds it allows), only a prayer hour has a prayer time: sent to
-            // any other, they would wait for a moment that never comes.
+            // Only a video program plays suggested videos (any of the kinds
+            // it allows) — a music program impulses alone —, only a prayer
+            // hour has a prayer time: sent to any other, they would wait for
+            // a moment that never comes.
             $allowed = isset($row['allowed']) ? (array) json_decode($row['allowed'], true) : ($id !== null ? ($this->program($id)['allowed'] ?? []) : []);
-            $drop = self::isVideoFormat($format) ? ['intercession'] : [...array_values(self::VIDEO_FORMATS), 'intercession'];
+            $drop = self::isVideoFormat($format) ? ['intercession'] : [...array_diff(array_values(self::VIDEO_FORMATS), self::MUSIC_SUGGESTIONS), 'intercession'];
             if (array_intersect($allowed, $drop)) $row['allowed'] = json_encode(array_values(array_diff($allowed, $drop)));
         }
 
@@ -302,6 +313,7 @@ final class Catalog
         $prayer = is_array($s['prayer']) ? $s['prayer'] : [];
         $collect = is_array($prayer['collect'] ?? null) ? $prayer['collect'] : [];
         $preaching = is_array($s['preaching']) ? $s['preaching'] : [];
+        $impulse = is_array($s['impulse']) ? $s['impulse'] : [];
         return [
             'host' => [
                 'enabled' => (bool) ($host['enabled'] ?? true),
@@ -332,6 +344,10 @@ final class Catalog
             ],
             'preaching' => [
                 'songs_between' => max(0, min(10, (int) ($preaching['songs_between'] ?? 2))),
+            ],
+            'impulse' => [
+                // Within what the Drafter looks back on (40 items, about 25 songs).
+                'every' => max(0, min(20, (int) ($impulse['every'] ?? 0))),
             ],
         ];
     }

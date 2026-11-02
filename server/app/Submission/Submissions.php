@@ -39,9 +39,9 @@ final class Submissions
 {
     public const REASONS = ['not_program_fit', 'not_suitable', 'not_accepted'];
     /** Handed in as a YouTube link; approved, they join the library as the kind libraryKind() names. */
-    public const VIDEO_TYPES = ['song', 'preaching', 'testimony_video', 'mission', 'film'];
-    /** A video program's suggestions (the video sheet): Catalog::VIDEO_FORMATS' types. */
-    public const SUGGESTION_TYPES = ['preaching', 'testimony_video', 'mission', 'film'];
+    public const VIDEO_TYPES = ['song', 'preaching', 'testimony_video', 'mission', 'film', 'documentary', 'impulse'];
+    /** A video program's suggestions (the video sheet): Catalog::VIDEO_FORMATS' types — a music program's too, as far as Catalog::MUSIC_SUGGESTIONS go. */
+    public const SUGGESTION_TYPES = ['preaching', 'testimony_video', 'mission', 'film', 'documentary', 'impulse'];
     private const AUDIO_TYPES = ['story', 'testimony', 'greeting', 'prayer', 'intercession'];
     /** Prayers a listener sends in a prayer hour's prayer time, written or spoken, aired as they are. */
     public const INTERCESSION = 'intercession';
@@ -110,10 +110,9 @@ final class Submissions
         'intercession' => ['waiting' => 3, 'day' => 16],
     ];
 
-    /** Which submissions are of a kind: a recorded prayer request is a recording, a typed one a prayer. */
+    /** Which submissions are of a kind: a recorded prayer request is a recording, a typed one a prayer (video: kindSql()). */
     private const KINDS = [
         'song' => "s.type = 'song'",
-        'video' => "s.type IN ('preaching', 'testimony_video', 'mission', 'film')",
         'recording' => "s.mode = 'audio' AND s.type IN ('story', 'testimony', 'greeting', 'prayer')",
         'prayer' => "s.mode = 'text' AND s.type = 'prayer'",
         'intercession' => "s.type = 'intercession'",
@@ -136,7 +135,7 @@ final class Submissions
         // and a check or a review that ran out of program can no longer air.
         $held = (int) $this->app->store()->value(
             'SELECT COUNT(*) FROM submissions s JOIN identities i ON i.id = s.identity_id
-             WHERE (i.id = ? OR i.canonical_id = ?) AND ' . self::KINDS[$kind] . "
+             WHERE (i.id = ? OR i.canonical_id = ?) AND ' . self::kindSql($kind) . "
              AND (s.status = 'approved'
                OR (s.status = 'scheduled' AND s.aired_at > ?)
                OR ((s.status IN ('received', 'checking', 'review') OR (s.status = 'scheduled' AND s.aired_at IS NULL)) AND s.window_end > ?))",
@@ -155,6 +154,12 @@ final class Submissions
         if ($rl->used($ip, 3600) >= $perIp) throw new ApiError(429, 'rate_limited');
         $rl->hit($day, $perDay, 86400);
         $rl->hit($ip, $perIp, 3600);
+    }
+
+    /** The SQL condition for a kind of LIMITS — every suggestion type for `video`, so a new one is never left uncounted. */
+    private static function kindSql(string $kind): string
+    {
+        return $kind === 'video' ? "s.type IN ('" . implode("', '", self::SUGGESTION_TYPES) . "')" : self::KINDS[$kind];
     }
 
     private static function text(mixed $v, int $max): string
@@ -585,11 +590,16 @@ final class Submissions
      */
     public function waiting(array $channel, array $program, int $limit): array
     {
+        // A video program airs suggestions before its own selection
+        // (waitingVideos); a music program the ones it takes in its blocks.
+        $skip = Catalog::isVideoFormat($program['settings']['format'] ?? null)
+            ? self::SUGGESTION_TYPES
+            : array_values(array_diff(self::SUGGESTION_TYPES, Catalog::MUSIC_SUGGESTIONS));
         return $this->app->store()->all(
             "SELECT * FROM submissions WHERE channel_id = ? AND program_id = ? AND status = 'approved'
-             AND NOT (type = 'prayer' AND mode = 'text') AND type NOT IN (" . self::marks(self::SUGGESTION_TYPES) . ", 'intercession')
+             AND NOT (type = 'prayer' AND mode = 'text') AND type NOT IN (" . self::marks($skip) . ", 'intercession')
              ORDER BY created, id LIMIT ?",
-            [(int) $channel['id'], (int) $program['id'], ...self::SUGGESTION_TYPES, $limit],
+            [(int) $channel['id'], (int) $program['id'], ...$skip, $limit],
         );
     }
 
@@ -653,8 +663,9 @@ final class Submissions
      * midnight (tomorrow starts with it) keeps its requests — its whole run
      * counts (PlanResolver::runAt).
      *
-     * A suggested video waits for its program's video slot, and plays whole:
-     * when the program is no video program any more, or the video is longer
+     * A suggested video waits for its program's video slot (in a music
+     * program an impulse for its block), and plays whole: when the program
+     * cannot take it any more, or the video is longer
      * than what is left after the plan, that never comes — waiting for it as
      * "approved", it would only keep intake closed (a film of two hours fills
      * the queue). It goes to the library instead.
@@ -667,7 +678,8 @@ final class Submissions
         if ($channel === null) return false;
         $program = $this->app->catalog()->program((int) $sub['program_id']);
         $suggestion = in_array($sub['type'], self::SUGGESTION_TYPES, true);
-        if ($suggestion && !Catalog::isVideoFormat($program['settings']['format'] ?? null)) return false;
+        $format = $program['settings']['format'] ?? null;
+        if ($suggestion && !Catalog::isVideoFormat($format) && !($format === 'music' && in_array($sub['type'], Catalog::MUSIC_SUGGESTIONS, true))) return false;
         $end = (int) $sub['window_end'];
         $run = $this->app->resolver()->runAt($channel, $end - 1);
         if ($run['program_id'] === (int) $sub['program_id']) {

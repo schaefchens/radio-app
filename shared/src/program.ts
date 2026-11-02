@@ -118,8 +118,9 @@ export interface SongItem extends ItemBase {
  *  words); after requests read out, `prayer` invites everyone to pray — the
  *  host never prays itself. opening (a moderator's prepared prayer), present,
  *  prayertime, encourage (and invite, in hours planned before) belong to a
- *  prayer hour; preaching, testimony, mission and film introduce the video
- *  of that kind that follows in a program of its format. */
+ *  prayer hour; a video format's name (preaching, testimony, mission, film,
+ *  documentary, impulse) introduces the video of that kind that follows — in
+ *  a program of its format, or an impulse between a music program's songs. */
 export type HostKind =
   | 'intro'
   | 'break'
@@ -133,6 +134,8 @@ export type HostKind =
   | 'testimony'
   | 'mission'
   | 'film'
+  | 'documentary'
+  | 'impulse'
   | 'reading'
   | 'intercession'
   | 'present'

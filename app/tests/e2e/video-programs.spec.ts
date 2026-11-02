@@ -12,7 +12,10 @@ import { BASE_URL, api, cron, ensureAdmin, itemAt, serverNow, type Admin, type D
  *   video on air, named "Mission"; the sheet opening on Mission with the
  *   kinds the program does not take closed, and a testimony suggested
  *   through the check;
- * - on a music program the same tile closed.
+ * - a music program that takes impulses: the library's impulse between its
+ *   songs, named "Impulse"; the sheet opening on Impulse, the only kind it
+ *   takes, and one suggested through the check;
+ * - on a music program without them the same tile closed.
  * The running orders (songs between videos, what fits, suggestions first,
  * never twice, two-hour films, midnight) are walked on the server's fixed
  * clock (server/tests/cases/preaching.php and videos.php).
@@ -28,6 +31,7 @@ interface Channel {
 let admin: Admin;
 let preaching: Channel = { slug: '', id: 0 };
 let mission: Channel = { slug: '', id: 0 };
+let impulses: Channel = { slug: '', id: 0 };
 
 async function must<T>(call: Promise<{ status: number; data: T }>, what: string): Promise<T> {
   const { status, data } = await call;
@@ -61,6 +65,7 @@ async function videoChannel(
   slug: string,
   name: { en: string; de: string },
   program: { slug: string; title_en: string; title_de: string; format: string; allowed: string[] },
+  settings: Record<string, unknown> = {},
 ): Promise<Channel> {
   const ch = await must(
     api<{ channel: { id: number } }>(admin, '/mod/channels', { body: { slug, name_en: name.en, name_de: name.de, timezone: 'Europe/Berlin' } }),
@@ -70,7 +75,7 @@ async function videoChannel(
   const made = await must(
     api<{ program: { id: number; allowed: string[] } }>(admin, `/mod/channels/${ch.channel.id}/programs`, {
       // The settings group keeps its first name: it is every video format's.
-      body: { ...fields, settings: { format, max_queue_min: 180, preaching: { songs_between: 1 } } },
+      body: { ...fields, settings: { format, max_queue_min: 180, preaching: { songs_between: 1 }, ...settings } },
     }),
     `${format} program`,
   );
@@ -90,7 +95,7 @@ async function videoChannel(
  * its video and title. A channel made just now anchors its timeline first (a
  * gap of a minute or two).
  */
-async function waitOnAir(slug: string, want: RegExp): Promise<{ yt: string; title: string }> {
+async function waitOnAir(slug: string, want: RegExp, timeout = 6 * 60_000): Promise<{ yt: string; title: string }> {
   let onAir = { yt: '', title: '' };
   await expect
     .poll(
@@ -100,7 +105,7 @@ async function waitOnAir(slug: string, want: RegExp): Promise<{ yt: string; titl
         if (item?.type === 'song') onAir = { yt: item.yt, title: item.title };
         return item?.type === 'song' ? `${item.kind} ${item.yt}` : (item?.type ?? 'nothing');
       },
-      { timeout: 6 * 60_000, intervals: [5000] },
+      { timeout, intervals: [5000] },
     )
     .toMatch(want);
   return onAir;
@@ -127,6 +132,7 @@ test.beforeAll(async () => {
   for (const [kind, url] of [
     ['preaching', 'https://youtu.be/e2ePreach01'],
     ['mission', 'https://youtu.be/e2eMission1'],
+    ['impulse', 'https://youtu.be/e2eImpuls01'],
   ] as const) {
     const added = await api(admin, '/mod/library', { body: { kind, url, themes: ['grace'] } });
     if (added.status !== 200 && added.status !== 409) throw new Error(`the library's ${kind}: ${added.status} ${JSON.stringify(added.data)}`);
@@ -148,11 +154,19 @@ test.beforeAll(async () => {
     format: 'mission',
     allowed: ['mission', 'testimony_video'],
   });
+  // Music with an impulse from the library after every song, and listeners' impulses.
+  impulses = await videoChannel(`morgen-${stamp}`, { en: 'Morning', de: 'Morgen' }, {
+    slug: 'morgenlieder',
+    title_en: 'Morning Songs',
+    title_de: 'Morgenlieder',
+    format: 'music',
+    allowed: ['song', 'impulse'],
+  }, { impulse: { every: 1 } });
 });
 
 test.afterAll(async () => {
   // The other specs see one channel again.
-  for (const ch of [preaching, mission]) {
+  for (const ch of [preaching, mission, impulses]) {
     if (ch.id) await api(admin, `/mod/channels/${ch.id}`, { method: 'PATCH', body: { active: false } });
   }
 });
@@ -218,6 +232,34 @@ test('a mission program that also takes testimonies: its own video named "Missio
   await expect(sheet.getByText(/Thank you! We.ll let you know when it.s on air\./)).toBeVisible();
 
   await decided(page, /^testimony_video (approved|scheduled|aired|library)$/);
+  await page.context().close();
+});
+
+test('a music program that takes impulses: the library\'s impulse between its songs, named "Impulse"; the sheet opens on Impulse alone, and one goes through the check', async ({ browser }) => {
+  test.setTimeout(12 * 60_000);
+  // After the intro and a song (every: 1); a channel made just now anchors its timeline first.
+  const onAir = await waitOnAir(impulses.slug, /^impulse e2eImpuls0[12]$/, 9 * 60_000);
+
+  const page = await listener(browser, impulses.slug);
+  await page.getByRole('button', { name: 'Tap to join live' }).click();
+  const player = page.getByRole('region', { name: 'Radio player' });
+  await expect(player.getByText('Impulse', { exact: true })).toBeVisible();
+  await expect.poll(async () => (await ytNow(page))?.videoId).toBe(onAir.yt);
+
+  await page.getByRole('button', { name: 'Suggest a video' }).first().click();
+  const sheet = page.getByRole('dialog', { name: 'Suggest a video' });
+  await expect(sheet).toBeInViewport();
+  // A music program takes impulses alone of the videos.
+  await expect(sheet.getByRole('button', { name: 'Impulse' })).toHaveAttribute('aria-pressed', 'true');
+  for (const closed of ['Preaching', 'Testimony', 'Mission', 'Film', 'Documentary']) await expect(sheet.getByRole('button', { name: closed })).toBeDisabled();
+  await sheet.getByLabel('YouTube link').fill('https://youtu.be/e2eImpuls02');
+  await expect(sheet.getByText('Morning Light - A Thought for Today')).toBeVisible();
+  await sheet.getByLabel('Your first name').fill('Lea');
+  await sheet.getByLabel(/Where are you from/).fill('Graz');
+  await sheet.getByRole('button', { name: 'Send' }).click();
+  await expect(sheet.getByText(/Thank you! We.ll let you know when it.s on air\./)).toBeVisible();
+
+  await decided(page, /^impulse (approved|scheduled|aired|library)$/);
   await page.context().close();
 });
 

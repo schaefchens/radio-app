@@ -36,9 +36,16 @@ describe('a program\'s format and the suggestions it takes', () => {
     expect(allowedForFormat(['preaching', 'film'], 'preaching', 'film')).toEqual(['film']);
   });
 
-  it('a format without videos takes none of them', () => {
+  it('a format without videos takes none of them — music only impulses', () => {
     expect(allowedForFormat(['song', 'preaching', 'mission', 'story'], 'preaching', 'music')).toEqual(['song', 'story']);
     expect(allowedForFormat(['mission', 'testimony_video', 'film'], 'mission', 'prayer')).toEqual([]);
+    expect(allowedForFormat(['song', 'documentary', 'impulse'], 'documentary', 'music')).toEqual(['song', 'impulse']);
+    expect(allowedForFormat(['song', 'impulse'], 'music', 'prayer')).toEqual(['song']);
+  });
+
+  it('a documentary program takes documentaries, and keeps impulses a music program took', () => {
+    expect(allowedForFormat(['song', 'impulse'], 'music', 'documentary')).toEqual(['song', 'impulse', 'documentary']);
+    expect(allowedForFormat(['film'], 'film', 'documentary')).toEqual(['documentary']);
   });
 
   it('the same format again changes nothing, and the own kind is never listed twice', () => {

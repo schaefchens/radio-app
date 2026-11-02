@@ -224,6 +224,29 @@ final class Drafter
             }
         }
 
+        // 7b. A music program's impulse from the library every N songs (station
+        //     decision 2026-11-02: impulses need no program of their own),
+        //     introduced by the break right before it (pinned to what
+        //     follows) or by a moment of its own — never right after another
+        //     moment of the host, which does not name it. Listeners' suggested
+        //     ones come in the request blocks (3.) and count too.
+        $impulseEvery = (int) ($settings['impulse']['every'] ?? 0);
+        if ($impulseEvery > 0 && !Catalog::isVideoFormat($settings['format']) && self::impulseDue($recent, (int) $program['id'], $impulseEvery)
+            && (!$this->isHost($prev) || $this->isHost($prev, 'intro') || $this->isHost($prev, 'break'))) {
+            $introduce = $hostOn && !$this->isHost($prev);
+            $roomMs = $this->app->resolver()->runAt($channel, $cursor)['end'] - $cursor + Timing::SOFT_OVERRUN - ($introduce ? Timing::HOST_ESTIMATE : 0);
+            $impulse = $this->app->selector()->video($channel, $program, 'impulse', $cursor, $roomMs);
+            if ($impulse !== null) {
+                $added = 0;
+                if ($introduce) {
+                    [, $cursor] = $this->addHost($channel, $program, 'impulse', $cursor, $base);
+                    $added++;
+                }
+                [, $cursor] = $this->addSong($channel, $impulse, $cursor, $base);
+                return [$added + 1, $cursor];
+            }
+        }
+
         // 8. A song from the library.
         $maxMs = $blockEnds ? $remaining + Timing::SOFT_OVERRUN : 30 * 60_000;
         $song = $this->app->selector()->pick($channel, $program, $cursor, $maxMs);
@@ -602,8 +625,8 @@ final class Drafter
     }
 
     /**
-     * A video of a video program on air: a song item of a video kind (of
-     * $kind, when given — 'preaching', 'testimony', 'mission', 'film').
+     * A video on air: a song item of a video kind (of $kind, when given —
+     * a video format, e.g. 'preaching' or 'impulse').
      *
      * @param array<string,mixed>|null $item
      */
@@ -627,6 +650,23 @@ final class Drafter
         foreach ($recent as $item) {
             if ($item['program_id'] !== $programId) return true;
             if (self::isVideo($item)) return $songs >= $between;
+            if ($item['type'] === 'song') $songs++;
+        }
+        return true;
+    }
+
+    /**
+     * A music program's next impulse is due: $every songs since the last
+     * one in this program, or since the program began — never first thing.
+     * Nothing in sight (a long run without one) is due.
+     *
+     * @param list<array<string,mixed>> $recent newest first
+     */
+    private static function impulseDue(array $recent, int $programId, int $every): bool
+    {
+        $songs = 0;
+        foreach ($recent as $item) {
+            if ($item['program_id'] !== $programId || self::isVideo($item, 'impulse')) return $songs >= $every;
             if ($item['type'] === 'song') $songs++;
         }
         return true;

@@ -60,7 +60,7 @@ final class StubText implements TextModel
                 'delivery' => 'Warm and relaxed, with a smile in the voice.',
             ],
             $kind === 'moderate_song', $kind === 'moderate_preaching', $kind === 'moderate_testimony_video', $kind === 'moderate_mission',
-            $kind === 'moderate_film', $kind === 'moderate_audio', $kind === 'moderate_prayer', $kind === 'moderate_intercession' => [
+            $kind === 'moderate_film', $kind === 'moderate_documentary', $kind === 'moderate_impulse', $kind === 'moderate_audio', $kind === 'moderate_prayer', $kind === 'moderate_intercession' => [
                 'safe' => true,
                 'christian' => true,
                 'biblical' => true,

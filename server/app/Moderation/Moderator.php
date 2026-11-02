@@ -39,6 +39,10 @@ final class Moderator
         'mission' => [180, 5400],
         // A film runs two hours and more.
         'film' => [300, 10800],
+        // An info video of a few minutes, a documentary of hours.
+        'documentary' => [180, 10800],
+        // A short impulse or impression, a longer one now and then.
+        'impulse' => [30, 1800],
     ];
 
     /** How long a request's check waits for its video's look-up (seconds). */
@@ -362,6 +366,8 @@ final class Moderator
             'testimony_video' => ['Stub Witness - My Story of Faith', 'Stub Stories', 'testimony', 600_000],
             'mission' => ['Stub Mission - Report from the Field', 'Stub Mission', 'mission', 1_200_000],
             'film' => ['Stub Film (Full Movie)', 'Stub Studio', 'film', 6_000_000],
+            'documentary' => ['Stub Documentary - The Story of the Bible', 'Stub Docs', 'documentary', 2_700_000],
+            'impulse' => ['Stub Impulse - A Thought for Today', 'Stub Impulses', 'impulse', 180_000],
             default => ['Stub Artist - Stub Song (Official Video)', 'Stub Artist', 'worship', 240_000],
         };
         return ['ok' => true, 'error' => '', 'id' => $id, 'title' => $title, 'channel' => $channel,

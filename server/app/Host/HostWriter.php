@@ -83,7 +83,8 @@ final class HostWriter
         if ($sid > 0 && ($sub = $this->app->submissions()->get($sid)) !== null) {
             if (in_array($sub['type'], Submissions::VIDEO_TYPES, true)) {
                 // A suggested video is announced like a request, by its kind
-                // ('preaching', 'testimony', 'mission', 'film'); the video itself is "next".
+                // (a video format: 'preaching', 'testimony', 'mission', 'film', 'documentary',
+                // 'impulse'); the video itself is "next".
                 $kind = Submissions::libraryKind((string) $sub['type']);
                 $ctx['request'] = ['name' => $sub['name'], 'place' => $sub['place'], 'message' => $sub['message']]
                     + ($kind !== 'song' ? ['type' => $kind] : []);
@@ -611,10 +612,12 @@ final class HostWriter
           name, who is singing). Name the song and who sings it the way a host would; when unsure,
           the title only. A title in another language than the version's: say it once at most, and
           when it is long, say what it is instead ("a German hymn by Paul Gerhardt").
-        - An item of the kind "preaching", "testimony", "mission" or "film" (in "previous", "next" or
-          a request) is a video, never a song: a preaching; a testimony, in which someone tells
-          their own story of faith (not a listener's recording — that comes as a "contribution"); a
-          report from Christian mission; a Christian film. Speak of it as what it is.
+        - An item of the kind "preaching", "testimony", "mission", "film", "documentary" or "impulse"
+          (in "previous", "next" or a request) is a video, never a song: a preaching; a testimony, in
+          which someone tells their own story of faith (not a listener's recording — that comes as a
+          "contribution"); a report from Christian mission; a Christian film; a documentary or info
+          video; a short spiritual impulse (a thought, a devotion or an impression in pictures).
+          Speak of it as what it is.
         - Name a listener only by the first name and place given — nothing else about them. No
           name given: they stay anonymous; never guess or describe who they are.
         - Quote or reference Scripture only when you are certain of it; paraphrase rather than
@@ -631,13 +634,15 @@ final class HostWriter
         - announce: a listener requested the next song — say whose request it is (first name and
           place, when given) and pass on their dedication warmly, when there is one. When the song
           comes with "about", you may say in a few words what it is about, or how it meets the
-          dedication. With
-          "request.type" ("preaching", "testimony", "mission" or "film") the listener suggested the
-          video that follows ("next"): say who suggested it, pass on their word on why when there is
-          one, and introduce it by its title and who it is from.
-        - preaching, testimony, mission, film: in a program of that kind, introduce the video that
-          follows ("next": its title, who it is from and, when given, what it is about) and invite
-          everyone to listen — to a film, to watch along in the app.
+          dedication. With "request.type" (a kind of video: "preaching", "testimony", "mission",
+          "film", "documentary" or "impulse") the listener suggested the video that follows
+          ("next"): say who suggested it, pass on their word on why when there is one, and
+          introduce it by its title and who it is from.
+        - preaching, testimony, mission, film, documentary: in a program of that kind, introduce the
+          video that follows ("next": its title, who it is from and, when given, what it is about)
+          and invite everyone to listen — to a film or a documentary, to watch along in the app.
+        - impulse: a short impulse follows ("next"), in a program of impulses or between songs:
+          introduce it in a sentence or two (its title, who it is from, what it is about when given).
         - contrib: introduce a listener's recording (story, testimony, greeting or prayer request).
         - prayer: listeners' prayer requests ("requests": how many) were just read out word for
           word, right before you: invite everyone to pray for them — where they are, or with the

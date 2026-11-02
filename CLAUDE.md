@@ -109,7 +109,10 @@ agree (sequels), a strong word match needs lengths near and a one-word match
 lengths to the seconds, songs and videos apart. Found, it is shown and added
 only on purpose (`allow_duplicate`, else 409 `possible_duplicate`); /mod's
 list names the other of each pair and filters for pairs. A request still joins
-as itself (it airs from its own item). A switched-off song or video can be
+as itself (it airs from its own item). A song or a video filed as the wrong
+kind moves in place (`Library::update` with `kind`, /mod's editor: between a
+song and the video kinds only, within the new kind's length; plays, group and
+look-up kept, `video_knowledge.kind` along; what is planned airs as planned). A switched-off song or video can be
 deleted for good (`Library::delete`): what is planned with it dropped, every
 link to its id cleared (SQLite may give the id to the next item), its
 reactions and playback errors gone, its look-up kept for 30 days.
@@ -647,11 +650,13 @@ English translated, on the wall with `source` and `texts`, never counted as a
 listener's (program setting `prayer.opendoors`).
 
 A **video program** (program setting `format`: `preaching`, `testimony`,
-`mission` or `film` — `Catalog::VIDEO_FORMATS`, restated in
-`shared/src/constants.ts`; `Drafter::addVideo`) airs YouTube videos of the
-library kind its format names — sermons, testimonies (Glaubenszeugnisse),
-mission videos (field reports, street preaching, documentaries), Christian
-films of two hours and more — with `preaching.songs_between` songs between
+`mission`, `film`, `documentary` or `impulse` — `Catalog::VIDEO_FORMATS`,
+restated in `shared/src/constants.ts`; `Drafter::addVideo`) airs YouTube
+videos of the library kind its format names — sermons, testimonies
+(Glaubenszeugnisse), mission videos (field reports, street preaching),
+Christian films of two hours and more, documentaries and info videos (Doku,
+station decision 2026-11-02: production's Info program), short spiritual
+impulses — with `preaching.songs_between` songs between
 them (the settings group keeps the name of the first video format: renamed,
 a moderator's value would be lost to a /mod tab opened before a deploy, or to
 a request served while it uploads). The host introduces each — the
@@ -663,19 +668,27 @@ program's whole run (`PlanResolver::runAt`, `SOFT_OVERRUN` included:
 once let a two-hour film taken at 22:30 run past a program ending at 00:30);
 otherwise songs fill the rest. Listeners suggest videos with one sheet, the
 4th tile ("Suggest a video", where the chat tile was — the chat is in the
-menu): a picker of the four kinds like the recording sheet's, enabled as the
+menu): a picker of the six kinds like the recording sheet's, enabled as the
 minute file lists them open, opening on the program's own kind, never
 switching a kind the listener is using (a sermon link must not go through
 the mission check). It posts `/submissions/video` with `type`: `preaching`,
 `testimony_video` (`testimony` is a listener's *recorded* testimony),
-`mission` or `film` — one rate limit for all (`/submissions/preaching` stays
-for apps loaded before). Each is a YouTube link like a song request, held to
-its own length (`<TYPE>_MIN/MAX_SECONDS`; without them `Moderator::VIDEO_LIMITS`:
-5–90 min, 2–60 min, 3–90 min, 5 min–3 h) and judged as `moderate_<type>` by its
-own rules in `Policy` (a film only from its studio, its distributor or a
-ministry that offers it). A video program may take any of the four types (a
+`mission`, `film`, `documentary` or `impulse` — one rate limit for all
+(`/submissions/preaching` stays for apps loaded before). Each is a YouTube
+link like a song request, held to its own length (`<TYPE>_MIN/MAX_SECONDS`;
+without them `Moderator::VIDEO_LIMITS`: 5–90 min, 2–60 min, 3–90 min, 5 min–3
+h, 3 min–3 h, 30 s–30 min) and judged as `moderate_<type>` by its own rules in
+`Policy` (a film or a documentary only from its makers, its distributor or a
+ministry that offers it). A video program may take any of the six types (a
 mission program testimonies too); every other format drops them
-(`Catalog::saveProgram`). A suggestion goes first, announced like a request
+(`Catalog::saveProgram`) — except a music program's impulses
+(`Catalog::MUSIC_SUGGESTIONS`, shared `MUSIC_VIDEO_TYPES`; impulses need no
+program of their own): they wait in `Submissions::waiting()` and air in its
+request blocks, announced like a song request, and with `impulse.every` (0–20,
+0 by default) the Drafter's step 7b plays one of the library's after every N
+songs (`impulseDue`: never first thing in a program, a suggested one counts),
+introduced by the break right before it or by an `impulse` moment — never
+right after another host moment. In a video program a suggestion goes first, announced like a request
 (a unit), and airs as the kind it was suggested as, even when its video is
 in the library as another kind; a second suggestion of a video aired or
 planned within six hours goes to the library instead of airing twice. Else
@@ -684,8 +697,8 @@ not aired within a week, then a day — never within six hours (songs are
 better than a preaching twice in one program). On air a video is a `song`
 item of its kind, so an app that does not know the kind plays it as the
 video it is. A waiting suggestion fills the queue with its whole length; one
-that can no longer fit before its program ends, or whose program is no video
-program any more, goes to the library at once (`Submissions::canStillAir`),
+that can no longer fit before its program ends, or whose program cannot take
+it any more, goes to the library at once (`Submissions::canStillAir`),
 so it holds no intake closed. Because one item can run most of an hour — a
 film two — the engine re-reads the tiles' states with every minute file, not
 only when an item starts.
@@ -1056,7 +1069,9 @@ own kind, a two-hour film inside its block and across midnight, one endpoint
 for a mission program that also takes testimonies, a suggestion airing as
 what it was suggested as, format changes, a video suggested twice, the
 limits per type and the one rate limit, /mod's kinds, the migration, the
-host's words per kind, every format in every list), library groups
+host's words per kind, every format in every list; documentaries; impulses in
+a music program — suggested into its blocks, from the library every N songs,
+never first thing —; a video moved to another kind; migration 19), library groups
 (`groups.php`: the moment after a group's item — the model gets the group and
 where to find more, never its id; the template presenting them; a script
 asked again after a timeout, not when its minutes are near —, items joining by channel, one channel one group, blocking by
@@ -1225,7 +1240,8 @@ the prayer time, no sideways scroll), video programs on channels of their own (t
 library's preaching on air as its video, named a preaching, and a preaching
 suggested through the sheet; a mission program's own video named "Mission",
 the sheet opening on Mission and a testimony suggested through the picker;
-the tile closed on a music program, and tapped, why and when again), a stand-in
+a music program's impulse named "Impulse" and one suggested there; the tile
+closed on a music program without them, and tapped, why and when again), a stand-in
 store-app shell (no install offer, the background stops the radio, failing
 plugins break nothing), deleting an account from Profile and with the 12
 words on `/konto-loeschen`, blocking between two listeners (reported to /mod,

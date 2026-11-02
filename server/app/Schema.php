@@ -1003,6 +1003,49 @@ final class Schema
                     if (!in_array($column, $have, true)) $store->db->exec("ALTER TABLE computers ADD COLUMN $column TEXT NOT NULL DEFAULT ''");
                 }
             },
+
+            // 19 — documentaries and impulses in the library (kinds `documentary`, `impulse`;
+            // station decision 2026-11-02). The CHECK is rebuilt as in 11, with the columns
+            // 12 added kept last and in order (replays of 10 and 11 cut them from this SQL).
+            // No new plan version: nothing planned changes.
+            <<<'SQL'
+            CREATE TABLE library_items_new (
+              id INTEGER PRIMARY KEY,
+              kind TEXT NOT NULL DEFAULT 'song' CHECK (kind IN ('song', 'jingle', 'contrib', 'bed', 'preaching', 'testimony', 'mission', 'film', 'documentary', 'impulse')),
+              yt_id TEXT,
+              audio TEXT,
+              title TEXT NOT NULL,
+              artist TEXT NOT NULL DEFAULT '',
+              thumb TEXT,
+              duration_ms INTEGER NOT NULL,
+              languages TEXT NOT NULL DEFAULT '[]',
+              themes TEXT NOT NULL DEFAULT '[]',
+              moods TEXT NOT NULL DEFAULT '[]',
+              program_ids TEXT NOT NULL DEFAULT '[]',
+              channel_ids TEXT NOT NULL DEFAULT '[]',
+              source TEXT NOT NULL DEFAULT 'curated',
+              submission_id INTEGER,
+              meta TEXT NOT NULL DEFAULT '{}',
+              active INTEGER NOT NULL DEFAULT 1,
+              plays INTEGER NOT NULL DEFAULT 0,
+              last_played INTEGER,
+              trend_score REAL NOT NULL DEFAULT 0,
+              created INTEGER NOT NULL,
+              updated INTEGER NOT NULL,
+              group_id INTEGER REFERENCES library_groups(id) ON DELETE SET NULL, yt_channel TEXT
+            );
+            INSERT INTO library_items_new (id, kind, yt_id, audio, title, artist, thumb, duration_ms, languages, themes, moods,
+              program_ids, channel_ids, source, submission_id, meta, active, plays, last_played, trend_score, created, updated, group_id, yt_channel)
+            SELECT id, kind, yt_id, audio, title, artist, thumb, duration_ms, languages, themes, moods,
+              program_ids, channel_ids, source, submission_id, meta, active, plays, last_played, trend_score, created, updated, group_id, yt_channel
+            FROM library_items;
+            DROP TABLE library_items;
+            ALTER TABLE library_items_new RENAME TO library_items;
+            CREATE UNIQUE INDEX library_yt ON library_items(yt_id) WHERE yt_id IS NOT NULL;
+            CREATE INDEX library_kind_active ON library_items(kind, active);
+            CREATE INDEX library_group ON library_items(group_id) WHERE group_id IS NOT NULL;
+            CREATE INDEX library_yt_channel ON library_items(yt_channel) WHERE yt_channel IS NOT NULL;
+            SQL,
         ];
     }
 }

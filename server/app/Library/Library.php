@@ -30,6 +30,9 @@ final class Library
         'testimony' => [60_000, 3 * 3_600_000],
         'mission' => [60_000, 3 * 3_600_000],
         'film' => [60_000, 4 * 3_600_000],
+        'documentary' => [60_000, 4 * 3_600_000],
+        // YouTube's Shorts are often under a minute.
+        'impulse' => [15_000, 3_600_000],
     ];
 
     public function __construct(private App $app) {}
@@ -386,6 +389,19 @@ final class Library
         foreach (['title', 'artist'] as $k) {
             if (array_key_exists($k, $attrs)) $row[$k] = mb_substr(trim((string) $attrs[$k]), 0, 120);
         }
+        // Filed as the wrong kind (a documentary added as a film, a Short as a
+        // preaching): moved in place, its plays, group and look-up kept. Only
+        // between a song and the video kinds — a jingle, a recording or
+        // prayer music is no YouTube video — and only within the new kind's
+        // length. What is planned already airs as planned.
+        $was = (string) $item['kind'];
+        if (isset($attrs['kind']) && (string) $attrs['kind'] !== $was) {
+            $kind = (string) $attrs['kind'];
+            if (!isset(self::VIDEO_KINDS[$kind], self::VIDEO_KINDS[$was]) || (string) ($item['yt_id'] ?? '') === '') throw new ApiError(422, 'bad_kind');
+            [$min, $max] = self::VIDEO_KINDS[$kind];
+            if ($item['duration_ms'] < $min || $item['duration_ms'] > $max) throw new ApiError(422, 'video_duration');
+            $row['kind'] = $kind;
+        }
         if (isset($attrs['languages'])) $row['languages'] = json_encode(self::langs((array) $attrs['languages']));
         foreach (['themes', 'moods'] as $k) {
             if (isset($attrs[$k])) $row[$k] = json_encode(Catalog::tags((array) $attrs[$k]));
@@ -404,11 +420,13 @@ final class Library
             $row['group_id'] = $gid;
         }
         if ($row) $this->app->store()->update('library_items', $row + ['updated' => $this->app->clock->now()], 'id = ?', [$id]);
+        // Its look-up knows it by the same kind (an export carries it along).
+        if (isset($row['kind'])) $this->app->store()->query('UPDATE video_knowledge SET kind = ? WHERE yt_id = ?', [$row['kind'], $item['yt_id']]);
         // Put in a blocked group: what is planned or on air of it goes at once.
         if (isset($row['group_id']) && $this->app->groups()->isBlocked($row['group_id'])) {
             $this->app->groups()->pull($this->app->groups()->get($row['group_id']) ?? []);
         }
-        $this->app->store()->audit($actor, 'Library edit', (string) $id . ' ' . $item['title']);
+        $this->app->store()->audit($actor, 'Library edit', (string) $id . ' ' . $item['title'] . (isset($row['kind']) ? " (kind $was → {$row['kind']})" : ''));
         return $this->get($id) ?? throw new ApiError(404, 'not_found');
     }
 

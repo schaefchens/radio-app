@@ -151,6 +151,8 @@ const HOST_KINDS: HostKind[] = [
   'testimony',
   'mission',
   'film',
+  'documentary',
+  'impulse',
   'reading',
   'intercession',
   'present',

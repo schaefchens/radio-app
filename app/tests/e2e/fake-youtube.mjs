@@ -41,6 +41,10 @@ export const VIDEOS = [
   // listener suggests there.
   song('e2eMission1', 'Wells for Kibera - Mission Report', 'Hope Without Borders', 'PT25M00S'),
   song('e2eTestim01', 'From the Streets to Hope - My Testimony', 'Grace Stories', 'PT8M10S'),
+  // Impulses on a music channel: the library's (long enough to catch on air),
+  // and one a listener suggests.
+  song('e2eImpuls01', 'Be Still - An Impulse on Psalm 46', 'Quiet Waters', 'PT12M00S'),
+  song('e2eImpuls02', 'Morning Light - A Thought for Today', 'Quiet Waters', 'PT3M10S'),
 ];
 
 export const LIBRARY_IDS = VIDEOS.filter((v) => v.id.startsWith('e2eSong')).map((v) => v.id);

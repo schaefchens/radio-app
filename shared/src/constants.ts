@@ -30,7 +30,8 @@ export const SLOT_WALKBACK_MINUTES = 10;
 /** What a listener can hand in. `song` is a YouTube link, and so are the
  *  videos suggested for a video program (VIDEO_SUBMISSIONS): `preaching`,
  *  `testimony_video` — a testimony on YouTube, where `testimony` is one the
- *  listener recorded —, `mission` and `film`. `prayer` covers both a typed
+ *  listener recorded —, `mission`, `film`, `documentary` and `impulse` (which
+ *  a music program takes too: MUSIC_VIDEO_TYPES). `prayer` covers both a typed
  *  and a recorded prayer request; `intercession` is a listener's own prayer,
  *  typed or recorded, sent in a prayer hour's prayer time; story, testimony
  *  and greeting are always recordings. */
@@ -44,6 +45,8 @@ export const SUBMISSION_TYPES = [
   'testimony_video',
   'mission',
   'film',
+  'documentary',
+  'impulse',
   'intercession',
 ] as const;
 export type SubmissionType = (typeof SUBMISSION_TYPES)[number];
@@ -52,13 +55,13 @@ export type SubmissionType = (typeof SUBMISSION_TYPES)[number];
  *  name is also the library kind it plays, the song item's `kind` on air and
  *  the host moment that introduces it. PHP restates this list as
  *  Catalog::VIDEO_FORMATS. */
-export const VIDEO_FORMATS = ['preaching', 'testimony', 'mission', 'film'] as const;
+export const VIDEO_FORMATS = ['preaching', 'testimony', 'mission', 'film', 'documentary', 'impulse'] as const;
 export type VideoFormat = (typeof VIDEO_FORMATS)[number];
 
 /** A listener's video suggestion, one type per kind (the fourth tile's sheet
  *  picks among them). An Extract, so a name missing from SUBMISSION_TYPES
  *  fails the typecheck instead of being dropped by the parser. */
-export type VideoSubmissionType = Extract<SubmissionType, 'preaching' | 'testimony_video' | 'mission' | 'film'>;
+export type VideoSubmissionType = Extract<SubmissionType, 'preaching' | 'testimony_video' | 'mission' | 'film' | 'documentary' | 'impulse'>;
 
 /** Which suggestion type a video format takes as its own. `testimony_video`,
  *  because `testimony` is the recorded one. */
@@ -67,7 +70,13 @@ export const VIDEO_SUBMISSIONS: Readonly<Record<VideoFormat, VideoSubmissionType
   testimony: 'testimony_video',
   mission: 'mission',
   film: 'film',
+  documentary: 'documentary',
+  impulse: 'impulse',
 };
+
+/** The suggestions a music program takes too, aired in its request blocks
+ *  (Catalog::MUSIC_SUGGESTIONS): impulses need no program of their own. */
+export const MUSIC_VIDEO_TYPES: readonly VideoSubmissionType[] = ['impulse'];
 
 export const VIDEO_SUBMISSION_TYPES: readonly VideoSubmissionType[] = VIDEO_FORMATS.map((f) => VIDEO_SUBMISSIONS[f]);
 

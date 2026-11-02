@@ -71,7 +71,8 @@ return [
     'SONG_MAX_SECONDS' => '720',
     // A listener's suggested videos (the video sheet), by type: a sermon or a
     // devotion; a testimony on YouTube (a *recorded* testimony is
-    // AUDIO_MAX_SECONDS); a mission video; a film, which runs two hours and more.
+    // AUDIO_MAX_SECONDS); a mission video; a film, which runs two hours and
+    // more; an info video or a documentary; a short impulse.
     'PREACHING_MIN_SECONDS' => '300',
     'PREACHING_MAX_SECONDS' => '5400',
     'TESTIMONY_VIDEO_MIN_SECONDS' => '120',
@@ -80,6 +81,10 @@ return [
     'MISSION_MAX_SECONDS' => '5400',
     'FILM_MIN_SECONDS' => '300',
     'FILM_MAX_SECONDS' => '10800',
+    'DOCUMENTARY_MIN_SECONDS' => '180',
+    'DOCUMENTARY_MAX_SECONDS' => '10800',
+    'IMPULSE_MIN_SECONDS' => '30',
+    'IMPULSE_MAX_SECONDS' => '1800',
     'AUDIO_MAX_SECONDS' => '90',
     'GREETING_MAX_SECONDS' => '60',
     // A listener's spoken prayer in a prayer hour's prayer time.
