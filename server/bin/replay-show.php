@@ -23,7 +23,7 @@ declare(strict_types=1);
 // What the minute files do not carry is guessed: a request's dedication,
 // a recording's summary, the prayer hour's counts and intake, a program's
 // themes. Writes /out/replay.txt (what aired and what is written now, side
-// by side) and /out/cases.json for the voice worker's lab (worker/README.md):
+// by side) and /out/cases.json for `herde lab` (herde's README):
 // each moment's words as aired with the host's standing direction, and as
 // now written with its delivery.
 if (PHP_SAPI !== 'cli') exit(1);

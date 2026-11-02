@@ -7,7 +7,7 @@ import { ago, localDate, localTime } from '@/lib/format';
 import { useApi } from './useApi';
 import { modError, type ModWorker, type ModWorkerInvite, type ModWorkerProfile } from './modApi';
 import { Check, ConfirmButton, Field, Loading, Notice, Pill, Section } from './ui';
-import { GPUS, configSnippet, dockerCommands, joinCommand, type Gpu } from './workerConfig';
+import { GPUS, dockerCommands, joinCommand, type Gpu } from './workerConfig';
 
 const NO_WORKERS: ModWorker[] = [];
 const NO_INVITES: ModWorkerInvite[] = [];
@@ -22,8 +22,7 @@ const wallClock = (): number => Date.now();
  * on air only when an admin lets it. Every computer runs the station's
  * setup (Workers\Profile): our own voices, the same settings in every take,
  * checks every few hours — one out of step speaks for no host until it is in
- * step again. The old voice worker (protocol 1) is still added with a key
- * shown once, and speaks for no host: it knows no setup.
+ * step again. Ours join with an invite too, as herde does.
  */
 export function WorkersSection() {
   const { t } = useTranslation();
@@ -70,16 +69,6 @@ export function WorkersSection() {
         }}
         onError={(text) => setNotice({ tone: 'error', text })}
       />
-      <details className="text-sm">
-        <summary className="cursor-pointer text-ink-muted">{t('mod.workers.keyedTitle')}</summary>
-        <KeyedForm
-          onAdded={(name, key) => {
-            setShown({ name, key });
-            reload();
-          }}
-          onError={(text) => setNotice({ tone: 'error', text })}
-        />
-      </details>
     </Section>
   );
 }
@@ -433,43 +422,6 @@ function InviteForm({ onInvited, onError }: { onInvited: (name: string, code: st
   );
 }
 
-/** The old voice worker (protocol 1): one of ours, added with a key shown once. */
-function KeyedForm({ onAdded, onError }: { onAdded: (name: string, key: string) => void; onError: (text: string) => void }) {
-  const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [busy, setBusy] = useState(false);
-  const add = async (): Promise<void> => {
-    setBusy(true);
-    try {
-      const r = await api<{ worker: ModWorker; key: string }>('/mod/workers', { body: { name: name.trim() } });
-      onAdded(r.worker.name, r.key);
-      setName('');
-    } catch (e) {
-      onError(modError(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <form
-      className="mt-2 flex flex-wrap items-end gap-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void add();
-      }}
-    >
-      <div className="min-w-0 flex-1">
-        <Field label={t('mod.workers.keyedName')}>
-          <input className="field" maxLength={60} value={name} placeholder={t('mod.workers.namePlaceholder')} onChange={(e) => setName(e.target.value)} />
-        </Field>
-      </div>
-      <button type="submit" className="btn-primary" disabled={busy || name.trim() === ''}>
-        {t('mod.workers.add')}
-      </button>
-    </form>
-  );
-}
-
 /** Copies a text; without a clipboard the text stays selectable. */
 function useCopy(): [boolean, (text: string) => Promise<void>] {
   const [copied, setCopied] = useState(false);
@@ -539,21 +491,19 @@ function InviteBox({ name, code, expires, onClose }: { name: string; code: strin
   );
 }
 
-/** The key, shown this once, and the lines that go into the old voice worker's config. */
+/** A computer's new key, shown this once: it goes into herde's key file on that computer. */
 function KeyBox({ name, keyValue, onClose }: { name: string; keyValue: string; onClose: () => void }) {
   const { t } = useTranslation();
-  const snippet = configSnippet(keyValue, window.location.origin);
   const [copied, copy] = useCopy();
   return (
     <div className="card-inset flex flex-col gap-2 border border-accent/40 p-3" role="status">
       <p className="label">{t('mod.workers.keyTitle', { name })}</p>
       <p className="text-sm">{t('mod.workers.keyOnce')}</p>
-      <pre className="overflow-x-auto rounded-lg bg-soft p-2 text-xs" aria-label={t('mod.workers.snippet')}>
-        <code>{snippet}</code>
+      <pre className="overflow-x-auto rounded-lg bg-soft p-2 text-xs" aria-label={t('mod.workers.keyLabel')}>
+        <code>{keyValue}</code>
       </pre>
-      <p className="text-xs text-ink-faint">{t('mod.workers.snippetHint')}</p>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-primary px-3 py-1.5 text-sm" onClick={() => void copy(snippet)}>
+        <button type="button" className="btn-primary px-3 py-1.5 text-sm" onClick={() => void copy(keyValue)}>
           {copied ? t('mod.workers.copied') : t('mod.workers.copy')}
         </button>
         <button type="button" className="btn-ghost px-3 py-1.5 text-sm" onClick={onClose}>

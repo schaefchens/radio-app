@@ -995,13 +995,6 @@ final class ModApi
         return ['profile' => $this->c->app->workerProfile()->removeRecording((string) ($a['voice'] ?? ''), (string) ($a['lang'] ?? ''), $this->actor())];
     }
 
-    /** One of ours, added here: its key is in this answer only. */
-    public function workerCreate(): array
-    {
-        $this->admin();
-        return $this->c->app->computers()->create((string) ($this->c->req->json()['name'] ?? ''), $this->actor());
-    }
-
     /** @param array<string,string> $a */
     public function workerUpdate(array $a): array
     {

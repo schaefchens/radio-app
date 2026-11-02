@@ -76,7 +76,6 @@ voiced (a tick or two; the cron runs every minute).
 | `realtime/` | Node 24 + `ws` chat/presence/reactions node | Docker: local compose, and Hetzner Cloud nodes |
 | `infra/realtime/` | what a node runs: compose, Caddyfile, systemd unit, cloud-init template | baked into the node snapshot |
 | `scripts/` | deploy (SFTP), assemble, secrets, cron line, host probe, Hetzner setup/snapshot, Bunny zone setup | your Mac |
-| `worker/` | the old voice worker (protocol 1): Python 3.13, Qwen3-TTS through mlx-audio — its successor is herde (github.com/schaefchens/herde), which serves any project | any Apple Silicon Mac of ours, until it runs herde |
 | `docker/`, `compose.yaml` | local stack: Apache + PHP-FPM like the host, a cron loop, the realtime image; web root in `.data/site`, `/_arche/var` on the `var` volume | your Mac |
 
 The deployed tree (built by `scripts/assemble-site.sh` into `build/site/`):
@@ -272,7 +271,7 @@ in `voice_tasks.request` wherever the words are. People's words read out and
 a moderator's prayer get a fixed delivery, recorded lines one from their
 mood; without one, the host's direction stays as it was. `bin/replay-show.php`
 rebuilds a stretch of the published program from its public files and
-writes it again beside what aired (and the worker lab's cases); run it before
+writes it again beside what aired (and the cases `herde lab` speaks); run it before
 changing the host's words.
 
 **Hosts** (`Host\Hosts`, /mod › Hosts, admins; station decision 2026-10-05).
@@ -371,20 +370,20 @@ Max about twice as fast as real time) — free, and listeners' words stay on
 our hardware. The worker program is herde, a repo of its own since
 2026-10-09 (github.com/schaefchens/herde: Docker on Linux and Windows,
 native on Macs, where Docker cannot reach the GPU; text through Ollama
-too); `worker/` here is the old one, protocol 1: it knows no profile, so
-since 2026-10-12 it speaks for no host. No computer has a public address, so
-the station never calls one.
+too); ARCHE's first voice worker (`worker/`, protocol 1) is gone since
+2026-11-02 — only herde runs. No computer has a public address, so the
+station never calls one.
 herde's protocol 2 (its `protocol/PROTOCOL.md`; the fixtures are copied to
 `server/tests/herde-protocol/`, and the station answers each in its shape)
 is `POST /api/worker/v2/{join,poll,tasks/{id}/claim,result,fail}` and
 `GET /api/worker/v2/{profile,files/{sha}}`. The key
-travels in `X-Worker-Key` (Authorization never reaches PHP here; protocol 1's
-`X-Arche-Worker-Key` is still read), is shown once and kept as an HMAC with
+travels in `X-Worker-Key` (Authorization never reaches PHP here), is shown
+once (when it joins, or a new key in /mod) and kept as an HMAC with
 the pepper; only failed keys and codes are rate-limited, and none of these
 routes runs a tick.
 
-**Trust.** An admin adds one of ours, or makes a one-time invite (128 bits,
-an HMAC, 72 h) for ours or for a computer lent by someone we trust
+**Trust.** An admin makes a one-time invite (128 bits, an HMAC, 72 h) for
+one of ours or for a computer lent by someone we trust
 (`computers.trust`, from the invite, never from the computer). The invite
 shows herde's Docker lines for the computer's GPU (`workerConfig.ts`): NVIDIA
 (`:cuda`, Linux or Windows) or AMD (`:rocm`, Linux only — Docker on Windows
@@ -487,7 +486,7 @@ and blanks their input; tasks lose their words after a day and go after two
 (privacy policy). One computer may serve several stations, and herde
 chooses among them by urgency. Each piece of a text is a take of its own
 whose delivery starts afresh (chunks of 300 characters, as the demo had
-them); the worker's `lab` speaks a replay's cases in several cuts and
+them); `herde lab` speaks a replay's cases in several cuts and
 temperatures, for choosing by ear.
 A computer may also offer **voices of our own** (herde's voices folder;
 station decision 2026-10-08, Faith's "deep radio host voice"): a recording
@@ -1193,8 +1192,7 @@ taken, one list after a provider switch), the worker provider in it (no key,
 the temperature, Qwen's presets and the voices the workers offer, asked
 without a click, the try that polls, "no worker") and the Rechner section (an invite: whose computer, its code and the command
 to join shown once, the Docker lines for an NVIDIA or an AMD GPU, withdrawn; a lent computer marked, paused, resting, and
-let speak on air; the old worker's key and its config shown once, a new key
-and delete behind a confirm), testing a moment (programs asked only once opened, each program's
+let speak on air; a new key, shown once, and delete behind a confirm), testing a moment (programs asked only once opened, each program's
 moments, written with the unsaved settings and spoken in the editor's language with its
 delivery, edited words spoken as edited, the test show sent back and started over, a library
 pick, the fallback words said as such, a worker's task polled, nothing spoken by itself for
@@ -1249,12 +1247,10 @@ unblocked in Profile), the rules before the first message, a wall
 request reported (hidden for the reporter, in front of the moderators, down
 and back by their decision), recorded lines (encouragements written by the
 stub writer go on air by themselves, one paused, a program set to recorded
-lines), and computers (a stand-in for the old voice worker polls through Apache
-with its key header and uploads MP3s multipart, and its host's moments air
-with them; then a lent computer joins with an invite, speaks protocol 2,
-and voices the moments that name nobody).
-`npm run test:worker` runs the worker's own tests (pytest, no model) where its
-test venv can be made. `npm run e2e:reset` starts over.
+lines), and computers (stand-ins for herde join with invites, run the
+station's profile, poll through Apache with their key header and upload MP3s
+multipart: one of ours, whose host's moments air with them; then a lent one,
+which voices the moments that name nobody). `npm run e2e:reset` starts over.
 
 The dev and e2e stacks mount `server/app` live and their cron loops tick every
 minute: a half-written change runs there at once (and migrates their

@@ -4,7 +4,7 @@ import '@/i18n';
 import { HostsPanel } from '@/components/mod/HostsPanel';
 import { StatusPanel } from '@/components/mod/StatusPanel';
 import { WorkersSection } from '@/components/mod/WorkersSection';
-import { configSnippet, dockerCommands, joinCommand } from '@/components/mod/workerConfig';
+import { dockerCommands, joinCommand } from '@/components/mod/workerConfig';
 import type { ModHost, ModWorker, ModWorkerProfile } from '@/components/mod/modApi';
 import { useSettings } from '@/store/settings';
 
@@ -41,7 +41,7 @@ const joy: ModHost = {
 };
 
 const mac: ModWorker = {
-  id: 3, name: 'MacBook Chris', active: true, online: true, last_seen: Math.floor(Date.now() / 1000) - 5, version: 'arche-worker 1.0.0',
+  id: 3, name: 'MacBook Chris', active: true, online: true, last_seen: Math.floor(Date.now() / 1000) - 5, version: 'herde 0.5.0',
   engine: { model: 'qwen3-tts-1.7b-customvoice' }, voices: [{ id: 'Sohee', label: 'Sohee' }, { id: 'Ryan', label: 'Ryan' }], languages: ['en', 'de'],
   key_hint: 'c0de', tasks: { done_today: 12, failed_today: 1, queued: 2 },
 };
@@ -204,30 +204,6 @@ describe('/mod: our computers and lent ones', () => {
     expect(within(old).queryByRole('checkbox', { name: 'May speak on air' })).toBeNull();
   });
 
-  it('the old voice worker is still added with a key shown once, with the lines for its config', async () => {
-    let added = false;
-    const calls = serve({
-      'GET /mod/workers': () => json({ workers: added ? [{ ...mac, online: false, last_seen: 0, version: '', voices: [], tasks: { done_today: 0, failed_today: 0, queued: 0 } }] : [] }),
-      'POST /mod/workers': () => {
-        added = true;
-        return json({ worker: { ...mac, online: false, last_seen: 0 }, key: 'k'.repeat(64) });
-      },
-    });
-    render(<WorkersSection />);
-    expect(await screen.findByText(/No computer yet/)).toBeTruthy();
-    fireEvent.click(screen.getByText('Old voice worker (arche-worker): add with a key'));
-    fireEvent.change(screen.getByLabelText('Name of the Mac'), { target: { value: 'MacBook Chris' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add computer' }));
-    expect(await screen.findByText('Key for MacBook Chris')).toBeTruthy();
-    const snippet = screen.getByLabelText("Lines for the computer's config").textContent ?? '';
-    expect(snippet).toContain(`url = "${window.location.origin}"`);
-    expect(snippet).toContain(`key = "${'k'.repeat(64)}"`);
-    expect(calls.find((c) => c.method === 'POST' && c.path === '/mod/workers')?.body).toEqual({ name: 'MacBook Chris' });
-    expect(await screen.findByText('not seen yet')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Done, I have it' }));
-    expect(screen.queryByText('Key for MacBook Chris')).toBeNull();
-  });
-
   it('shows what a computer offers and did; a new key and removing it ask first', async () => {
     const calls = serve({
       'GET /mod/workers': () => json({ workers: [mac] }),
@@ -244,7 +220,8 @@ describe('/mod: our computers and lent ones', () => {
     expect(calls.some((c) => c.method === 'PATCH')).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
     expect(await screen.findByText('Key for MacBook Chris')).toBeTruthy();
-    expect(screen.getByLabelText("Lines for the computer's config").textContent).toContain('n'.repeat(64));
+    expect(screen.getByLabelText('The new key').textContent).toBe('n'.repeat(64));
+    expect(screen.getByText(/replace the key in herde’s key file/)).toBeTruthy();
     expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ rotate: true });
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
@@ -301,9 +278,7 @@ describe('/mod: our computers and lent ones', () => {
     await waitFor(() => expect(calls.some((c) => c.method === 'DELETE' && c.path === '/mod/workers/voices/Faith/de')).toBe(true));
   });
 
-  it('the config lines name a local station as dev; a computer joins at the station\'s protocol 2 address', () => {
-    expect(configSnippet('abc', 'http://localhost:8080')).toBe('[[stations]]\nname = "ARCHE dev"\nurl = "http://localhost:8080"\nkey = "abc"\n');
-    expect(configSnippet('abc', 'https://radio.schaefchens.de')).toContain('name = "ARCHE"');
+  it('a computer joins at the station\'s protocol 2 address', () => {
     expect(joinCommand('AB12-CD34', 'https://radio.schaefchens.de')).toBe('herde join https://radio.schaefchens.de/api/worker/v2 AB12-CD34');
     // One line each, and the key only ever in the volume: never in an environment variable or the command.
     const [join, run] = dockerCommands('AB12-CD34', 'https://radio.schaefchens.de');

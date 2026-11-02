@@ -40,10 +40,6 @@ final class Tasks
     /** A lease of protocol 2: every poll that lists the task renews it once fewer than RENEW_BELOW seconds are left. */
     public const LEASE_SECONDS = 45;
     private const RENEW_BELOW = 20;
-    /** Protocol 1 leases (no heartbeat while it speaks): LEASE_FACTOR × the expected length + LEASE_BASE, at most LEASE_MAX (s). */
-    private const LEASE_FACTOR = 3;
-    private const LEASE_BASE = 60;
-    private const LEASE_MAX = 600;
     /** Tasks offered with one poll. */
     public const OFFERS = 10;
     /** A try's clip waits this long for the editor to fetch it (s). */
@@ -195,12 +191,12 @@ final class Tasks
      * @param array<string,mixed> $c decoded computer
      * @return array<string,mixed>|null the task as the computer does it; null: gone
      */
-    public function claim(array $c, int $id, string $lease, ?int $leaseSeconds = null): ?array
+    public function claim(array $c, int $id, string $lease): ?array
     {
         if (!preg_match(self::LEASE, $lease)) throw new ApiError(400, 'bad_request');
         $store = $this->app->store();
         $now = $this->app->clock->now();
-        return $store->tx(function () use ($store, $c, $id, $lease, $now, $leaseSeconds): ?array {
+        return $store->tx(function () use ($store, $c, $id, $lease, $now): ?array {
             $t = $this->task($id);
             if ($t === null) return null;
             if ($t['state'] === 'leased' && $t['lease'] === $lease && $t['worker_id'] === $c['id']) return $this->forWorker($t, $now);
@@ -208,7 +204,7 @@ final class Tasks
             if ($this->held($c['id'], $now) >= (Computers::LEASES[$c['trust']] ?? 1)) return null;
             [$where, $args] = $this->matching($c, ['tts' => 1, 'text' => 1, 'stt' => 1], $now);
             if ($where === null) return null;
-            $until = $now + ($leaseSeconds ?? self::LEASE_SECONDS);
+            $until = $now + self::LEASE_SECONDS;
             // A lease that lapsed without a word from its computer counts as a mishap of the task.
             $n = $store->query(
                 "UPDATE worker_tasks SET state = 'leased', worker_id = ?, lease = ?, lease_until = ?, outcome = '',
@@ -308,66 +304,6 @@ final class Tasks
         $this->requeue($t, $set, !$retry || $set['failures'] >= self::MAX_FAILURES);
         if (!$cannot) $this->app->computers()->failed($c['id']);
         return ['ok' => true];
-    }
-
-    // --- protocol 1 (ARCHE's first voice worker), until every Mac runs herde ----------------------
-
-    /**
-     * A protocol 1 poll leases the most urgent task it can speak at once,
-     * with a token of the station's and today's long lease (it does not poll
-     * while it speaks).
-     *
-     * @param array<string,mixed> $c decoded computer
-     * @return array<string,mixed>|null the task as a protocol 1 worker speaks it
-     */
-    public function leaseV1(array $c): ?array
-    {
-        foreach ($this->offers($c, ['tts' => 1], 3) as $offer) {
-            $expected = (int) ceil(((int) ($offer['size']['chars'] ?? 0)) / 13 * 1000);
-            $seconds = min(self::LEASE_MAX, self::LEASE_FACTOR * intdiv($expected, 1000) + self::LEASE_BASE);
-            $task = $this->claim($c, (int) $offer['task'], 'v1-' . Ids::short(20), $seconds);
-            if ($task === null) continue;
-            $t = $this->task((int) $offer['task']) ?? throw new \LogicException('task vanished');
-            $host = $this->app->hosts()->get($t['host_id']);
-            return [
-                'id' => $t['id'],
-                'purpose' => $t['purpose'],
-                'text' => (string) ($t['input']['text'] ?? ''),
-                'lang' => $t['lang'],
-                'voice' => $t['voice'],
-                'model' => (string) ($host['model'] ?? '') ?: Computers::MODEL,
-                'instruct' => (string) ($t['input']['instruct'] ?? ''),
-                'temperature' => (float) ($t['input']['temperature'] ?? 0.7),
-                'seed' => (int) ($t['input']['seed'] ?? 0),
-                'expected_ms' => $expected,
-                'lease_until' => $t['lease_until'],
-            ];
-        }
-        return null;
-    }
-
-    /** A protocol 1 upload: the station's own lease of the task. @param array<string,mixed> $c @return array<string,mixed> */
-    public function completeV1(array $c, int $id, ?string $file): array
-    {
-        $t = $this->task($id) ?? throw new ApiError(409, 'task_gone');
-        if ($t['state'] === 'done' && $t['worker_id'] === $c['id']) return ['ok' => true]; // sent twice
-        try {
-            return $this->result($c, $id, $t['lease'], $file);
-        } catch (ApiError $e) {
-            throw match ($e->error) {
-                'gone' => new ApiError(409, 'task_gone'),
-                'invalid_result' => new ApiError(422, 'invalid_audio'),
-                default => $e,
-            };
-        }
-    }
-
-    /** @param array<string,mixed> $c @return array{ok:bool} */
-    public function failV1(array $c, int $id, string $error, bool $retry): array
-    {
-        $t = $this->task($id);
-        if ($t === null || $t['state'] !== 'leased' || $t['worker_id'] !== $c['id']) return ['ok' => true];
-        return $this->fail($c, $id, $t['lease'], 'engine', $retry, $error);
     }
 
     // --- results ------------------------------------------------------------------------------

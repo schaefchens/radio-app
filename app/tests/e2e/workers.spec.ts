@@ -7,13 +7,13 @@ import { BASE_URL, api, cron, ensureAdmin, serverNow, slotAt, type Admin } from 
 
 /**
  * Computers end to end, on a channel of their own: an admin adds a host
- * that speaks with them, and stand-ins (fetch in the test process, no model)
- * poll the station through Apache with their key header and hand back the
- * bundled MP3 multipart for every task — and the host's moments air with
- * those clips. First the old voice worker (protocol 1, added with a key),
- * then a lent computer that joins with an invite and speaks herde's protocol
- * 2. The real worker is tested in its own repo (herde); timings, privacy and
- * fallbacks on the server's fixed clock (server/tests/cases/workers.php).
+ * that speaks with them, and stand-ins for herde (fetch in the test process,
+ * no model) join with an invite, run the station's profile, poll through
+ * Apache with their key header and hand back the bundled MP3 multipart for
+ * every task — and the host's moments air with those clips. First one of
+ * ours, then a lent computer. The real worker is tested in its own repo
+ * (herde); timings, privacy and fallbacks on the server's fixed clock
+ * (server/tests/cases/workers.php).
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -22,19 +22,12 @@ const stamp = Date.now().toString(36);
 const MP3 = readFileSync(fileURLToPath(new URL('../../../server/resources/stub-voice.mp3', import.meta.url)));
 const hostName = `Wendy ${stamp}`;
 const channel = { id: 0, slug: `workers-${stamp}` };
-const report = {
-  version: 'e2e',
-  engine: { model: 'qwen3-tts-1.7b-customvoice' },
-  voices: [
-    { id: 'Ryan', label: 'Ryan' },
-    { id: 'Sohee', label: 'Sohee' },
-  ],
-  languages: ['en', 'de'],
-  ready: true,
-};
+const VOICES = [
+  { id: 'Ryan', label: 'Ryan' },
+  { id: 'Sohee', label: 'Sohee' },
+];
 let admin: Admin;
-let key = '';
-let workerId = 0;
+let ownId = 0;
 let lentId = 0;
 let programId = 0;
 let hostId = 0;
@@ -43,31 +36,6 @@ async function must<T>(call: Promise<{ status: number; data: T }>, what: string)
   const { status, data } = await call;
   if (status !== 200) throw new Error(`${what}: ${status} ${JSON.stringify(data)}`);
   return data;
-}
-
-async function poll(withKey = key): Promise<{ status: number; task: { id: number } | null }> {
-  const res = await fetch(`${BASE_URL}/api/worker/poll`, {
-    method: 'POST',
-    headers: { 'x-arche-worker-key': withKey, 'content-type': 'application/json' },
-    body: JSON.stringify(report),
-  });
-  const data = (await res.json()) as { task?: { id: number } | null };
-  return { status: res.status, task: data.task ?? null };
-}
-
-/** Like the Mac: every task it is given, spoken (the stub clip) and uploaded multipart. */
-async function speakAll(): Promise<number> {
-  let done = 0;
-  for (let i = 0; i < 8; i++) {
-    const { task } = await poll();
-    if (!task) break;
-    const form = new FormData();
-    form.append('audio', new Blob([MP3], { type: 'audio/mpeg' }), `${task.id}.mp3`);
-    form.append('ms', '3024');
-    const res = await fetch(`${BASE_URL}/api/worker/tasks/${task.id}/audio`, { method: 'POST', headers: { 'x-arche-worker-key': key }, body: form });
-    if (res.status === 200) done++;
-  }
-  return done;
 }
 
 test.beforeAll(async () => {
@@ -86,31 +54,72 @@ test.beforeAll(async () => {
     api(admin, `/mod/programs/${programs.programs[0]!.id}`, { method: 'PATCH', body: { hosts: [{ id: host.host.id, role: 'main' }], settings: { host: { enabled: true, every_songs: 1, intro: true, outro: true } } } }),
     'program',
   );
-  const added = await must(api<{ key: string; worker: { id: number } }>(admin, '/mod/workers', { body: { name: `Mac ${stamp}` } }), 'worker');
-  key = added.key;
-  workerId = added.worker.id;
 });
 
 test.afterAll(async () => {
-  // The other specs see one channel again, and no worker answering for hosts of theirs.
+  // The other specs see one channel again, and no computer answering for hosts of theirs.
   if (channel.id) await api(admin, `/mod/channels/${channel.id}`, { method: 'PATCH', body: { active: false } });
-  if (workerId) await api(admin, `/mod/workers/${workerId}`, { method: 'DELETE' });
+  if (ownId) await api(admin, `/mod/workers/${ownId}`, { method: 'DELETE' });
   if (lentId) await api(admin, `/mod/workers/${lentId}`, { method: 'DELETE' });
 });
 
-/** What a herde worker says it can do: Qwen's speech, two voices in English and German. */
-const caps = {
-  name: 'e2e',
-  platform: { os: 'linux', arch: 'x86_64' },
-  engines: [{ kind: 'tts', model: 'qwen3-tts-1.7b', location: 'local', max_chars: 2000, voices: report.voices.map((v) => ({ ...v, langs: ['en', 'de'], instruct: true })) }],
-};
-const capsHash = createHash('sha256').update(JSON.stringify(caps)).digest('hex');
+/** A computer joins with an admin's invite, as `herde join` does: its key, id and trust. */
+async function joinWith(name: string, trust: 'own' | 'lender'): Promise<{ key: string; id: number; trust: string; again: number }> {
+  const invite = await must(api<{ code: string }>(admin, '/mod/workers/invites', { body: { name, trust } }), 'invite');
+  const join = () =>
+    fetch(`${BASE_URL}/api/worker/v2/join`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: invite.code, name: 'e2e', version: 'e2e', platform: { os: 'linux', arch: 'x86_64' } }),
+    });
+  const joined = await join();
+  expect(joined.status).toBe(200);
+  const { key, worker } = (await joined.json()) as { key: string; worker: { id: number; trust: string } };
+  // Used once.
+  return { key, id: worker.id, trust: worker.trust, again: (await join()).status };
+}
 
-/** Like herde: a poll (the caps go along), then every task offered claimed, spoken (the stub clip) and handed back. */
-async function herdeRound(lentKey: string): Promise<number> {
-  const post = (path: string, body: unknown) =>
-    fetch(`${BASE_URL}/api/worker/v2${path}`, { method: 'POST', headers: { 'x-worker-key': lentKey, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  const res = await post('/poll', { protocol: 2, version: 'e2e', kinds: { tts: [1] }, state: 'ready', caps_hash: capsHash, caps, running: [], free: { tts: 1 } });
+interface Profile {
+  profile: string;
+  tts: { code: number; backends: Record<string, { model: string; clone_model: string }>; speech: Record<string, number>; voices: { id: string; langs: Record<string, { file: string }> }[] };
+}
+
+/**
+ * Like herde: the station's profile fetched and run (herde's stub backend, which a local stack's profile
+ * names), a poll that says so with its caps, then every task offered claimed, spoken (the stub clip) and
+ * handed back. Only a computer in step with the profile is given speech.
+ */
+async function herdeRound(key: string): Promise<number> {
+  const headers = { 'x-worker-key': key };
+  const doc = (await (await fetch(`${BASE_URL}/api/worker/v2/profile`, { headers })).json()) as Profile;
+  const stub = doc.tts.backends.stub!;
+  const setup = {
+    code: doc.tts.code,
+    backend: 'stub',
+    model: stub.model,
+    clone_model: stub.clone_model,
+    dtype: '',
+    speech: doc.tts.speech,
+    voices: Object.fromEntries(doc.tts.voices.map((v) => [v.id, Object.fromEntries(Object.entries(v.langs).map(([lang, rec]) => [lang, rec.file]))])),
+    checks: [],
+  };
+  const caps = {
+    name: 'e2e',
+    platform: { os: 'linux', arch: 'x86_64' },
+    engines: [{ kind: 'tts', model: 'qwen3-tts-1.7b', location: 'local', max_chars: 2000, voices: VOICES.map((v) => ({ ...v, langs: ['en', 'de'], instruct: true })), setup }],
+  };
+  const post = (path: string, body: unknown) => fetch(`${BASE_URL}/api/worker/v2${path}`, { method: 'POST', headers: { ...headers, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const res = await post('/poll', {
+    protocol: 2,
+    version: 'e2e',
+    kinds: { tts: [1] },
+    state: 'ready',
+    caps_hash: createHash('sha256').update(JSON.stringify(caps)).digest('hex'),
+    caps,
+    running: [],
+    free: { tts: 1 },
+    profile: { hash: doc.profile, state: 'ok', verified_ago: 60 },
+  });
   if (res.status !== 200) throw new Error(`poll: ${res.status}`);
   const { offers } = (await res.json()) as { offers: { task: number }[] };
   let done = 0;
@@ -121,7 +130,7 @@ async function herdeRound(lentKey: string): Promise<number> {
     form.append('lease', lease);
     form.append('ms', '3024');
     form.append('audio', new Blob([MP3], { type: 'audio/mpeg' }), `${offer.task}.mp3`);
-    const result = await fetch(`${BASE_URL}/api/worker/v2/tasks/${offer.task}/result`, { method: 'POST', headers: { 'x-worker-key': lentKey }, body: form });
+    const result = await fetch(`${BASE_URL}/api/worker/v2/tasks/${offer.task}/result`, { method: 'POST', headers, body: form });
     if (result.status === 200) done++;
   }
   return done;
@@ -140,50 +149,46 @@ async function voicedNow(): Promise<boolean> {
   return false;
 }
 
-test('a worker pulls voice tasks through the web server, uploads MP3s, and its host speaks with them on air', async () => {
+test('one of our computers joins with an invite, runs the station\'s profile, and its host speaks with its clips on air', async () => {
   test.setTimeout(10 * 60_000);
-  expect((await poll(`${'0'.repeat(64)}`)).status).toBe(401);
-  // The key header reaches PHP through Apache (an Authorization header would not on the host).
-  expect((await poll()).status).toBe(200);
+  const own = await joinWith(`Mac ${stamp}`, 'own');
+  ownId = own.id;
+  expect([own.trust, own.again]).toEqual(['own', 401]);
+  // Only its own header reaches PHP through Apache (an Authorization header would not on the host).
+  const wrong = await fetch(`${BASE_URL}/api/worker/v2/profile`, { headers: { 'x-worker-key': '0'.repeat(64) } });
+  expect(wrong.status).toBe(401);
 
-  let uploads = 0;
+  let results = 0;
   await expect
     .poll(
       async () => {
         await cron();
-        uploads += await speakAll();
-        return voicedNow();
+        results += await herdeRound(own.key);
+        return results >= 2 && (await voicedNow());
       },
       { timeout: 9 * 60_000, intervals: [5000] },
     )
     .toBe(true);
-  expect(uploads).toBeGreaterThanOrEqual(2);
 
-  const { workers } = await must(api<{ workers: { id: number; online: boolean; tasks: { done_today: number } }[] }>(admin, '/mod/workers'), 'workers');
-  const mine = workers.find((w) => w.id === workerId);
-  expect(mine?.online).toBe(true);
+  const { workers } = await must(api<{ workers: { id: number; online: boolean; tasks: { done_today: number }; profile: { state: string } }[] }>(admin, '/mod/workers'), 'workers');
+  const mine = workers.find((w) => w.id === ownId);
+  expect([mine?.online, mine?.profile.state]).toEqual([true, 'ok']);
   expect(mine?.tasks.done_today ?? 0).toBeGreaterThanOrEqual(2);
 });
 
 test('a lent computer joins with an invite, speaks protocol 2 through the web server, and voices the moments that name nobody', async () => {
   test.setTimeout(10 * 60_000);
-  // The old worker steps aside: the lent computer is the only one. Host moments are planned while someone
+  // Ours steps aside: the lent computer is the only one. Host moments are planned while someone
   // can read a listener's words (production's lineup has a fallback voice): the lender voices those that name nobody.
-  await must(api(admin, `/mod/workers/${workerId}`, { method: 'PATCH', body: { active: false } }), 'old worker off');
+  await must(api(admin, `/mod/workers/${ownId}`, { method: 'PATCH', body: { active: false } }), 'ours off');
   const fallback = await must(api<{ host: { id: number } }>(admin, '/mod/hosts', { body: { name: `Hope ${stamp}`, provider: 'openai', voices: { en: 'coral', de: 'coral' } } }), 'fallback');
   await must(
     api(admin, `/mod/programs/${programId}`, { method: 'PATCH', body: { hosts: [{ id: hostId, role: 'main' }, { id: fallback.host.id, role: 'fallback' }] } }),
     'lineup',
   );
-  const invite = await must(api<{ code: string }>(admin, '/mod/workers/invites', { body: { name: `Lent ${stamp}`, trust: 'lender' } }), 'invite');
-  const join = (code: string) =>
-    fetch(`${BASE_URL}/api/worker/v2/join`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code, name: 'e2e', version: 'e2e', platform: { os: 'linux', arch: 'x86_64' } }) });
-  const joined = await join(invite.code);
-  expect(joined.status).toBe(200);
-  const { key: lentKey, worker } = (await joined.json()) as { key: string; worker: { id: number; trust: string } };
-  lentId = worker.id;
-  expect(worker.trust).toBe('lender');
-  expect((await join(invite.code)).status).toBe(401);
+  const lender = await joinWith(`Lent ${stamp}`, 'lender');
+  lentId = lender.id;
+  expect([lender.trust, lender.again]).toEqual(['lender', 401]);
   // Lent: work on air only once an admin lets it.
   await must(api(admin, `/mod/workers/${lentId}`, { method: 'PATCH', body: { live: true } }), 'live');
 
@@ -192,7 +197,7 @@ test('a lent computer joins with an invite, speaks protocol 2 through the web se
     .poll(
       async () => {
         await cron();
-        results += await herdeRound(lentKey);
+        results += await herdeRound(lender.key);
         return results >= 2 && (await voicedNow());
       },
       { timeout: 9 * 60_000, intervals: [5000] },

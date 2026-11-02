@@ -6,7 +6,7 @@
 export const VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse', 'marin', 'cedar'] as const;
 
 /**
- * Qwen3-TTS CustomVoice's presets (worker/arche_worker/engine.py VOICES):
+ * Qwen3-TTS CustomVoice's presets (as herde offers them):
  * listed while no computer is online to report them, so a host on our own
  * computers can be set up — or changed — with the Mac asleep.
  */

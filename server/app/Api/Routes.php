@@ -84,7 +84,6 @@ final class Routes
         $r->add('GET', '/mod/hosts/try/{id}', $m('hostTryResult'));
         // Computers (Workers\Computers): admins add ours or invite lent ones; the computers pull their tasks.
         $r->add('GET', '/mod/workers', $m('workers'));
-        $r->add('POST', '/mod/workers', $m('workerCreate'));
         $r->add('POST', '/mod/workers/invites', $m('workerInvite'));
         $r->add('DELETE', '/mod/workers/invites/{id}', $m('workerInviteDelete'));
         $r->add('PATCH', '/mod/workers/{id}', $m('workerUpdate'));
@@ -100,9 +99,6 @@ final class Routes
         $r->add('POST', '/worker/v2/tasks/{id}/fail', $w('fail2'));
         $r->add('GET', '/worker/v2/profile', $w('profile'));
         $r->add('GET', '/worker/v2/files/{sha}', $w('file'));
-        $r->add('POST', '/worker/poll', $w('poll'));
-        $r->add('POST', '/worker/tasks/{id}/audio', $w('audio'));
-        $r->add('POST', '/worker/tasks/{id}/fail', $w('fail'));
         // Recorded host lines (Host\Lines); the fixed paths before {id}.
         $r->add('GET', '/mod/lines/overview', $m('linesOverview'));
         $r->add('POST', '/mod/lines/write', $m('linesWrite'));

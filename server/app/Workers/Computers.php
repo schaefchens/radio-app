@@ -12,12 +12,11 @@ use Arche\Support\Ids;
  * protocol/PROTOCOL.md): our own Macs, and machines lent by people we trust.
  * None has a public address, so the station never calls one: each polls
  * for tasks over HTTPS with a key of its own, shown once and kept as an
- * HMAC with the identity pepper. It travels in X-Worker-Key
- * (X-Arche-Worker-Key before protocol 2): an Authorization header never
- * reaches PHP on this host.
+ * HMAC with the identity pepper. It travels in X-Worker-Key: an
+ * Authorization header never reaches PHP on this host.
  *
- * Trust comes from how a computer came: an admin adds ours, or invites a
- * lender's with a one-time code. A lender is offered public work only —
+ * Trust comes from the one-time invite it joined with: an admin invites
+ * ours or a lender's. A lender is offered public work only —
  * recorded lines, and moments that name nobody once an admin lets it speak
  * on air (`live`) — never listeners' words: they stay on our own hardware.
  *
@@ -50,19 +49,6 @@ final class Computers
     public function __construct(private App $app) {}
 
     // --- computers (admins) -----------------------------------------------------------------------
-
-    /**
-     * One of our own computers, added by an admin.
-     *
-     * @return array{worker:array<string,mixed>,key:string} the key, shown this once
-     */
-    public function create(string $name, string $actor): array
-    {
-        $name = self::nameOf($name);
-        [$id, $key] = $this->insert($name, 'own');
-        $this->app->store()->audit($actor, 'Worker added', $id . ' ' . $name);
-        return ['worker' => $this->view($this->get($id) ?? throw new \LogicException('computer vanished')), 'key' => $key];
-    }
 
     /**
      * Renamed, switched off or on, given a new key (the old one stops at
@@ -266,7 +252,7 @@ final class Computers
      */
     public function authenticate(array $headers, string $ip): array
     {
-        $key = trim((string) ($headers['x-worker-key'] ?? $headers['x-arche-worker-key'] ?? ''));
+        $key = trim((string) ($headers['x-worker-key'] ?? ''));
         $row = strlen($key) >= 32 ? $this->app->store()->one('SELECT * FROM computers WHERE key_mac = ?', [$this->mac($key)]) : null;
         if ($row === null) {
             if (!$this->app->rateLimit()->hit('worker-key:' . $this->app->rateLimit()->ipKey($ip), 30, 3600)) throw new ApiError(429, 'rate_limited');
@@ -401,28 +387,6 @@ final class Computers
             'model' => $text($s['model'] ?? null, 200), 'clone_model' => $text($s['clone_model'] ?? null, 200), 'dtype' => $text($s['dtype'] ?? null, 8),
             'speech' => $speech, 'voices' => $voices, 'checks' => $checks,
         ];
-    }
-
-    /**
-     * What a worker of protocol 1 (ARCHE's first voice worker) reports with
-     * every poll, as capabilities: one speech engine, its voices in every
-     * language it names.
-     *
-     * @param array<mixed> $report name, version, engine, voices, languages, ready
-     * @return array<string,mixed>
-     */
-    public static function capsOfReport(array $report): array
-    {
-        $langs = self::langs($report['languages'] ?? []);
-        $voices = [];
-        foreach (array_slice((array) ($report['voices'] ?? []), 0, 100) as $v) {
-            $id = is_array($v) ? (string) ($v['id'] ?? '') : (string) $v;
-            $label = is_array($v) ? (string) ($v['label'] ?? $id) : $id;
-            // Its own voices are cloned from a recording: they take no direction.
-            if (preg_match(self::VOICE, $id)) $voices[] = ['id' => $id, 'label' => $label, 'langs' => $langs, 'instruct' => !str_contains($label, '(own voice')];
-        }
-        return self::caps(['name' => (string) ($report['name'] ?? ''), 'platform' => ['os' => 'darwin', 'arch' => 'arm64'],
-            'engines' => [['kind' => 'tts', 'model' => self::TTS, 'voices' => $voices, 'max_chars' => 2000]]]);
     }
 
     // --- who can speak --------------------------------------------------------------------------

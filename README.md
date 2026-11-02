@@ -36,7 +36,7 @@ host break without touching the program: see `server/bin/try-host.php`.
 Before changing the host's words (prompt, model, effort), write a real
 stretch of the published program again and read it beside what aired:
 `server/bin/replay-show.php` (about a cent a moment; `--stub` costs nothing),
-then listen to its `cases.json` with the voice worker's `lab` (worker/README.md).
+then listen to its `cases.json` with herde's `herde lab`.
 
 First admin, exactly as in production: open http://localhost:5180/profile,
 create a passphrase, then open /setup and enter `ADMIN_SETUP_KEY` from `.env`.
@@ -405,11 +405,6 @@ station, so it needs no public address.
 resting after failures. One computer may serve production and the dev
 station. With no computer online, a worker host's moments go to the next
 host in the lineup.
-
-The old voice worker (`worker/`, protocol 1) still works until the Mac runs
-herde:
-1. Under "Old voice worker", add it with a key, which is shown once.
-2. Follow `worker/README.md`.
 
 ## Settings
 

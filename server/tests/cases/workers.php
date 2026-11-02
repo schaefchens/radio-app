@@ -20,30 +20,25 @@ use Arche\Workers\Tasks;
 
 const QWEN_VOICES = [['id' => 'Ryan', 'label' => 'Ryan'], ['id' => 'Sohee', 'label' => 'Sohee'], ['id' => 'Serena', 'label' => 'Serena']];
 
-// --- protocol 1 (ARCHE's first voice worker) ---------------------------------------------------
+// --- a computer of ours, speaking -----------------------------------------------------------------
 
-/** What a protocol 1 worker reports with every poll. @return array<string,mixed> */
+/** What a computer says about its speech: Qwen's voices in English and German, ready. @return array<string,mixed> */
 function qwenReport(array $more = []): array
 {
     return $more + ['name' => 'Studio Mac', 'version' => 'arche-worker 1.0.0', 'engine' => ['model' => Computers::MODEL], 'voices' => QWEN_VOICES, 'languages' => ['en', 'de'], 'ready' => true];
 }
 
-/** One of our computers, added by an admin: its key. */
+/** One of our computers, joined with an admin's invite: its key. */
 function newWorker(Arche\App $app, string $name = 'Studio Mac'): string
 {
-    return $app->computers()->create($name, 'test')['key'];
-}
-
-/** A protocol 1 poll, as ARCHE's first worker made it: it knows no profile, so it is given no speech. @return array{0:int,1:array<string,mixed>} */
-function workerPollV1(Arche\App $app, string $key, array $more = []): array
-{
-    return call($app, 'POST', '/api/worker/poll', qwenReport($more), ['x-arche-worker-key' => $key]);
+    $code = (string) $app->computers()->invite($name, 'own', 'test')['code'];
+    return (string) $app->computers()->join(['code' => $code, 'version' => 'herde/0.5.0', 'platform' => ['os' => 'darwin', 'arch' => 'arm64']], '127.0.0.1')['key'];
 }
 
 /**
  * A computer that polls, takes the most urgent speech it may, and says what
- * it is — once protocol 1's way, now herde's, in step with the station's
- * profile: these voices in English and German, or not ready.
+ * it is, in step with the station's profile: these voices in English and
+ * German, or not ready.
  *
  * @return array{0:int,1:array<string,mixed>}
  */
@@ -58,7 +53,7 @@ function workerPoll(Arche\App $app, string $key, array $more = []): array
         if (claim2($app, $key, (int) $offer['task'], $lease)[0] !== 200) continue;
         $GLOBALS['workerLeases'][(int) $offer['task']] = $lease;
         $t = $app->workerTasks()->task((int) $offer['task']) ?? throw new LogicException('task vanished');
-        // As protocol 1 handed a task over (Tasks::leaseV1).
+        // The task as the tests read it.
         return [200, ['task' => ['id' => $t['id'], 'purpose' => $t['purpose'], 'text' => (string) ($t['input']['text'] ?? ''), 'lang' => $t['lang'], 'voice' => $t['voice'],
             'model' => (string) ($app->hosts()->get($t['host_id'])['model'] ?? '') ?: Computers::MODEL, 'instruct' => (string) ($t['input']['instruct'] ?? ''),
             'temperature' => (float) ($t['input']['temperature'] ?? 0.7), 'seed' => (int) ($t['input']['seed'] ?? 0), 'lease_until' => $t['lease_until']],
@@ -79,7 +74,7 @@ function workerHope(Arche\App $app): array
     return $app->hosts()->save(hope($app)['id'], ['provider' => 'worker'], 'test');
 }
 
-/** Polls and uploads every task a protocol 1 worker is given, at most $n. @return list<array<string,mixed>> the tasks */
+/** Polls and uploads every task a computer of ours is given, at most $n. @return list<array<string,mixed>> the tasks */
 function speakAll(Arche\App $app, string $key, int $n = 10, ?string $mp3 = null): array
 {
     $done = [];
@@ -228,27 +223,25 @@ function herdeDiff(mixed $actual, mixed $fixture, string $path): array
 test('workers: a computer\'s key is shown once and kept as an HMAC; a wrong key, a switched-off computer and moderators are turned away', function () {
     $app = TestKit::app();
     $admin = adminOf($app);
-    [$s, $d] = call($app, 'POST', '/api/mod/workers', ['name' => 'Studio Mac'], $admin);
-    eq($s, 200, 'an admin adds one of ours');
-    $key = (string) $d['key'];
-    check(strlen($key) === 64, 'with a long key, shown now');
+    [$key, $id] = joined($app, 'own', false, 'Studio Mac');
+    check(strlen($key) === 64, 'it joins with a long key, shown now');
     $row = $app->store()->one('SELECT key_mac, key_hint, trust FROM computers');
     check($row['key_mac'] !== $key && !str_contains((string) $row['key_mac'], $key), 'kept only as an HMAC');
     eq([$row['key_hint'], $row['trust']], [substr($key, -4), 'own'], 'its last four characters; ours');
     eq(call($app, 'GET', '/api/mod/workers', [], $admin)[1]['workers'][0]['key_hint'] ?? null, substr($key, -4), 'the list never shows more');
     check(!str_contains((string) json_encode(call($app, 'GET', '/api/mod/workers', [], $admin)[1]), $key), 'nor the key');
 
-    eq(workerPollV1($app, str_repeat('0', 64)), [401, ['error' => 'bad_worker_key']], 'a wrong key is refused');
-    eq(workerPollV1($app, $key)[0], 200, 'its own is not');
-    eq(poll2($app, $key)[0], 200, 'the same key speaks protocol 2, in its own header');
-    $id = (int) $d['worker']['id'];
+    eq(poll2($app, str_repeat('0', 64)), [401, ['error' => 'bad_worker_key']], 'a wrong key is refused');
+    eq(poll2($app, $key)[0], 200, 'its own is not');
+    eq(call($app, 'POST', '/api/worker/v2/poll', [], ['x-arche-worker-key' => $key]), [401, ['error' => 'bad_worker_key']], 'in its header only (the first voice worker\'s is gone)');
     call($app, 'PATCH', "/api/mod/workers/$id", ['active' => false], $admin);
-    eq(workerPollV1($app, $key), [403, ['error' => 'worker_inactive']], 'switched off');
-    eq(poll2($app, $key), [403, ['error' => 'worker_inactive']], 'in either protocol');
+    eq(poll2($app, $key), [403, ['error' => 'worker_inactive']], 'switched off');
     [, $rotated] = call($app, 'PATCH', "/api/mod/workers/$id", ['active' => true, 'rotate' => true], $admin);
-    eq(workerPollV1($app, $key)[0], 401, 'a new key: the old one stops working');
-    eq(workerPollV1($app, (string) $rotated['key'])[0], 200, 'the new one works');
+    eq(poll2($app, $key)[0], 401, 'a new key: the old one stops working');
+    eq(poll2($app, (string) $rotated['key'])[0], 200, 'the new one works');
     eq(call($app, 'GET', '/api/mod/workers', [], moderatorHeaders($app))[0], 403, 'computers are for admins');
+    eq(call($app, 'POST', '/api/worker/poll', qwenReport(), ['x-worker-key' => (string) $rotated['key']])[0], 404, 'protocol 1 is gone');
+    eq(call($app, 'POST', '/api/mod/workers', ['name' => 'Studio Mac'], $admin)[0], 405, 'and so is adding a computer by key: ours join with an invite too');
     eq(call($app, 'DELETE', "/api/mod/workers/$id", [], $admin)[0], 200, 'removed');
     check(!str_contains((string) json_encode($app->store()->all('SELECT detail FROM audit')), $key), 'the audit never names a key');
 });
@@ -269,7 +262,6 @@ test('workers: an invite is a one-time code — used once, gone after three days
     eq(call($app, 'POST', '/api/worker/v2/join', ['code' => $inv['code'], 'name' => 'again', 'version' => 'x', 'platform' => $platform]), [401, ['error' => 'bad_code']], 'used once');
     eq(call($app, 'GET', '/api/mod/workers', [], $admin)[1]['invites'], [], 'and no longer listed');
     eq(poll2($app, (string) $j['key'])[0], 200, 'its key works');
-    eq(workerPollV1($app, (string) $j['key']), [403, ['error' => 'worker_inactive']], 'but not in protocol 1, which knows no trust');
 
     [, $old] = call($app, 'POST', '/api/mod/workers/invites', ['name' => 'Late', 'trust' => 'own'], $admin);
     TestKit::clock($app)->advance(73 * 3_600_000);
@@ -301,7 +293,7 @@ test('workers: the protocol\'s example exchanges (herde) — the station answers
     [, $inv] = call($app, 'POST', '/api/mod/workers/invites', ['name' => "Peter's PC", 'trust' => 'own'], $admin);
     $answer('join.ok', call($app, 'POST', '/api/worker/v2/join', ['code' => $inv['code'], 'name' => "Peter's PC", 'version' => 'herde/0.2.0', 'platform' => $platform]));
     $answer('join.bad-code', call($app, 'POST', '/api/worker/v2/join', ['code' => 'AAAA-BBBB-CCCC-DDDD', 'name' => 'x', 'version' => 'x', 'platform' => $platform]));
-    $key = $app->computers()->create('Studio Mac', 'test')['key'];
+    $key = newWorker($app);
     $app->computers()->update((int) $app->store()->value("SELECT id FROM computers WHERE name = 'Studio Mac'"), [], 'test');
 
     // Work of every kind waiting: a live moment's two languages, a text task, a line.
@@ -491,7 +483,7 @@ test('workers: a lease lives while the polls list it — a long take stays, sile
         eq($p['cancel'], [], "after {$i}×25 s still its own");
         $app->workerTasks()->maintain();
     }
-    eq($app->workerTasks()->task($t)['state'], 'leased', 'a take of 400 s stays leased (protocol 1 gave it back halfway)');
+    eq($app->workerTasks()->task($t)['state'], 'leased', 'a take of 400 s stays leased');
     eq(result2($app, $key, $t, 'long-take-lease-0001')[1], ['ok' => true], 'and its result is taken');
 
     $quiet = queued($app, 'try', 'private');
@@ -617,7 +609,7 @@ test('workers: an idle poll writes nothing — listeners share the PHP processes
     check($changes() > $mark, 'a change is written');
 });
 
-// --- protocol 1, as the Mac speaks it until it runs herde -------------------------------------------
+// --- worker hosts: our computers speaking for them ------------------------------------------------
 
 test('workers: a worker host speaks only while a computer offering its voice is online and ready', function () {
     $app = TestKit::app();
@@ -1055,7 +1047,7 @@ test('workers: migration 17 keeps every computer as ours and every task as priva
     eq([$t['kind'], $t['class'], $t['privacy'], $t['model'], $t['voice'], $t['state'], $t['worker_id'], $t['takes'], $t['due'], $t['input']['text'], $t['input']['seed'], $t['extra']],
         ['tts', 'live', 'private', Computers::TTS, 'Sohee', 'leased', 3, 1, 1030, 'Hallo Anna.', 1, ['signature' => 'x']], 'a waiting moment\'s task kept with its id, as private');
     eq($store->value("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('workers', 'voice_tasks')"), 0, 'the old tables are gone');
-    check($app->computers()->create('Next', 'test')['worker']['id'] > 7, 'a removed worker\'s id never comes back');
+    check(joined($app, 'own', false, 'Next')[1] > 7, 'a removed worker\'s id never comes back');
 
     [, $lid] = joined($app, 'lender');
     $public = queued($app, 'line', 'public');
